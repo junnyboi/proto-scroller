@@ -203,8 +203,43 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+function vitePluginGodotStatic(): Plugin {
+  const gameRoot = path.resolve(PROJECT_ROOT, "client", "public", "game");
+  const contentTypes: Record<string, string> = {
+    ".js": "text/javascript; charset=utf-8",
+    ".pck": "application/octet-stream",
+    ".png": "image/png",
+    ".wasm": "application/wasm",
+  };
 
+  return {
+    name: "proto-scroller-godot-static",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use("/game", (req, res, next) => {
+        const requestPath = decodeURIComponent(req.url?.split("?")[0] ?? "")
+          .replace(/^\/+/, "");
+        const filePath = path.resolve(gameRoot, requestPath);
+        if (
+          !requestPath ||
+          !filePath.startsWith(`${gameRoot}${path.sep}`) ||
+          !fs.existsSync(filePath) ||
+          !fs.statSync(filePath).isFile()
+        ) {
+          next();
+          return;
+        }
+
+        res.setHeader(
+          "Content-Type",
+          contentTypes[path.extname(filePath)] ?? "application/octet-stream",
+        );
+        res.setHeader("Cache-Control", "no-cache");
+        fs.createReadStream(filePath).pipe(res);
+      });
+    },
+  };
+}
+const plugins = [vitePluginGodotStatic(), react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
 export default defineConfig({
   plugins,
   resolve: {

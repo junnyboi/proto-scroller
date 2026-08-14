@@ -175,3 +175,253 @@
     }
   }
 }
+
+:root {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+  background: #020810;
+}
+
+.game-host {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  isolation: isolate;
+  color: #c9f8ed;
+  background:
+    radial-gradient(circle at 78% 42%, rgba(21, 133, 120, 0.14), transparent 34%),
+    linear-gradient(145deg, #061522 0%, #020810 50%, #01040a 100%);
+}
+
+.game-host::after {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+
+.ambient-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image:
+    linear-gradient(rgba(80, 239, 203, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 239, 203, 0.22) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, transparent, black 20%, black 76%, transparent);
+}
+
+.host-rail,
+.host-footer {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem clamp(1rem, 4vw, 4rem);
+  color: #66b9aa;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.host-rail {
+  border-bottom: 1px solid rgba(94, 235, 204, 0.14);
+  background: rgba(2, 8, 16, 0.66);
+  backdrop-filter: blur(18px);
+}
+
+.host-footer {
+  color: #446d70;
+  border-top: 1px solid rgba(94, 235, 204, 0.1);
+}
+
+.host-identity,
+.host-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  white-space: nowrap;
+}
+
+.host-identity {
+  color: #b7f7e8;
+  font-weight: 600;
+}
+
+.rail-divider,
+.rail-muted {
+  color: #416d6e;
+}
+
+.signal-mark,
+.status-dot {
+  display: inline-block;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 50%;
+  background: #64ffd9;
+  box-shadow: 0 0 16px rgba(100, 255, 217, 0.82);
+}
+
+.status-dot {
+  width: 0.36rem;
+  height: 0.36rem;
+}
+
+.viewport-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+.viewport-frame {
+  position: relative;
+  width: min(100%, 1280px);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgba(98, 255, 220, 0.28);
+  border-radius: 6px;
+  background: #01050d;
+  box-shadow:
+    0 36px 110px rgba(0, 0, 0, 0.64),
+    0 0 0 1px rgba(120, 255, 225, 0.04) inset,
+    0 0 72px rgba(20, 174, 143, 0.09);
+}
+
+.viewport-frame::before,
+.viewport-frame::after {
+  position: absolute;
+  z-index: 3;
+  width: 54px;
+  height: 54px;
+  content: "";
+  pointer-events: none;
+}
+
+.viewport-frame::before {
+  top: 10px;
+  left: 10px;
+  border-top: 1px solid #64ffd9;
+  border-left: 1px solid #64ffd9;
+}
+
+.viewport-frame::after {
+  right: 10px;
+  bottom: 10px;
+  border-right: 1px solid #64ffd9;
+  border-bottom: 1px solid #64ffd9;
+}
+
+.game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  opacity: 0;
+  outline: none;
+  transition: opacity 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.game-canvas.is-loaded {
+  opacity: 1;
+}
+
+.loading-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  color: #69cdb8;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+}
+
+.loading-line {
+  display: block;
+  width: 144px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #64ffd9, transparent);
+}
+
+.loading-progress {
+  color: #3f8176;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+}
+
+.loading-state.is-error {
+  color: #ff8f91;
+}
+
+.loading-state.is-error .loading-line {
+  background: linear-gradient(90deg, transparent, #ff6f73, transparent);
+}
+
+.error-detail {
+  max-width: 32rem;
+  padding: 0 2rem;
+  color: #b79094;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .status-dot {
+    animation: signal-pulse 1.8s ease-in-out infinite;
+  }
+
+  .loading-line {
+    animation: loading-scan 1.2s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+  }
+}
+
+@keyframes signal-pulse {
+  50% { opacity: 0.36; }
+}
+
+@keyframes loading-scan {
+  0%, 100% { transform: scaleX(0.55); opacity: 0.34; }
+  50% { transform: scaleX(1); opacity: 1; }
+}
+
+@media (max-width: 720px) {
+  .host-rail,
+  .host-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rail-divider,
+  .rail-muted,
+  .host-status,
+  .host-footer span:last-child {
+    display: none;
+  }
+
+  .viewport-stage {
+    padding: 0.75rem;
+  }
+
+  .viewport-frame {
+    border-radius: 2px;
+  }
+}
