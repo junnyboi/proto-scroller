@@ -19,13 +19,13 @@ layout_mode = 0
 offset_left = 72.0
 offset_top = 48.0
 offset_right = 1208.0
-offset_bottom = 82.0
+offset_bottom = 96.0
 theme_override_constants/separation = 16
 
 [node name="ProtocolLabel" type="Label" parent="TopRail"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 32
 text = "[ MGS // PROTOTYPE 01 ]"
 
 [node name="TopSpacer" type="Control" parent="TopRail"]
@@ -37,7 +37,7 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 32
 text = "STANDBY"
 horizontal_alignment = 2
 
@@ -53,15 +53,15 @@ color = Color(0.262745, 0.956863, 0.780392, 0.72)
 [node name="HeroStack" type="VBoxContainer" parent="."]
 layout_mode = 0
 offset_left = 104.0
-offset_top = 168.0
+offset_top = 128.0
 offset_right = 815.0
-offset_bottom = 608.0
-theme_override_constants/separation = 14
+offset_bottom = 606.0
+theme_override_constants/separation = 8
 
 [node name="Eyebrow" type="Label" parent="HeroStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.388235, 0.854902, 0.780392, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "SIGNAL ACQUIRED  /  WORLD 000"
 
 [node name="TitleLabel" type="Label" parent="HeroStack"]
@@ -71,7 +71,7 @@ theme_override_colors/font_color = Color(0.894118, 0.984314, 0.964706, 1)
 theme_override_colors/font_shadow_color = Color(0.0196078, 0.380392, 0.341176, 0.5)
 theme_override_constants/shadow_offset_x = 5
 theme_override_constants/shadow_offset_y = 5
-theme_override_font_sizes/font_size = 82
+theme_override_font_sizes/font_size = 72
 text = "PROTO\nSCROLLER"
 
 [node name="InstructionLabel" type="Label" parent="HeroStack"]
@@ -79,11 +79,11 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 32
 text = "A signal waits beyond the fold.\nInitialize the prototype runtime."
 
 [node name="ActionSpacer" type="Control" parent="HeroStack"]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
 
 [node name="ActionRow" type="HBoxContainer" parent="HeroStack"]
@@ -101,25 +101,25 @@ text = "INITIALIZE"
 [node name="HintLabel" type="Label" parent="HeroStack/ActionRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.360784, 0.545098, 0.560784, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 32
 text = "ENTER  /  CLICK"
 vertical_alignment = 1
 
 [node name="TelemetryPanel" type="PanelContainer" parent="."]
 layout_mode = 0
-offset_left = 922.0
-offset_top = 176.0
+offset_left = 860.0
+offset_top = 152.0
 offset_right = 1208.0
-offset_bottom = 538.0
+offset_bottom = 594.0
 
 [node name="PanelStack" type="VBoxContainer" parent="TelemetryPanel"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
 [node name="PanelHeading" type="Label" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.345098, 0.909804, 0.811765, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 32
 text = "RUNTIME TELEMETRY"
 
 [node name="Separator" type="HSeparator" parent="TelemetryPanel/PanelStack"]
@@ -129,50 +129,50 @@ modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
 [node name="SystemKey" type="Label" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.345098, 0.513726, 0.529412, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 32
 text = "SYSTEM"
 
 [node name="SystemValue" type="Label" parent="TelemetryPanel/PanelStack"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.741176, 0.823529, 0.819608, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 32
 text = "WAITING"
 
 [node name="ChannelKey" type="Label" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.345098, 0.513726, 0.529412, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 32
 text = "CHANNEL"
 
 [node name="ChannelValue" type="Label" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 32
 text = "SCROLLER-01"
 
 [node name="RenderKey" type="Label" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.345098, 0.513726, 0.529412, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 32
 text = "RENDER LANE"
 
 [node name="RenderValue" type="Label" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.388235, 0.854902, 0.780392, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 32
 text = "WEBGL 2"
 
 [node name="BottomRail" type="HBoxContainer" parent="."]
 layout_mode = 0
 offset_left = 72.0
-offset_top = 648.0
+offset_top = 664.0
 offset_right = 1208.0
-offset_bottom = 684.0
+offset_bottom = 716.0
 
 [node name="BuildLabel" type="Label" parent="BottomRail"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 32
 text = "AGENT 1  //  GODOT 4.7.1  //  COMPATIBILITY"
 
 [node name="BottomSpacer" type="Control" parent="BottomRail"]
@@ -182,6 +182,6 @@ size_flags_horizontal = 3
 [node name="CoordinatesLabel" type="Label" parent="BottomRail"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 32
 text = "1280 × 720"
 horizontal_alignment = 2

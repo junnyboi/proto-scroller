@@ -1,15 +1,32 @@
 extends SceneTree
 
 const DEVICE_ID: int = 4242
+const MAX_FRAMES: int = 240
+const MINIMUM_TEXT_HEIGHT: float = 32.0
 const REPORT_PATH: String = "res://artifacts/title_screen/report.json"
 const SHOT_PATH: String = "res://artifacts/title_screen/title-screen.png"
 
 var checks: Array[Dictionary] = []
 var completed: bool = false
+var elapsed_frames: int = 0
 
 
 func _initialize() -> void:
+	process_frame.connect(_on_process_frame)
 	call_deferred("_run")
+
+
+func _on_process_frame() -> void:
+	if completed:
+		return
+	elapsed_frames += 1
+	if elapsed_frames > MAX_FRAMES:
+		_check(
+			"frame_watchdog",
+			false,
+			"frames=%s max_frames=%s" % [elapsed_frames, MAX_FRAMES]
+		)
+		_finish("SKIP", "")
 
 
 func _run() -> void:
@@ -33,6 +50,8 @@ func _run() -> void:
 	_check("title_visible", title_visible, "visible=%s" % [title_visible])
 	_check("title_text", title_label.text == "PROTO\nSCROLLER", "text=%s" % [title_label.text])
 	_check("button_focused", button.has_focus(), "focused=%s" % [button.has_focus()])
+	_check_minimum_text_height(screen, button)
+	_check_layout_contract(screen, button)
 
 	var shot_status: String = "SKIP"
 	var shot_path: String = ""
@@ -65,7 +84,54 @@ func _run() -> void:
 	var status_label: Label = screen.get_node("%StatusLabel") as Label
 	_check("input_initializes", screen.initialized, "initialized=%s" % [screen.initialized])
 	_check("ready_status", status_label.text == "SYSTEM READY", "status=%s" % [status_label.text])
+	_check("frame_budget", elapsed_frames <= MAX_FRAMES, _frame_budget_detail())
 	_finish(shot_status, shot_path)
+
+
+func _check_minimum_text_height(screen: TitleScreen, button: Button) -> void:
+	var measured_controls: int = 0
+	var minimum_height: float = INF
+	for label_node: Node in screen.find_children("*", "Label", true, false):
+		var label: Label = label_node as Label
+		minimum_height = minf(minimum_height, _rendered_line_height(label))
+		measured_controls += 1
+	minimum_height = minf(minimum_height, _rendered_line_height(button))
+	measured_controls += 1
+	_check(
+		"minimum_rendered_text_height",
+		minimum_height >= MINIMUM_TEXT_HEIGHT,
+		"minimum_px=%.2f required_px=%.2f controls=%s"
+		% [minimum_height, MINIMUM_TEXT_HEIGHT, measured_controls]
+	)
+
+
+func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
+	var bottom_rail: HBoxContainer = screen.get_node("BottomRail") as HBoxContainer
+	var telemetry_panel: PanelContainer = screen.get_node("TelemetryPanel") as PanelContainer
+	var button_rect: Rect2 = button.get_global_rect()
+	var footer_rect: Rect2 = bottom_rail.get_global_rect()
+	var telemetry_rect: Rect2 = telemetry_panel.get_global_rect()
+	var viewport_rect: Rect2 = Rect2(Vector2.ZERO, Vector2(root.size))
+	_check(
+		"action_footer_separation",
+		not button_rect.intersects(footer_rect),
+		"button=%s footer=%s" % [button_rect, footer_rect]
+	)
+	_check(
+		"telemetry_inside_viewport",
+		viewport_rect.encloses(telemetry_rect),
+		"viewport=%s telemetry=%s" % [viewport_rect, telemetry_rect]
+	)
+
+
+func _rendered_line_height(control: Control) -> float:
+	var font: Font = control.get_theme_font(&"font")
+	var font_size: int = control.get_theme_font_size(&"font_size")
+	return font.get_height(font_size)
+
+
+func _frame_budget_detail() -> String:
+	return "frames=%s max_frames=%s" % [elapsed_frames, MAX_FRAMES]
 
 
 func _send_accept(pressed: bool) -> void:
@@ -93,6 +159,8 @@ func _finish(shot_status: String, shot_path: String) -> void:
 		"result": "PASS" if all_passed else "FAIL",
 		"done": completed,
 		"headless": DisplayServer.get_name() == "headless",
+		"elapsed_frames": elapsed_frames,
+		"max_frames": MAX_FRAMES,
 		"checks": checks,
 		"shot": {"status": shot_status, "path": shot_path},
 		"engine": Engine.get_version_info().get("string", "unknown"),
