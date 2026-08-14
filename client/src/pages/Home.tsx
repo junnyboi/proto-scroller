@@ -68,10 +68,7 @@ export default function Home() {
         ensureCrossOriginIsolationHeaders: true,
         executable,
         experimentalVK: false,
-        fileSizes: {
-          [`${executable}.pck`]: 12724,
-          [`${executable}.wasm`]: 39513091,
-        },
+        fileSizes: {},
         focusCanvas: true,
         gdextensionLibs: [],
         godotPoolSize: 4,
