@@ -35,7 +35,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "26c12f65";
+const GAME_PACK_VERSION = "270c2a6a";
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

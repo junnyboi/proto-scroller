@@ -62,7 +62,9 @@ func _run() -> void:
 	_check("robot_turns", city.robot.facing == -1, "facing=%s" % city.robot.facing)
 	city.car.current_health = 1.0
 	city.streetlamp.current_health = 1.0
-	city.building.current_health = 1.0
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			city.building.get_cell(column, row).current_health = 1.0
 	city.robot.stomp_radius = 950.0
 	city.robot.stomp_damage = 300.0
 	city.trigger_test_stomp()
@@ -74,7 +76,8 @@ func _run() -> void:
 	_check(
 		"building_breaks",
 		city.building.is_destroyed(),
-		"destroyed=%s" % city.building.is_destroyed()
+		"destroyed=%s cells=%d"
+		% [city.building.is_destroyed(), city.building.destroyed_cell_count()]
 	)
 	_check(
 		"debris_activates",

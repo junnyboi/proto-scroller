@@ -18,12 +18,16 @@ func test_main_transitions_from_title_to_city_slice() -> void:
 	_record_test_execution()
 
 
-func test_city_slice_builds_parallax_destructibles_and_enemies() -> void:
+func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
 	assert_eq(city.get_node("ParallaxCity").get_child_count(), 5)
 	assert_not_null(city.building)
+	assert_eq(city.building.get_child_count(), 6)
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			assert_not_null(city.building.get_cell(column, row))
 	assert_not_null(city.streetlamp)
 	assert_not_null(city.car)
 	assert_true(city.soldier is SoldierEnemy)
@@ -38,48 +42,73 @@ func test_stomp_breaks_the_nearby_car_and_lamp() -> void:
 	add_child_autofree(city)
 	await get_tree().process_frame
 	city.car.current_health = 1.0
-	city.streetlamp.current_health = 1.0
-	city.robot.stomp_radius = 600.0
+	city.streetlamp.current_health = 0.05
+	city.robot.stomp_radius = 500.0
 	city.robot.stomp_damage = 200.0
 	city.trigger_test_stomp()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
 	assert_true(city.streetlamp.is_broken)
-	assert_false(city.building.is_destroyed())
+	assert_eq(city.building.destroyed_cell_count(), 0)
 	assert_eq(city.score, 450)
 	_record_test_execution()
 
 
-func test_robot_impact_collapses_building_into_passable_scored_rubble() -> void:
+func test_impact_destroys_only_the_struck_lower_bay() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
-	var initial_available: int = city.debris_pool.available_count()
+	var hit_position: Vector2 = city.building.global_position + Vector2(-210.0, -110.0)
 	var attack_id: int = city.robot.request_structure_impact(
 		city.building,
-		city.building.global_position - Vector2(220.0, 120.0),
+		hit_position,
 		Vector2.RIGHT,
 		260.0
 	)
 	await get_tree().process_frame
 	assert_gt(attack_id, 0)
-	assert_true(city.building.is_destroyed())
-	assert_lt(city.debris_pool.available_count(), initial_available)
-	assert_not_null(city.get_node_or_null(^"ImpactFragments"))
-	assert_eq(city.score, 1850)
-	var intact_collision: CollisionShape2D = city.building.get_node(
+	assert_true(city.building.is_cell_destroyed(0, 1))
+	assert_false(city.building.is_cell_destroyed(1, 1))
+	assert_false(city.building.is_cell_destroyed(2, 1))
+	for column: int in range(StructuralBuilding2D.COLUMNS):
+		assert_false(city.building.is_cell_destroyed(column, 0))
+	assert_eq(city.building.destroyed_cell_count(), 1)
+	assert_false(city.building.is_destroyed())
+	assert_eq(city.score, 1150)
+	var collision: CollisionShape2D = city.building.get_cell(0, 1).get_node(
 		^"IntactBody/CollisionShape2D"
 	) as CollisionShape2D
-	var rubble_body: StaticBody2D = city.building.get_node(^"RubbleBody") as StaticBody2D
-	assert_true(intact_collision.disabled)
-	assert_eq(rubble_body.collision_layer, 0)
+	assert_true(collision.disabled)
+	assert_not_null(city.get_node_or_null(^"ImpactFragments"))
 	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
-	assert_eq(score_label.text, "00001850")
+	assert_eq(score_label.text, "00001150")
 	_record_test_execution()
 
 
-func test_robot_walks_through_the_collapsed_building() -> void:
+func test_upper_row_bridges_until_every_lower_support_is_destroyed() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for column: int in [0, 1]:
+		var cell: Destructible2D = city.building.get_cell(column, 1)
+		cell.receive_damage(_fatal_cell_event(city, cell, 8100 + column))
+		await get_tree().process_frame
+	assert_eq(city.building.destroyed_cell_count(), 2)
+	for column: int in range(StructuralBuilding2D.COLUMNS):
+		assert_false(city.building.is_cell_destroyed(column, 0))
+	var final_support: Destructible2D = city.building.get_cell(2, 1)
+	final_support.receive_damage(_fatal_cell_event(city, final_support, 8102))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_eq(city.building.destroyed_cell_count(), 6)
+	assert_true(city.building.is_destroyed())
+	for column: int in range(StructuralBuilding2D.COLUMNS):
+		assert_true(city.building.is_cell_destroyed(column, 0))
+	_record_test_execution()
+
+
+func test_robot_tunnels_through_successive_lower_bays() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -87,11 +116,14 @@ func test_robot_walks_through_the_collapsed_building() -> void:
 	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
 		enemy.set_physics_process(false)
 	city.robot.position = Vector2(1100.0, 460.0)
-	for step_index: int in range(150):
+	for step_index: int in range(240):
 		city.robot.physics_step(1.0, 1.0 / 60.0)
 		await get_tree().physics_frame
+	assert_gt(city.robot.position.x, city.building.position.x + 320.0)
+	for column: int in range(StructuralBuilding2D.COLUMNS):
+		assert_true(city.building.is_cell_destroyed(column, 1))
 	assert_true(city.building.is_destroyed())
-	assert_gt(city.robot.position.x, city.building.position.x + 180.0)
+	assert_gt(city.debris_pool.active_count(), 0)
 	_record_test_execution()
 
 
@@ -111,8 +143,10 @@ func test_land_visuals_share_the_asphalt_baseline() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
+	var lower_cell: Destructible2D = city.building.get_cell(0, 1)
+	var lower_visual: Sprite2D = lower_cell.get_node(^"IntactVisual") as Sprite2D
 	var visuals: Array[Sprite2D] = [
-		city.building.get_node(^"IntactVisual") as Sprite2D,
+		lower_visual,
 		city.streetlamp.get_node(^"Visual") as Sprite2D,
 		city.car.get_node(^"Visual") as Sprite2D,
 		city.soldier.get_node(^"Visual") as Sprite2D,
@@ -148,13 +182,14 @@ func test_ground_enemies_bounce_only_while_moving() -> void:
 	_record_test_execution()
 
 
-func test_game_over_retry_replaces_the_city_with_fresh_health() -> void:
+func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> void:
 	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)
 	await get_tree().process_frame
 	main.start_game()
 	await get_tree().process_frame
 	var first_city: CitySlice = main.city_slice
+	first_city._add_score(500)
 	var fatal_event: DamageEvent = DamageEvent.new(9001, null, 9999.0)
 	assert_true(first_city.robot.receive_damage(fatal_event))
 	assert_true(first_city.game_over_active)
@@ -167,11 +202,30 @@ func test_game_over_retry_replaces_the_city_with_fresh_health() -> void:
 	assert_ne(main.city_slice, first_city)
 	assert_false(main.city_slice.game_over_active)
 	assert_eq(main.city_slice.robot.current_health, main.city_slice.robot.max_health)
+	assert_eq(main.city_slice.score, 0)
 	_record_test_execution()
 
 
+func _fatal_cell_event(
+	city: CitySlice,
+	cell: Destructible2D,
+	attack_id: int
+) -> DamageEvent:
+	return DamageEvent.new(
+		attack_id,
+		city.robot,
+		cell.max_health + 1.0,
+		&"structural",
+		cell.global_position,
+		Vector2.RIGHT,
+		260.0
+	)
+
+
 func _visual_bottom(visual: Sprite2D) -> float:
-	var rendered_height: float = visual.texture.get_size().y * absf(visual.global_scale.y)
+	var rendered_height: float = visual.region_rect.size.y * absf(visual.global_scale.y)
+	if not visual.region_enabled:
+		rendered_height = visual.texture.get_size().y * absf(visual.global_scale.y)
 	return visual.global_position.y + rendered_height * 0.5
 
 

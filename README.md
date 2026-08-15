@@ -1,6 +1,6 @@
 # Proto Scroller
 
-A Godot 4.7.1 city-destruction slice with a giant robot, five-layer parallax city, destructible props and building, combined-arms enemies, and a WebAssembly host.
+A Godot 4.7.1 city-destruction slice with a giant robot, five-layer parallax city, a six-cell structural building, destructible props, combined-arms enemies, and a WebAssembly host.
 
 ## Project layout
 
@@ -16,7 +16,7 @@ cd game
 ./verify.sh --full
 ```
 
-The full gate runs import, GDScript lint/parse checks, seven GUT tests, headless boot, deterministic movement/turn/destruction scenarios, fresh 1280×720 launch and destruction renders, and a cache-bypassed Web export. A required render SKIP or zero-test run is blocking.
+The full gate runs import, GDScript lint/parse checks, all GUT suites, headless boot, deterministic movement/turn/destruction scenarios, fresh 1280×720 launch and destruction renders, and a cache-bypassed Web export. A required render SKIP or zero-test run is blocking.
 
 ## Run the web host
 
@@ -25,7 +25,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the reported URL, wait for `WEB RUNTIME ONLINE`, then activate `INITIALIZE` inside the canvas. Use **A/D** to move and **Space** to stomp. The first stomp destroys the nearby car; advance to reach the streetlamp, building, soldiers, tank, and helicopter.
+Open the reported URL, wait for `WEB RUNTIME ONLINE`, then activate `INITIALIZE` inside the canvas. Use **A/D** to move and **Space** to stomp. The first stomp destroys the nearby car; advance into the building to break its three lower bays in sequence. The upper row remains bridged while any lower support survives, then collapses into rubble after the final support fails.
 
 ## Production build
 

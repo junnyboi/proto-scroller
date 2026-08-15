@@ -89,15 +89,26 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 
 func _draw() -> void:
 	var half_size: Vector2 = _body_size * 0.5
-	draw_rect(Rect2(-half_size, _body_size), Color("70655d"), true)
-	draw_rect(
-		Rect2(-half_size + Vector2(3.0, 3.0), Vector2(_body_size.x - 6.0, 4.0)),
-		Color("a58c78"),
-		true
-	)
+	var outline: PackedVector2Array = PackedVector2Array([
+		Vector2(-half_size.x, -half_size.y * 0.45),
+		Vector2(-half_size.x * 0.38, -half_size.y),
+		Vector2(half_size.x * 0.62, -half_size.y * 0.82),
+		Vector2(half_size.x, -half_size.y * 0.22),
+		Vector2(half_size.x * 0.74, half_size.y),
+		Vector2(-half_size.x * 0.20, half_size.y * 0.78),
+		Vector2(-half_size.x, half_size.y * 0.34),
+	])
+	draw_colored_polygon(outline, Color("4f4a46"))
+	var facet: PackedVector2Array = PackedVector2Array([
+		Vector2(-half_size.x * 0.38, -half_size.y * 0.72),
+		Vector2(half_size.x * 0.48, -half_size.y * 0.60),
+		Vector2(half_size.x * 0.20, -half_size.y * 0.08),
+		Vector2(-half_size.x * 0.62, half_size.y * 0.12),
+	])
+	draw_colored_polygon(facet, Color("786d65"))
 	draw_line(
-		Vector2(-half_size.x + 2.0, half_size.y - 3.0),
-		Vector2(half_size.x - 2.0, -half_size.y + 3.0),
+		Vector2(-half_size.x * 0.72, half_size.y * 0.22),
+		Vector2(half_size.x * 0.62, -half_size.y * 0.38),
 		Color("302c2a"),
 		maxf(2.0, _body_size.y * 0.12)
 	)

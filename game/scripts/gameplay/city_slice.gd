@@ -17,7 +17,9 @@ const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controlle
 const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
 const DIRECTOR_SCRIPT: Script = preload("res://scripts/destruction/destruction_director.gd")
 const DEBRIS_POOL_SCRIPT: Script = preload("res://scripts/destruction/debris_pool.gd")
-const DESTRUCTIBLE_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.gd")
+const STRUCTURAL_BUILDING_SCRIPT: Script = preload(
+	"res://scripts/destruction/structural_building_2d.gd"
+)
 const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop_2d.gd")
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
@@ -46,7 +48,7 @@ var robot: GiantRobotController
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
 var projectile_root: Node2D
-var building: Destructible2D
+var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
 var soldier: SoldierEnemy
@@ -221,6 +223,7 @@ func _build_robot() -> void:
 func _build_destructibles() -> void:
 	building = _create_building(Vector2(1450.0, LAND_VISUAL_BASELINE_Y))
 	building.damage_applied.connect(_on_building_damage_applied)
+	building.cell_destroyed.connect(_on_building_cell_destroyed)
 	building.destroyed.connect(_on_building_destroyed)
 	streetlamp = _create_prop(
 		"Streetlamp",
@@ -250,67 +253,23 @@ func _build_destructibles() -> void:
 	car.destroyed.connect(_on_prop_destroyed.bind(300))
 
 
-func _create_building(position_value: Vector2) -> Destructible2D:
-	var node: Destructible2D = DESTRUCTIBLE_SCRIPT.new() as Destructible2D
+func _create_building(position_value: Vector2) -> StructuralBuilding2D:
+	var node: StructuralBuilding2D = (
+		STRUCTURAL_BUILDING_SCRIPT.new() as StructuralBuilding2D
+	)
 	node.name = "DestructibleBuilding"
 	node.position = position_value
 	node.z_index = 5
-	node.max_health = 85.0
-	node.damaged_stage_ratio = 0.65
-	node.gameplay_chunk_count = 6
+	node.intact_texture = BUILDING_INTACT
+	node.damaged_texture = BUILDING_DAMAGED
+	node.rubble_texture = BUILDING_RUBBLE
+	node.display_size = Vector2(500.0, 445.0)
+	node.cell_health = 85.0
+	node.collision_layer_value = BUILDING_LAYER
+	node.collision_mask_value = ROBOT_LAYER
+	node.hurtbox_layer_value = HURTBOX_LAYER
 	node.debris_pool_path = NodePath("../BuildingDebrisPool")
-	node.intact_visual_path = ^"IntactVisual"
-	node.damaged_visual_path = ^"DamagedVisual"
-	node.rubble_visual_path = ^"RubbleVisual"
-	node.intact_collision_path = ^"IntactBody/CollisionShape2D"
-	node.rubble_collision_path = ^"RubbleBody/CollisionShape2D"
-	var intact: Sprite2D = _make_fitted_sprite(BUILDING_INTACT, Vector2(500.0, 445.0))
-	intact.name = "IntactVisual"
-	intact.position = Vector2(0.0, -222.0)
-	node.add_child(intact)
-	var damaged: Sprite2D = _make_fitted_sprite(BUILDING_DAMAGED, Vector2(500.0, 445.0))
-	damaged.name = "DamagedVisual"
-	damaged.position = Vector2(0.0, -222.0)
-	node.add_child(damaged)
-	var rubble: Sprite2D = _make_fitted_sprite(BUILDING_RUBBLE, Vector2(500.0, 170.0))
-	rubble.name = "RubbleVisual"
-	rubble.position = Vector2(0.0, -78.0)
-	node.add_child(rubble)
-	var intact_body: StaticBody2D = StaticBody2D.new()
-	intact_body.name = "IntactBody"
-	intact_body.collision_layer = BUILDING_LAYER
-	intact_body.collision_mask = ROBOT_LAYER
-	var intact_collision: CollisionShape2D = CollisionShape2D.new()
-	intact_collision.name = "CollisionShape2D"
-	var intact_rectangle: RectangleShape2D = RectangleShape2D.new()
-	intact_rectangle.size = Vector2(475.0, 420.0)
-	intact_collision.shape = intact_rectangle
-	intact_collision.position = Vector2(0.0, -210.0)
-	intact_body.add_child(intact_collision)
-	node.add_child(intact_body)
-	var rubble_body: StaticBody2D = StaticBody2D.new()
-	rubble_body.name = "RubbleBody"
-	rubble_body.collision_layer = 0
-	rubble_body.collision_mask = 0
-	var rubble_collision: CollisionShape2D = CollisionShape2D.new()
-	rubble_collision.name = "CollisionShape2D"
-	var rubble_rectangle: RectangleShape2D = RectangleShape2D.new()
-	rubble_rectangle.size = Vector2(450.0, 92.0)
-	rubble_collision.shape = rubble_rectangle
-	rubble_collision.position = Vector2(0.0, -45.0)
-	rubble_body.add_child(rubble_collision)
-	node.add_child(rubble_body)
-	var hurtbox: Area2D = Area2D.new()
-	hurtbox.name = "Hurtbox"
-	hurtbox.collision_layer = HURTBOX_LAYER
-	hurtbox.collision_mask = 0
-	var hurt_collision: CollisionShape2D = CollisionShape2D.new()
-	var hurt_rectangle: RectangleShape2D = RectangleShape2D.new()
-	hurt_rectangle.size = Vector2(500.0, 440.0)
-	hurt_collision.shape = hurt_rectangle
-	hurt_collision.position = Vector2(0.0, -220.0)
-	hurtbox.add_child(hurt_collision)
-	node.add_child(hurtbox)
+	node.chunks_per_cell = 3
 	add_child(node)
 	return node
 
@@ -640,6 +599,14 @@ func _spawn_impact_particles(
 
 func _on_building_damage_applied(amount: float, _event: DamageEvent) -> void:
 	_add_score(roundi(amount * 10.0))
+
+
+func _on_building_cell_destroyed(
+	_column: int,
+	_row: int,
+	_event: DamageEvent
+) -> void:
+	_add_score(300)
 
 
 func _on_building_destroyed(_event: DamageEvent) -> void:
