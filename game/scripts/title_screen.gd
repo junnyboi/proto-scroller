@@ -1,6 +1,8 @@
 class_name TitleScreen
 extends Control
 
+signal start_requested
+
 const GRID_SIZE: float = 72.0
 const BG_TOP: Color = Color("071524")
 const BG_BOTTOM: Color = Color("01050d")
@@ -42,7 +44,8 @@ func initialize_game() -> bool:
 
 
 func _on_initialize_pressed() -> void:
-	initialize_game()
+	if initialize_game():
+		start_requested.emit()
 
 
 func _draw() -> void:

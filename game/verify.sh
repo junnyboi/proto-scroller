@@ -15,7 +15,7 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 rm -rf artifacts
-mkdir -p artifacts/title_screen
+mkdir -p artifacts/title_screen artifacts/city_slice
 START_EPOCH="$(date +%s)"
 
 run_engine() {
@@ -48,6 +48,12 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/title_screen/report.json >/dev/null
 
+printf '%s\n' '[L4] city-slice headless scenario'
+run_engine "$GODOT" --headless --fixed-fps 60 --path . \
+  -s selftest/city_slice_scenario.gd
+jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
+  artifacts/city_slice/report.json >/dev/null
+
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
   printf '%s\n' '[L5] windowed render scenario'
@@ -60,6 +66,22 @@ if [[ "$MODE" == "full" ]]; then
   grep -Fq '1280 x 720' <<< "$DIMENSIONS"
   SHOT_HASH="$(sha256sum artifacts/title_screen/title-screen.png | cut -d' ' -f1)"
   printf 'shot_sha256=%s\n' "$SHOT_HASH"
+
+  printf '%s\n' '[L5] windowed city-slice render scenario'
+  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+    -s selftest/city_slice_scenario.gd
+  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+    artifacts/city_slice/report.json >/dev/null
+  test -s artifacts/city_slice/city-slice.png
+  CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice.png)"
+  grep -Fq '1280 x 720' <<< "$CITY_DIMENSIONS"
+
+  printf '%s\n' '[L5] initial city-slice visual scenario'
+  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+    -s selftest/city_slice_visual_scenario.gd
+  test -s artifacts/city_slice/city-slice-initial.png
+  INITIAL_CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice-initial.png)"
+  grep -Fq '1280 x 720' <<< "$INITIAL_CITY_DIMENSIONS"
 
   printf '%s\n' '[WEB] cache-bypassed release export'
   rm -rf ../client/public/game

@@ -25,7 +25,7 @@ func test_launch_scene_contract() -> void:
 	assert_eq(ProjectSettings.get_setting("application/config/name"), "Proto Scroller")
 	assert_eq(
 		ProjectSettings.get_setting("application/run/main_scene"),
-		"res://scenes/title_screen.tscn"
+		"res://scenes/main/main.tscn"
 	)
 	assert_eq(title_label.text, "PROTO\nSCROLLER")
 	assert_eq(initialize_button.text, "INITIALIZE")
