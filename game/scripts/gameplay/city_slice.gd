@@ -27,8 +27,8 @@ const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
 const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
-const SOLDIER_RAGDOLL_POOL_SCRIPT: Script = preload(
-	"res://scripts/actors/soldier_ragdoll_pool.gd"
+const SOLDIER_DEFEAT_POOL_SCRIPT: Script = preload(
+	"res://scripts/actors/soldier_defeat_pool.gd"
 )
 const ENEMY_WRECK_SCRIPT: Script = preload("res://scripts/actors/enemy_wreck_2d.gd")
 
@@ -36,7 +36,6 @@ const SKY_TEXTURE: Texture2D = preload("res://art/city/parallax/sky.png")
 const FAR_TEXTURE: Texture2D = preload("res://art/city/parallax/far_skyline.png")
 const INFRA_TEXTURE: Texture2D = preload("res://art/city/parallax/infrastructure.png")
 const NEAR_TEXTURE: Texture2D = preload("res://art/city/parallax/near_buildings.png")
-const FOREGROUND_TEXTURE: Texture2D = preload("res://art/city/parallax/foreground.png")
 const BUILDING_INTACT: Texture2D = preload("res://art/city/destructibles/building_intact.png")
 const BUILDING_DAMAGED: Texture2D = preload("res://art/city/destructibles/building_damaged.png")
 const BUILDING_RUBBLE: Texture2D = preload("res://art/city/destructibles/building_rubble.png")
@@ -64,7 +63,7 @@ var robot: GiantRobotController
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
 var enemy_scrap_pool: DebrisPool
-var soldier_ragdoll_pool: SoldierRagdollPool
+var soldier_defeat_pool: SoldierDefeatPool
 var projectile_root: Node2D
 var impact_audio_root: Node2D
 var enemy_remains_root: Node2D
@@ -74,7 +73,7 @@ var car: DestructibleProp2D
 var soldier: SoldierEnemy
 var tank: TankEnemy
 var helicopter: HelicopterEnemy
-var soldier_ragdoll: SoldierRagdoll2D
+var soldier_defeat_body: SoldierDefeatBody2D
 var tank_wreck: EnemyWreck2D
 var helicopter_wreck: EnemyWreck2D
 var game_over_active: bool = false
@@ -124,7 +123,6 @@ func _build_parallax() -> void:
 	_create_parallax_band(backdrop, "FarSkyline", FAR_TEXTURE, Vector2(0.18, 1.0), -40, 85.0)
 	_create_parallax_band(backdrop, "Infrastructure", INFRA_TEXTURE, Vector2(0.35, 1.0), -30, 95.0)
 	_create_parallax_band(backdrop, "NearBuildings", NEAR_TEXTURE, Vector2(0.60, 1.0), -20, 116.0)
-	_create_parallax_band(backdrop, "Foreground", FOREGROUND_TEXTURE, Vector2(1.10, 1.0), 80, 350.0)
 
 
 func _create_parallax_band(
@@ -151,17 +149,39 @@ func _create_parallax_band(
 
 
 func _build_street() -> void:
-	var street_visual: Polygon2D = Polygon2D.new()
-	street_visual.name = "Street"
-	street_visual.z_index = -10
-	street_visual.polygon = PackedVector2Array([
+	var road_surface: Polygon2D = Polygon2D.new()
+	road_surface.name = "RoadSurface"
+	road_surface.z_index = -10
+	road_surface.polygon = PackedVector2Array([
 		Vector2(-800.0, 590.0),
 		Vector2(3600.0, 590.0),
 		Vector2(3600.0, 760.0),
 		Vector2(-800.0, 760.0),
 	])
-	street_visual.color = Color("171b21")
-	add_child(street_visual)
+	road_surface.color = Color("353b44")
+	add_child(road_surface)
+	var lower_asphalt: Polygon2D = Polygon2D.new()
+	lower_asphalt.name = "LowerAsphalt"
+	lower_asphalt.z_index = -9
+	lower_asphalt.polygon = PackedVector2Array([
+		Vector2(-800.0, 670.0),
+		Vector2(3600.0, 670.0),
+		Vector2(3600.0, 760.0),
+		Vector2(-800.0, 760.0),
+	])
+	lower_asphalt.color = Color("2a3038")
+	add_child(lower_asphalt)
+	for segment_index: int in range(12):
+		var lane_mark: Line2D = Line2D.new()
+		var segment_x: float = -620.0 + float(segment_index) * 360.0
+		lane_mark.width = 5.0
+		lane_mark.default_color = Color(0.72, 0.67, 0.54, 0.32)
+		lane_mark.points = PackedVector2Array([
+			Vector2(segment_x, 694.0),
+			Vector2(segment_x + 170.0, 694.0),
+		])
+		lane_mark.z_index = -8
+		add_child(lane_mark)
 	var curb: Line2D = Line2D.new()
 	curb.width = 8.0
 	curb.default_color = Color("8f8175")
@@ -224,11 +244,11 @@ func _build_services() -> void:
 	enemy_scrap_pool.capacity = 32
 	enemy_scrap_pool.z_index = 31
 	add_child(enemy_scrap_pool)
-	soldier_ragdoll_pool = SOLDIER_RAGDOLL_POOL_SCRIPT.new() as SoldierRagdollPool
-	soldier_ragdoll_pool.name = "SoldierRagdollPool"
-	soldier_ragdoll_pool.capacity = 8
-	soldier_ragdoll_pool.z_index = 28
-	enemy_remains_root.add_child(soldier_ragdoll_pool)
+	soldier_defeat_pool = SOLDIER_DEFEAT_POOL_SCRIPT.new() as SoldierDefeatPool
+	soldier_defeat_pool.name = "SoldierDefeatPool"
+	soldier_defeat_pool.capacity = 8
+	soldier_defeat_pool.z_index = 28
+	enemy_remains_root.add_child(soldier_defeat_pool)
 
 
 func _build_robot() -> void:
@@ -813,7 +833,7 @@ func _on_enemy_died(
 ) -> void:
 	_add_score(points)
 	if enemy is SoldierEnemy:
-		_spawn_soldier_ragdoll(enemy, event)
+		_spawn_soldier_defeat_body(enemy, event)
 		return
 	var wreck: EnemyWreck2D = _spawn_machine_wreck(enemy, event)
 	if enemy is TankEnemy:
@@ -822,11 +842,11 @@ func _on_enemy_died(
 		helicopter_wreck = wreck
 
 
-func _spawn_soldier_ragdoll(
+func _spawn_soldier_defeat_body(
 	enemy: EnemyActor2D,
 	event: DamageEvent
 ) -> void:
-	soldier_ragdoll = soldier_ragdoll_pool.acquire(
+	soldier_defeat_body = soldier_defeat_pool.acquire(
 		enemy.global_position,
 		enemy.facing,
 		event

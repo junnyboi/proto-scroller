@@ -1,6 +1,6 @@
 # Proto Scroller
 
-A Godot 4.7.1 city-destruction slice with a giant robot, five-layer parallax city, a six-cell mixed-material structural building, destructible props, combined-arms enemies, and a WebAssembly host.
+A Godot 4.7.1 city-destruction slice with a giant robot, four-band unobstructed parallax city, a six-cell mixed-material structural building, destructible props, combined-arms enemies, and a WebAssembly host.
 
 ## Project layout
 
@@ -29,9 +29,9 @@ Open the reported URL, wait for `WEB RUNTIME ONLINE`, then activate `INITIALIZE`
 
 The structural grid uses concrete, glass, and steel profiles. Glass fails quickly into fast cyan shards with a crystalline shatter, concrete sheds medium masonry with a deep crunch, and steel needs sustained impact before releasing slow heavy beams with a stressed-metal groan. Destroying a full floor starts a staggered upward collapse; destroying every steel cell triggers a faster building-wide support cascade. The player robot rejects self-sourced and player-team damage but remains vulnerable to enemy fire. The giant robot owns world Z 100 and therefore renders above every world-space unit, projectile, particle, prop, debris body, and facade; the HUD remains a separate CanvasLayer overlay.
 
-Defeated soldiers transfer fatal impacts into six GPT Image 2 sprite segments constrained by five PinJoint2D joints, with a custom hit-flash/recoil transition before they launch, tumble, and settle prone. Eight prewarmed ragdolls cap infantry remains at 48 bodies and 40 joints. Building rubble is capped at 24 bodies and machinery scrap at 32; saturated pools recycle their oldest active effect instead of allocating during combat.
+Defeated soldiers transfer fatal impacts into one intact soldier sprite on a pooled RigidBody2D. The body is thrown and spun by the hit, fades quickly, and is culled back into an eight-object pool; no separated body parts remain. Building rubble is capped at 24 bodies and machinery scrap at 32, with saturated pools recycling their oldest active effect instead of allocating during combat. The street keeps its physics plane and textured foreground, but no longer draws an opaque rectangle over the lower view.
 
-Destroyed cars, wrecks, ragdolls, rubble, and scrap are on nonblocking remains layers, so robot locomotion passes through without shoving them. Robot attacks still query those layers and apply mass-scaled linear and angular impulses, preserving explosive scattering without turning ordinary walking into an accidental leaf blower.
+Destroyed cars, wrecks, defeated soldiers, rubble, and scrap are on nonblocking remains layers, so robot locomotion passes through without shoving them. Robot attacks still query those layers and apply mass-scaled linear and angular impulses, preserving explosive scattering without turning ordinary walking into an accidental leaf blower.
 
 ## Production build
 

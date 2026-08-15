@@ -22,7 +22,8 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
-	assert_eq(city.get_node("ParallaxCity").get_child_count(), 5)
+	assert_eq(city.get_node("ParallaxCity").get_child_count(), 4)
+	assert_null(city.get_node_or_null(^"Street"))
 	assert_not_null(city.building)
 	assert_eq(city.building.get_child_count(), 6)
 	for row: int in range(StructuralBuilding2D.ROWS):
@@ -35,8 +36,8 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	assert_true(city.helicopter is HelicopterEnemy)
 	assert_eq(city.debris_pool.available_count(), 24)
 	assert_eq(city.enemy_scrap_pool.available_count(), 32)
-	assert_eq(city.soldier_ragdoll_pool.available_count(), 8)
-	assert_eq(city.soldier_ragdoll_pool.total_count(), 8)
+	assert_eq(city.soldier_defeat_pool.available_count(), 8)
+	assert_eq(city.soldier_defeat_pool.total_count(), 8)
 	assert_not_null(city.enemy_remains_root)
 	assert_eq(city.robot.z_index, 100)
 	assert_gt(city.robot.z_index, city.projectile_root.z_index)
@@ -288,7 +289,7 @@ func test_enemy_defeat_adds_score_once() -> void:
 	_record_test_execution()
 
 
-func test_defeated_soldier_becomes_a_flying_grounded_ragdoll() -> void:
+func test_defeated_soldier_flies_as_one_sprite_then_fades_and_culls() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -305,26 +306,26 @@ func test_defeated_soldier_becomes_a_flying_grounded_ragdoll() -> void:
 	assert_true(city.soldier.receive_damage(fatal_event))
 	await get_tree().process_frame
 	assert_false(city.soldier.visual.visible)
-	assert_not_null(city.soldier_ragdoll)
-	assert_eq(city.soldier_ragdoll.piece_count(), 6)
-	assert_eq(city.soldier_ragdoll.joint_count(), 5)
-	assert_eq(city.soldier_ragdoll.custom_animation_play_count, 1)
-	var torso_visual: Sprite2D = city.soldier_ragdoll.get_node(
-		^"Torso/Visual"
+	assert_not_null(city.soldier_defeat_body)
+	assert_eq(city.soldier_defeat_body.get_child_count(), 2)
+	var body_visual: Sprite2D = city.soldier_defeat_body.get_node(
+		^"Visual"
 	) as Sprite2D
 	assert_eq(
-		torso_visual.texture,
-		load("res://art/city/enemies/soldier_ragdoll/torso.png")
+		body_visual.texture,
+		load("res://art/city/enemies/soldier.png")
 	)
-	assert_not_null(city.soldier_ragdoll.get_node(^"RightArm/RifleVisual"))
 	await get_tree().physics_frame
-	assert_gt(city.soldier_ragdoll.average_speed(), 1.0)
-	for frame_index: int in range(300):
-		await get_tree().physics_frame
-	var torso: RigidBody2D = city.soldier_ragdoll.get_node(^"Torso") as RigidBody2D
-	assert_gt(torso.global_position.y, 610.0)
-	assert_gt(absf(torso.rotation), 0.25)
-	assert_lt(torso.global_position.y, LAND_VISUAL_BASELINE_Y + 20.0)
+	assert_gt(city.soldier_defeat_body.linear_velocity.length(), 1.0)
+	assert_gt(absf(city.soldier_defeat_body.angular_velocity), 1.0)
+	city.soldier_defeat_body.fade_delay = 0.05
+	city.soldier_defeat_body.fade_duration = 0.08
+	await get_tree().create_timer(0.08).timeout
+	assert_lt(city.soldier_defeat_body.fade_alpha(), 1.0)
+	await get_tree().create_timer(0.12).timeout
+	assert_false(city.soldier_defeat_body.is_active())
+	assert_eq(city.soldier_defeat_pool.active_count(), 0)
+	assert_eq(city.soldier_defeat_pool.available_count(), 8)
 	_record_test_execution()
 
 
@@ -388,14 +389,14 @@ func test_horde_remains_pools_recycle_oldest_without_growing() -> void:
 	add_child_autofree(city)
 	await get_tree().process_frame
 	for corpse_index: int in range(12):
-		city.soldier_ragdoll_pool.acquire(
+		city.soldier_defeat_pool.acquire(
 			Vector2(900.0 + corpse_index * 12.0, 640.0),
 			-1,
 			DamageEvent.new(7300 + corpse_index, city.robot, 999.0)
 		)
-	assert_eq(city.soldier_ragdoll_pool.active_count(), 8)
-	assert_eq(city.soldier_ragdoll_pool.total_count(), 8)
-	assert_eq(city.soldier_ragdoll_pool.recycle_count, 4)
+	assert_eq(city.soldier_defeat_pool.active_count(), 8)
+	assert_eq(city.soldier_defeat_pool.total_count(), 8)
+	assert_eq(city.soldier_defeat_pool.recycle_count, 4)
 	for scrap_index: int in range(40):
 		city.enemy_scrap_pool.acquire(
 			Transform2D(0.0, Vector2(900.0 + scrap_index, 600.0)),
@@ -454,19 +455,18 @@ func test_robot_passes_through_destroyed_car_wreck_and_scrap() -> void:
 	_record_test_execution()
 
 
-func test_robot_attack_scatters_ragdoll_scrap_and_debris() -> void:
+func test_robot_attack_scatters_defeated_soldier_scrap_and_debris() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
 	var attack_origin: Vector2 = city.robot.global_position + Vector2(100.0, 140.0)
-	var ragdoll: SoldierRagdoll2D = city.soldier_ragdoll_pool.acquire(
+	var defeated_soldier: SoldierDefeatBody2D = city.soldier_defeat_pool.acquire(
 		attack_origin,
 		-1,
 		DamageEvent.new(7501, city.robot, 999.0)
 	)
-	for piece: RigidBody2D in ragdoll.pieces:
-		piece.linear_velocity = Vector2.ZERO
-		piece.angular_velocity = 0.0
+	defeated_soldier.linear_velocity = Vector2.ZERO
+	defeated_soldier.angular_velocity = 0.0
 	var scrap: DebrisBody2D = city.enemy_scrap_pool.acquire(
 		Transform2D(0.0, attack_origin + Vector2(35.0, 0.0)),
 		Vector2.ZERO,
@@ -482,15 +482,14 @@ func test_robot_attack_scatters_ragdoll_scrap_and_debris() -> void:
 		Vector2.ZERO
 	)
 	await get_tree().physics_frame
-	for piece: RigidBody2D in ragdoll.pieces:
-		piece.linear_velocity = Vector2.ZERO
+	defeated_soldier.linear_velocity = Vector2.ZERO
 	scrap.linear_velocity = Vector2.ZERO
 	debris.linear_velocity = Vector2.ZERO
 	city.robot.stomp_radius = 500.0
 	city.trigger_test_stomp()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	assert_gt(ragdoll.average_speed(), 1.0)
+	assert_gt(defeated_soldier.linear_velocity.length(), 1.0)
 	assert_gt(scrap.linear_velocity.length(), 1.0)
 	assert_gt(debris.linear_velocity.length(), 1.0)
 	_record_test_execution()

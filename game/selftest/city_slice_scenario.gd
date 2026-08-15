@@ -36,7 +36,7 @@ func _run() -> void:
 	await physics_frame
 	await physics_frame
 	var parallax_count: int = city.get_node("ParallaxCity").get_child_count()
-	_check("five_parallax_bands", parallax_count == 5, "bands=%s" % parallax_count)
+	_check("four_parallax_bands", parallax_count == 4, "bands=%s" % parallax_count)
 	var enemies_ready: bool = (
 		city.soldier != null and city.tank != null and city.helicopter != null
 	)
