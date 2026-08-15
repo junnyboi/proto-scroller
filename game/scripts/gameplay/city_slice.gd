@@ -18,6 +18,7 @@ const LAND_VISUAL_BASELINE_Y: float = 655.0
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd")
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
 const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
+const MOBILE_CONTROLS_SCRIPT: Script = preload("res://scripts/input/mobile_controls.gd")
 const DIRECTOR_SCRIPT: Script = preload("res://scripts/destruction/destruction_director.gd")
 const DEBRIS_POOL_SCRIPT: Script = preload("res://scripts/destruction/debris_pool.gd")
 const STRUCTURAL_BUILDING_SCRIPT: Script = preload(
@@ -59,11 +60,14 @@ const STEEL_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/steel_groan.wav"
 )
 
+@export_range(-1, 1, 1) var mobile_detection_override: int = -1
+
 var robot: GiantRobotController
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
 var enemy_scrap_pool: DebrisPool
 var soldier_defeat_pool: SoldierDefeatPool
+var mobile_controls: MobileControls
 var projectile_root: Node2D
 var impact_audio_root: Node2D
 var enemy_remains_root: Node2D
@@ -226,6 +230,7 @@ func _build_services() -> void:
 	add_child(enemy_remains_root)
 	destruction_director = DIRECTOR_SCRIPT.new() as DestructionDirector
 	destruction_director.name = "DestructionDirector"
+	destruction_director.max_results = 64
 	destruction_director.blast_mask = (
 		HURTBOX_LAYER
 		| PROP_LAYER
@@ -541,12 +546,16 @@ func _build_hud() -> void:
 	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_score_label.add_theme_font_size_override(&"font_size", 30)
 	layer.add_child(_score_label)
+	mobile_controls = MOBILE_CONTROLS_SCRIPT.new() as MobileControls
+	mobile_controls.setup(robot, mobile_detection_override)
+	layer.add_child(mobile_controls)
 	_build_game_over_overlay(layer)
 
 
 func _build_game_over_overlay(layer: CanvasLayer) -> void:
 	_game_over_overlay = Control.new()
 	_game_over_overlay.name = "GameOverOverlay"
+	_game_over_overlay.z_index = 20
 	_game_over_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_game_over_overlay.visible = false
 	_game_over_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -976,6 +985,8 @@ func _on_robot_defeated() -> void:
 		if enemy != null:
 			enemy.set_physics_process(false)
 	projectile_root.process_mode = Node.PROCESS_MODE_DISABLED
+	if mobile_controls != null:
+		mobile_controls.set_controls_enabled(false)
 	_game_over_overlay.visible = true
 	_retry_button.grab_focus()
 

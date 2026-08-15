@@ -58,6 +58,7 @@ enum LocomotionState {
 var facing: int = 1
 var locomotion_state: LocomotionState = LocomotionState.IDLE
 var current_health: float
+var virtual_move_axis: float = 0.0
 var _turn_elapsed: float = 0.0
 var _pending_facing: int = 1
 var _attack_id: int = 0
@@ -86,6 +87,8 @@ func _physics_process(delta: float) -> void:
 	if _control_enabled and Input.is_action_just_pressed(&"stomp"):
 		request_stomp()
 	var input_axis: float = Input.get_axis(&"move_left", &"move_right")
+	if absf(virtual_move_axis) > absf(input_axis):
+		input_axis = virtual_move_axis
 	physics_step(input_axis, delta)
 
 
@@ -134,10 +137,16 @@ func physics_step(input_axis: float, delta: float) -> void:
 
 func set_control_enabled(enabled: bool) -> void:
 	_control_enabled = enabled
+	if not enabled:
+		virtual_move_axis = 0.0
 	if not enabled and locomotion_state != LocomotionState.DISABLED:
 		_set_locomotion_state(LocomotionState.ATTACK_LOCKED)
 	elif enabled and locomotion_state == LocomotionState.ATTACK_LOCKED:
 		_set_locomotion_state(LocomotionState.IDLE)
+
+
+func set_virtual_move_axis(axis: float) -> void:
+	virtual_move_axis = clampf(axis, -1.0, 1.0) if _control_enabled else 0.0
 
 
 func set_disabled(disabled: bool) -> void:

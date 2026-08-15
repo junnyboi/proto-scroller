@@ -351,14 +351,22 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 	assert_gt(city.tank_wreck.linear_velocity.length(), 1.0)
 	city.tank_wreck.freeze = true
 	city.tank_wreck.global_position = city.robot.global_position + Vector2(120.0, 150.0)
+	city.tank_wreck.force_update_transform()
+	PhysicsServer2D.body_set_state(
+		city.tank_wreck.get_rid(),
+		PhysicsServer2D.BODY_STATE_TRANSFORM,
+		city.tank_wreck.global_transform
+	)
 	city.tank_wreck.linear_velocity = Vector2.ZERO
 	city.tank_wreck.angular_velocity = 0.0
 	city.tank_wreck.current_scrap_health = 1.0
 	city.robot.stomp_radius = 500.0
 	await get_tree().physics_frame
 	city.trigger_test_stomp()
-	await get_tree().physics_frame
-	await get_tree().physics_frame
+	for resolution_tick: int in range(6):
+		await get_tree().physics_frame
+		if city.tank_wreck.is_scrapped():
+			break
 	assert_true(city.tank_wreck.is_scrapped())
 	assert_eq(city.enemy_scrap_pool.active_count(), 8)
 	for child: Node in city.enemy_scrap_pool.get_children():
