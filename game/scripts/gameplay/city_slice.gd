@@ -10,6 +10,7 @@ const ENEMY_LAYER: int = 1 << 2
 const BUILDING_LAYER: int = 1 << 3
 const HURTBOX_LAYER: int = 1 << 6
 const PROP_LAYER: int = 1 << 7
+const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
@@ -26,8 +27,8 @@ const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
 const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
-const SOLDIER_RAGDOLL_SCRIPT: Script = preload(
-	"res://scripts/actors/soldier_ragdoll_2d.gd"
+const SOLDIER_RAGDOLL_POOL_SCRIPT: Script = preload(
+	"res://scripts/actors/soldier_ragdoll_pool.gd"
 )
 const ENEMY_WRECK_SCRIPT: Script = preload("res://scripts/actors/enemy_wreck_2d.gd")
 
@@ -63,6 +64,7 @@ var robot: GiantRobotController
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
 var enemy_scrap_pool: DebrisPool
+var soldier_ragdoll_pool: SoldierRagdollPool
 var projectile_root: Node2D
 var impact_audio_root: Node2D
 var enemy_remains_root: Node2D
@@ -205,7 +207,11 @@ func _build_services() -> void:
 	destruction_director = DIRECTOR_SCRIPT.new() as DestructionDirector
 	destruction_director.name = "DestructionDirector"
 	destruction_director.blast_mask = (
-		HURTBOX_LAYER | PROP_LAYER | ENEMY_LAYER | REMAINS_LAYER
+		HURTBOX_LAYER
+		| PROP_LAYER
+		| ENEMY_LAYER
+		| DEBRIS_LAYER
+		| REMAINS_LAYER
 	)
 	add_child(destruction_director)
 	debris_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
@@ -218,6 +224,11 @@ func _build_services() -> void:
 	enemy_scrap_pool.capacity = 32
 	enemy_scrap_pool.z_index = 31
 	add_child(enemy_scrap_pool)
+	soldier_ragdoll_pool = SOLDIER_RAGDOLL_POOL_SCRIPT.new() as SoldierRagdollPool
+	soldier_ragdoll_pool.name = "SoldierRagdollPool"
+	soldier_ragdoll_pool.capacity = 8
+	soldier_ragdoll_pool.z_index = 28
+	enemy_remains_root.add_child(soldier_ragdoll_pool)
 
 
 func _build_robot() -> void:
@@ -228,7 +239,7 @@ func _build_robot() -> void:
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0
 	robot.collision_layer = ROBOT_LAYER
-	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER | REMAINS_LAYER
+	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER
 	robot.z_index = 100
 	robot.set_meta(&"combat_team", &"player")
 	var body_shape: CollisionShape2D = CollisionShape2D.new()
@@ -815,10 +826,11 @@ func _spawn_soldier_ragdoll(
 	enemy: EnemyActor2D,
 	event: DamageEvent
 ) -> void:
-	soldier_ragdoll = SOLDIER_RAGDOLL_SCRIPT.new() as SoldierRagdoll2D
-	soldier_ragdoll.name = "SoldierRagdoll"
-	soldier_ragdoll.setup(enemy.global_position, enemy.facing, event)
-	enemy_remains_root.add_child(soldier_ragdoll)
+	soldier_ragdoll = soldier_ragdoll_pool.acquire(
+		enemy.global_position,
+		enemy.facing,
+		event
+	)
 
 
 func _spawn_machine_wreck(
@@ -904,7 +916,7 @@ func _spawn_machine_scrap(
 		)
 		if scrap != null:
 			scrap.collision_layer = REMAINS_LAYER
-			scrap.collision_mask = REMAINS_GROUND_LAYER | ROBOT_LAYER
+			scrap.collision_mask = REMAINS_GROUND_LAYER
 			scrap.set_meta(&"enemy_remains", &"scrap")
 
 

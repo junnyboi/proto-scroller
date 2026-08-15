@@ -4,6 +4,7 @@ extends Node2D
 @export var debris_scene: PackedScene
 @export_range(1, 128, 1) var capacity: int = 48
 
+var recycle_count: int = 0
 var _free: Array[DebrisBody2D] = []
 var _active: Array[DebrisBody2D] = []
 
@@ -36,7 +37,8 @@ func acquire(
 	facet_color: Color = Color("786d65")
 ) -> DebrisBody2D:
 	if _free.is_empty():
-		return null
+		release(_active.front())
+		recycle_count += 1
 	var body: DebrisBody2D = _free.pop_back()
 	_active.append(body)
 	body.activate(

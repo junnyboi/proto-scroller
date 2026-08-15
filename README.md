@@ -29,7 +29,9 @@ Open the reported URL, wait for `WEB RUNTIME ONLINE`, then activate `INITIALIZE`
 
 The structural grid uses concrete, glass, and steel profiles. Glass fails quickly into fast cyan shards with a crystalline shatter, concrete sheds medium masonry with a deep crunch, and steel needs sustained impact before releasing slow heavy beams with a stressed-metal groan. Destroying a full floor starts a staggered upward collapse; destroying every steel cell triggers a faster building-wide support cascade. The player robot rejects self-sourced and player-team damage but remains vulnerable to enemy fire. The giant robot owns world Z 100 and therefore renders above every world-space unit, projectile, particle, prop, debris body, and facade; the HUD remains a separate CanvasLayer overlay.
 
-Defeated soldiers now transfer their fatal impact into six RigidBody2D pieces constrained by five PinJoint2D joints, so they launch, tumble, and settle prone on the asphalt. Tanks and helicopters become heavy rigid wrecks first; another stomp, blast, or robot walk-over crushes the wreck into pooled steel scrap with mass-varied trajectories and additional destruction score.
+Defeated soldiers transfer fatal impacts into six GPT Image 2 sprite segments constrained by five PinJoint2D joints, with a custom hit-flash/recoil transition before they launch, tumble, and settle prone. Eight prewarmed ragdolls cap infantry remains at 48 bodies and 40 joints. Building rubble is capped at 24 bodies and machinery scrap at 32; saturated pools recycle their oldest active effect instead of allocating during combat.
+
+Destroyed cars, wrecks, ragdolls, rubble, and scrap are on nonblocking remains layers, so robot locomotion passes through without shoving them. Robot attacks still query those layers and apply mass-scaled linear and angular impulses, preserving explosive scattering without turning ordinary walking into an accidental leaf blower.
 
 ## Production build
 

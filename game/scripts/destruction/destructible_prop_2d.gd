@@ -3,6 +3,9 @@ extends RigidBody2D
 
 signal destroyed(prop: DestructibleProp2D)
 
+const REMAINS_LAYER: int = 1 << 9
+const WORLD_LAYER: int = 1 << 0
+
 @export var max_health: float = 60.0
 @export var intact_texture: Texture2D
 @export var destroyed_texture: Texture2D
@@ -45,6 +48,9 @@ func _break_prop() -> void:
 	is_broken = true
 	visual.texture = destroyed_texture
 	_fit_visual(destroyed_display_size)
+	collision_layer = REMAINS_LAYER
+	collision_mask = WORLD_LAYER
+	set_meta(&"enemy_remains", &"destroyed_prop")
 	freeze = false
 	sleeping = false
 	call_deferred("_apply_destroyed_collision")

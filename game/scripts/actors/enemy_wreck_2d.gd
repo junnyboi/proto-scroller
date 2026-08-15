@@ -5,7 +5,6 @@ signal scrapped(wreck: EnemyWreck2D, event: DamageEvent)
 
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
-const ROBOT_LAYER: int = 1 << 1
 
 @export var scrap_health: float = 120.0
 @export var wreck_kind: StringName = &"machinery"
@@ -24,7 +23,7 @@ func _ready() -> void:
 	current_scrap_health = scrap_health
 	_steel_profile = StructuralMaterialProfile.steel()
 	collision_layer = REMAINS_LAYER
-	collision_mask = REMAINS_GROUND_LAYER | ROBOT_LAYER | REMAINS_LAYER
+	collision_mask = REMAINS_GROUND_LAYER | REMAINS_LAYER
 	gravity_scale = 1.0
 	linear_damp = 0.9
 	angular_damp = 1.5
