@@ -34,12 +34,15 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	assert_true(city.tank is TankEnemy)
 	assert_true(city.helicopter is HelicopterEnemy)
 	assert_eq(city.debris_pool.available_count(), 24)
+	assert_eq(city.enemy_scrap_pool.available_count(), 32)
+	assert_not_null(city.enemy_remains_root)
 	assert_eq(city.robot.z_index, 100)
 	assert_gt(city.robot.z_index, city.projectile_root.z_index)
 	assert_gt(city.robot.z_index, city.debris_pool.z_index)
 	assert_gt(city.robot.z_index, city.soldier.z_index)
 	assert_gt(city.robot.z_index, city.tank.z_index)
 	assert_gt(city.robot.z_index, city.helicopter.z_index)
+	assert_gt(city.robot.z_index, city.enemy_remains_root.z_index)
 	_record_test_execution()
 
 
@@ -280,6 +283,130 @@ func test_enemy_defeat_adds_score_once() -> void:
 	assert_eq(city.score, 500)
 	assert_false(city.soldier.receive_damage(fatal_event))
 	assert_eq(city.score, 500)
+	_record_test_execution()
+
+
+func test_defeated_soldier_becomes_a_flying_grounded_ragdoll() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.soldier.set_physics_process(false)
+	var fatal_event: DamageEvent = DamageEvent.new(
+		7101,
+		city.robot,
+		999.0,
+		&"impact",
+		city.soldier.global_position,
+		Vector2(1.0, -0.28),
+		360.0
+	)
+	assert_true(city.soldier.receive_damage(fatal_event))
+	await get_tree().process_frame
+	assert_false(city.soldier.visual.visible)
+	assert_not_null(city.soldier_ragdoll)
+	assert_eq(city.soldier_ragdoll.piece_count(), 6)
+	assert_eq(city.soldier_ragdoll.joint_count(), 5)
+	await get_tree().physics_frame
+	assert_gt(city.soldier_ragdoll.average_speed(), 1.0)
+	for frame_index: int in range(300):
+		await get_tree().physics_frame
+	var torso: RigidBody2D = city.soldier_ragdoll.get_node(^"Torso") as RigidBody2D
+	assert_gt(torso.global_position.y, 610.0)
+	assert_gt(absf(torso.rotation), 0.25)
+	assert_lt(torso.global_position.y, LAND_VISUAL_BASELINE_Y + 20.0)
+	_record_test_execution()
+
+
+func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var tank_event: DamageEvent = DamageEvent.new(
+		7201,
+		city.robot,
+		999.0,
+		&"impact",
+		city.tank.global_position,
+		Vector2(1.0, -0.18),
+		280.0
+	)
+	assert_true(city.tank.receive_damage(tank_event))
+	await get_tree().process_frame
+	assert_false(city.tank.visual.visible)
+	assert_not_null(city.tank_wreck)
+	assert_eq(city.tank_wreck.wreck_kind, &"tank")
+	await get_tree().physics_frame
+	assert_gt(city.tank_wreck.linear_velocity.length(), 1.0)
+	city.tank_wreck.freeze = true
+	city.tank_wreck.global_position = city.robot.global_position + Vector2(120.0, 150.0)
+	city.tank_wreck.linear_velocity = Vector2.ZERO
+	city.tank_wreck.angular_velocity = 0.0
+	city.tank_wreck.current_scrap_health = 1.0
+	city.robot.stomp_radius = 500.0
+	await get_tree().physics_frame
+	city.trigger_test_stomp()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_true(city.tank_wreck.is_scrapped())
+	assert_eq(city.enemy_scrap_pool.active_count(), 8)
+	for child: Node in city.enemy_scrap_pool.get_children():
+		var scrap: DebrisBody2D = child as DebrisBody2D
+		if scrap == null or not scrap.visible:
+			continue
+		assert_eq(scrap.material_id(), &"steel")
+		assert_eq(scrap.get_meta(&"enemy_remains"), &"scrap")
+		assert_eq(scrap.collision_layer, CitySlice.REMAINS_LAYER)
+	var helicopter_event: DamageEvent = DamageEvent.new(
+		7202,
+		city.robot,
+		999.0,
+		&"impact",
+		city.helicopter.global_position,
+		Vector2.LEFT,
+		240.0
+	)
+	assert_true(city.helicopter.receive_damage(helicopter_event))
+	await get_tree().process_frame
+	assert_not_null(city.helicopter_wreck)
+	assert_eq(city.helicopter_wreck.wreck_kind, &"helicopter")
+	_record_test_execution()
+
+
+func test_robot_walk_over_crushes_a_machine_wreck() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
+		enemy.set_physics_process(false)
+	var fatal_event: DamageEvent = DamageEvent.new(
+		7301,
+		city.robot,
+		999.0,
+		&"impact",
+		city.tank.global_position,
+		Vector2.RIGHT,
+		180.0
+	)
+	assert_true(city.tank.receive_damage(fatal_event))
+	await get_tree().process_frame
+	city.tank_wreck.freeze = true
+	city.tank_wreck.global_position = Vector2(960.0, 610.0)
+	city.tank_wreck.linear_velocity = Vector2.ZERO
+	city.tank_wreck.angular_velocity = 0.0
+	city.tank_wreck.current_scrap_health = 1.0
+	city.tank_wreck.freeze = false
+	city.robot.set_physics_process(false)
+	for frame_index: int in range(150):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		await get_tree().physics_frame
+		if city.tank_wreck.is_scrapped():
+			break
+	assert_true(city.tank_wreck.is_scrapped())
+	assert_gt(city.enemy_scrap_pool.active_count(), 0)
+	for frame_index: int in range(60):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		await get_tree().physics_frame
+	assert_gt(city.robot.position.x, 900.0)
 	_record_test_execution()
 
 

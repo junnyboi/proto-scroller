@@ -10,6 +10,8 @@ const ENEMY_LAYER: int = 1 << 2
 const BUILDING_LAYER: int = 1 << 3
 const HURTBOX_LAYER: int = 1 << 6
 const PROP_LAYER: int = 1 << 7
+const REMAINS_LAYER: int = 1 << 9
+const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
 
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd")
@@ -24,6 +26,10 @@ const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
 const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
+const SOLDIER_RAGDOLL_SCRIPT: Script = preload(
+	"res://scripts/actors/soldier_ragdoll_2d.gd"
+)
+const ENEMY_WRECK_SCRIPT: Script = preload("res://scripts/actors/enemy_wreck_2d.gd")
 
 const SKY_TEXTURE: Texture2D = preload("res://art/city/parallax/sky.png")
 const FAR_TEXTURE: Texture2D = preload("res://art/city/parallax/far_skyline.png")
@@ -56,14 +62,19 @@ const STEEL_IMPACT_SFX: AudioStream = preload(
 var robot: GiantRobotController
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
+var enemy_scrap_pool: DebrisPool
 var projectile_root: Node2D
 var impact_audio_root: Node2D
+var enemy_remains_root: Node2D
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
 var soldier: SoldierEnemy
 var tank: TankEnemy
 var helicopter: HelicopterEnemy
+var soldier_ragdoll: SoldierRagdoll2D
+var tank_wreck: EnemyWreck2D
+var helicopter_wreck: EnemyWreck2D
 var game_over_active: bool = false
 var score: int = 0
 var last_material_audio: StringName = &""
@@ -166,6 +177,17 @@ func _build_street() -> void:
 	collision.shape = rectangle
 	ground.add_child(collision)
 	add_child(ground)
+	var remains_ground: StaticBody2D = StaticBody2D.new()
+	remains_ground.name = "RemainsGround"
+	remains_ground.collision_layer = REMAINS_GROUND_LAYER
+	remains_ground.collision_mask = REMAINS_LAYER
+	remains_ground.position = Vector2(1400.0, LAND_VISUAL_BASELINE_Y + 35.0)
+	var remains_collision: CollisionShape2D = CollisionShape2D.new()
+	var remains_rectangle: RectangleShape2D = RectangleShape2D.new()
+	remains_rectangle.size = Vector2(4400.0, 70.0)
+	remains_collision.shape = remains_rectangle
+	remains_ground.add_child(remains_collision)
+	add_child(remains_ground)
 
 
 func _build_services() -> void:
@@ -176,15 +198,26 @@ func _build_services() -> void:
 	impact_audio_root = Node2D.new()
 	impact_audio_root.name = "ImpactAudioRoot"
 	add_child(impact_audio_root)
+	enemy_remains_root = Node2D.new()
+	enemy_remains_root.name = "EnemyRemainsRoot"
+	enemy_remains_root.z_index = 28
+	add_child(enemy_remains_root)
 	destruction_director = DIRECTOR_SCRIPT.new() as DestructionDirector
 	destruction_director.name = "DestructionDirector"
-	destruction_director.blast_mask = HURTBOX_LAYER | PROP_LAYER | ENEMY_LAYER
+	destruction_director.blast_mask = (
+		HURTBOX_LAYER | PROP_LAYER | ENEMY_LAYER | REMAINS_LAYER
+	)
 	add_child(destruction_director)
 	debris_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
 	debris_pool.name = "BuildingDebrisPool"
 	debris_pool.capacity = 24
 	debris_pool.z_index = 30
 	add_child(debris_pool)
+	enemy_scrap_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
+	enemy_scrap_pool.name = "EnemyScrapPool"
+	enemy_scrap_pool.capacity = 32
+	enemy_scrap_pool.z_index = 31
+	add_child(enemy_scrap_pool)
 
 
 func _build_robot() -> void:
@@ -195,7 +228,7 @@ func _build_robot() -> void:
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0
 	robot.collision_layer = ROBOT_LAYER
-	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER
+	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER | REMAINS_LAYER
 	robot.z_index = 100
 	robot.set_meta(&"combat_team", &"player")
 	var body_shape: CollisionShape2D = CollisionShape2D.new()
@@ -652,6 +685,8 @@ func _material_for_target(
 		)
 		if cell != null and cell.get_material_profile() != null:
 			return cell.get_material_profile()
+	if target is EnemyWreck2D:
+		return (target as EnemyWreck2D).get_material_profile()
 	return StructuralMaterialProfile.concrete()
 
 
@@ -760,8 +795,117 @@ func _on_prop_destroyed(_prop: DestructibleProp2D, points: int) -> void:
 	_add_score(points)
 
 
-func _on_enemy_died(_enemy: EnemyActor2D, points: int) -> void:
+func _on_enemy_died(
+	enemy: EnemyActor2D,
+	event: DamageEvent,
+	points: int
+) -> void:
 	_add_score(points)
+	if enemy is SoldierEnemy:
+		_spawn_soldier_ragdoll(enemy, event)
+		return
+	var wreck: EnemyWreck2D = _spawn_machine_wreck(enemy, event)
+	if enemy is TankEnemy:
+		tank_wreck = wreck
+	else:
+		helicopter_wreck = wreck
+
+
+func _spawn_soldier_ragdoll(
+	enemy: EnemyActor2D,
+	event: DamageEvent
+) -> void:
+	soldier_ragdoll = SOLDIER_RAGDOLL_SCRIPT.new() as SoldierRagdoll2D
+	soldier_ragdoll.name = "SoldierRagdoll"
+	soldier_ragdoll.setup(enemy.global_position, enemy.facing, event)
+	enemy_remains_root.add_child(soldier_ragdoll)
+
+
+func _spawn_machine_wreck(
+	enemy: EnemyActor2D,
+	event: DamageEvent
+) -> EnemyWreck2D:
+	var wreck: EnemyWreck2D = ENEMY_WRECK_SCRIPT.new() as EnemyWreck2D
+	wreck.name = "%sWreck" % enemy.name
+	wreck.global_position = enemy.global_position
+	wreck.fatal_event = event
+	if enemy is TankEnemy:
+		wreck.wreck_kind = &"tank"
+		wreck.wreck_texture = TANK_TEXTURE
+		wreck.display_size = Vector2(235.0, 100.0)
+		wreck.collision_size = Vector2(220.0, 78.0)
+		wreck.mass = 65.0
+		wreck.scrap_health = 110.0
+	else:
+		wreck.wreck_kind = &"helicopter"
+		wreck.wreck_texture = HELICOPTER_TEXTURE
+		wreck.display_size = Vector2(235.0, 72.0)
+		wreck.collision_size = Vector2(210.0, 58.0)
+		wreck.mass = 38.0
+		wreck.scrap_health = 85.0
+	wreck.scrapped.connect(_on_enemy_wreck_scrapped)
+	enemy_remains_root.add_child(wreck)
+	return wreck
+
+
+func _on_enemy_wreck_scrapped(
+	wreck: EnemyWreck2D,
+	event: DamageEvent
+) -> void:
+	var profile: StructuralMaterialProfile = StructuralMaterialProfile.steel()
+	_play_material_impact_audio(
+		profile,
+		wreck.global_position,
+		maxf(event.impulse_per_mass, 220.0),
+		true
+	)
+	_spawn_impact_particles(
+		wreck.global_position,
+		event.direction,
+		maxf(event.impulse_per_mass, 220.0),
+		profile
+	)
+	_spawn_machine_scrap(wreck, event)
+	_add_score(400 if wreck.wreck_kind == &"tank" else 300)
+
+
+func _spawn_machine_scrap(
+	wreck: EnemyWreck2D,
+	event: DamageEvent
+) -> void:
+	var piece_count: int = 8 if wreck.wreck_kind == &"tank" else 6
+	var direction: Vector2 = event.direction
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT
+	for piece_index: int in range(piece_count):
+		var fraction: float = float(piece_index) / maxf(float(piece_count - 1), 1.0)
+		var spread_direction: Vector2 = direction.rotated(lerpf(-0.78, 0.78, fraction))
+		var body_mass: float = lerpf(3.5, 13.0, fraction)
+		var body_size: Vector2 = Vector2(
+			lerpf(24.0, 65.0, fraction),
+			lerpf(12.0, 28.0, 1.0 - fraction)
+		)
+		var impulse: Vector2 = (
+			spread_direction * maxf(event.impulse_per_mass, 220.0) * body_mass * 0.38
+			+ Vector2.UP * lerpf(75.0, 150.0, 1.0 - fraction) * body_mass
+		)
+		var scrap: DebrisBody2D = enemy_scrap_pool.acquire(
+			Transform2D(
+				fraction * 0.6,
+				wreck.global_position + Vector2(lerpf(-45.0, 45.0, fraction), -12.0)
+			),
+			impulse,
+			lerpf(-850.0, 850.0, fraction),
+			body_mass,
+			body_size,
+			&"steel",
+			Color("343b40"),
+			Color("8b5a38")
+		)
+		if scrap != null:
+			scrap.collision_layer = REMAINS_LAYER
+			scrap.collision_mask = REMAINS_GROUND_LAYER | ROBOT_LAYER
+			scrap.set_meta(&"enemy_remains", &"scrap")
 
 
 func _add_score(points: int) -> void:

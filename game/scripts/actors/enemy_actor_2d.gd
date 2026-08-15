@@ -9,7 +9,7 @@ signal projectile_requested(
 	kind: StringName,
 	source: Node
 )
-signal died(actor: EnemyActor2D)
+signal died(actor: EnemyActor2D, event: DamageEvent)
 
 @export var max_health: float = 60.0
 
@@ -86,7 +86,7 @@ func receive_damage(event: DamageEvent) -> bool:
 		var tween: Tween = create_tween()
 		tween.tween_property(visual, "modulate", Color.WHITE, 0.12)
 	if current_health <= 0.0:
-		_die()
+		_die(event)
 	return true
 
 
@@ -108,12 +108,12 @@ func _update_facing() -> void:
 		visual.flip_h = facing > 0
 
 
-func _die() -> void:
+func _die(event: DamageEvent) -> void:
 	dead = true
 	collision_layer = 0
 	collision_mask = 0
 	velocity = Vector2.ZERO
 	set_physics_process(false)
 	if visual != null:
-		visual.modulate = Color("3a3030")
-	died.emit(self)
+		visual.visible = false
+	died.emit(self, event)

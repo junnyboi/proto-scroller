@@ -258,6 +258,9 @@ func _resolve_structure_impacts(requested_velocity: Vector2) -> void:
 	for collision_index: int in range(get_slide_collision_count()):
 		var collision: KinematicCollision2D = get_slide_collision(collision_index)
 		var collider: Node = collision.get_collider() as Node
+		var remains_body: RigidBody2D = _find_remains_body(collider)
+		if remains_body != null:
+			_push_remains_body(remains_body, requested_velocity, collision)
 		var target: Node = _find_damage_receiver(collider)
 		if target == null or seen.has(target.get_instance_id()):
 			continue
@@ -275,6 +278,34 @@ func _resolve_structure_impacts(requested_velocity: Vector2) -> void:
 			approach_speed
 		)
 		velocity.x = requested_velocity.x * structural_momentum_retention
+
+
+func _find_remains_body(start_node: Node) -> RigidBody2D:
+	var candidate: Node = start_node
+	while candidate != null:
+		if candidate is RigidBody2D and candidate.has_meta(&"enemy_remains"):
+			return candidate as RigidBody2D
+		candidate = candidate.get_parent()
+	return null
+
+
+func _push_remains_body(
+	body: RigidBody2D,
+	requested_velocity: Vector2,
+	collision: KinematicCollision2D
+) -> void:
+	var approach_speed: float = maxf(
+		-requested_velocity.dot(collision.get_normal()),
+		0.0
+	)
+	if approach_speed < 20.0:
+		return
+	var direction: Vector2 = requested_velocity.normalized()
+	body.apply_central_impulse(
+		direction * approach_speed * body.mass * 0.52
+		+ Vector2.UP * minf(approach_speed, 180.0) * body.mass * 0.18
+	)
+	body.apply_torque_impulse(direction.x * approach_speed * body.mass * 0.28)
 
 
 func _find_damage_receiver(start_node: Node) -> Node:
