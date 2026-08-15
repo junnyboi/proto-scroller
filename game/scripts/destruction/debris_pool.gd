@@ -30,13 +30,25 @@ func acquire(
 	linear_impulse: Vector2,
 	angular_impulse: float = 0.0,
 	body_mass: float = 4.0,
-	body_size: Vector2 = Vector2(36.0, 22.0)
+	body_size: Vector2 = Vector2(36.0, 22.0),
+	material_id: StringName = &"concrete",
+	primary_color: Color = Color("4f4a46"),
+	facet_color: Color = Color("786d65")
 ) -> DebrisBody2D:
 	if _free.is_empty():
 		return null
 	var body: DebrisBody2D = _free.pop_back()
 	_active.append(body)
-	body.activate(spawn_transform, linear_impulse, angular_impulse, body_mass, body_size)
+	body.activate(
+		spawn_transform,
+		linear_impulse,
+		angular_impulse,
+		body_mass,
+		body_size,
+		material_id,
+		primary_color,
+		facet_color
+	)
 	return body
 
 

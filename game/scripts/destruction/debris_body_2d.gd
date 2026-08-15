@@ -12,6 +12,9 @@ var _age: float = 0.0
 var _sleeping_age: float = 0.0
 var _active: bool = false
 var _body_size: Vector2 = Vector2(36.0, 22.0)
+var _material_id: StringName = &"concrete"
+var _primary_color: Color = Color("4f4a46")
+var _facet_color: Color = Color("786d65")
 
 
 func _ready() -> void:
@@ -28,10 +31,17 @@ func activate(
 	linear_impulse: Vector2,
 	angular_impulse: float = 0.0,
 	body_mass: float = 4.0,
-	body_size: Vector2 = Vector2(36.0, 22.0)
+	body_size: Vector2 = Vector2(36.0, 22.0),
+	material_kind: StringName = &"concrete",
+	primary_color: Color = Color("4f4a46"),
+	facet_color: Color = Color("786d65")
 ) -> void:
 	mass = maxf(body_mass, 0.1)
 	_body_size = Vector2(maxf(body_size.x, 4.0), maxf(body_size.y, 4.0))
+	_material_id = material_kind
+	_primary_color = primary_color
+	_facet_color = facet_color
+	set_meta(&"structural_material", _material_id)
 	_apply_body_size()
 	global_transform = spawn_transform
 	linear_velocity = Vector2.ZERO
@@ -51,6 +61,10 @@ func activate(
 	apply_central_impulse(linear_impulse)
 	if not is_zero_approx(angular_impulse):
 		apply_torque_impulse(angular_impulse)
+
+
+func material_id() -> StringName:
+	return _material_id
 
 
 func deactivate() -> void:
@@ -88,6 +102,16 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 
 
 func _draw() -> void:
+	if _material_id == &"glass":
+		_draw_glass_shard()
+		return
+	if _material_id == &"steel":
+		_draw_steel_beam()
+		return
+	_draw_concrete_chunk()
+
+
+func _draw_concrete_chunk() -> void:
 	var half_size: Vector2 = _body_size * 0.5
 	var outline: PackedVector2Array = PackedVector2Array([
 		Vector2(-half_size.x, -half_size.y * 0.45),
@@ -98,19 +122,55 @@ func _draw() -> void:
 		Vector2(-half_size.x * 0.20, half_size.y * 0.78),
 		Vector2(-half_size.x, half_size.y * 0.34),
 	])
-	draw_colored_polygon(outline, Color("4f4a46"))
+	draw_colored_polygon(outline, _primary_color)
 	var facet: PackedVector2Array = PackedVector2Array([
 		Vector2(-half_size.x * 0.38, -half_size.y * 0.72),
 		Vector2(half_size.x * 0.48, -half_size.y * 0.60),
 		Vector2(half_size.x * 0.20, -half_size.y * 0.08),
 		Vector2(-half_size.x * 0.62, half_size.y * 0.12),
 	])
-	draw_colored_polygon(facet, Color("786d65"))
+	draw_colored_polygon(facet, _facet_color)
 	draw_line(
 		Vector2(-half_size.x * 0.72, half_size.y * 0.22),
 		Vector2(half_size.x * 0.62, -half_size.y * 0.38),
 		Color("302c2a"),
 		maxf(2.0, _body_size.y * 0.12)
+	)
+
+
+func _draw_glass_shard() -> void:
+	var half_size: Vector2 = _body_size * 0.5
+	var shard: PackedVector2Array = PackedVector2Array([
+		Vector2(0.0, -half_size.y),
+		Vector2(half_size.x, half_size.y * 0.72),
+		Vector2(-half_size.x * 0.58, half_size.y),
+	])
+	draw_colored_polygon(shard, _primary_color)
+	draw_polyline(shard, _facet_color, 2.0)
+	draw_line(
+		Vector2(0.0, -half_size.y * 0.72),
+		Vector2(half_size.x * 0.32, half_size.y * 0.48),
+		_facet_color,
+		1.5
+	)
+
+
+func _draw_steel_beam() -> void:
+	var half_size: Vector2 = _body_size * 0.5
+	draw_rect(Rect2(-half_size, _body_size), _primary_color, true)
+	draw_rect(
+		Rect2(
+			Vector2(-half_size.x + 3.0, -half_size.y + 3.0),
+			Vector2(maxf(_body_size.x - 6.0, 2.0), maxf(_body_size.y - 6.0, 2.0))
+		),
+		Color("1d2428"),
+		true
+	)
+	draw_line(
+		Vector2(-half_size.x, 0.0),
+		Vector2(half_size.x, 0.0),
+		_facet_color,
+		maxf(3.0, _body_size.x * 0.22)
 	)
 
 

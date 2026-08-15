@@ -14,12 +14,10 @@ const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.g
 @export var damaged_texture: Texture2D
 @export var rubble_texture: Texture2D
 @export var display_size: Vector2 = Vector2(500.0, 445.0)
-@export var cell_health: float = 85.0
 @export var collision_layer_value: int = 0
 @export var collision_mask_value: int = 0
 @export var hurtbox_layer_value: int = 0
 @export var debris_pool_path: NodePath
-@export_range(1, 6, 1) var chunks_per_cell: int = 3
 
 var _cells: Array[Destructible2D] = []
 var _destroyed_cells: int = 0
@@ -62,6 +60,11 @@ func get_cell(column: int, row: int) -> Destructible2D:
 	return _cells[index]
 
 
+func get_material_profile(column: int, row: int) -> StructuralMaterialProfile:
+	var cell: Destructible2D = get_cell(column, row)
+	return cell.get_material_profile() if cell != null else null
+
+
 func destroyed_cell_count() -> int:
 	return _destroyed_cells
 
@@ -88,11 +91,13 @@ func _build_cells() -> void:
 
 func _create_cell(column: int, row: int) -> Destructible2D:
 	var cell: Destructible2D = CELL_SCRIPT.new() as Destructible2D
+	var profile: StructuralMaterialProfile = _material_for_cell(column, row)
 	cell.name = "Cell_%d_%d" % [column, row]
 	cell.position = _cell_center(column, row)
-	cell.max_health = cell_health
+	cell.material_profile = profile
+	cell.max_health = profile.max_health
 	cell.damaged_stage_ratio = 0.65
-	cell.gameplay_chunk_count = chunks_per_cell
+	cell.gameplay_chunk_count = profile.chunk_count
 	cell.debris_pool_path = NodePath("../" + str(debris_pool_path))
 	cell.intact_visual_path = ^"IntactVisual"
 	cell.damaged_visual_path = ^"DamagedVisual"
@@ -102,9 +107,14 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 	cell.destroyed.connect(_on_cell_destroyed.bind(column, row))
 	cell.set_meta(&"structural_column", column)
 	cell.set_meta(&"structural_row", row)
-	cell.add_child(_create_cell_sprite("IntactVisual", intact_texture, column, row))
-	cell.add_child(_create_cell_sprite("DamagedVisual", damaged_texture, column, row))
-	cell.add_child(_create_rubble_sprite(column, row))
+	cell.set_meta(&"structural_material", profile.material_id)
+	cell.add_child(
+		_create_cell_sprite("IntactVisual", intact_texture, column, row, profile)
+	)
+	cell.add_child(
+		_create_cell_sprite("DamagedVisual", damaged_texture, column, row, profile)
+	)
+	cell.add_child(_create_rubble_sprite(column, row, profile))
 	cell.add_child(_create_intact_body(row))
 	cell.add_child(_create_hurtbox())
 	return cell
@@ -114,7 +124,8 @@ func _create_cell_sprite(
 	sprite_name: String,
 	texture: Texture2D,
 	column: int,
-	row: int
+	row: int,
+	profile: StructuralMaterialProfile
 ) -> Sprite2D:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.name = sprite_name
@@ -132,10 +143,15 @@ func _create_cell_sprite(
 		source_cell_size
 	)
 	sprite.scale = _cell_size() / source_cell_size
+	sprite.modulate = profile.visual_tint
 	return sprite
 
 
-func _create_rubble_sprite(column: int, row: int) -> Sprite2D:
+func _create_rubble_sprite(
+	column: int,
+	row: int,
+	profile: StructuralMaterialProfile
+) -> Sprite2D:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.name = "RubbleVisual"
 	sprite.texture = rubble_texture
@@ -154,7 +170,28 @@ func _create_rubble_sprite(column: int, row: int) -> Sprite2D:
 		rubble_height / maxf(source_size.y, 1.0)
 	)
 	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
+	sprite.modulate = profile.visual_tint
 	return sprite
+
+
+func _material_for_cell(column: int, row: int) -> StructuralMaterialProfile:
+	var material_grid: Array[Array] = [
+		[concrete_profile(), steel_profile(), concrete_profile()],
+		[glass_profile(), concrete_profile(), steel_profile()],
+	]
+	return material_grid[row][column] as StructuralMaterialProfile
+
+
+func concrete_profile() -> StructuralMaterialProfile:
+	return StructuralMaterialProfile.concrete()
+
+
+func glass_profile() -> StructuralMaterialProfile:
+	return StructuralMaterialProfile.glass()
+
+
+func steel_profile() -> StructuralMaterialProfile:
+	return StructuralMaterialProfile.steel()
 
 
 func _create_intact_body(row: int) -> StaticBody2D:

@@ -180,7 +180,7 @@ func _build_robot() -> void:
 	robot.stomp_damage = 180.0
 	robot.collision_layer = ROBOT_LAYER
 	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER
-	robot.z_index = 20
+	robot.z_index = 100
 	var body_shape: CollisionShape2D = CollisionShape2D.new()
 	body_shape.name = "BodyCollision"
 	var capsule: CapsuleShape2D = CapsuleShape2D.new()
@@ -264,12 +264,10 @@ func _create_building(position_value: Vector2) -> StructuralBuilding2D:
 	node.damaged_texture = BUILDING_DAMAGED
 	node.rubble_texture = BUILDING_RUBBLE
 	node.display_size = Vector2(500.0, 445.0)
-	node.cell_health = 85.0
 	node.collision_layer_value = BUILDING_LAYER
 	node.collision_mask_value = ROBOT_LAYER
 	node.hurtbox_layer_value = HURTBOX_LAYER
 	node.debris_pool_path = NodePath("../BuildingDebrisPool")
-	node.chunks_per_cell = 3
 	add_child(node)
 	return node
 
@@ -561,40 +559,74 @@ func _on_robot_structure_impact(
 		direction,
 		impact_speed * 1.15
 	)
+	var material_profile: StructuralMaterialProfile = _material_for_target(
+		target,
+		hit_position
+	)
 	if bool(target.call("receive_damage", event)):
-		_spawn_impact_particles(hit_position, direction, impact_speed)
+		_spawn_impact_particles(
+			hit_position,
+			direction,
+			impact_speed,
+			material_profile
+		)
 		_objective_label.text = "STRUCTURAL BREACH / MOMENTUM TRANSFERRED"
 
 
 func _spawn_impact_particles(
 	origin: Vector2,
 	direction: Vector2,
-	impact_speed: float
+	impact_speed: float,
+	material_profile: StructuralMaterialProfile
 ) -> void:
 	var particles: CPUParticles2D = CPUParticles2D.new()
 	particles.name = "ImpactFragments"
 	particles.global_position = origin
 	particles.z_index = 42
-	particles.amount = clampi(roundi(impact_speed * 0.14), 12, 42)
+	particles.amount = clampi(
+		roundi(impact_speed * material_profile.particle_amount_scale),
+		8,
+		56
+	)
 	particles.lifetime = 0.9
 	particles.one_shot = true
 	particles.explosiveness = 1.0
 	particles.local_coords = false
 	particles.direction = direction.normalized()
-	particles.spread = 72.0
-	particles.gravity = Vector2(0.0, 560.0)
-	particles.initial_velocity_min = impact_speed * 0.35
-	particles.initial_velocity_max = impact_speed * 0.95
+	particles.spread = material_profile.particle_spread
+	particles.gravity = Vector2(0.0, material_profile.particle_gravity)
+	particles.initial_velocity_min = impact_speed * material_profile.particle_speed_min
+	particles.initial_velocity_max = impact_speed * material_profile.particle_speed_max
 	particles.angular_velocity_min = -420.0
 	particles.angular_velocity_max = 420.0
-	particles.scale_amount_min = 3.0
-	particles.scale_amount_max = 8.0
+	particles.scale_amount_min = material_profile.particle_scale_min
+	particles.scale_amount_max = material_profile.particle_scale_max
 	particles.damping_min = 25.0
 	particles.damping_max = 70.0
-	particles.color = Color("bca58f")
+	particles.color = material_profile.particle_color
+	particles.set_meta(&"structural_material", material_profile.material_id)
 	particles.finished.connect(particles.queue_free)
 	add_child(particles)
 	particles.emitting = true
+
+
+func _material_for_target(
+	target: Node,
+	hit_position: Vector2
+) -> StructuralMaterialProfile:
+	if target is Destructible2D:
+		var cell_profile: StructuralMaterialProfile = (
+			(target as Destructible2D).get_material_profile()
+		)
+		if cell_profile != null:
+			return cell_profile
+	if target is StructuralBuilding2D:
+		var cell: Destructible2D = (
+			(target as StructuralBuilding2D).cell_at_world_point(hit_position)
+		)
+		if cell != null and cell.get_material_profile() != null:
+			return cell.get_material_profile()
+	return StructuralMaterialProfile.concrete()
 
 
 func _on_building_damage_applied(amount: float, _event: DamageEvent) -> void:

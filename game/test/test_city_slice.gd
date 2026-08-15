@@ -34,6 +34,85 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	assert_true(city.tank is TankEnemy)
 	assert_true(city.helicopter is HelicopterEnemy)
 	assert_eq(city.debris_pool.available_count(), 24)
+	assert_eq(city.robot.z_index, 100)
+	assert_gt(city.robot.z_index, city.projectile_root.z_index)
+	assert_gt(city.robot.z_index, city.debris_pool.z_index)
+	assert_gt(city.robot.z_index, city.soldier.z_index)
+	assert_gt(city.robot.z_index, city.tank.z_index)
+	assert_gt(city.robot.z_index, city.helicopter.z_index)
+	_record_test_execution()
+
+
+func test_structural_cells_have_distinct_material_profiles() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var expected_ids: Array[Array] = [
+		[&"concrete", &"steel", &"concrete"],
+		[&"glass", &"concrete", &"steel"],
+	]
+	var expected_health: Dictionary[StringName, float] = {
+		&"glass": 45.0,
+		&"concrete": 95.0,
+		&"steel": 155.0,
+	}
+	var expected_chunks: Dictionary[StringName, int] = {
+		&"glass": 5,
+		&"concrete": 3,
+		&"steel": 2,
+	}
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			var profile: StructuralMaterialProfile = (
+				city.building.get_material_profile(column, row)
+			)
+			var expected_id: StringName = expected_ids[row][column]
+			assert_eq(profile.material_id, expected_id)
+			assert_eq(profile.max_health, expected_health[expected_id])
+			assert_eq(profile.chunk_count, expected_chunks[expected_id])
+	assert_lt(
+		city.building.get_material_profile(0, 1).chunk_mass_max,
+		city.building.get_material_profile(0, 0).chunk_mass_max
+	)
+	assert_gt(
+		city.building.get_material_profile(2, 1).chunk_mass_min,
+		city.building.get_material_profile(1, 1).chunk_mass_min
+	)
+	_record_test_execution()
+
+
+func test_materials_change_resistance_debris_and_particles() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for column: int in range(StructuralBuilding2D.COLUMNS):
+		var hit_position: Vector2 = (
+			city.building.get_cell(column, 1).global_position
+		)
+		city.robot.request_structure_impact(
+			city.building,
+			hit_position,
+			Vector2.RIGHT,
+			180.0
+		)
+	assert_true(city.building.is_cell_destroyed(0, 1))
+	assert_false(city.building.is_cell_destroyed(1, 1))
+	assert_false(city.building.is_cell_destroyed(2, 1))
+	assert_eq(city.debris_pool.active_count(), 5)
+	for child: Node in city.debris_pool.get_children():
+		var debris: DebrisBody2D = child as DebrisBody2D
+		if debris == null or not debris.visible:
+			continue
+		assert_eq(debris.material_id(), &"glass")
+		assert_lte(debris.mass, 1.3)
+	var particle_materials: Array[StringName] = []
+	for child: Node in city.get_children():
+		if child is CPUParticles2D and child.has_meta(&"structural_material"):
+			particle_materials.append(child.get_meta(&"structural_material"))
+			assert_gt(city.robot.z_index, (child as CPUParticles2D).z_index)
+	assert_has(particle_materials, &"glass")
+	assert_has(particle_materials, &"concrete")
+	assert_has(particle_materials, &"steel")
 	_record_test_execution()
 
 
@@ -75,14 +154,18 @@ func test_impact_destroys_only_the_struck_lower_bay() -> void:
 		assert_false(city.building.is_cell_destroyed(column, 0))
 	assert_eq(city.building.destroyed_cell_count(), 1)
 	assert_false(city.building.is_destroyed())
-	assert_eq(city.score, 1150)
+	assert_eq(city.score, 750)
 	var collision: CollisionShape2D = city.building.get_cell(0, 1).get_node(
 		^"IntactBody/CollisionShape2D"
 	) as CollisionShape2D
 	assert_true(collision.disabled)
-	assert_not_null(city.get_node_or_null(^"ImpactFragments"))
+	var particles: CPUParticles2D = city.get_node_or_null(
+		^"ImpactFragments"
+	) as CPUParticles2D
+	assert_not_null(particles)
+	assert_eq(particles.get_meta(&"structural_material"), &"glass")
 	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
-	assert_eq(score_label.text, "00001150")
+	assert_eq(score_label.text, "00000750")
 	_record_test_execution()
 
 

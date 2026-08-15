@@ -1,6 +1,6 @@
 # Proto Scroller
 
-A Godot 4.7.1 city-destruction slice with a giant robot, five-layer parallax city, a six-cell structural building, destructible props, combined-arms enemies, and a WebAssembly host.
+A Godot 4.7.1 city-destruction slice with a giant robot, five-layer parallax city, a six-cell mixed-material structural building, destructible props, combined-arms enemies, and a WebAssembly host.
 
 ## Project layout
 
@@ -26,6 +26,8 @@ pnpm dev
 ```
 
 Open the reported URL, wait for `WEB RUNTIME ONLINE`, then activate `INITIALIZE` inside the canvas. Use **A/D** to move and **Space** to stomp. The first stomp destroys the nearby car; advance into the building to break its three lower bays in sequence. The upper row remains bridged while any lower support survives, then collapses into rubble after the final support fails.
+
+The structural grid uses concrete, glass, and steel profiles. Glass fails quickly into fast cyan shards, concrete sheds medium masonry, and steel needs sustained impact before releasing slow heavy beams and sparks. The giant robot owns world Z 100 and therefore renders above every world-space unit, projectile, particle, prop, debris body, and facade; the HUD remains a separate CanvasLayer overlay.
 
 ## Production build
 

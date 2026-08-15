@@ -18,6 +18,7 @@ signal destroyed(event: DamageEvent)
 @export var rubble_collision_path: NodePath
 
 var current_health: float
+var material_profile: StructuralMaterialProfile
 var _destroyed: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
 
@@ -34,6 +35,8 @@ var _seen_attacks: Dictionary[int, bool] = {}
 
 
 func _ready() -> void:
+	if material_profile != null:
+		_apply_material_profile()
 	current_health = max_health
 	_apply_stage(false, false)
 
@@ -98,12 +101,28 @@ func _release_chunks(event: DamageEvent) -> void:
 		var direction: Vector2 = base_direction.rotated(angle)
 		direction.y -= 0.35
 		direction = direction.normalized()
-		var body_mass: float = lerpf(1.5, 12.0, weight)
-		var body_size: Vector2 = Vector2(
-			lerpf(18.0, 58.0, weight),
-			lerpf(12.0, 34.0, weight)
-		)
-		var speed_scale: float = lerpf(1.25, 0.48, weight)
+		var mass_min: float = 1.5
+		var mass_max: float = 12.0
+		var size_min: Vector2 = Vector2(18.0, 12.0)
+		var size_max: Vector2 = Vector2(58.0, 34.0)
+		var speed_min: float = 0.48
+		var speed_max: float = 1.25
+		var primary_color: Color = Color("4f4a46")
+		var facet_color: Color = Color("786d65")
+		var material_id: StringName = &"concrete"
+		if material_profile != null:
+			mass_min = material_profile.chunk_mass_min
+			mass_max = material_profile.chunk_mass_max
+			size_min = material_profile.chunk_size_min
+			size_max = material_profile.chunk_size_max
+			speed_min = material_profile.chunk_speed_min
+			speed_max = material_profile.chunk_speed_max
+			primary_color = material_profile.debris_primary_color
+			facet_color = material_profile.debris_facet_color
+			material_id = material_profile.material_id
+		var body_mass: float = lerpf(mass_min, mass_max, weight)
+		var body_size: Vector2 = size_min.lerp(size_max, weight)
+		var speed_scale: float = lerpf(speed_max, speed_min, weight)
 		var speed_delta: float = event.impulse_per_mass * chunk_impulse_scale * speed_scale
 		var transform_offset: Vector2 = direction * (12.0 + 8.0 * float(chunk_index))
 		var spawn_position: Vector2 = event.hit_position + transform_offset
@@ -116,5 +135,18 @@ func _release_chunks(event: DamageEvent) -> void:
 			direction * speed_delta * body_mass,
 			lerpf(-4.0, 4.0, weight) * body_mass,
 			body_mass,
-			body_size
+			body_size,
+			material_id,
+			primary_color,
+			facet_color
 		)
+
+
+func get_material_profile() -> StructuralMaterialProfile:
+	return material_profile
+
+
+func _apply_material_profile() -> void:
+	max_health = material_profile.max_health
+	gameplay_chunk_count = material_profile.chunk_count
+	chunk_spread_degrees = material_profile.chunk_spread_degrees
