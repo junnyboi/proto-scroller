@@ -185,7 +185,7 @@ func _build_robot() -> void:
 		Vector2(265.0, 245.0)
 	)
 	robot_sprite.name = "ProvisionalRobotSprite"
-	robot_sprite.position.y = 48.0
+	robot_sprite.position.y = 72.0
 	visual_root.add_child(robot_sprite)
 	robot.add_child(visual_root)
 	var impact_origin: Marker2D = Marker2D.new()
