@@ -11,6 +11,7 @@ signal recycle_requested(body: DebrisBody2D)
 var _age: float = 0.0
 var _sleeping_age: float = 0.0
 var _active: bool = false
+var _body_size: Vector2 = Vector2(36.0, 22.0)
 
 
 func _ready() -> void:
@@ -25,8 +26,13 @@ func _ready() -> void:
 func activate(
 	spawn_transform: Transform2D,
 	linear_impulse: Vector2,
-	angular_impulse: float = 0.0
+	angular_impulse: float = 0.0,
+	body_mass: float = 4.0,
+	body_size: Vector2 = Vector2(36.0, 22.0)
 ) -> void:
+	mass = maxf(body_mass, 0.1)
+	_body_size = Vector2(maxf(body_size.x, 4.0), maxf(body_size.y, 4.0))
+	_apply_body_size()
 	global_transform = spawn_transform
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
@@ -40,6 +46,7 @@ func activate(
 	visible = true
 	process_mode = Node.PROCESS_MODE_INHERIT
 	set_physics_process(true)
+	queue_redraw()
 	reset_physics_interpolation()
 	apply_central_impulse(linear_impulse)
 	if not is_zero_approx(angular_impulse):
@@ -81,9 +88,19 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(-18.0, -11.0, 36.0, 22.0), Color("70655d"), true)
-	draw_rect(Rect2(-15.0, -8.0, 30.0, 4.0), Color("a58c78"), true)
-	draw_line(Vector2(-17.0, 8.0), Vector2(16.0, -8.0), Color("302c2a"), 3.0)
+	var half_size: Vector2 = _body_size * 0.5
+	draw_rect(Rect2(-half_size, _body_size), Color("70655d"), true)
+	draw_rect(
+		Rect2(-half_size + Vector2(3.0, 3.0), Vector2(_body_size.x - 6.0, 4.0)),
+		Color("a58c78"),
+		true
+	)
+	draw_line(
+		Vector2(-half_size.x + 2.0, half_size.y - 3.0),
+		Vector2(half_size.x - 2.0, -half_size.y + 3.0),
+		Color("302c2a"),
+		maxf(2.0, _body_size.y * 0.12)
+	)
 
 
 func _ensure_fallback_shape() -> void:
@@ -95,3 +112,14 @@ func _ensure_fallback_shape() -> void:
 	shape_node.shape = shape
 	add_child(shape_node)
 	queue_redraw()
+
+
+func _apply_body_size() -> void:
+	var shape_node: CollisionShape2D = get_node_or_null(^"CollisionShape2D") as CollisionShape2D
+	if shape_node == null and get_child_count() > 0:
+		shape_node = get_child(0) as CollisionShape2D
+	if shape_node == null:
+		return
+	var rectangle: RectangleShape2D = shape_node.shape as RectangleShape2D
+	if rectangle != null:
+		rectangle.size = _body_size

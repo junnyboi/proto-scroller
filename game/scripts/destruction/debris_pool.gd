@@ -28,13 +28,15 @@ func _ready() -> void:
 func acquire(
 	spawn_transform: Transform2D,
 	linear_impulse: Vector2,
-	angular_impulse: float = 0.0
+	angular_impulse: float = 0.0,
+	body_mass: float = 4.0,
+	body_size: Vector2 = Vector2(36.0, 22.0)
 ) -> DebrisBody2D:
 	if _free.is_empty():
 		return null
 	var body: DebrisBody2D = _free.pop_back()
 	_active.append(body)
-	body.activate(spawn_transform, linear_impulse, angular_impulse)
+	body.activate(spawn_transform, linear_impulse, angular_impulse, body_mass, body_size)
 	return body
 
 

@@ -53,9 +53,11 @@ var soldier: SoldierEnemy
 var tank: TankEnemy
 var helicopter: HelicopterEnemy
 var game_over_active: bool = false
+var score: int = 0
 var _health_label: Label
 var _status_label: Label
 var _objective_label: Label
+var _score_label: Label
 var _game_over_overlay: Control
 var _retry_button: Button
 var _pulse_age: float = 0.0
@@ -210,6 +212,7 @@ func _build_robot() -> void:
 	hurtbox.add_child(hurt_shape)
 	robot.add_child(hurtbox)
 	robot.heavy_impact_requested.connect(_on_robot_heavy_impact)
+	robot.structure_impact_requested.connect(_on_robot_structure_impact)
 	robot.health_changed.connect(_on_robot_health_changed)
 	robot.defeated.connect(_on_robot_defeated)
 	add_child(robot)
@@ -217,6 +220,8 @@ func _build_robot() -> void:
 
 func _build_destructibles() -> void:
 	building = _create_building(Vector2(1450.0, LAND_VISUAL_BASELINE_Y))
+	building.damage_applied.connect(_on_building_damage_applied)
+	building.destroyed.connect(_on_building_destroyed)
 	streetlamp = _create_prop(
 		"Streetlamp",
 		Vector2(1220.0, 480.0),
@@ -229,6 +234,7 @@ func _build_destructibles() -> void:
 		38.0,
 		4.0
 	)
+	streetlamp.destroyed.connect(_on_prop_destroyed.bind(150))
 	car = _create_prop(
 		"Car",
 		Vector2(930.0, 559.0),
@@ -241,6 +247,7 @@ func _build_destructibles() -> void:
 		35.0,
 		12.0
 	)
+	car.destroyed.connect(_on_prop_destroyed.bind(300))
 
 
 func _create_building(position_value: Vector2) -> Destructible2D:
@@ -283,8 +290,8 @@ func _create_building(position_value: Vector2) -> Destructible2D:
 	node.add_child(intact_body)
 	var rubble_body: StaticBody2D = StaticBody2D.new()
 	rubble_body.name = "RubbleBody"
-	rubble_body.collision_layer = BUILDING_LAYER
-	rubble_body.collision_mask = ROBOT_LAYER
+	rubble_body.collision_layer = 0
+	rubble_body.collision_mask = 0
 	var rubble_collision: CollisionShape2D = CollisionShape2D.new()
 	rubble_collision.name = "CollisionShape2D"
 	var rubble_rectangle: RectangleShape2D = RectangleShape2D.new()
@@ -370,6 +377,9 @@ func _build_enemies() -> void:
 		Vector2(210.0, 58.0)
 	) as HelicopterEnemy
 	helicopter.collision_mask = 0
+	soldier.died.connect(_on_enemy_died.bind(500))
+	tank.died.connect(_on_enemy_died.bind(1500))
+	helicopter.died.connect(_on_enemy_died.bind(1200))
 
 
 func _create_enemy(
@@ -468,6 +478,27 @@ func _build_hud() -> void:
 	_objective_label.add_theme_font_size_override(&"font_size", 20)
 	_objective_label.modulate = Color("b7c4cb")
 	layer.add_child(_objective_label)
+	var score_panel: ColorRect = ColorRect.new()
+	score_panel.position = Vector2(1000.0, 22.0)
+	score_panel.size = Vector2(256.0, 88.0)
+	score_panel.color = Color(0.03, 0.05, 0.08, 0.86)
+	layer.add_child(score_panel)
+	var score_caption: Label = Label.new()
+	score_caption.position = Vector2(1024.0, 30.0)
+	score_caption.size = Vector2(208.0, 28.0)
+	score_caption.text = "DESTRUCTION SCORE"
+	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	score_caption.add_theme_font_size_override(&"font_size", 18)
+	score_caption.modulate = Color("f1b36f")
+	layer.add_child(score_caption)
+	_score_label = Label.new()
+	_score_label.name = "ScoreLabel"
+	_score_label.position = Vector2(1024.0, 56.0)
+	_score_label.size = Vector2(208.0, 42.0)
+	_score_label.text = "%08d" % score
+	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_score_label.add_theme_font_size_override(&"font_size", 30)
+	layer.add_child(_score_label)
 	_build_game_over_overlay(layer)
 
 
@@ -545,6 +576,90 @@ func _on_robot_heavy_impact(
 	)
 	if _objective_label != null:
 		_objective_label.text = "IMPACT REGISTERED / PHYSICS FIELD ACTIVE"
+
+
+func _on_robot_structure_impact(
+	target: Node,
+	hit_position: Vector2,
+	direction: Vector2,
+	impact_speed: float,
+	impact_mass: float,
+	attack_id: int
+) -> void:
+	if target == null or not target.has_method("receive_damage"):
+		return
+	var structural_damage: float = clampf(
+		impact_mass * impact_speed * impact_speed / 25000.0,
+		12.0,
+		240.0
+	)
+	var event: DamageEvent = DamageEvent.new(
+		attack_id,
+		robot,
+		structural_damage,
+		&"structural",
+		hit_position,
+		direction,
+		impact_speed * 1.15
+	)
+	if bool(target.call("receive_damage", event)):
+		_spawn_impact_particles(hit_position, direction, impact_speed)
+		_objective_label.text = "STRUCTURAL BREACH / MOMENTUM TRANSFERRED"
+
+
+func _spawn_impact_particles(
+	origin: Vector2,
+	direction: Vector2,
+	impact_speed: float
+) -> void:
+	var particles: CPUParticles2D = CPUParticles2D.new()
+	particles.name = "ImpactFragments"
+	particles.global_position = origin
+	particles.z_index = 42
+	particles.amount = clampi(roundi(impact_speed * 0.14), 12, 42)
+	particles.lifetime = 0.9
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+	particles.local_coords = false
+	particles.direction = direction.normalized()
+	particles.spread = 72.0
+	particles.gravity = Vector2(0.0, 560.0)
+	particles.initial_velocity_min = impact_speed * 0.35
+	particles.initial_velocity_max = impact_speed * 0.95
+	particles.angular_velocity_min = -420.0
+	particles.angular_velocity_max = 420.0
+	particles.scale_amount_min = 3.0
+	particles.scale_amount_max = 8.0
+	particles.damping_min = 25.0
+	particles.damping_max = 70.0
+	particles.color = Color("bca58f")
+	particles.finished.connect(particles.queue_free)
+	add_child(particles)
+	particles.emitting = true
+
+
+func _on_building_damage_applied(amount: float, _event: DamageEvent) -> void:
+	_add_score(roundi(amount * 10.0))
+
+
+func _on_building_destroyed(_event: DamageEvent) -> void:
+	_add_score(1000)
+
+
+func _on_prop_destroyed(_prop: DestructibleProp2D, points: int) -> void:
+	_add_score(points)
+
+
+func _on_enemy_died(_enemy: EnemyActor2D, points: int) -> void:
+	_add_score(points)
+
+
+func _add_score(points: int) -> void:
+	if points <= 0:
+		return
+	score += points
+	if _score_label != null:
+		_score_label.text = "%08d" % score
 
 
 func _on_projectile_requested(

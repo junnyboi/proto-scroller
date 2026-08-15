@@ -47,6 +47,63 @@ func test_stomp_breaks_the_nearby_car_and_lamp() -> void:
 	assert_true(city.car.is_broken)
 	assert_true(city.streetlamp.is_broken)
 	assert_false(city.building.is_destroyed())
+	assert_eq(city.score, 450)
+	_record_test_execution()
+
+
+func test_robot_impact_collapses_building_into_passable_scored_rubble() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var initial_available: int = city.debris_pool.available_count()
+	var attack_id: int = city.robot.request_structure_impact(
+		city.building,
+		city.building.global_position - Vector2(220.0, 120.0),
+		Vector2.RIGHT,
+		260.0
+	)
+	await get_tree().process_frame
+	assert_gt(attack_id, 0)
+	assert_true(city.building.is_destroyed())
+	assert_lt(city.debris_pool.available_count(), initial_available)
+	assert_not_null(city.get_node_or_null(^"ImpactFragments"))
+	assert_eq(city.score, 1850)
+	var intact_collision: CollisionShape2D = city.building.get_node(
+		^"IntactBody/CollisionShape2D"
+	) as CollisionShape2D
+	var rubble_body: StaticBody2D = city.building.get_node(^"RubbleBody") as StaticBody2D
+	assert_true(intact_collision.disabled)
+	assert_eq(rubble_body.collision_layer, 0)
+	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
+	assert_eq(score_label.text, "00001850")
+	_record_test_execution()
+
+
+func test_robot_walks_through_the_collapsed_building() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
+		enemy.set_physics_process(false)
+	city.robot.position = Vector2(1100.0, 460.0)
+	for step_index: int in range(150):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		await get_tree().physics_frame
+	assert_true(city.building.is_destroyed())
+	assert_gt(city.robot.position.x, city.building.position.x + 180.0)
+	_record_test_execution()
+
+
+func test_enemy_defeat_adds_score_once() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var fatal_event: DamageEvent = DamageEvent.new(7001, city.robot, 999.0)
+	assert_true(city.soldier.receive_damage(fatal_event))
+	assert_eq(city.score, 500)
+	assert_false(city.soldier.receive_damage(fatal_event))
+	assert_eq(city.score, 500)
 	_record_test_execution()
 
 

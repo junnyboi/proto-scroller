@@ -2,6 +2,7 @@ class_name Destructible2D
 extends Node2D
 
 signal damaged(current_health: float, maximum_health: float)
+signal damage_applied(amount: float, event: DamageEvent)
 signal destroyed(event: DamageEvent)
 
 @export_range(1.0, 10000.0, 1.0) var max_health: float = 100.0
@@ -44,8 +45,11 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
+	var previous_health: float = current_health
 	current_health = maxf(current_health - event.amount, 0.0)
+	var accepted_damage: float = previous_health - current_health
 	damaged.emit(current_health, max_health)
+	damage_applied.emit(accepted_damage, event)
 	if current_health <= 0.0:
 		_break(event)
 	else:
@@ -94,14 +98,23 @@ func _release_chunks(event: DamageEvent) -> void:
 		var direction: Vector2 = base_direction.rotated(angle)
 		direction.y -= 0.35
 		direction = direction.normalized()
-		var speed_delta: float = event.impulse_per_mass * chunk_impulse_scale
-		var transform_offset: Vector2 = direction * (10.0 + 6.0 * float(chunk_index))
+		var body_mass: float = lerpf(1.5, 12.0, weight)
+		var body_size: Vector2 = Vector2(
+			lerpf(18.0, 58.0, weight),
+			lerpf(12.0, 34.0, weight)
+		)
+		var speed_scale: float = lerpf(1.25, 0.48, weight)
+		var speed_delta: float = event.impulse_per_mass * chunk_impulse_scale * speed_scale
+		var transform_offset: Vector2 = direction * (12.0 + 8.0 * float(chunk_index))
+		var spawn_position: Vector2 = event.hit_position + transform_offset
 		var spawn_transform: Transform2D = Transform2D(
 			0.0,
-			global_position + transform_offset
+			spawn_position
 		)
 		_debris_pool.acquire(
 			spawn_transform,
-			direction * speed_delta,
-			lerpf(-3.0, 3.0, weight)
+			direction * speed_delta * body_mass,
+			lerpf(-4.0, 4.0, weight) * body_mass,
+			body_mass,
+			body_size
 		)

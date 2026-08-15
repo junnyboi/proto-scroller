@@ -6,6 +6,14 @@ signal locomotion_changed(state: int)
 signal footstep_impact(world_position: Vector2, strength: float)
 signal health_changed(current_health: float, maximum_health: float)
 signal defeated
+signal structure_impact_requested(
+	target: Node,
+	hit_position: Vector2,
+	direction: Vector2,
+	impact_speed: float,
+	impact_mass: float,
+	attack_id: int
+)
 signal heavy_impact_requested(
 	origin: Vector2,
 	radius: float,
@@ -36,6 +44,9 @@ enum LocomotionState {
 @export var stomp_damage: float = 100.0
 @export var stomp_impulse_per_mass: float = 420.0
 @export var landing_speed_for_impact: float = 520.0
+@export var structural_impact_mass: float = 48.0
+@export var minimum_structural_impact_speed: float = 65.0
+@export_range(0.0, 1.0, 0.05) var structural_momentum_retention: float = 0.72
 
 @export_group("Durability")
 @export var max_health: float = 120.0
@@ -105,7 +116,9 @@ func physics_step(input_axis: float, delta: float) -> void:
 		_update_locomotion(clampf(input_axis, -1.0, 1.0), delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, ground_deceleration * delta)
+	var requested_velocity: Vector2 = velocity
 	move_and_slide()
+	_resolve_structure_impacts(requested_velocity)
 	_resolve_landing_impact()
 
 
@@ -136,6 +149,29 @@ func request_stomp() -> int:
 		stomp_radius,
 		stomp_damage,
 		stomp_impulse_per_mass,
+		_attack_id
+	)
+	return _attack_id
+
+
+func request_structure_impact(
+	target: Node,
+	hit_position: Vector2,
+	direction: Vector2,
+	impact_speed: float
+) -> int:
+	if target == null or impact_speed < minimum_structural_impact_speed:
+		return 0
+	_attack_id += 1
+	var impact_direction: Vector2 = direction.normalized()
+	if impact_direction.is_zero_approx():
+		impact_direction = Vector2(float(facing), 0.0)
+	structure_impact_requested.emit(
+		target,
+		hit_position,
+		impact_direction,
+		impact_speed,
+		structural_impact_mass,
 		_attack_id
 	)
 	return _attack_id
@@ -203,6 +239,41 @@ func _resolve_landing_impact() -> void:
 		2.0
 	)
 	notify_footstep(strength)
+
+
+func _resolve_structure_impacts(requested_velocity: Vector2) -> void:
+	if requested_velocity.is_zero_approx():
+		return
+	var seen: Dictionary[int, bool] = {}
+	for collision_index: int in range(get_slide_collision_count()):
+		var collision: KinematicCollision2D = get_slide_collision(collision_index)
+		var collider: Node = collision.get_collider() as Node
+		var target: Node = _find_damage_receiver(collider)
+		if target == null or seen.has(target.get_instance_id()):
+			continue
+		var approach_speed: float = maxf(
+			-requested_velocity.dot(collision.get_normal()),
+			0.0
+		)
+		if approach_speed < minimum_structural_impact_speed:
+			continue
+		seen[target.get_instance_id()] = true
+		request_structure_impact(
+			target,
+			collision.get_position(),
+			requested_velocity,
+			approach_speed
+		)
+		velocity.x = requested_velocity.x * structural_momentum_retention
+
+
+func _find_damage_receiver(start_node: Node) -> Node:
+	var receiver: Node = start_node
+	while receiver != null:
+		if receiver.has_method("receive_damage"):
+			return receiver
+		receiver = receiver.get_parent()
+	return null
 
 
 func _begin_turn(new_facing: int) -> void:
