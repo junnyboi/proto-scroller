@@ -14,6 +14,7 @@ type GodotConfig = {
   focusCanvas: boolean;
   gdextensionLibs: string[];
   godotPoolSize: number;
+  mainPack: string;
 };
 
 type GodotEngine = {
@@ -34,6 +35,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
+const GAME_PACK_VERSION = "c881c13c";
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -72,6 +74,7 @@ export default function Home() {
         focusCanvas: true,
         gdextensionLibs: [],
         godotPoolSize: 4,
+        mainPack: `/game/game.pck?v=${GAME_PACK_VERSION}`,
       });
 
       try {
