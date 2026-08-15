@@ -1,12 +1,16 @@
 class_name CitySlice
 extends Node2D
 
+signal retry_requested
+
 const DAMAGE_MASK: int = (1 << 1) | (1 << 6) | (1 << 7)
 const WORLD_LAYER: int = 1 << 0
 const ROBOT_LAYER: int = 1 << 1
 const ENEMY_LAYER: int = 1 << 2
+const BUILDING_LAYER: int = 1 << 3
 const HURTBOX_LAYER: int = 1 << 6
 const PROP_LAYER: int = 1 << 7
+const LAND_VISUAL_BASELINE_Y: float = 655.0
 
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd")
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
@@ -48,9 +52,12 @@ var car: DestructibleProp2D
 var soldier: SoldierEnemy
 var tank: TankEnemy
 var helicopter: HelicopterEnemy
+var game_over_active: bool = false
 var _health_label: Label
 var _status_label: Label
 var _objective_label: Label
+var _game_over_overlay: Control
+var _retry_button: Button
 var _pulse_age: float = 0.0
 
 
@@ -168,7 +175,7 @@ func _build_robot() -> void:
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0
 	robot.collision_layer = ROBOT_LAYER
-	robot.collision_mask = WORLD_LAYER
+	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER
 	robot.z_index = 20
 	var body_shape: CollisionShape2D = CollisionShape2D.new()
 	body_shape.name = "BodyCollision"
@@ -204,14 +211,15 @@ func _build_robot() -> void:
 	robot.add_child(hurtbox)
 	robot.heavy_impact_requested.connect(_on_robot_heavy_impact)
 	robot.health_changed.connect(_on_robot_health_changed)
+	robot.defeated.connect(_on_robot_defeated)
 	add_child(robot)
 
 
 func _build_destructibles() -> void:
-	building = _create_building(Vector2(1450.0, 590.0))
+	building = _create_building(Vector2(1450.0, LAND_VISUAL_BASELINE_Y))
 	streetlamp = _create_prop(
 		"Streetlamp",
-		Vector2(1220.0, 472.0),
+		Vector2(1220.0, 480.0),
 		LAMP_INTACT,
 		LAMP_BROKEN,
 		Vector2(70.0, 235.0),
@@ -223,7 +231,7 @@ func _build_destructibles() -> void:
 	)
 	car = _create_prop(
 		"Car",
-		Vector2(930.0, 548.0),
+		Vector2(930.0, 559.0),
 		CAR_INTACT,
 		CAR_WRECK,
 		Vector2(165.0, 78.0),
@@ -263,7 +271,7 @@ func _create_building(position_value: Vector2) -> Destructible2D:
 	node.add_child(rubble)
 	var intact_body: StaticBody2D = StaticBody2D.new()
 	intact_body.name = "IntactBody"
-	intact_body.collision_layer = WORLD_LAYER
+	intact_body.collision_layer = BUILDING_LAYER
 	intact_body.collision_mask = ROBOT_LAYER
 	var intact_collision: CollisionShape2D = CollisionShape2D.new()
 	intact_collision.name = "CollisionShape2D"
@@ -275,7 +283,7 @@ func _create_building(position_value: Vector2) -> Destructible2D:
 	node.add_child(intact_body)
 	var rubble_body: StaticBody2D = StaticBody2D.new()
 	rubble_body.name = "RubbleBody"
-	rubble_body.collision_layer = WORLD_LAYER
+	rubble_body.collision_layer = BUILDING_LAYER
 	rubble_body.collision_mask = ROBOT_LAYER
 	var rubble_collision: CollisionShape2D = CollisionShape2D.new()
 	rubble_collision.name = "CollisionShape2D"
@@ -325,6 +333,7 @@ func _create_prop(
 	prop.intact_display_size = intact_size
 	prop.destroyed_display_size = broken_size
 	prop.destroyed_collision_size = broken_collision_size
+	prop.visual_ground_offset = LAND_VISUAL_BASELINE_Y - position_value.y
 	var visual: Sprite2D = Sprite2D.new()
 	visual.name = "Visual"
 	prop.add_child(visual)
@@ -342,14 +351,14 @@ func _build_enemies() -> void:
 	soldier = _create_enemy(
 		SOLDIER_SCRIPT,
 		SOLDIER_TEXTURE,
-		Vector2(1320.0, 530.0),
+		Vector2(1320.0, 542.5),
 		Vector2(68.0, 108.0),
 		Vector2(42.0, 95.0)
 	) as SoldierEnemy
 	tank = _create_enemy(
 		TANK_SCRIPT,
 		TANK_TEXTURE,
-		Vector2(1700.0, 535.0),
+		Vector2(1700.0, 551.0),
 		Vector2(235.0, 100.0),
 		Vector2(220.0, 78.0)
 	) as TankEnemy
@@ -377,6 +386,22 @@ func _create_enemy(
 	enemy.z_index = 30
 	var visual: Sprite2D = _make_fitted_sprite(texture, display_size)
 	visual.name = "Visual"
+	if enemy is SoldierEnemy or enemy is TankEnemy:
+		var rendered_height: float = texture.get_size().y * absf(visual.scale.y)
+		visual.position.y = (
+			LAND_VISUAL_BASELINE_Y - position_value.y - rendered_height * 0.5
+		)
+		enemy.movement_bounce_enabled = true
+		if enemy is SoldierEnemy:
+			enemy.bounce_height = 5.5
+			enemy.bounce_frequency = 3.8
+			enemy.bounce_squash = 0.055
+			enemy.bounce_speed_reference = 92.0
+		else:
+			enemy.bounce_height = 2.5
+			enemy.bounce_frequency = 2.2
+			enemy.bounce_squash = 0.025
+			enemy.bounce_speed_reference = 62.0
 	enemy.add_child(visual)
 	var collision: CollisionShape2D = CollisionShape2D.new()
 	var rectangle: RectangleShape2D = RectangleShape2D.new()
@@ -443,6 +468,51 @@ func _build_hud() -> void:
 	_objective_label.add_theme_font_size_override(&"font_size", 20)
 	_objective_label.modulate = Color("b7c4cb")
 	layer.add_child(_objective_label)
+	_build_game_over_overlay(layer)
+
+
+func _build_game_over_overlay(layer: CanvasLayer) -> void:
+	_game_over_overlay = Control.new()
+	_game_over_overlay.name = "GameOverOverlay"
+	_game_over_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_game_over_overlay.visible = false
+	_game_over_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(_game_over_overlay)
+	var shade: ColorRect = ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.02, 0.03, 0.78)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	_game_over_overlay.add_child(shade)
+	var panel: ColorRect = ColorRect.new()
+	panel.position = Vector2(365.0, 188.0)
+	panel.size = Vector2(550.0, 340.0)
+	panel.color = Color(0.025, 0.05, 0.065, 0.97)
+	_game_over_overlay.add_child(panel)
+	var title: Label = Label.new()
+	title.position = Vector2(405.0, 232.0)
+	title.size = Vector2(470.0, 86.0)
+	title.text = "GAME OVER"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override(&"font_size", 58)
+	title.modulate = Color("f1b36f")
+	_game_over_overlay.add_child(title)
+	var subtitle: Label = Label.new()
+	subtitle.position = Vector2(405.0, 320.0)
+	subtitle.size = Vector2(470.0, 46.0)
+	subtitle.text = "CHASSIS SIGNAL LOST"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override(&"font_size", 24)
+	subtitle.modulate = Color("b7c4cb")
+	_game_over_overlay.add_child(subtitle)
+	_retry_button = Button.new()
+	_retry_button.name = "RetryButton"
+	_retry_button.position = Vector2(490.0, 398.0)
+	_retry_button.size = Vector2(300.0, 78.0)
+	_retry_button.text = "RETRY"
+	_retry_button.focus_mode = Control.FOCUS_ALL
+	_retry_button.add_theme_font_size_override(&"font_size", 30)
+	_retry_button.pressed.connect(_on_retry_pressed)
+	_game_over_overlay.add_child(_retry_button)
 
 
 func _make_fitted_sprite(texture: Texture2D, display_size: Vector2) -> Sprite2D:
@@ -493,3 +563,23 @@ func _on_projectile_requested(
 func _on_robot_health_changed(current: float, maximum: float) -> void:
 	if _health_label != null:
 		_health_label.text = "CHASSIS %03d / %03d" % [roundi(current), roundi(maximum)]
+
+
+func _on_robot_defeated() -> void:
+	if game_over_active:
+		return
+	game_over_active = true
+	_status_label.text = "CITY RESPONSE / LOST"
+	_objective_label.text = "CHASSIS SIGNAL TERMINATED"
+	for enemy: EnemyActor2D in [soldier, tank, helicopter]:
+		if enemy != null:
+			enemy.set_physics_process(false)
+	projectile_root.process_mode = Node.PROCESS_MODE_DISABLED
+	_game_over_overlay.visible = true
+	_retry_button.grab_focus()
+
+
+func _on_retry_pressed() -> void:
+	if not game_over_active:
+		return
+	retry_requested.emit()

@@ -13,17 +13,59 @@ signal died(actor: EnemyActor2D)
 
 @export var max_health: float = 60.0
 
+@export_group("Movement Bounce")
+@export var movement_bounce_enabled: bool = false
+@export var bounce_height: float = 4.0
+@export var bounce_frequency: float = 3.5
+@export var bounce_squash: float = 0.04
+@export var bounce_speed_reference: float = 90.0
+
 var current_health: float
 var target: GiantRobotController
 var dead: bool = false
 var facing: int = -1
+var visual_ground_offset: float = 0.0
 var _seen_attacks: Dictionary[int, bool] = {}
+var _bounce_phase: float = 0.0
+var _visual_rest_position: Vector2
+var _visual_rest_scale: Vector2 = Vector2.ONE
 
 @onready var visual: Sprite2D = get_node_or_null(^"Visual") as Sprite2D
 
 
 func _ready() -> void:
 	current_health = max_health
+	if visual != null:
+		_visual_rest_position = visual.position
+		_visual_rest_scale = visual.scale
+
+
+func update_movement_bounce(delta: float) -> void:
+	if visual == null:
+		return
+	var speed_ratio: float = clampf(
+		absf(velocity.x) / maxf(bounce_speed_reference, 1.0),
+		0.0,
+		1.0
+	)
+	if movement_bounce_enabled and speed_ratio > 0.08 and is_on_floor():
+		_bounce_phase = fmod(
+			_bounce_phase + delta * TAU * bounce_frequency * lerpf(0.75, 1.0, speed_ratio),
+			TAU
+		)
+		var hop: float = absf(sin(_bounce_phase))
+		var contact: float = absf(cos(_bounce_phase))
+		visual.position.y = _visual_rest_position.y - hop * bounce_height * speed_ratio
+		visual.scale = Vector2(
+			_visual_rest_scale.x * (1.0 + contact * bounce_squash * speed_ratio),
+			_visual_rest_scale.y * (1.0 - contact * bounce_squash * speed_ratio)
+		)
+		visual.rotation = sin(_bounce_phase * 0.5) * 0.018 * float(facing)
+		return
+	_bounce_phase = 0.0
+	visual.position = visual.position.move_toward(_visual_rest_position, 30.0 * delta)
+	visual.scale = visual.scale.move_toward(_visual_rest_scale, 0.8 * delta)
+	visual.rotation = move_toward(visual.rotation, 0.0, 0.3 * delta)
 
 
 func set_target(p_target: GiantRobotController) -> void:

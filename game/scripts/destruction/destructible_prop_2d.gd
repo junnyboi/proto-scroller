@@ -9,6 +9,7 @@ signal destroyed(prop: DestructibleProp2D)
 @export var intact_display_size: Vector2 = Vector2(150.0, 80.0)
 @export var destroyed_display_size: Vector2 = Vector2(160.0, 80.0)
 @export var destroyed_collision_size: Vector2 = Vector2(130.0, 50.0)
+@export var visual_ground_offset: float = 0.0
 
 var current_health: float
 var is_broken: bool = false
@@ -65,3 +66,4 @@ func _fit_visual(display_size: Vector2) -> void:
 		display_size.y / maxf(texture_size.y, 1.0)
 	)
 	visual.scale = Vector2.ONE * fit_scale
+	visual.position.y = visual_ground_offset - texture_size.y * fit_scale * 0.5

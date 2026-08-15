@@ -31,6 +31,7 @@ func _physics_process(delta: float) -> void:
 	velocity.y = minf(velocity.y + gravity * delta, 900.0)
 	if target == null:
 		move_and_slide()
+		update_movement_bounce(delta)
 		return
 	_update_facing()
 	var distance_x: float = absf(target.global_position.x - global_position.x)
@@ -51,10 +52,12 @@ func _physics_process(delta: float) -> void:
 		_fire_shell()
 		_cooldown = fire_interval
 	move_and_slide()
+	update_movement_bounce(delta)
 
 
 func _fire_shell() -> void:
-	var origin: Vector2 = global_position + Vector2(float(facing) * 112.0, -48.0)
-	var target_point: Vector2 = target.global_position - Vector2(0.0, 55.0)
+	var cannon_y: float = visual.position.y - 22.0 if visual != null else -48.0
+	var origin: Vector2 = global_position + Vector2(float(facing) * 112.0, cannon_y)
+	var target_point: Vector2 = target.global_position + Vector2(0.0, 35.0)
 	var direction: Vector2 = origin.direction_to(target_point)
 	request_projectile(origin, direction, shell_speed, shell_damage, &"shell")

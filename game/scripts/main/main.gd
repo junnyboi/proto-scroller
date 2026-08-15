@@ -18,8 +18,22 @@ func start_game() -> void:
 	if title_screen != null:
 		title_screen.queue_free()
 		title_screen = null
+	_spawn_city_slice()
+
+
+func retry_game() -> void:
+	if city_slice != null:
+		var previous_city: CitySlice = city_slice
+		city_slice = null
+		remove_child(previous_city)
+		previous_city.queue_free()
+	_spawn_city_slice()
+
+
+func _spawn_city_slice() -> void:
 	city_slice = CITY_SCENE.instantiate() as CitySlice
 	city_slice.name = "CitySlice"
+	city_slice.retry_requested.connect(retry_game)
 	add_child(city_slice)
 
 
