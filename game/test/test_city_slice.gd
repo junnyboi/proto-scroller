@@ -124,6 +124,7 @@ func test_stomp_breaks_the_nearby_car_and_lamp() -> void:
 	city.streetlamp.current_health = 0.05
 	city.robot.stomp_radius = 500.0
 	city.robot.stomp_damage = 200.0
+	var original_health: float = city.robot.current_health
 	city.trigger_test_stomp()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
@@ -131,6 +132,42 @@ func test_stomp_breaks_the_nearby_car_and_lamp() -> void:
 	assert_true(city.streetlamp.is_broken)
 	assert_eq(city.building.destroyed_cell_count(), 0)
 	assert_eq(city.score, 450)
+	assert_eq(city.robot.current_health, original_health)
+	_record_test_execution()
+
+
+func test_robot_is_immune_to_self_and_player_team_damage() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var original_health: float = city.robot.current_health
+	var self_event: DamageEvent = DamageEvent.new(
+		6101,
+		city.robot,
+		200.0,
+		&"explosive"
+	)
+	assert_false(city.robot.receive_damage(self_event))
+	assert_eq(city.robot.current_health, original_health)
+	var friendly_source: Node2D = Node2D.new()
+	friendly_source.set_meta(&"combat_team", &"player")
+	city.add_child(friendly_source)
+	var friendly_event: DamageEvent = DamageEvent.new(
+		6102,
+		friendly_source,
+		200.0,
+		&"projectile"
+	)
+	assert_false(city.robot.receive_damage(friendly_event))
+	assert_eq(city.robot.current_health, original_health)
+	var hostile_event: DamageEvent = DamageEvent.new(
+		6103,
+		city.soldier,
+		25.0,
+		&"projectile"
+	)
+	assert_true(city.robot.receive_damage(hostile_event))
+	assert_eq(city.robot.current_health, original_health - 25.0)
 	_record_test_execution()
 
 
@@ -155,6 +192,11 @@ func test_impact_destroys_only_the_struck_lower_bay() -> void:
 	assert_eq(city.building.destroyed_cell_count(), 1)
 	assert_false(city.building.is_destroyed())
 	assert_eq(city.score, 750)
+	assert_eq(city.last_material_audio, &"glass")
+	assert_eq(city.material_audio_play_count, 1)
+	var glass_audio: AudioStreamPlayer2D = city.impact_audio_root.get_child(0)
+	assert_eq(glass_audio.stream, city.GLASS_IMPACT_SFX)
+	assert_eq(glass_audio.get_meta(&"structural_material"), &"glass")
 	var collision: CollisionShape2D = city.building.get_cell(0, 1).get_node(
 		^"IntactBody/CollisionShape2D"
 	) as CollisionShape2D
@@ -169,7 +211,7 @@ func test_impact_destroys_only_the_struck_lower_bay() -> void:
 	_record_test_execution()
 
 
-func test_upper_row_bridges_until_every_lower_support_is_destroyed() -> void:
+func test_destroyed_floor_triggers_staggered_chain_collapse() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -182,12 +224,31 @@ func test_upper_row_bridges_until_every_lower_support_is_destroyed() -> void:
 		assert_false(city.building.is_cell_destroyed(column, 0))
 	var final_support: Destructible2D = city.building.get_cell(2, 1)
 	final_support.receive_damage(_fatal_cell_event(city, final_support, 8102))
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await _wait_for_chain_reaction(city.building)
 	assert_eq(city.building.destroyed_cell_count(), 6)
 	assert_true(city.building.is_destroyed())
+	assert_eq(city.building.last_chain_reaction_kind, &"floor_chain")
+	assert_eq(city.building.chain_reaction_count, 1)
 	for column: int in range(StructuralBuilding2D.COLUMNS):
 		assert_true(city.building.is_cell_destroyed(column, 0))
+	_record_test_execution()
+
+
+func test_all_steel_supports_trigger_building_wide_chain_reaction() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var upper_steel: Destructible2D = city.building.get_cell(1, 0)
+	var lower_steel: Destructible2D = city.building.get_cell(2, 1)
+	upper_steel.receive_damage(_fatal_cell_event(city, upper_steel, 8201))
+	await get_tree().process_frame
+	assert_eq(city.building.destroyed_cell_count(), 1)
+	lower_steel.receive_damage(_fatal_cell_event(city, lower_steel, 8202))
+	await _wait_for_chain_reaction(city.building)
+	assert_true(city.building.is_destroyed())
+	assert_eq(city.building.last_chain_reaction_kind, &"steel_support_chain")
+	assert_eq(city.building.chain_reaction_count, 1)
+	assert_gte(city.material_audio_play_count, 4)
 	_record_test_execution()
 
 
@@ -310,6 +371,14 @@ func _visual_bottom(visual: Sprite2D) -> float:
 	if not visual.region_enabled:
 		rendered_height = visual.texture.get_size().y * absf(visual.global_scale.y)
 	return visual.global_position.y + rendered_height * 0.5
+
+
+func _wait_for_chain_reaction(building: StructuralBuilding2D) -> void:
+	for frame_index: int in range(120):
+		await get_tree().process_frame
+		if building.is_destroyed() and not building.is_chain_reaction_active():
+			return
+	fail_test("Structural chain reaction did not finish within 120 frames")
 
 
 func _record_test_execution() -> void:

@@ -92,6 +92,8 @@ func _physics_process(delta: float) -> void:
 func receive_damage(event: DamageEvent) -> bool:
 	if event == null or event.amount <= 0.0 or locomotion_state == LocomotionState.DISABLED:
 		return false
+	if _is_friendly_damage(event):
+		return false
 	if event.attack_id != 0 and _seen_attacks.has(event.attack_id):
 		return false
 	if event.attack_id != 0:
@@ -102,6 +104,14 @@ func receive_damage(event: DamageEvent) -> bool:
 		set_disabled(true)
 		defeated.emit()
 	return true
+
+
+func _is_friendly_damage(event: DamageEvent) -> bool:
+	if event.source == null:
+		return false
+	if event.source == self or is_ancestor_of(event.source):
+		return true
+	return event.source.get_meta(&"combat_team", &"") == &"player"
 
 
 func physics_step(input_axis: float, delta: float) -> void:

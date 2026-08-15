@@ -43,11 +43,21 @@ const HELICOPTER_TEXTURE: Texture2D = preload("res://art/city/enemies/helicopter
 const ROBOT_DRAFT_TEXTURE: Texture2D = preload(
 	"res://art/robot/provisional/robot_draft_idle.png"
 )
+const GLASS_IMPACT_SFX: AudioStream = preload(
+	"res://audio/sfx/structural/glass_shatter.wav"
+)
+const CONCRETE_IMPACT_SFX: AudioStream = preload(
+	"res://audio/sfx/structural/concrete_crunch.wav"
+)
+const STEEL_IMPACT_SFX: AudioStream = preload(
+	"res://audio/sfx/structural/steel_groan.wav"
+)
 
 var robot: GiantRobotController
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
 var projectile_root: Node2D
+var impact_audio_root: Node2D
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
@@ -56,6 +66,8 @@ var tank: TankEnemy
 var helicopter: HelicopterEnemy
 var game_over_active: bool = false
 var score: int = 0
+var last_material_audio: StringName = &""
+var material_audio_play_count: int = 0
 var _health_label: Label
 var _status_label: Label
 var _objective_label: Label
@@ -63,6 +75,7 @@ var _score_label: Label
 var _game_over_overlay: Control
 var _retry_button: Button
 var _pulse_age: float = 0.0
+var _material_audio_cooldowns: Dictionary[StringName, int] = {}
 
 
 func _ready() -> void:
@@ -160,6 +173,9 @@ func _build_services() -> void:
 	projectile_root.name = "ProjectileRoot"
 	projectile_root.z_index = 45
 	add_child(projectile_root)
+	impact_audio_root = Node2D.new()
+	impact_audio_root.name = "ImpactAudioRoot"
+	add_child(impact_audio_root)
 	destruction_director = DIRECTOR_SCRIPT.new() as DestructionDirector
 	destruction_director.name = "DestructionDirector"
 	destruction_director.blast_mask = HURTBOX_LAYER | PROP_LAYER | ENEMY_LAYER
@@ -181,6 +197,7 @@ func _build_robot() -> void:
 	robot.collision_layer = ROBOT_LAYER
 	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER
 	robot.z_index = 100
+	robot.set_meta(&"combat_team", &"player")
 	var body_shape: CollisionShape2D = CollisionShape2D.new()
 	body_shape.name = "BodyCollision"
 	var capsule: CapsuleShape2D = CapsuleShape2D.new()
@@ -224,6 +241,9 @@ func _build_destructibles() -> void:
 	building = _create_building(Vector2(1450.0, LAND_VISUAL_BASELINE_Y))
 	building.damage_applied.connect(_on_building_damage_applied)
 	building.cell_destroyed.connect(_on_building_cell_destroyed)
+	building.chain_reaction_started.connect(_on_building_chain_reaction_started)
+	building.chain_reaction_step.connect(_on_building_chain_reaction_step)
+	building.chain_reaction_completed.connect(_on_building_chain_reaction_completed)
 	building.destroyed.connect(_on_building_destroyed)
 	streetlamp = _create_prop(
 		"Streetlamp",
@@ -351,6 +371,7 @@ func _create_enemy(
 	enemy.collision_layer = ENEMY_LAYER
 	enemy.collision_mask = WORLD_LAYER
 	enemy.z_index = 30
+	enemy.set_meta(&"combat_team", &"enemy")
 	var visual: Sprite2D = _make_fitted_sprite(texture, display_size)
 	visual.name = "Visual"
 	if enemy is SoldierEnemy or enemy is TankEnemy:
@@ -564,6 +585,11 @@ func _on_robot_structure_impact(
 		hit_position
 	)
 	if bool(target.call("receive_damage", event)):
+		_play_material_impact_audio(
+			material_profile,
+			hit_position,
+			impact_speed
+		)
 		_spawn_impact_particles(
 			hit_position,
 			direction,
@@ -629,6 +655,56 @@ func _material_for_target(
 	return StructuralMaterialProfile.concrete()
 
 
+func _play_material_impact_audio(
+	profile: StructuralMaterialProfile,
+	origin: Vector2,
+	impact_speed: float,
+	force_play: bool = false
+) -> void:
+	if profile == null or impact_audio_root == null:
+		return
+	var now_msec: int = Time.get_ticks_msec()
+	var next_allowed: int = _material_audio_cooldowns.get(profile.material_id, 0)
+	if not force_play and now_msec < next_allowed:
+		return
+	_material_audio_cooldowns[profile.material_id] = now_msec + 140
+	var player: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
+	player.name = "%sImpact" % profile.display_name
+	player.stream = _audio_stream_for_material(profile.material_id)
+	player.global_position = origin
+	player.max_distance = 1500.0
+	player.attenuation = 0.55
+	player.volume_db = clampf(-8.0 + impact_speed / 90.0, -8.0, -2.0)
+	player.pitch_scale = _pitch_for_material(profile.material_id, impact_speed)
+	player.set_meta(&"structural_material", profile.material_id)
+	player.finished.connect(player.queue_free)
+	impact_audio_root.add_child(player)
+	last_material_audio = profile.material_id
+	material_audio_play_count += 1
+	player.play()
+
+
+func _audio_stream_for_material(material_id: StringName) -> AudioStream:
+	match material_id:
+		&"glass":
+			return GLASS_IMPACT_SFX
+		&"steel":
+			return STEEL_IMPACT_SFX
+		_:
+			return CONCRETE_IMPACT_SFX
+
+
+func _pitch_for_material(material_id: StringName, impact_speed: float) -> float:
+	var speed_pitch: float = clampf(impact_speed / 900.0, 0.0, 0.16)
+	match material_id:
+		&"glass":
+			return 1.04 + speed_pitch
+		&"steel":
+			return 0.78 + speed_pitch * 0.45
+		_:
+			return 0.90 + speed_pitch * 0.65
+
+
 func _on_building_damage_applied(amount: float, _event: DamageEvent) -> void:
 	_add_score(roundi(amount * 10.0))
 
@@ -639,6 +715,41 @@ func _on_building_cell_destroyed(
 	_event: DamageEvent
 ) -> void:
 	_add_score(300)
+
+
+func _on_building_chain_reaction_started(kind: StringName) -> void:
+	if _objective_label == null:
+		return
+	if kind == &"steel_support_chain":
+		_objective_label.text = "STEEL SUPPORT FAILURE / CASCADE ACTIVE"
+	else:
+		_objective_label.text = "FLOOR LOST / CHAIN COLLAPSE ACTIVE"
+
+
+func _on_building_chain_reaction_step(
+	_kind: StringName,
+	column: int,
+	row: int,
+	event: DamageEvent
+) -> void:
+	var profile: StructuralMaterialProfile = building.get_material_profile(column, row)
+	_play_material_impact_audio(profile, event.hit_position, event.impulse_per_mass, true)
+	_spawn_impact_particles(
+		event.hit_position,
+		event.direction,
+		event.impulse_per_mass * 0.62,
+		profile
+	)
+
+
+func _on_building_chain_reaction_completed(kind: StringName) -> void:
+	if _objective_label == null or building.is_destroyed():
+		return
+	_objective_label.text = (
+		"STEEL CASCADE COMPLETE / STRUCTURE UNSTABLE"
+		if kind == &"steel_support_chain"
+		else "FLOOR COLLAPSE COMPLETE / STRUCTURE UNSTABLE"
+	)
 
 
 func _on_building_destroyed(_event: DamageEvent) -> void:

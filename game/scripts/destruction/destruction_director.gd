@@ -61,6 +61,10 @@ func _resolve_explosion(data: Dictionary) -> void:
 		var collider: Object = result.get("collider") as Object
 		if collider == null:
 			continue
+		var collider_node: Node = collider as Node
+		var source_node: Node = data["source"] as Node
+		if _is_source_related(collider_node, source_node):
+			continue
 		var collider_id: int = collider.get_instance_id()
 		if seen.has(collider_id):
 			continue
@@ -91,6 +95,12 @@ func _resolve_explosion(data: Dictionary) -> void:
 		if accepted:
 			accepted_targets += 1
 	explosion_resolved.emit(origin, accepted_targets)
+
+
+func _is_source_related(candidate: Node, source: Node) -> bool:
+	if candidate == null or source == null:
+		return false
+	return candidate == source or source.is_ancestor_of(candidate)
 
 
 func _deliver_damage(start_node: Node, event: DamageEvent) -> bool:

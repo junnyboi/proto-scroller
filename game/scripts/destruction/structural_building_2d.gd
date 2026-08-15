@@ -3,6 +3,14 @@ extends Node2D
 
 signal damage_applied(amount: float, event: DamageEvent)
 signal cell_destroyed(column: int, row: int, event: DamageEvent)
+signal chain_reaction_started(kind: StringName)
+signal chain_reaction_step(
+	kind: StringName,
+	column: int,
+	row: int,
+	event: DamageEvent
+)
+signal chain_reaction_completed(kind: StringName)
 signal destroyed(event: DamageEvent)
 
 const COLUMNS: int = 3
@@ -19,9 +27,14 @@ const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.g
 @export var hurtbox_layer_value: int = 0
 @export var debris_pool_path: NodePath
 
+var last_chain_reaction_kind: StringName = &""
+var chain_reaction_count: int = 0
 var _cells: Array[Destructible2D] = []
 var _destroyed_cells: int = 0
 var _last_destruction_event: DamageEvent
+var _chain_reaction_active: bool = false
+var _steel_chain_triggered: bool = false
+var _triggered_floor_rows: Dictionary[int, bool] = {}
 
 
 func _ready() -> void:
@@ -76,6 +89,10 @@ func is_cell_destroyed(column: int, row: int) -> bool:
 
 func is_destroyed() -> bool:
 	return _destroyed_cells >= CELL_COUNT
+
+
+func is_chain_reaction_active() -> bool:
+	return _chain_reaction_active
 
 
 func _build_cells() -> void:
@@ -252,46 +269,120 @@ func _on_cell_destroyed(event: DamageEvent, column: int, row: int) -> void:
 	if is_destroyed():
 		destroyed.emit(event)
 		return
-	call_deferred("_evaluate_support")
+	call_deferred("_evaluate_chain_reactions")
 
 
-func _evaluate_support() -> void:
-	var supported: Dictionary[int, bool] = {}
-	var frontier: Array[int] = []
-	for column: int in range(COLUMNS):
-		if is_cell_destroyed(column, ROWS - 1):
+func _evaluate_chain_reactions() -> void:
+	if _chain_reaction_active or is_destroyed():
+		return
+	if not _steel_chain_triggered and _all_steel_cells_destroyed():
+		_steel_chain_triggered = true
+		_start_chain_reaction(&"steel_support_chain", -1)
+		return
+	for row: int in range(ROWS):
+		if _triggered_floor_rows.has(row) or not _is_floor_destroyed(row):
 			continue
-		var upper: Destructible2D = get_cell(column, 0)
-		if upper != null and not upper.is_destroyed():
-			supported[column] = true
-			frontier.append(column)
-	while not frontier.is_empty():
-		var column: int = frontier.pop_front()
-		for neighbor: int in [column - 1, column + 1]:
-			if neighbor < 0 or neighbor >= COLUMNS or supported.has(neighbor):
+		_triggered_floor_rows[row] = true
+		_start_chain_reaction(&"floor_chain", row)
+		return
+
+
+func _all_steel_cells_destroyed() -> bool:
+	var steel_count: int = 0
+	for cell: Destructible2D in _cells:
+		var profile: StructuralMaterialProfile = cell.get_material_profile()
+		if profile == null or profile.material_id != &"steel":
+			continue
+		steel_count += 1
+		if not cell.is_destroyed():
+			return false
+	return steel_count > 0
+
+
+func _is_floor_destroyed(row: int) -> bool:
+	for column: int in range(COLUMNS):
+		if not is_cell_destroyed(column, row):
+			return false
+	return true
+
+
+func _start_chain_reaction(kind: StringName, destroyed_floor: int) -> void:
+	_chain_reaction_active = true
+	last_chain_reaction_kind = kind
+	chain_reaction_count += 1
+	chain_reaction_started.emit(kind)
+	_run_chain_reaction(kind, destroyed_floor)
+
+
+func _run_chain_reaction(kind: StringName, destroyed_floor: int) -> void:
+	var impulse_per_mass: float = 340.0
+	var step_delay: float = 0.11
+	if kind == &"steel_support_chain":
+		impulse_per_mass = 470.0
+		step_delay = 0.075
+	var origin_column: int = _last_impact_column()
+	var column_order: Array[int] = _column_order(origin_column)
+	for row: int in range(ROWS - 1, -1, -1):
+		if row == destroyed_floor:
+			continue
+		for column: int in column_order:
+			var cell: Destructible2D = get_cell(column, row)
+			if cell == null or cell.is_destroyed():
 				continue
-			var neighbor_cell: Destructible2D = get_cell(neighbor, 0)
-			if neighbor_cell != null and not neighbor_cell.is_destroyed():
-				supported[neighbor] = true
-				frontier.append(neighbor)
-	for column: int in range(COLUMNS):
-		var upper: Destructible2D = get_cell(column, 0)
-		if upper == null or upper.is_destroyed() or supported.has(column):
-			continue
-		_collapse_unsupported(upper)
+			await get_tree().create_timer(step_delay, false).timeout
+			var event: DamageEvent = _chain_event(
+				cell,
+				kind,
+				impulse_per_mass,
+				origin_column
+			)
+			if cell.receive_damage(event):
+				chain_reaction_step.emit(kind, column, row, event)
+	_chain_reaction_active = false
+	chain_reaction_completed.emit(kind)
+	call_deferred("_evaluate_chain_reactions")
 
 
-func _collapse_unsupported(cell: Destructible2D) -> void:
-	var direction: Vector2 = Vector2.DOWN
-	if _last_destruction_event != null:
-		direction = (_last_destruction_event.direction + Vector2.DOWN).normalized()
-	var event: DamageEvent = DamageEvent.new(
+func _chain_event(
+	cell: Destructible2D,
+	kind: StringName,
+	impulse_per_mass: float,
+	origin_column: int
+) -> DamageEvent:
+	var cell_column: int = int(cell.get_meta(&"structural_column", 0))
+	var horizontal_direction: float = signf(float(cell_column - origin_column))
+	if is_zero_approx(horizontal_direction):
+		horizontal_direction = 1.0 if origin_column <= 1 else -1.0
+	var direction: Vector2 = Vector2(horizontal_direction * 0.48, 1.0).normalized()
+	return DamageEvent.new(
 		0,
 		_last_destruction_event.source if _last_destruction_event != null else null,
 		cell.max_health + 1.0,
-		&"support_collapse",
+		kind,
 		cell.global_position,
 		direction,
-		180.0
+		impulse_per_mass
 	)
-	cell.receive_damage(event)
+
+
+func _last_impact_column() -> int:
+	if _last_destruction_event == null:
+		return 1
+	var local_x: float = to_local(_last_destruction_event.hit_position).x
+	return clampi(
+		floori((local_x + display_size.x * 0.5) / _cell_size().x),
+		0,
+		COLUMNS - 1
+	)
+
+
+func _column_order(origin_column: int) -> Array[int]:
+	var order: Array[int] = [origin_column]
+	for distance: int in range(1, COLUMNS):
+		var left: int = origin_column - distance
+		var right: int = origin_column + distance
+		if left >= 0:
+			order.append(left)
+		if right < COLUMNS:
+			order.append(right)
+	return order
