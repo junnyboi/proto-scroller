@@ -494,12 +494,13 @@ func test_robot_attack_scatters_defeated_soldier_scrap_and_debris() -> void:
 	scrap.linear_velocity = Vector2.ZERO
 	debris.linear_velocity = Vector2.ZERO
 	city.robot.stomp_radius = 500.0
+	assert_eq(city.robot.stomp_impulse_per_mass, 680.0)
 	city.trigger_test_stomp()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	assert_gt(defeated_soldier.linear_velocity.length(), 1.0)
-	assert_gt(scrap.linear_velocity.length(), 1.0)
-	assert_gt(debris.linear_velocity.length(), 1.0)
+	assert_gt(defeated_soldier.linear_velocity.length(), 100.0)
+	assert_gt(scrap.linear_velocity.length(), 100.0)
+	assert_gt(debris.linear_velocity.length(), 100.0)
 	_record_test_execution()
 
 

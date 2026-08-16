@@ -10,7 +10,7 @@ const EDGE_PADDING: float = 14.0
 
 @export_range(-1, 1, 1) var detection_override: int = -1
 @export_range(0.0, 0.5, 0.01) var deadzone: float = 0.14
-@export_range(1.0, 30.0, 0.5) var response_speed: float = 13.0
+@export_range(1.0, 30.0, 0.5) var response_speed: float = 18.0
 @export_range(0.1, 1.0, 0.05) var smash_cooldown: float = 0.40
 
 var mobile_device_detected: bool = false
@@ -85,6 +85,14 @@ func handle_touch_input(event: InputEvent) -> void:
 
 func movement_axis() -> float:
 	return _current_axis
+
+
+func joystick_touch_index() -> int:
+	return _joystick_touch_index
+
+
+func smash_touch_index() -> int:
+	return _smash_touch_index
 
 
 func setup(p_robot: GiantRobotController, p_detection_override: int = -1) -> void:
@@ -198,9 +206,11 @@ func _build_smash_button() -> void:
 func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 	if event.pressed:
 		if smash_bounds().has_point(event.position):
-			_press_smash(event.index)
+			if event.index != _joystick_touch_index and _smash_touch_index == -1:
+				_press_smash(event.index)
 		elif _joystick_touch_index == -1:
-			_press_joystick(event.index, event.position)
+			if event.index != _smash_touch_index:
+				_press_joystick(event.index, event.position)
 	else:
 		if event.index == _joystick_touch_index:
 			_release_joystick()
