@@ -5,7 +5,7 @@ A Godot 4.7.1 city-destruction slice with a giant robot, four-band unobstructed 
 ## Project layout
 
 - `game/` — Godot project, launch scene, GUT tests, injected-input scenario, verification entrypoint, and Web export preset.
-- `client/` — React host for the exported Godot canvas.
+- `client/` — minimal static fullscreen loader for the exported Godot canvas.
 - `client/public/game/` — generated Godot WebAssembly bundle.
 
 ## Verify the Godot candidate
@@ -25,7 +25,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the reported URL, wait for `WEB RUNTIME ONLINE`, then activate `INITIALIZE` inside the canvas. Desktop controls use **A/D** to move and **Space** to stomp. On touch-capable mobile devices, press and hold anywhere outside the smash control to summon a neutral-gray floating joystick, drag horizontally for analog movement, and use the persistent bottom-right **SMASH** button with a second thumb. Each control owns its touch independently, so movement, direction reversals, repeated attacks, and arbitrary release order remain responsive. Devices that expose vibration receive a short pulse when a smash executes and a firmer pulse as each structural bay fails. Smash impulse is mass-scaled at 680 units per mass, throwing nearby rubble and defeated units farther without increasing attack damage. The first stomp destroys the nearby car; advance into the building to break its three lower bays in sequence. The upper row remains bridged while any lower support survives, then collapses into rubble after the final support fails.
+Open the reported URL and activate `INITIALIZE` when the title appears. The Web host contains only the Godot canvas: it scales to the largest undistorted 16:9 area available in the browser, centers any unavoidable letterboxing, and never scrolls. Desktop controls use **A/D** to move and **Space** to stomp. On touch-capable mobile devices, press and hold anywhere outside the smash control to summon a neutral-gray floating joystick, drag horizontally for analog movement, and use the persistent bottom-right **SMASH** button with a second thumb. Each control owns its touch independently, so movement, direction reversals, repeated attacks, and arbitrary release order remain responsive. Devices that expose vibration receive a short pulse when a smash executes and a firmer pulse as each structural bay fails. Smash impulse is mass-scaled at 680 units per mass, throwing nearby rubble and defeated units farther without increasing attack damage. The first stomp destroys the nearby car; advance into the building to break its three lower bays in sequence. The upper row remains bridged while any lower support survives, then collapses into rubble after the final support fails.
 
 The structural grid uses concrete, glass, and steel profiles. Glass fails quickly into fast cyan shards with a crystalline shatter, concrete sheds medium masonry with a deep crunch, and steel needs sustained impact before releasing slow heavy beams with a stressed-metal groan. Destroying a full floor starts a staggered upward collapse; destroying every steel cell triggers a faster building-wide support cascade. The player robot rejects self-sourced and player-team damage but remains vulnerable to enemy fire. The giant robot owns world Z 100 and therefore renders above every world-space unit, projectile, particle, prop, debris body, and facade; the HUD remains a separate CanvasLayer overlay.
 
