@@ -5,9 +5,11 @@ signal recycle_requested(body: DebrisBody2D)
 
 @export_range(0.5, 30.0, 0.5) var hard_lifetime: float = 10.0
 @export_range(0.0, 5.0, 0.1) var sleeping_recycle_delay: float = 1.5
-@export var max_linear_speed: float = 1000.0
+@export var max_linear_speed: float = 1500.0
 @export var max_angular_speed: float = 14.0
 
+var aerial_impact_armed: bool = false
+var aerial_hit_count: int = 0
 var _age: float = 0.0
 var _sleeping_age: float = 0.0
 var _active: bool = false
@@ -15,13 +17,20 @@ var _body_size: Vector2 = Vector2(36.0, 22.0)
 var _material_id: StringName = &"concrete"
 var _primary_color: Color = Color("4f4a46")
 var _facet_color: Color = Color("786d65")
+var _aerial_source: Node
+var _aerial_attack_id: int = 0
+var _aerial_damage: float = 0.0
+var _aerial_target: EnemyActor2D
 
 
 func _ready() -> void:
 	can_sleep = true
 	gravity_scale = 1.0
 	collision_layer = 1 << 8
-	collision_mask = 1 << 0
+	collision_mask = (1 << 0) | (1 << 2)
+	contact_monitor = true
+	max_contacts_reported = 4
+	body_entered.connect(_on_body_entered)
 	_ensure_fallback_shape()
 	set_physics_process(false)
 
@@ -63,11 +72,29 @@ func activate(
 		apply_torque_impulse(angular_impulse)
 
 
+func arm_aerial_impact(
+	source: Node,
+	attack_id: int,
+	damage: float,
+	target: EnemyActor2D
+) -> void:
+	_aerial_source = source
+	_aerial_attack_id = attack_id
+	_aerial_damage = maxf(damage, 0.0)
+	_aerial_target = target
+	aerial_impact_armed = _aerial_damage > 0.0 and target != null
+	aerial_hit_count = 0
+
+
 func material_id() -> StringName:
 	return _material_id
 
 
 func deactivate() -> void:
+	aerial_impact_armed = false
+	_aerial_source = null
+	_aerial_target = null
+	_aerial_damage = 0.0
 	_active = false
 	set_physics_process(false)
 	linear_velocity = Vector2.ZERO
@@ -99,6 +126,24 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 		-max_angular_speed,
 		max_angular_speed
 	)
+
+
+func _on_body_entered(body: Node) -> void:
+	if not aerial_impact_armed or body != _aerial_target:
+		return
+	aerial_impact_armed = false
+	var direction: Vector2 = linear_velocity.normalized()
+	var event: DamageEvent = DamageEvent.new(
+		_aerial_attack_id,
+		_aerial_source,
+		_aerial_damage,
+		&"debris_impact",
+		global_position,
+		direction,
+		linear_velocity.length()
+	)
+	if _aerial_target.receive_damage(event):
+		aerial_hit_count += 1
 
 
 func _draw() -> void:

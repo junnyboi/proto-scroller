@@ -14,7 +14,6 @@ const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
-
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd")
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
 const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
@@ -628,6 +627,7 @@ func _on_robot_heavy_impact(
 		attack_id,
 		robot
 	)
+	AerialDebrisLauncher.launch(get_tree(), debris_pool, robot, origin, impulse_per_mass, attack_id)
 	if _objective_label != null:
 		_objective_label.text = "IMPACT REGISTERED / PHYSICS FIELD ACTIVE"
 

@@ -42,7 +42,7 @@ enum LocomotionState {
 @export_group("Impact")
 @export var stomp_radius: float = 96.0
 @export var stomp_damage: float = 100.0
-@export var stomp_impulse_per_mass: float = 680.0
+@export var stomp_impulse_per_mass: float = 1020.0
 @export var landing_speed_for_impact: float = 520.0
 @export var structural_impact_mass: float = 48.0
 @export var minimum_structural_impact_speed: float = 65.0

@@ -24,6 +24,7 @@ var _attack_side: int = 1
 func _ready() -> void:
 	max_health = 95.0
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	add_to_group(AerialDebrisLauncher.AIRBORNE_GROUP)
 	super._ready()
 
 

@@ -33,7 +33,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "4762f7d3";
+const GAME_PACK_VERSION = "8fbb1080";
 const root = document.getElementById("root");
 
 if (!root) {

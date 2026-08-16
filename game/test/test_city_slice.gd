@@ -494,13 +494,37 @@ func test_robot_attack_scatters_defeated_soldier_scrap_and_debris() -> void:
 	scrap.linear_velocity = Vector2.ZERO
 	debris.linear_velocity = Vector2.ZERO
 	city.robot.stomp_radius = 500.0
-	assert_eq(city.robot.stomp_impulse_per_mass, 680.0)
+	assert_eq(city.robot.stomp_impulse_per_mass, 1020.0)
 	city.trigger_test_stomp()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_gt(defeated_soldier.linear_velocity.length(), 100.0)
 	assert_gt(scrap.linear_velocity.length(), 100.0)
 	assert_gt(debris.linear_velocity.length(), 100.0)
+	_record_test_execution()
+
+
+func test_smash_launches_debris_that_physically_damages_airborne_enemy() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.soldier.set_physics_process(false)
+	city.tank.set_physics_process(false)
+	city.helicopter.set_physics_process(false)
+	city.helicopter.global_position = city.robot.global_position + Vector2(740.0, -280.0)
+	await get_tree().physics_frame
+	var health_before: float = city.helicopter.current_health
+	city.trigger_test_stomp()
+	assert_eq(city.debris_pool.active_count(), 3)
+	var hit_registered: bool = false
+	for physics_tick: int in range(90):
+		await get_tree().physics_frame
+		if city.helicopter.current_health < health_before:
+			hit_registered = true
+			break
+	assert_true(hit_registered)
+	assert_gt(city.helicopter.current_health, health_before - 13.0)
+	assert_false(city.helicopter.dead)
 	_record_test_execution()
 
 
