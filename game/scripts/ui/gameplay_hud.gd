@@ -6,12 +6,14 @@ signal retry_pressed
 const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
 const MUTED_COLOR: Color = Color("b7c4cb")
+const COMBO_GRACE_SECONDS: float = 3.0
 
 var health_label: Label
 var status_label: Label
 var objective_label: Label
 var score_label: Label
 var combo_label: Label
+var combo_ring: ComboDecayRing
 var momentum_fill: ColorRect
 var momentum_label: Label
 var game_over_overlay: Control
@@ -32,6 +34,8 @@ func _ready() -> void:
 	_build_score_panel()
 	_build_game_over_overlay()
 	if _robot != null:
+		_robot.attack_mode_selected.connect(_on_attack_mode_selected)
+		_robot.attack_committed.connect(_on_attack_committed)
 		set_health(_robot.current_health, _robot.max_health)
 	set_score(0)
 	set_combo(1, 0.0)
@@ -61,6 +65,10 @@ func set_combo(multiplier: int, grace_remaining: float) -> void:
 	combo_label.text = "x%d COMBO" % clampi(multiplier, 1, 5)
 	combo_label.visible = multiplier > 1
 	combo_label.modulate.a = clampf(grace_remaining / 0.55, 0.55, 1.0)
+	if combo_ring != null:
+		combo_ring.set_ratio(
+			grace_remaining / COMBO_GRACE_SECONDS if multiplier > 1 else 0.0
+		)
 
 
 func set_momentum(value: float, band: int) -> void:
@@ -89,6 +97,19 @@ func show_game_over() -> void:
 	retry_button.grab_focus()
 
 
+func _on_attack_mode_selected(mode: int, _attack_id: int) -> void:
+	set_objective(
+		"DRIVE LOCKED / FORWARD IMPACT"
+		if mode == AttackSpec.Mode.SHOULDER_DRIVE
+		else "GROUND LOCKED / RADIAL IMPACT"
+	)
+
+
+func _on_attack_committed(mode: int, _attack_id: int) -> void:
+	if mode == AttackSpec.Mode.SHOULDER_DRIVE:
+		set_objective("SHOULDER DRIVE / MOMENTUM TRANSFERRED")
+
+
 func _build_status_panel() -> void:
 	var panel: ColorRect = ColorRect.new()
 	panel.position = Vector2(24.0, 22.0)
@@ -110,7 +131,7 @@ func _build_status_panel() -> void:
 	objective_label = Label.new()
 	objective_label.name = "ObjectiveLabel"
 	objective_label.position = Vector2(48.0, 100.0)
-	objective_label.text = "A/D MOVE   SPACE STOMP   BREAK THE STREET"
+	objective_label.text = "A/D MOVE   SPACE SMASH   KEEP MOVING"
 	objective_label.add_theme_font_size_override(&"font_size", 20)
 	objective_label.modulate = MUTED_COLOR
 	add_child(objective_label)
@@ -137,6 +158,12 @@ func _build_momentum_panel() -> void:
 	combo_label.add_theme_font_size_override(&"font_size", 22)
 	combo_label.modulate = ACCENT_COLOR
 	add_child(combo_label)
+	combo_ring = ComboDecayRing.new()
+	combo_ring.name = "ComboDecayRing"
+	combo_ring.position = Vector2(712.0, 24.0)
+	combo_ring.size = Vector2(38.0, 38.0)
+	combo_ring.visible = false
+	add_child(combo_ring)
 	var momentum_track: ColorRect = ColorRect.new()
 	momentum_track.name = "MomentumTrack"
 	momentum_track.position = Vector2(490.0, 66.0)

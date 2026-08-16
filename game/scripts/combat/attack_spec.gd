@@ -1,0 +1,95 @@
+class_name AttackSpec
+extends RefCounted
+# gdlint: disable=function-arguments-number
+
+
+enum Mode {
+	GROUND_SMASH,
+	SHOULDER_DRIVE,
+}
+
+var mode: Mode:
+	get:
+		return _mode
+var attack_id: int:
+	get:
+		return _attack_id
+var facing: int:
+	get:
+		return _facing
+var speed_ratio: float:
+	get:
+		return _speed_ratio
+var anticipation_seconds: float:
+	get:
+		return _anticipation_seconds
+var active_seconds: float:
+	get:
+		return _active_seconds
+var recovery_seconds: float:
+	get:
+		return _recovery_seconds
+var actor_damage: float:
+	get:
+		return _actor_damage
+var structural_damage: float:
+	get:
+		return _structural_damage
+var impulse_per_mass: float:
+	get:
+		return _impulse_per_mass
+var hit_size: Vector2:
+	get:
+		return _hit_size
+var hit_offset: Vector2:
+	get:
+		return _hit_offset
+
+var _mode: Mode
+var _attack_id: int
+var _facing: int
+var _speed_ratio: float
+var _anticipation_seconds: float
+var _active_seconds: float
+var _recovery_seconds: float
+var _actor_damage: float
+var _structural_damage: float
+var _impulse_per_mass: float
+var _hit_size: Vector2
+var _hit_offset: Vector2
+
+
+func _init(
+	p_mode: Mode,
+	p_attack_id: int,
+	p_facing: int,
+	p_speed_ratio: float,
+	p_anticipation_seconds: float,
+	p_active_seconds: float,
+	p_recovery_seconds: float,
+	p_actor_damage: float,
+	p_structural_damage: float,
+	p_impulse_per_mass: float,
+	p_hit_size: Vector2,
+	p_hit_offset: Vector2
+) -> void:
+	_mode = p_mode
+	_attack_id = p_attack_id
+	_facing = 1 if p_facing >= 0 else -1
+	_speed_ratio = clampf(p_speed_ratio, 0.0, 4.0)
+	_anticipation_seconds = maxf(p_anticipation_seconds, 0.0)
+	_active_seconds = maxf(p_active_seconds, 0.0)
+	_recovery_seconds = maxf(p_recovery_seconds, 0.0)
+	_actor_damage = maxf(p_actor_damage, 0.0)
+	_structural_damage = maxf(p_structural_damage, 0.0)
+	_impulse_per_mass = maxf(p_impulse_per_mass, 0.0)
+	_hit_size = p_hit_size.max(Vector2.ONE)
+	_hit_offset = p_hit_offset
+
+
+func is_ground_smash() -> bool:
+	return _mode == Mode.GROUND_SMASH
+
+
+func is_shoulder_drive() -> bool:
+	return _mode == Mode.SHOULDER_DRIVE

@@ -14,6 +14,13 @@ enum Kind {
 	PLAYER_HEAVY_HIT,
 }
 
+const PROP_BREAK: StringName = &"PROP_BREAK"
+const SOLDIER_LAUNCH: StringName = &"SOLDIER_LAUNCH"
+const TANK_SCRAP: StringName = &"TANK_SCRAP"
+const AIR_DEBRIS_HIT: StringName = &"AIR_DEBRIS_HIT"
+const CELL_BREACH: StringName = &"CELL_BREACH"
+const CHAIN_COLLAPSE: StringName = &"CHAIN_COLLAPSE"
+
 var event_id: int = 0
 var dedupe_key: StringName = &""
 var attack_id: int = 0

@@ -347,6 +347,9 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 	)
 	assert_true(city.tank.receive_damage(tank_event))
 	await get_tree().process_frame
+	assert_eq(city.score, 1500)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
+	assert_eq(city.rampage_session.momentum_value(), 16.0)
 	assert_false(city.tank.visual.visible)
 	assert_not_null(city.tank_wreck)
 	assert_eq(city.tank_wreck.wreck_kind, &"tank")
@@ -363,6 +366,8 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 	city.tank_wreck.linear_velocity = Vector2.ZERO
 	city.tank_wreck.angular_velocity = 0.0
 	city.tank_wreck.current_scrap_health = 1.0
+	city.car.global_position = Vector2(3000.0, 600.0)
+	city.streetlamp.global_position = Vector2(3200.0, 600.0)
 	city.robot.stomp_radius = 500.0
 	await get_tree().physics_frame
 	city.trigger_test_stomp()
@@ -371,6 +376,9 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 		if city.tank_wreck.is_scrapped():
 			break
 	assert_true(city.tank_wreck.is_scrapped())
+	assert_eq(city.score, 1900)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
+	assert_eq(city.rampage_session.momentum_value(), 16.0)
 	assert_eq(city.enemy_scrap_pool.active_count(), 8)
 	for child: Node in city.enemy_scrap_pool.get_children():
 		var scrap: DebrisBody2D = child as DebrisBody2D
@@ -390,6 +398,9 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 	)
 	assert_true(city.helicopter.receive_damage(helicopter_event))
 	await get_tree().process_frame
+	assert_eq(city.score, 3100)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
+	assert_eq(city.rampage_session.momentum_value(), 16.0)
 	assert_not_null(city.helicopter_wreck)
 	assert_eq(city.helicopter_wreck.wreck_kind, &"helicopter")
 	_record_test_execution()
@@ -528,7 +539,8 @@ func test_smash_launches_debris_that_physically_damages_airborne_enemy() -> void
 	assert_true(hit_registered)
 	assert_gt(city.helicopter.current_health, health_before - 13.0)
 	assert_false(city.helicopter.dead)
-	assert_gte(city.rampage_session.momentum_value(), 3.0)
+	assert_gte(city.rampage_session.momentum_value(), 20.0)
+	assert_gte(city.score, 250)
 	_record_test_execution()
 
 

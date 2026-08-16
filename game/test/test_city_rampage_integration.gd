@@ -17,14 +17,19 @@ func test_prop_destruction_updates_combo_momentum_and_hud() -> void:
 	await get_tree().physics_frame
 	assert_eq(city.score, 450)
 	assert_eq(city.rampage_session.current_multiplier(), 2)
-	assert_almost_eq(city.rampage_session.momentum_value(), 20.0, 0.01)
+	assert_almost_eq(city.rampage_session.momentum_value(), 12.0, 0.01)
 	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
 	var combo_label: Label = city.get_node(^"HUD/ComboLabel") as Label
+	var combo_ring: ComboDecayRing = city.get_node(
+		^"HUD/ComboDecayRing"
+	) as ComboDecayRing
 	var momentum_label: Label = city.get_node(^"HUD/MomentumLabel") as Label
 	assert_eq(score_label.text, "00000450")
 	assert_eq(combo_label.text, "x2 COMBO")
 	assert_true(combo_label.visible)
-	assert_eq(momentum_label.text, "MOMENTUM 020%")
+	assert_true(combo_ring.visible)
+	assert_gt(combo_ring.ratio, 0.98)
+	assert_eq(momentum_label.text, "MOMENTUM 012%")
 	_record_test_execution()
 
 
@@ -43,7 +48,68 @@ func test_motion_gain_and_heavy_hostile_hit_loss_reach_live_session() -> void:
 		&"shell"
 	)
 	assert_true(city.robot.receive_damage(heavy_event))
-	assert_almost_eq(city.rampage_session.momentum_value(), 2.0, 0.001)
+	assert_almost_eq(city.rampage_session.momentum_value(), 0.0, 0.001)
+	_record_test_execution()
+
+
+func test_approved_event_values_and_surge_acceleration_reach_live_scene() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.soldier.set_physics_process(false)
+	var soldier_event: DamageEvent = DamageEvent.new(
+		6201,
+		city.robot,
+		999.0,
+		&"impact",
+		city.soldier.global_position,
+		Vector2.RIGHT,
+		320.0
+	)
+	assert_true(city.soldier.receive_damage(soldier_event))
+	assert_eq(city.score, 500)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
+	assert_eq(city.rampage_session.momentum_value(), 8.0)
+	var cell: Destructible2D = city.building.get_cell(0, 1)
+	var cell_event: DamageEvent = DamageEvent.new(
+		6202,
+		city.robot,
+		cell.max_health + 1.0,
+		&"structural",
+		cell.global_position,
+		Vector2.RIGHT,
+		320.0
+	)
+	assert_true(cell.receive_damage(cell_event))
+	assert_eq(city.rampage_session.current_multiplier(), 2)
+	assert_eq(city.rampage_session.momentum_value(), 20.0)
+	city.rampage_session.publish(GameplayEvent.new(
+		&"surge_seed",
+		0,
+		GameplayEvent.Kind.DAMAGE_APPLIED,
+		&"",
+		0,
+		20.0
+	))
+	assert_eq(city.rampage_session.momentum_meter.band(), MomentumMeter.Band.SURGE)
+	assert_almost_eq(city.robot.acceleration_multiplier, 1.08, 0.001)
+	_record_test_execution()
+
+
+func test_chain_collapse_bonus_uses_approved_tag_score_and_momentum() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var published: Array[GameplayEvent] = []
+	city.rampage_session.event_hub.event_published.connect(
+		func(event: GameplayEvent) -> void: published.append(event)
+	)
+	assert_true(city.rampage_events.chain_started(&"floor_chain", city.building, city.robot))
+	assert_eq(city.score, 600)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
+	assert_eq(city.rampage_session.momentum_value(), 24.0)
+	assert_eq(published.size(), 1)
+	assert_eq(published[0].action_tag, GameplayEvent.CHAIN_COLLAPSE)
 	_record_test_execution()
 
 
