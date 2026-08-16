@@ -38,6 +38,9 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	assert_eq(city.enemy_scrap_pool.available_count(), 32)
 	assert_eq(city.soldier_defeat_pool.available_count(), 8)
 	assert_eq(city.soldier_defeat_pool.total_count(), 8)
+	assert_eq(city.projectile_root.available_count(), 24)
+	assert_eq(city.impact_audio_root.get_child_count(), 8)
+	assert_not_null(city.rampage_session)
 	assert_not_null(city.enemy_remains_root)
 	assert_eq(city.robot.z_index, 100)
 	assert_gt(city.robot.z_index, city.projectile_root.z_index)
@@ -525,6 +528,7 @@ func test_smash_launches_debris_that_physically_damages_airborne_enemy() -> void
 	assert_true(hit_registered)
 	assert_gt(city.helicopter.current_health, health_before - 13.0)
 	assert_false(city.helicopter.dead)
+	assert_gte(city.rampage_session.momentum_value(), 3.0)
 	_record_test_execution()
 
 
@@ -579,6 +583,15 @@ func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> voi
 	await get_tree().process_frame
 	var first_city: CitySlice = main.city_slice
 	first_city._add_score(500)
+	first_city.rampage_session.publish(GameplayEvent.new(
+		&"retry_seed",
+		0,
+		GameplayEvent.Kind.DAMAGE_APPLIED,
+		&"seed",
+		0,
+		25.0,
+		true
+	))
 	var fatal_event: DamageEvent = DamageEvent.new(9001, null, 9999.0)
 	assert_true(first_city.robot.receive_damage(fatal_event))
 	assert_true(first_city.game_over_active)
@@ -592,6 +605,8 @@ func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> voi
 	assert_false(main.city_slice.game_over_active)
 	assert_eq(main.city_slice.robot.current_health, main.city_slice.robot.max_health)
 	assert_eq(main.city_slice.score, 0)
+	assert_eq(main.city_slice.rampage_session.current_multiplier(), 1)
+	assert_eq(main.city_slice.rampage_session.momentum_value(), 0.0)
 	_record_test_execution()
 
 

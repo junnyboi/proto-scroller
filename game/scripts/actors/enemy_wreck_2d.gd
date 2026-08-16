@@ -20,19 +20,68 @@ var _steel_profile: StructuralMaterialProfile
 
 
 func _ready() -> void:
-	current_scrap_health = scrap_health
 	_steel_profile = StructuralMaterialProfile.steel()
-	collision_layer = REMAINS_LAYER
-	collision_mask = REMAINS_GROUND_LAYER | REMAINS_LAYER
 	gravity_scale = 1.0
 	linear_damp = 0.9
 	angular_damp = 1.5
 	can_sleep = true
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
 	z_index = 29
-	set_meta(&"enemy_remains", wreck_kind)
 	_build_collision()
 	_build_visual()
+	deactivate()
+
+
+func activate(
+	p_wreck_kind: StringName,
+	p_wreck_texture: Texture2D,
+	p_display_size: Vector2,
+	p_collision_size: Vector2,
+	p_mass: float,
+	p_scrap_health: float,
+	spawn_position: Vector2,
+	p_fatal_event: DamageEvent
+) -> void:
+	wreck_kind = p_wreck_kind
+	wreck_texture = p_wreck_texture
+	display_size = p_display_size
+	collision_size = p_collision_size
+	mass = p_mass
+	scrap_health = p_scrap_health
+	current_scrap_health = scrap_health
+	fatal_event = p_fatal_event
+	_seen_attacks.clear()
+	scrapped_state = false
+	visible = true
+	freeze = false
+	sleeping = false
+	global_position = spawn_position
+	rotation = 0.0
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	collision_layer = REMAINS_LAYER
+	collision_mask = REMAINS_GROUND_LAYER | REMAINS_LAYER
+	set_meta(&"enemy_remains", wreck_kind)
+	var collision: CollisionShape2D = get_node(^"WreckCollision") as CollisionShape2D
+	(collision.shape as RectangleShape2D).size = collision_size
+	collision.set_deferred(&"disabled", false)
+	_update_visual()
+	_apply_fatal_impact()
+
+
+func deactivate(preserve_scrapped: bool = false) -> void:
+	visible = false
+	freeze = true
+	sleeping = true
+	collision_layer = 0
+	collision_mask = 0
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	if not preserve_scrapped:
+		scrapped_state = false
+	var collision: CollisionShape2D = get_node_or_null(^"WreckCollision") as CollisionShape2D
+	if collision != null:
+		collision.set_deferred(&"disabled", true)
 	_apply_fatal_impact()
 
 
@@ -74,8 +123,16 @@ func _build_collision() -> void:
 func _build_visual() -> void:
 	var visual: Sprite2D = Sprite2D.new()
 	visual.name = "WreckVisual"
-	visual.texture = wreck_texture
 	visual.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(visual)
+	_update_visual()
+
+
+func _update_visual() -> void:
+	var visual: Sprite2D = get_node_or_null(^"WreckVisual") as Sprite2D
+	if visual == null:
+		return
+	visual.texture = wreck_texture
 	if wreck_texture != null:
 		var texture_size: Vector2 = wreck_texture.get_size()
 		var fit_scale: float = minf(
@@ -85,7 +142,7 @@ func _build_visual() -> void:
 		visual.scale = Vector2.ONE * fit_scale
 	visual.modulate = Color("625d58")
 	visual.position.y = (collision_size.y - display_size.y) * 0.5
-	add_child(visual)
+	visual.visible = true
 
 
 func _apply_fatal_impact() -> void:

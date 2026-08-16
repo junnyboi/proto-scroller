@@ -26,6 +26,9 @@ printf '%s\n' '[L3] import'
 run_engine "$GODOT" --headless --path . --import
 
 printf '%s\n' '[L1] parse and lint'
+CITY_SLICE_LINES="$(wc -l < scripts/gameplay/city_slice.gd)"
+test "$CITY_SLICE_LINES" -le 1000
+printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
 while IFS= read -r -d '' script; do
   gdlint "$script"
   run_engine "$GODOT" --headless --path . --check-only -s "$script"

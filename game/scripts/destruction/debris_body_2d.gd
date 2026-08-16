@@ -2,6 +2,11 @@ class_name DebrisBody2D
 extends RigidBody2D
 
 signal recycle_requested(body: DebrisBody2D)
+signal aerial_impact_accepted(
+	body: DebrisBody2D,
+	event: DamageEvent,
+	target: EnemyActor2D
+)
 
 @export_range(0.5, 30.0, 0.5) var hard_lifetime: float = 10.0
 @export_range(0.0, 5.0, 0.1) var sleeping_recycle_delay: float = 1.5
@@ -144,6 +149,7 @@ func _on_body_entered(body: Node) -> void:
 	)
 	if _aerial_target.receive_damage(event):
 		aerial_hit_count += 1
+		aerial_impact_accepted.emit(self, event, _aerial_target)
 
 
 func _draw() -> void:

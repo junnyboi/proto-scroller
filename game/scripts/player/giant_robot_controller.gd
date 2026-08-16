@@ -5,6 +5,7 @@ signal facing_changed(facing: int)
 signal locomotion_changed(state: int)
 signal footstep_impact(world_position: Vector2, strength: float)
 signal health_changed(current_health: float, maximum_health: float)
+signal damage_received(event: DamageEvent, accepted_damage: float)
 signal defeated
 signal structure_impact_requested(
 	target: Node,
@@ -101,7 +102,9 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
+	var previous_health: float = current_health
 	current_health = maxf(current_health - event.amount, 0.0)
+	damage_received.emit(event, previous_health - current_health)
 	health_changed.emit(current_health, max_health)
 	if current_health <= 0.0:
 		set_disabled(true)

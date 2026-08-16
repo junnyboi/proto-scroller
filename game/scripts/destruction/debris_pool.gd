@@ -1,6 +1,12 @@
 class_name DebrisPool
 extends Node2D
 
+signal aerial_impact_accepted(
+	body: DebrisBody2D,
+	event: DamageEvent,
+	target: EnemyActor2D
+)
+
 @export var debris_scene: PackedScene
 @export_range(1, 128, 1) var capacity: int = 48
 
@@ -21,6 +27,7 @@ func _ready() -> void:
 			return
 		body.name = "Debris_%03d" % index
 		body.recycle_requested.connect(_on_recycle_requested)
+		body.aerial_impact_accepted.connect(_on_aerial_impact_accepted)
 		add_child(body)
 		body.deactivate()
 		_free.append(body)
@@ -72,3 +79,11 @@ func active_count() -> int:
 
 func _on_recycle_requested(body: DebrisBody2D) -> void:
 	release(body)
+
+
+func _on_aerial_impact_accepted(
+	body: DebrisBody2D,
+	event: DamageEvent,
+	target: EnemyActor2D
+) -> void:
+	aerial_impact_accepted.emit(body, event, target)
