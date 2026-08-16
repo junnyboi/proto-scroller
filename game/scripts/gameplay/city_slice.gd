@@ -548,6 +548,9 @@ func _build_hud() -> void:
 	layer.add_child(_score_label)
 	mobile_controls = MOBILE_CONTROLS_SCRIPT.new() as MobileControls
 	mobile_controls.setup(robot, mobile_detection_override)
+	building.cell_destroyed.connect(
+		mobile_controls.play_building_destruction_haptic
+	)
 	layer.add_child(mobile_controls)
 	_build_game_over_overlay(layer)
 

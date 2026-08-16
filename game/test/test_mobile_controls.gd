@@ -70,13 +70,33 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(8, smash_position, true)
 	)
+	assert_eq(city.mobile_controls.haptic_request_count, 1)
+	assert_eq(city.mobile_controls.last_haptic_duration_ms, 28)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
+	var structural_cell: Destructible2D = city.building.get_cell(0, 1)
+	assert_true(
+		structural_cell.receive_damage(
+			DamageEvent.new(
+				9301,
+				city.robot,
+				structural_cell.max_health + 1.0,
+				&"structural",
+				structural_cell.global_position,
+				Vector2.RIGHT,
+				260.0
+			)
+		)
+	)
+	assert_eq(city.mobile_controls.haptic_request_count, 2)
+	assert_eq(city.mobile_controls.last_haptic_duration_ms, 48)
 	city.robot.receive_damage(DamageEvent.new(9201, null, 9999.0))
 	assert_true(city.game_over_active)
 	assert_false(city.mobile_controls.joystick_active)
 	assert_eq(city.mobile_controls.movement_axis(), 0.0)
+	city.mobile_controls.play_building_destruction_haptic(0, 0, null)
+	assert_eq(city.mobile_controls.haptic_request_count, 2)
 	_record_test_execution()
 
 

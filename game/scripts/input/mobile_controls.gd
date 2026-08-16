@@ -17,6 +17,8 @@ var mobile_device_detected: bool = false
 var joystick_active: bool = false
 var smash_button: Button
 var smash_press_count: int = 0
+var haptic_request_count: int = 0
+var last_haptic_duration_ms: int = 0
 var robot: GiantRobotController
 var _controls_enabled: bool = true
 var _joystick_touch_index: int = -1
@@ -39,6 +41,7 @@ func _ready() -> void:
 	if robot != null:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
 		smash_pressed.connect(robot.request_stomp)
+		robot.heavy_impact_requested.connect(play_smash_impact_haptic)
 	_build_smash_button()
 	visible = mobile_device_detected
 	set_process(mobile_device_detected)
@@ -106,6 +109,24 @@ func set_controls_enabled(enabled: bool) -> void:
 		move_axis_changed.emit(0.0)
 
 
+func play_smash_impact_haptic(
+	_origin: Vector2,
+	_radius: float,
+	_damage: float,
+	_impulse_per_mass: float,
+	_attack_id: int
+) -> void:
+	_request_haptic(28)
+
+
+func play_building_destruction_haptic(
+	_column: int,
+	_row: int,
+	_event: DamageEvent
+) -> void:
+	_request_haptic(48)
+
+
 func _detect_mobile_device() -> bool:
 	if detection_override >= 0:
 		return detection_override == 1
@@ -122,6 +143,22 @@ func _detect_mobile_device() -> bool:
 		or OS.has_feature("ios")
 		or DisplayServer.is_touchscreen_available()
 	)
+
+
+func _request_haptic(duration_ms: int) -> void:
+	if not mobile_device_detected or not _controls_enabled:
+		return
+	last_haptic_duration_ms = clampi(duration_ms, 1, 100)
+	haptic_request_count += 1
+	if detection_override >= 0:
+		return
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval(
+			"navigator.vibrate && navigator.vibrate(%d)" % last_haptic_duration_ms,
+			true
+		)
+		return
+	Input.vibrate_handheld(last_haptic_duration_ms)
 
 
 func _sync_to_viewport() -> void:
@@ -247,7 +284,7 @@ func _draw() -> void:
 	draw_circle(
 		_joystick_origin,
 		JOYSTICK_RADIUS,
-		Color(0.04, 0.08, 0.11, 0.58)
+		Color(0.06, 0.07, 0.08, 0.48)
 	)
 	draw_arc(
 		_joystick_origin,
@@ -255,23 +292,13 @@ func _draw() -> void:
 		0.0,
 		TAU,
 		48,
-		Color(0.34, 0.91, 0.82, 0.78),
-		4.0,
+		Color(0.72, 0.74, 0.76, 0.58),
+		3.0,
 		true
 	)
 	var knob_center: Vector2 = _joystick_origin + _knob_offset
 	draw_circle(
 		knob_center,
 		KNOB_RADIUS,
-		Color(0.22, 0.74, 0.68, 0.82)
-	)
-	draw_arc(
-		knob_center,
-		KNOB_RADIUS,
-		0.0,
-		TAU,
-		32,
-		Color(0.75, 1.0, 0.93, 0.92),
-		3.0,
-		true
+		Color(0.80, 0.81, 0.82, 0.94)
 	)
