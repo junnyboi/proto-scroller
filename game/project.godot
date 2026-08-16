@@ -1,0 +1,52 @@
+config_version=5
+
+[application]
+
+config/name="Proto Scroller"
+run/main_scene="res://scenes/main/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="disabled"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[gui]
+
+theme/custom="res://resources/title_theme.tres"
+
+[internationalization]
+
+locale/fallback="en"
+
+[input]
+
+move_left={
+"deadzone": 0.3,
+"events": [Object(InputEventKey,"physical_keycode":65,"unicode":97)]
+}
+move_right={
+"deadzone": 0.3,
+"events": [Object(InputEventKey,"physical_keycode":68,"unicode":100)]
+}
+stomp={
+"deadzone": 0.3,
+"events": [Object(InputEventKey,"physical_keycode":32,"unicode":32)]
+}
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.008, 0.016, 0.035, 1)
