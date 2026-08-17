@@ -12,7 +12,7 @@ enum Band {
 }
 
 const MAX_VALUE: float = 100.0
-const SURGE_THRESHOLD: float = 50.0
+const SURGE_THRESHOLD: float = 40.0
 const CRITICAL_THRESHOLD: float = 80.0
 const GAIN_SPEED_RATIO: float = 0.70
 const IDLE_SPEED_RATIO: float = 0.20
@@ -62,6 +62,10 @@ func band() -> Band:
 
 func is_ready() -> bool:
 	return _ready_locked
+
+
+func acceleration_multiplier() -> float:
+	return 1.08 if value >= SURGE_THRESHOLD else 1.0
 
 
 func reset_run() -> void:

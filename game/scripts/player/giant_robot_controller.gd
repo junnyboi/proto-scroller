@@ -7,6 +7,8 @@ signal footstep_impact(world_position: Vector2, strength: float)
 signal health_changed(current_health: float, maximum_health: float)
 signal damage_received(event: DamageEvent, accepted_damage: float)
 signal defeated
+signal attack_mode_selected(mode: int, attack_id: int)
+signal attack_committed(mode: int, attack_id: int)
 signal structure_impact_requested(
 	target: Node,
 	hit_position: Vector2,
@@ -60,6 +62,8 @@ var facing: int = 1
 var locomotion_state: LocomotionState = LocomotionState.IDLE
 var current_health: float
 var virtual_move_axis: float = 0.0
+var acceleration_multiplier: float = 1.0
+var attack_controller: ContextualAttackController
 var _turn_elapsed: float = 0.0
 var _pending_facing: int = 1
 var _attack_id: int = 0
@@ -86,7 +90,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if _control_enabled and Input.is_action_just_pressed(&"stomp"):
-		request_stomp()
+		request_attack()
 	var input_axis: float = Input.get_axis(&"move_left", &"move_right")
 	if absf(virtual_move_axis) > absf(input_axis):
 		input_axis = virtual_move_axis
@@ -152,6 +156,14 @@ func set_virtual_move_axis(axis: float) -> void:
 	virtual_move_axis = clampf(axis, -1.0, 1.0) if _control_enabled else 0.0
 
 
+func set_acceleration_multiplier(multiplier: float) -> void:
+	acceleration_multiplier = clampf(multiplier, 1.0, 1.5)
+
+
+func set_attack_controller(controller: ContextualAttackController) -> void:
+	attack_controller = controller
+
+
 func set_disabled(disabled: bool) -> void:
 	_control_enabled = not disabled
 	_set_locomotion_state(
@@ -160,7 +172,27 @@ func set_disabled(disabled: bool) -> void:
 
 
 func request_stomp() -> int:
+	var attack_id: int = reserve_attack_id()
+	execute_ground_smash(attack_id)
+	return attack_id
+
+
+func request_attack() -> int:
+	if attack_controller != null:
+		return attack_controller.request_attack()
+	return request_stomp()
+
+
+func reserve_attack_id() -> int:
 	_attack_id += 1
+	return _attack_id
+
+
+func can_request_attack() -> bool:
+	return _control_enabled and locomotion_state != LocomotionState.DISABLED
+
+
+func execute_ground_smash(attack_id: int) -> void:
 	var origin: Vector2 = (
 		_ground_impact_origin.global_position
 		if _ground_impact_origin != null
@@ -171,9 +203,16 @@ func request_stomp() -> int:
 		stomp_radius,
 		stomp_damage,
 		stomp_impulse_per_mass,
-		_attack_id
+		attack_id
 	)
-	return _attack_id
+
+
+func notify_attack_selected(mode: int, attack_id: int) -> void:
+	attack_mode_selected.emit(mode, attack_id)
+
+
+func notify_attack_committed(mode: int, attack_id: int) -> void:
+	attack_committed.emit(mode, attack_id)
 
 
 func request_structure_impact(
@@ -233,7 +272,7 @@ func _apply_horizontal_motion(input_axis: float, delta: float) -> void:
 	if not is_on_floor():
 		acceleration = air_acceleration
 	elif not is_zero_approx(input_axis):
-		acceleration = ground_acceleration
+		acceleration = ground_acceleration * acceleration_multiplier
 	else:
 		acceleration = ground_deceleration
 	velocity.x = move_toward(velocity.x, target_speed, acceleration * delta)

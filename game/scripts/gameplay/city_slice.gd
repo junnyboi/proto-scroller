@@ -76,6 +76,7 @@ var enemy_remains_root: Node2D
 var enemy_remains_factory: EnemyRemainsFactory
 var rampage_session: RampageSession
 var rampage_events: RampageEventAdapter
+var contextual_attacks: ContextualAttackController
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
@@ -116,6 +117,10 @@ func _ready() -> void:
 		_on_robot_damage_received,
 		_on_robot_defeated
 	)
+	contextual_attacks = ContextualAttackController.new()
+	contextual_attacks.name = "ContextualAttackController"
+	contextual_attacks.setup(robot)
+	add_child(contextual_attacks)
 	_build_destructibles()
 	_build_enemies()
 	CityWorldBuilder.build_camera(self, robot)
@@ -589,6 +594,10 @@ func _on_combo_changed(multiplier: int, grace_remaining: float) -> void:
 
 
 func _on_momentum_changed(value: float, band: int) -> void:
+	if robot != null:
+		robot.set_acceleration_multiplier(
+			rampage_session.momentum_meter.acceleration_multiplier()
+		)
 	if gameplay_hud != null:
 		gameplay_hud.set_momentum(value, band)
 

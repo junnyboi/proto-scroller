@@ -40,8 +40,8 @@ func _ready() -> void:
 	mobile_device_detected = _detect_mobile_device()
 	if robot != null:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
-		smash_pressed.connect(robot.request_stomp)
-		robot.heavy_impact_requested.connect(play_smash_impact_haptic)
+		smash_pressed.connect(robot.request_attack)
+		robot.attack_committed.connect(play_contextual_attack_haptic)
 	_build_smash_button()
 	visible = mobile_device_detected
 	set_process(mobile_device_detected)
@@ -124,6 +124,10 @@ func play_smash_impact_haptic(
 	_impulse_per_mass: float,
 	_attack_id: int
 ) -> void:
+	_request_haptic(28)
+
+
+func play_contextual_attack_haptic(_mode: int, _attack_id: int) -> void:
 	_request_haptic(28)
 
 

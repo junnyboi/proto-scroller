@@ -43,9 +43,9 @@ func cell_destroyed(
 		StringName("cell:%d:%d" % [column, row]),
 		event.attack_id,
 		GameplayEvent.Kind.CELL_DESTROYED,
-		profile.material_id,
+		GameplayEvent.CELL_BREACH,
 		300,
-		5.0,
+		12.0,
 		true,
 		cell.global_position,
 		profile.material_id,
@@ -64,9 +64,9 @@ func chain_started(
 		StringName("chain:%d" % building.chain_reaction_count),
 		0,
 		GameplayEvent.Kind.CHAIN_COLLAPSE,
-		kind,
-		0,
-		15.0,
+		GameplayEvent.CHAIN_COLLAPSE,
+		600,
+		24.0,
 		true,
 		building.global_position,
 		&"",
@@ -101,17 +101,15 @@ func prop_destroyed(
 	prop: DestructibleProp2D,
 	points: int,
 	robot: GiantRobotController,
-	is_car: bool
+	_is_car: bool
 ) -> bool:
-	var momentum_delta: float = 12.0 if is_car else 8.0
-	var action_tag: StringName = &"car" if is_car else &"streetlamp"
 	return _session.publish(GameplayEvent.new(
 		StringName("prop:%d" % prop.get_instance_id()),
 		0,
 		GameplayEvent.Kind.PROP_DESTROYED,
-		action_tag,
+		GameplayEvent.PROP_BREAK,
 		points,
-		momentum_delta,
+		6.0,
 		true,
 		prop.global_position,
 		&"",
@@ -127,14 +125,15 @@ func enemy_defeated(
 	points: int,
 	robot: GiantRobotController
 ) -> bool:
+	var is_soldier: bool = enemy is SoldierEnemy
 	return _session.publish(GameplayEvent.new(
 		StringName("enemy:%d" % enemy.get_instance_id()),
 		event.attack_id,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
-		_enemy_action_tag(enemy),
+		GameplayEvent.SOLDIER_LAUNCH if is_soldier else &"",
 		points,
 		_enemy_momentum_delta(enemy),
-		true,
+		is_soldier,
 		enemy.global_position,
 		&"",
 		robot.get_instance_id(),
@@ -149,14 +148,15 @@ func wreck_scrapped(
 	points: int,
 	robot: GiantRobotController
 ) -> bool:
+	var is_tank: bool = wreck.wreck_kind == &"tank"
 	return _session.publish(GameplayEvent.new(
 		StringName("wreck:%d:%d" % [wreck.get_instance_id(), event.attack_id]),
 		event.attack_id,
 		GameplayEvent.Kind.WRECK_SCRAPPED,
-		&"scrap",
+		GameplayEvent.TANK_SCRAP if is_tank else &"",
 		points,
-		4.0,
-		true,
+		0.0,
+		is_tank,
 		wreck.global_position,
 		&"steel",
 		robot.get_instance_id(),
@@ -172,12 +172,12 @@ func aerial_hit(
 	robot: GiantRobotController
 ) -> bool:
 	return _session.publish(GameplayEvent.new(
-		StringName("air:%d:%d" % [body.get_instance_id(), event.attack_id]),
+		StringName("air:%d:%d" % [event.attack_id, target.get_instance_id()]),
 		event.attack_id,
 		GameplayEvent.Kind.AIRBORNE_DEBRIS_HIT,
-		&"air_debris",
-		0,
-		3.0,
+		GameplayEvent.AIR_DEBRIS_HIT,
+		250,
+		20.0,
 		true,
 		event.hit_position,
 		body.material_id(),
@@ -205,7 +205,7 @@ func player_heavy_hit(
 		GameplayEvent.Kind.PLAYER_HEAVY_HIT,
 		&"",
 		0,
-		-10.0,
+		-12.0,
 		false,
 		event.hit_position,
 		&"",
@@ -227,17 +227,9 @@ func legacy_score(points: int) -> bool:
 	))
 
 
-func _enemy_action_tag(enemy: EnemyActor2D) -> StringName:
-	if enemy is TankEnemy:
-		return &"tank"
-	if enemy is HelicopterEnemy:
-		return &"helicopter"
-	return &"soldier"
-
-
 func _enemy_momentum_delta(enemy: EnemyActor2D) -> float:
 	if enemy is TankEnemy:
 		return 16.0
 	if enemy is HelicopterEnemy:
-		return 14.0
-	return 10.0
+		return 0.0
+	return 8.0

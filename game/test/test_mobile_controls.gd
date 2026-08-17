@@ -81,15 +81,39 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 		await get_tree().physics_frame
 	assert_gt(city.robot.position.x, start_x + 150.0)
 	city.car.current_health = 1.0
+	city.robot.velocity.x = 0.0
 	var smash_position: Vector2 = city.mobile_controls.smash_bounds().get_center()
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(8, smash_position, true)
 	)
-	assert_eq(city.mobile_controls.haptic_request_count, 1)
+	assert_true(city.contextual_attacks.current_spec.is_ground_smash())
+	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
+	assert_eq(city.mobile_controls.smash_touch_index(), 8)
+	assert_eq(city.mobile_controls.haptic_request_count, 0)
+	await get_tree().create_timer(0.14).timeout
 	assert_eq(city.mobile_controls.last_haptic_duration_ms, 28)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
+	assert_eq(city.mobile_controls.haptic_request_count, 1)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(8, smash_position, false)
+	)
+	await get_tree().create_timer(0.32).timeout
+	city.robot.velocity.x = city.robot.max_speed * 0.8
+	city.mobile_controls.process_controls(city.mobile_controls.smash_cooldown)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(9, smash_position, true)
+	)
+	assert_true(city.contextual_attacks.current_spec.is_shoulder_drive())
+	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
+	assert_eq(city.mobile_controls.smash_touch_index(), 9)
+	await get_tree().create_timer(0.11).timeout
+	assert_eq(city.mobile_controls.haptic_request_count, 2)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(9, smash_position, false)
+	)
+	assert_true(city.mobile_controls.joystick_active)
 	var structural_cell: Destructible2D = city.building.get_cell(0, 1)
 	assert_true(
 		structural_cell.receive_damage(
@@ -104,14 +128,14 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 			)
 		)
 	)
-	assert_eq(city.mobile_controls.haptic_request_count, 2)
+	assert_eq(city.mobile_controls.haptic_request_count, 3)
 	assert_eq(city.mobile_controls.last_haptic_duration_ms, 48)
 	city.robot.receive_damage(DamageEvent.new(9201, null, 9999.0))
 	assert_true(city.game_over_active)
 	assert_false(city.mobile_controls.joystick_active)
 	assert_eq(city.mobile_controls.movement_axis(), 0.0)
 	city.mobile_controls.play_building_destruction_haptic(0, 0, null)
-	assert_eq(city.mobile_controls.haptic_request_count, 2)
+	assert_eq(city.mobile_controls.haptic_request_count, 3)
 	_record_test_execution()
 
 
