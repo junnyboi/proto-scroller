@@ -18,6 +18,7 @@ var wreck_texture: Texture2D
 var fatal_event: DamageEvent
 var airborne_crash: bool = false
 var crash_landing_count: int = 0
+var finisher_requires_ground_smash: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
 var _steel_profile: StructuralMaterialProfile
 
@@ -59,6 +60,7 @@ func activate(
 	fatal_event = p_fatal_event
 	airborne_crash = p_airborne_crash
 	crash_landing_count = 0
+	finisher_requires_ground_smash = false
 	_seen_attacks.clear()
 	scrapped_state = false
 	visible = true
@@ -91,6 +93,7 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	airborne_crash = false
+	finisher_requires_ground_smash = false
 	gravity_scale = 1.0
 	linear_damp = 0.9
 	angular_damp = 1.5
@@ -105,6 +108,8 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 
 func receive_damage(event: DamageEvent) -> bool:
 	if scrapped_state or event == null or event.amount <= 0.0:
+		return false
+	if finisher_requires_ground_smash and event.damage_type != &"ground_smash":
 		return false
 	if event.attack_id != 0 and _seen_attacks.has(event.attack_id):
 		return false

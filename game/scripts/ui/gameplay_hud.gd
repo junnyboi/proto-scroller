@@ -19,6 +19,7 @@ var momentum_label: Label
 var siege_progress: SiegeProgressStrip
 var directive_card: DirectiveCard
 var directive_choice_overlay: DirectiveChoiceOverlay
+var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
@@ -42,6 +43,7 @@ func _ready() -> void:
 	_build_siege_progress()
 	_build_directive_card()
 	_build_directive_choice_overlay()
+	_build_boss_status()
 	_build_game_over_overlay()
 	if _robot != null:
 		_robot.attack_mode_selected.connect(_on_attack_mode_selected)
@@ -142,8 +144,17 @@ func set_directive_progress(profile: DirectiveProfile, current: int, target: int
 	directive_card.set_progress(profile, current, target)
 
 
-func set_directive_bank(value: int) -> void:
-	directive_card.set_bank(value)
+func set_directive_bank(points: int) -> void:
+	directive_card.set_bank(points)
+
+
+func set_boss_status(state: StringName, current: float = 0.0, maximum: float = 1.0) -> void:
+	if state == &"IDLE" or state == &"COMPLETE":
+		boss_label.visible = false
+		return
+	boss_label.visible = true
+	var ratio: int = roundi(clampf(current / maxf(maximum, 1.0), 0.0, 1.0) * 100.0)
+	boss_label.text = "COMMAND UNIT  %s  %03d%%" % [String(state).replace("_", " "), ratio]
 
 
 func show_directive_result(text: String, success: bool) -> void:
@@ -320,6 +331,18 @@ func _build_directive_choice_overlay() -> void:
 	directive_choice_overlay = DirectiveChoiceOverlay.new()
 	directive_choice_overlay.name = "DirectiveChoiceOverlay"
 	add_child(directive_choice_overlay)
+
+
+func _build_boss_status() -> void:
+	boss_label = Label.new()
+	boss_label.name = "BossStatus"
+	boss_label.position = Vector2(400.0, 146.0)
+	boss_label.size = Vector2(480.0, 38.0)
+	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_label.add_theme_font_size_override(&"font_size", 21)
+	boss_label.modulate = Color("ff8c64")
+	boss_label.visible = false
+	add_child(boss_label)
 
 
 func _build_game_over_overlay() -> void:

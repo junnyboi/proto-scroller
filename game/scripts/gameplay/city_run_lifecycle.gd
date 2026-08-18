@@ -13,8 +13,8 @@ func setup(p_city: CitySlice) -> void:
 	city.overdrive_session.time_changed.connect(_on_overdrive_time_changed)
 	city.overdrive_session.ended.connect(_on_overdrive_ended)
 	city.encounter_director.phase_changed.connect(_on_encounter_phase_changed)
-	city.encounter_director.district_completed.connect(_on_district_completed)
 	if city.urban_siege != null:
+		city.urban_siege.district_completed.connect(_on_district_completed)
 		city.urban_siege.beat_changed.connect(_on_beat_changed)
 		city.urban_siege.recovery_started.connect(_on_recovery_started)
 		city.urban_siege.directives.selected.connect(_on_directive_selected)
@@ -28,6 +28,10 @@ func setup(p_city: CitySlice) -> void:
 		city.gameplay_hud.directive_choice_overlay.profile_selected.connect(
 			city.urban_siege.directives.select
 		)
+		city.urban_siege.boss_session.state_changed.connect(_on_boss_state_changed)
+		city.urban_siege.boss_session.armor_changed.connect(_on_boss_armor_changed)
+	else:
+		city.encounter_director.district_completed.connect(_on_district_completed)
 	_on_momentum_changed(
 		city.rampage_session.momentum_value(),
 		city.rampage_session.momentum_meter.band()
@@ -120,6 +124,17 @@ func _on_directive_selected(profile: DirectiveProfile) -> void:
 
 func _on_directive_choices_offered(profiles: Array[DirectiveProfile]) -> void:
 	city.gameplay_hud.directive_choice_overlay.show_choices(profiles)
+
+
+func _on_boss_state_changed(state: StringName) -> void:
+	var boss: CommandBossSession = city.urban_siege.boss_session
+	var armor: float = boss.boss.boss_armor if boss.boss != null else 0.0
+	city.gameplay_hud.set_boss_status(state, armor, CommandBossSession.ARMOR)
+	city.gameplay_hud.set_objective("COMMAND UNIT / %s" % String(state).replace("_", " "))
+
+
+func _on_boss_armor_changed(current: float, maximum: float) -> void:
+	city.gameplay_hud.set_boss_status(city.urban_siege.boss_session.state, current, maximum)
 
 
 func _on_directive_progress(current: int, target: int) -> void:

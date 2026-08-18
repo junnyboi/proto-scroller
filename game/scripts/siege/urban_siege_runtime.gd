@@ -42,6 +42,7 @@ var catalysts: CatalystRuntime
 var directives: DirectiveSession
 var pause_coordinator: RunPauseCoordinator
 var trait_runtime: EnemyTraitRuntime
+var boss_session: CommandBossSession
 var run_seed: int = 0
 var _directive_pause_token: int = 0
 
@@ -57,7 +58,7 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	director.recovery_started.connect(recovery_started.emit)
 	director.milestone_reached.connect(milestone_reached.emit)
 	director.milestone_reached.connect(_on_milestone_reached)
-	director.district_completed.connect(district_completed.emit)
+	director.district_completed.connect(_on_arc_completed)
 	add_child(director)
 	catalysts = CATALYST_RUNTIME_SCRIPT.new() as CatalystRuntime
 	catalysts.name = "CatalystRuntime"
@@ -76,6 +77,11 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	trait_runtime.name = "EnemyTraitRuntime"
 	trait_runtime.setup(dependencies)
 	add_child(trait_runtime)
+	boss_session = CommandBossSession.new()
+	boss_session.name = "CommandBossSession"
+	boss_session.setup(dependencies)
+	boss_session.completed.connect(_on_boss_completed)
+	add_child(boss_session)
 	pause_coordinator = RunPauseCoordinator.new()
 	pause_coordinator.name = "RunPauseCoordinator"
 	pause_coordinator.setup(dependencies, director, catalysts)
@@ -89,6 +95,11 @@ func start_run(p_seed: int = 0) -> void:
 	director.start()
 
 
+func _process(delta: float) -> void:
+	if boss_session != null:
+		boss_session.advance(delta)
+
+
 func stop_run() -> void:
 	if director != null:
 		director.stop()
@@ -100,11 +111,15 @@ func stop_run() -> void:
 		pause_coordinator.release_all()
 	if trait_runtime != null:
 		trait_runtime.reset_all()
+	if boss_session != null:
+		boss_session.stop()
 	_directive_pause_token = 0
 
 
 func reset_run() -> void:
 	stop_run()
+	if boss_session != null:
+		boss_session.reset_state()
 	if director != null:
 		director.reset_to_contact()
 
@@ -141,3 +156,11 @@ func _on_directive_selected(_profile: DirectiveProfile) -> void:
 	if _directive_pause_token != 0:
 		pause_coordinator.release(_directive_pause_token)
 		_directive_pause_token = 0
+
+
+func _on_arc_completed() -> void:
+	boss_session.start()
+
+
+func _on_boss_completed(_elapsed_seconds: float) -> void:
+	district_completed.emit()

@@ -412,13 +412,16 @@ func _on_robot_heavy_impact(
 	impulse_per_mass: float,
 	attack_id: int
 ) -> void:
+	var options: DamageQueryOptions = DamageQueryOptions.new()
+	options.damage_type = &"ground_smash"
 	destruction_director.queue_explosion(
 		origin,
 		radius,
 		damage,
 		impulse_per_mass,
 		attack_id,
-		robot
+		robot,
+		options
 	)
 	AerialDebrisLauncher.launch(get_tree(), debris_pool, robot, origin, impulse_per_mass, attack_id)
 	gameplay_hud.set_objective("IMPACT REGISTERED / PHYSICS FIELD ACTIVE")

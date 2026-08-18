@@ -11,6 +11,8 @@ signal projectile_requested(
 )
 signal died(actor: EnemyActor2D, event: DamageEvent)
 signal profile_changed(actor: EnemyActor2D)
+signal boss_armor_changed(current: float, maximum: float)
+signal boss_armor_broken()
 
 @export var max_health: float = 60.0
 
@@ -41,6 +43,9 @@ var external_attack_interval_multiplier: float = 1.0
 var role_badge: EnemyRoleBadge
 var structural_target: StructuralBuilding2D
 var catalyst_target: Catalyst2D
+var boss_mode: bool = false
+var boss_armor: float = 0.0
+var boss_max_armor: float = 0.0
 var _base_max_health: float = 0.0
 var _shield_available: bool = false
 var _shield_damage_ratio: float = 1.0
@@ -115,6 +120,14 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
+	if boss_mode and boss_armor > 0.0:
+		if event.damage_type != &"shoulder_drive":
+			return false
+		boss_armor = maxf(boss_armor - event.amount, 0.0)
+		boss_armor_changed.emit(boss_armor, boss_max_armor)
+		if is_zero_approx(boss_armor):
+			boss_armor_broken.emit()
+		return true
 	var accepted_event: DamageEvent = event
 	if _shield_available:
 		_shield_available = false
@@ -190,6 +203,15 @@ func clear_profiles() -> void:
 		role_badge.configure(null, null)
 
 
+func configure_boss(armor: float, exposed_health: float) -> void:
+	boss_mode = true
+	boss_max_armor = maxf(armor, 1.0)
+	boss_armor = boss_max_armor
+	max_health = maxf(exposed_health, 1.0)
+	current_health = max_health
+	boss_armor_changed.emit(boss_armor, boss_max_armor)
+
+
 func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 	clear_profiles()
 	activation_generation += 1
@@ -217,6 +239,9 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 func deactivate() -> void:
 	cancel_telegraph()
 	clear_profiles()
+	boss_mode = false
+	boss_armor = 0.0
+	boss_max_armor = 0.0
 	active = false
 	dead = false
 	visible = false
