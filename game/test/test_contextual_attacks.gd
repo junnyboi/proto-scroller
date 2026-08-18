@@ -127,6 +127,23 @@ func test_shoulder_drive_concrete_drags_and_steel_requires_two_hits() -> void:
 	_record_test_execution()
 
 
+func test_enemy_projectiles_damage_intact_building_cells() -> void:
+	var city: CitySlice = await _city()
+	var glass_cell: Destructible2D = city.building.get_cell(0, 1)
+	city.soldier.request_projectile(
+		Vector2(1100.0, glass_cell.global_position.y),
+		Vector2.RIGHT,
+		720.0,
+		7.0,
+		&"bullet"
+	)
+	for physics_index: int in range(30):
+		await get_tree().physics_frame
+	assert_almost_eq(glass_cell.current_health, glass_cell.max_health - 7.0, 0.01)
+	assert_false(glass_cell.is_destroyed())
+	_record_test_execution()
+
+
 func _drive_spec(attack_id: int) -> AttackSpec:
 	return AttackSpec.new(
 		AttackSpec.Mode.SHOULDER_DRIVE,

@@ -108,7 +108,7 @@ func test_materials_change_resistance_debris_and_particles() -> void:
 	assert_true(city.building.is_cell_destroyed(0, 1))
 	assert_false(city.building.is_cell_destroyed(1, 1))
 	assert_false(city.building.is_cell_destroyed(2, 1))
-	assert_eq(city.debris_pool.active_count(), 5)
+	assert_eq(city.debris_pool.active_count(), 7)
 	for child: Node in city.debris_pool.get_children():
 		var debris: DebrisBody2D = child as DebrisBody2D
 		if debris == null or not debris.visible:
@@ -126,7 +126,7 @@ func test_materials_change_resistance_debris_and_particles() -> void:
 	_record_test_execution()
 
 
-func test_stomp_breaks_the_nearby_car_and_lamp() -> void:
+func test_stomp_breaks_props_and_damages_nearby_building_cells() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -143,8 +143,9 @@ func test_stomp_breaks_the_nearby_car_and_lamp() -> void:
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
 	assert_true(city.streetlamp.is_broken)
-	assert_eq(city.building.destroyed_cell_count(), 0)
-	assert_eq(city.score, 450)
+	assert_true(city.building.is_cell_destroyed(0, 1))
+	assert_false(city.building.is_cell_destroyed(1, 1))
+	assert_gt(city.score, 450)
 	assert_eq(city.robot.current_health, original_health)
 	_record_test_execution()
 
@@ -223,6 +224,14 @@ func test_shoulder_drive_destroys_only_the_struck_lower_bay() -> void:
 	) as CPUParticles2D
 	assert_not_null(particles)
 	assert_eq(particles.get_meta(&"structural_material"), &"glass")
+	var high_forward_shrapnel: int = 0
+	for child: Node in city.debris_pool.get_children():
+		var debris: DebrisBody2D = child as DebrisBody2D
+		if debris == null or not debris.visible:
+			continue
+		if debris.linear_velocity.x > 400.0 and debris.linear_velocity.y < -400.0:
+			high_forward_shrapnel += 1
+	assert_gte(high_forward_shrapnel, 4)
 	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
 	assert_eq(score_label.text, "00000750")
 	_record_test_execution()

@@ -169,7 +169,8 @@ func _build_services() -> void:
 	destruction_director.name = "DestructionDirector"
 	destruction_director.max_results = 64
 	destruction_director.blast_mask = (
-		PROP_LAYER
+		HURTBOX_LAYER
+		| PROP_LAYER
 		| ENEMY_LAYER
 		| DEBRIS_LAYER
 		| REMAINS_LAYER
@@ -426,7 +427,7 @@ func _material_for_target(
 
 func _on_building_damage_applied(amount: float, event: DamageEvent) -> void:
 	rampage_events.building_damage(amount, event, building, robot)
-	if event.damage_type != &"shoulder_drive":
+	if event.damage_type in [&"floor_chain", &"steel_support_chain"]:
 		return
 	var material_profile: StructuralMaterialProfile = _material_for_target(
 		building,
@@ -586,7 +587,15 @@ func _on_projectile_requested(
 	kind: StringName,
 	source: Node
 ) -> void:
-	projectile_root.acquire(origin, direction, speed, damage, source, ROBOT_LAYER, kind)
+	projectile_root.acquire(
+		origin,
+		direction,
+		speed,
+		damage,
+		source,
+		ROBOT_LAYER | BUILDING_LAYER,
+		kind
+	)
 
 
 func _on_robot_health_changed(current: float, maximum: float) -> void:

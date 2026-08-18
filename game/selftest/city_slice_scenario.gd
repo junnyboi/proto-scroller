@@ -62,32 +62,32 @@ func _run() -> void:
 	_check("robot_turns", city.robot.facing == -1, "facing=%s" % city.robot.facing)
 	city.car.current_health = 1.0
 	city.streetlamp.current_health = 1.0
-	for row: int in range(StructuralBuilding2D.ROWS):
-		for column: int in range(StructuralBuilding2D.COLUMNS):
-			city.building.get_cell(column, row).current_health = 1.0
-	city.robot.stomp_radius = 950.0
-	city.robot.stomp_damage = 300.0
+	city.robot.position = Vector2(1150.0, 460.0)
+	city.robot.stomp_radius = 500.0
+	city.robot.stomp_damage = 200.0
 	city.trigger_test_stomp()
 	await physics_frame
 	await physics_frame
 	await physics_frame
 	_check(
-		"ground_smash_leaves_building_intact",
-		city.building.destroyed_cell_count() == 0,
+		"ground_smash_damages_building",
+		city.building.destroyed_cell_count() == 1,
 		"cells=%d" % city.building.destroyed_cell_count()
 	)
-	for column: int in range(StructuralBuilding2D.COLUMNS):
+	var drive_columns: Array[int] = [1, 2, 2]
+	for drive_index: int in range(drive_columns.size()):
 		for settle_frame: int in range(45):
 			if not city.contextual_attacks.is_busy():
 				break
 			await process_frame
+		var column: int = drive_columns[drive_index]
 		city.robot.position = Vector2(1100.0 + float(column) * 167.0, 460.0)
 		city.robot.facing = 1
 		city.robot.velocity.x = city.robot.max_speed * 0.8
 		var attack_id: int = city.robot.request_attack()
 		var spec: AttackSpec = city.contextual_attacks.current_spec
 		_check(
-			"drive_%d_commits" % column,
+			"drive_%d_commits" % drive_index,
 			attack_id > 0 and spec != null and spec.is_shoulder_drive(),
 			"attack_id=%d" % attack_id
 		)

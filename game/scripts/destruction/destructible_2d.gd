@@ -89,17 +89,30 @@ func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
 func _release_chunks(event: DamageEvent) -> void:
 	if _debris_pool == null or gameplay_chunk_count <= 0:
 		return
+	var is_shoulder_drive: bool = event.damage_type == &"shoulder_drive"
 	var base_direction: Vector2 = event.direction
+	var forward_sign: float = signf(base_direction.x)
+	if is_shoulder_drive:
+		if is_zero_approx(forward_sign):
+			forward_sign = 1.0
+		base_direction = Vector2(forward_sign, -0.70).normalized()
 	if base_direction.is_zero_approx():
 		base_direction = (global_position - event.hit_position).normalized()
 	if base_direction.is_zero_approx():
 		base_direction = Vector2.UP
-	var count: int = mini(gameplay_chunk_count, _debris_pool.available_count())
+	var requested_count: int = gameplay_chunk_count + (2 if is_shoulder_drive else 0)
+	var count: int = mini(requested_count, _debris_pool.available_count())
 	for chunk_index: int in range(count):
 		var weight: float = (float(chunk_index) + 0.5) / float(maxi(count, 1))
-		var angle: float = deg_to_rad(lerpf(-chunk_spread_degrees, chunk_spread_degrees, weight))
+		var spread_degrees: float = (
+			minf(chunk_spread_degrees, 28.0)
+			if is_shoulder_drive
+			else chunk_spread_degrees
+		)
+		var angle: float = deg_to_rad(lerpf(-spread_degrees, spread_degrees, weight))
 		var direction: Vector2 = base_direction.rotated(angle)
-		direction.y -= 0.35
+		if not is_shoulder_drive:
+			direction.y -= 0.35
 		direction = direction.normalized()
 		var mass_min: float = 1.5
 		var mass_max: float = 12.0
@@ -125,6 +138,11 @@ func _release_chunks(event: DamageEvent) -> void:
 		var speed_scale: float = lerpf(speed_max, speed_min, weight)
 		var speed_delta: float = event.impulse_per_mass * chunk_impulse_scale * speed_scale
 		var transform_offset: Vector2 = direction * (12.0 + 8.0 * float(chunk_index))
+		if is_shoulder_drive:
+			transform_offset = Vector2(
+				forward_sign * (28.0 + 6.0 * float(chunk_index)),
+				-128.0 - 4.0 * float(chunk_index)
+			)
 		var spawn_position: Vector2 = event.hit_position + transform_offset
 		var spawn_transform: Transform2D = Transform2D(
 			0.0,
