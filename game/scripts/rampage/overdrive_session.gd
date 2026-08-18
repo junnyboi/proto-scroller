@@ -9,6 +9,9 @@ const DURATION_SECONDS: float = 4.0
 const FORCE_MULTIPLIER: float = 1.25
 const STRUCTURE_MULTIPLIER: float = 1.25
 const ACCELERATION_MULTIPLIER: float = 1.15
+const OVERDRIVE_RING: Texture2D = preload(
+	"res://art/presentation/overdrive_ring.png"
+)
 
 var momentum_meter: MomentumMeter
 var robot: GiantRobotController
@@ -93,6 +96,13 @@ func _draw() -> void:
 	var center: Vector2 = to_local(robot.global_position + Vector2(0.0, 42.0))
 	var ratio: float = remaining / DURATION_SECONDS
 	var pulse: float = 0.75 + sin(Time.get_ticks_msec() * 0.018) * 0.25
+	var ring_size: Vector2 = Vector2.ONE * (286.0 + pulse * 10.0)
+	draw_texture_rect(
+		OVERDRIVE_RING,
+		Rect2(center - ring_size * 0.5, ring_size),
+		false,
+		Color(1.0, 1.0, 1.0, 0.62 + pulse * 0.18)
+	)
 	draw_arc(
 		center,
 		128.0 + pulse * 8.0,

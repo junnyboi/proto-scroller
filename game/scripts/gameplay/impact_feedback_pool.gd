@@ -10,6 +10,7 @@ const CONCRETE_IMPACT_SFX: AudioStream = preload(
 const STEEL_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/steel_groan.wav"
 )
+const IMPACT_SPARK: Texture2D = preload("res://art/presentation/impact_spark.png")
 
 @export_range(1, 16, 1) var particle_capacity: int = 8
 @export_range(1, 16, 1) var audio_capacity: int = 8
@@ -197,6 +198,7 @@ func _prewarm_particles() -> void:
 		particles.angular_velocity_max = 420.0
 		particles.damping_min = 25.0
 		particles.damping_max = 70.0
+		particles.texture = IMPACT_SPARK
 		particles.set_meta(&"priority", 0)
 		_particle_root.add_child(particles)
 		_particles.append(particles)

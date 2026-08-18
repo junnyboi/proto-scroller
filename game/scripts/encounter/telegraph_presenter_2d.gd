@@ -1,6 +1,10 @@
 class_name TelegraphPresenter2D
 extends Node2D
 
+const TELEGRAPH_BADGE: Texture2D = preload(
+	"res://art/presentation/telegraph_badge.png"
+)
+
 @export_range(1, 16, 1) var capacity: int = 12
 
 var denial_count: int = 0
@@ -88,6 +92,14 @@ func _draw() -> void:
 		var target: Vector2 = to_local(record.target)
 		var base_color: Color = Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56)
 		var kind: StringName = record.kind
+		if kind == &"shell" or kind == &"rocket":
+			var badge_size: Vector2 = Vector2.ONE * (38.0 + progress * 10.0)
+			draw_texture_rect(
+				TELEGRAPH_BADGE,
+				Rect2(target - badge_size * 0.5, badge_size),
+				false,
+				Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38)
+			)
 		if kind == &"shell":
 			draw_line(origin, target, base_color, 8.0, true)
 			draw_line(origin, target, Color(1.0, 0.82, 0.42, 0.86), 2.0, true)
