@@ -53,9 +53,6 @@ const TELEGRAPH_SCRIPT: Script = preload(
 const CONTACT_DISTRICT: DistrictDefinition = preload(
 	"res://resources/siege/district_contact.tres"
 )
-const TRANSFORMER_PROFILE: CatalystProfile = preload(
-	"res://resources/catalysts/transformer.tres"
-)
 const SOLDIER_DEFEAT_POOL_SCRIPT: Script = preload(
 	"res://scripts/actors/soldier_defeat_pool.gd"
 )
@@ -381,7 +378,6 @@ func _build_urban_siege() -> void:
 	urban_siege.setup(dependencies, CONTACT_DISTRICT)
 	add_child(urban_siege)
 	encounter_director = urban_siege.director
-	urban_siege.catalysts.activate(0, TRANSFORMER_PROFILE, Vector2(1880.0, 590.0))
 	if DisplayServer.get_name() != "headless":
 		urban_siege.start_run()
 func _build_hud() -> void:

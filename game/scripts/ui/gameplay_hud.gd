@@ -2,6 +2,8 @@ class_name GameplayHud
 extends CanvasLayer
 
 signal retry_pressed
+signal extract_pressed
+signal continue_pressed
 
 const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
@@ -25,6 +27,8 @@ var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
 var retry_button: Button
+var extract_button: Button
+var continue_button: Button
 var rare_labels: Array[Label] = []
 var _robot: GiantRobotController
 var _pulse_age: float = 0.0
@@ -168,12 +172,14 @@ func show_directive_result(text: String, success: bool) -> void:
 
 
 func show_game_over(summary: RunSummarySnapshot = null) -> void:
+	_hide_terminal_choices()
 	set_status("CITY RESPONSE / LOST")
 	set_objective("CHASSIS SIGNAL TERMINATED")
 	_show_summary(summary, false)
 
 
 func show_district_complete(summary: RunSummarySnapshot) -> void:
+	_hide_terminal_choices()
 	set_status("DISTRICT RESPONSE / BROKEN")
 	set_objective("RETALIATION EXHAUSTED / EXTRACTION OPEN")
 	_show_summary(summary, true)
@@ -205,6 +211,26 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 		overlay_summary.text = "CHASSIS SIGNAL LOST"
 	game_over_overlay.visible = true
 	retry_button.grab_focus()
+
+
+func show_cycle_choice(cycle: int, can_continue: bool) -> void:
+	overlay_title.text = "DISTRICT SECURED"
+	overlay_summary.text = (
+		"CYCLE %d COMPLETE\nEXTRACT THE RESULT OR ESCALATE THE SAME CITY" % cycle
+	)
+	retry_button.visible = false
+	extract_button.visible = true
+	continue_button.visible = can_continue
+	game_over_overlay.visible = true
+	if can_continue:
+		continue_button.grab_focus()
+	else:
+		extract_button.grab_focus()
+
+
+func hide_terminal_overlay() -> void:
+	game_over_overlay.visible = false
+	_hide_terminal_choices()
 
 
 func _on_attack_mode_selected(mode: int, _attack_id: int) -> void:
@@ -409,6 +435,30 @@ func _build_game_over_overlay() -> void:
 	retry_button.add_theme_font_size_override(&"font_size", 30)
 	retry_button.pressed.connect(retry_pressed.emit)
 	game_over_overlay.add_child(retry_button)
+	extract_button = Button.new()
+	extract_button.name = "ExtractButton"
+	extract_button.position = Vector2(445.0, 430.0)
+	extract_button.size = Vector2(185.0, 78.0)
+	extract_button.text = "EXTRACT"
+	extract_button.add_theme_font_size_override(&"font_size", 25)
+	extract_button.pressed.connect(extract_pressed.emit)
+	extract_button.visible = false
+	game_over_overlay.add_child(extract_button)
+	continue_button = Button.new()
+	continue_button.name = "ContinueButton"
+	continue_button.position = Vector2(650.0, 430.0)
+	continue_button.size = Vector2(185.0, 78.0)
+	continue_button.text = "CONTINUE"
+	continue_button.add_theme_font_size_override(&"font_size", 25)
+	continue_button.pressed.connect(continue_pressed.emit)
+	continue_button.visible = false
+	game_over_overlay.add_child(continue_button)
+
+
+func _hide_terminal_choices() -> void:
+	retry_button.visible = true
+	extract_button.visible = false
+	continue_button.visible = false
 
 
 func _momentum_color(band: int) -> Color:

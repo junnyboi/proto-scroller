@@ -36,7 +36,10 @@ func test_heavy_hit_discards_half_pending_and_one_combo_tier() -> void:
 		&"heavy", 99, GameplayEvent.Kind.PLAYER_HEAVY_HIT, &"PLAYER_HIT"
 	))
 	assert_eq(session.run_score.safe_score, 400)
-	assert_eq(session.run_score.pending_bank.value, pending_before - pending_before / 2)
+	assert_eq(
+		session.run_score.pending_bank.value,
+		pending_before - floori(float(pending_before) / 2.0)
+	)
 	assert_eq(session.current_multiplier(), multiplier_before - 1)
 	assert_gt(session.combo_tracker.current_chain_count, 0)
 	assert_eq(session.heavy_hit_count, 1)

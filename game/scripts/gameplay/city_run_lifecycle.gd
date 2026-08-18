@@ -28,6 +28,8 @@ func setup(p_city: CitySlice) -> void:
 		city.gameplay_hud.directive_choice_overlay.profile_selected.connect(
 			city.urban_siege.directives.select
 		)
+		city.gameplay_hud.extract_pressed.connect(_on_extract_pressed)
+		city.gameplay_hud.continue_pressed.connect(_on_continue_pressed)
 		city.urban_siege.boss_session.state_changed.connect(_on_boss_state_changed)
 		city.urban_siege.boss_session.armor_changed.connect(_on_boss_armor_changed)
 	else:
@@ -154,7 +156,24 @@ func _on_directive_failed(profile: DirectiveProfile, _penalty: int) -> void:
 
 
 func _on_district_completed() -> void:
+	city.urban_siege.prepare_terminal_choice()
+	city.gameplay_hud.show_cycle_choice(
+		city.urban_siege.cycle_count,
+		city.urban_siege.cycle_count < 2
+	)
+
+
+func _on_extract_pressed() -> void:
+	city.urban_siege.release_terminal_choice()
 	_finish_run(true)
+
+
+func _on_continue_pressed() -> void:
+	if city.urban_siege.continue_cycle():
+		city.gameplay_hud.hide_terminal_overlay()
+		city.gameplay_hud.set_objective(
+			"CYCLE 2 / %s" % city.urban_siege.selected_recipe.recipe_id
+		)
 
 
 func _finish_run(completed: bool) -> void:
@@ -172,14 +191,12 @@ func _finish_run(completed: bool) -> void:
 			if city.urban_siege.boss_session.state == CommandBossSession.STATE_COMPLETE
 			else &"UNRESOLVED"
 		)
-		run_metrics.contract_succeeded = (
-			city.urban_siege.directives.completion_count > 0
-		)
+		run_metrics.contract_succeeded = city.urban_siege.contract_succeeded()
 		run_metrics.contract_result = (
 			&"COMPLETE" if bool(run_metrics.contract_succeeded) else &"FAILED"
 		)
 		run_metrics.run_seed = city.urban_siege.run_seed
-		run_metrics.cycle_count = 1
+		run_metrics.cycle_count = city.urban_siege.cycle_count
 		city.urban_siege.stop_run()
 	else:
 		city.encounter_director.stop()

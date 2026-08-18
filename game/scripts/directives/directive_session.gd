@@ -74,14 +74,15 @@ func select(profile: DirectiveProfile) -> bool:
 
 
 func decorate_attack(spec: AttackSpec) -> AttackSpec:
-	if spec == null or active_profile == null:
+	var effect_profile: DirectiveProfile = _effect_profile()
+	if spec == null or effect_profile == null:
 		return spec
 	var structure_multiplier: float = 1.0
 	if (
-		active_profile.directive_id == &"DEMOLITION_BREACH"
+			effect_profile.directive_id == &"DEMOLITION_BREACH"
 		and spec.is_shoulder_drive()
 	):
-		structure_multiplier = active_profile.structural_multiplier
+		structure_multiplier = effect_profile.structural_multiplier
 	return AttackSpec.new(
 		spec.mode,
 		spec.attack_id,
@@ -96,16 +97,17 @@ func decorate_attack(spec: AttackSpec) -> AttackSpec:
 		spec.hit_size,
 		spec.hit_offset,
 		spec.opening_compression,
-		active_profile.effect_flag
+		effect_profile.effect_flag
 	)
 
 
 func attack_active(spec: AttackSpec) -> void:
-	if spec == null or active_profile == null:
+	var effect_profile: DirectiveProfile = _effect_profile()
+	if spec == null or effect_profile == null:
 		return
-	if active_profile.directive_id == &"AFTERSHOCK_BREAKS":
+	if effect_profile.directive_id == &"AFTERSHOCK_BREAKS":
 		_queue_aftershock(spec)
-	elif active_profile.directive_id == &"SKYBREAKER":
+	elif effect_profile.directive_id == &"SKYBREAKER":
 		_apply_skybreaker(spec)
 
 
@@ -121,6 +123,10 @@ func stop() -> void:
 
 func is_active() -> bool:
 	return active_profile != null
+
+
+func _effect_profile() -> DirectiveProfile:
+	return active_profile if active_profile != null else selected_profile
 
 
 func _queue_aftershock(spec: AttackSpec) -> void:

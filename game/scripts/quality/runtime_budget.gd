@@ -28,6 +28,9 @@ const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS
 const TRAIT_RUNTIMES: int = 1
 const BOSS_SESSIONS: int = 1
 const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
+const DISTRICT_RECIPES: int = 3
+const RUN_CONTRACTS: int = 3
+const TERMINAL_CHOICE_OVERLAYS: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -80,6 +83,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"trait_runtimes": 1 if city.urban_siege.trait_runtime != null else 0,
 		"boss_sessions": 1 if city.urban_siege.boss_session != null else 0,
 		"causal_records": city.rampage_session.causal_chain_tracker.active_count(),
+		"district_recipes": city.urban_siege.DISTRICT_DECK.recipes.size(),
+		"run_contracts": city.urban_siege.RUN_CONTRACTS.size(),
+		"terminal_choice_overlays": 1 if city.gameplay_hud.extract_button != null else 0,
 	}
 
 
@@ -104,6 +110,14 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "role_badges", ROLE_BADGES)
 	_check_equal(errors, data, "trait_runtimes", TRAIT_RUNTIMES)
 	_check_equal(errors, data, "boss_sessions", BOSS_SESSIONS)
+	_check_equal(errors, data, "district_recipes", DISTRICT_RECIPES)
+	_check_equal(errors, data, "run_contracts", RUN_CONTRACTS)
+	_check_equal(
+		errors,
+		data,
+		"terminal_choice_overlays",
+		TERMINAL_CHOICE_OVERLAYS
+	)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]
