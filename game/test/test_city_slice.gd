@@ -437,6 +437,15 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 	assert_eq(city.rampage_session.momentum_value(), 16.0)
 	assert_not_null(city.helicopter_wreck)
 	assert_eq(city.helicopter_wreck.wreck_kind, &"helicopter")
+	assert_true(city.helicopter_wreck.is_crashing())
+	assert_gt(city.helicopter_wreck.linear_velocity.y, 0.0)
+	assert_gt(absf(city.helicopter_wreck.angular_velocity), 1.0)
+	var crash_start_y: float = city.helicopter_wreck.global_position.y
+	for crash_frame: int in range(70):
+		await get_tree().physics_frame
+	assert_gt(city.helicopter_wreck.global_position.y, crash_start_y + 200.0)
+	assert_false(city.helicopter_wreck.is_crashing())
+	assert_eq(city.helicopter_wreck.crash_landing_count, 1)
 	_record_test_execution()
 
 
