@@ -30,6 +30,8 @@ printf '%s\n' '[L1] parse and lint'
 grep -Fq 'config/features=PackedStringArray("4.7", "GL Compatibility")' project.godot
 grep -Fq 'window/size/viewport_width=1280' project.godot
 grep -Fq 'window/size/viewport_height=720' project.godot
+grep -Fq 'window/stretch/mode="canvas_items"' project.godot
+grep -Fq 'window/stretch/aspect="keep"' project.godot
 grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
 grep -Fq 'variant/extensions_support=false' export_presets.cfg
 grep -Fq 'variant/thread_support=false' export_presets.cfg
@@ -80,8 +82,22 @@ if [[ "$MODE" == "full" ]]; then
   test -s artifacts/title_screen/title-screen.png
   DIMENSIONS="$(file artifacts/title_screen/title-screen.png)"
   grep -Fq '1280 x 720' <<< "$DIMENSIONS"
+  cp artifacts/title_screen/title-screen.png \
+    artifacts/title_screen/title-screen-landscape.png
   SHOT_HASH="$(sha256sum artifacts/title_screen/title-screen.png | cut -d' ' -f1)"
   printf 'shot_sha256=%s\n' "$SHOT_HASH"
+
+  printf '%s\n' '[L5] portrait title render scenario'
+  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+    --resolution 720x1280 -s selftest/title_screen_scenario.gd
+  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+    artifacts/title_screen/report.json >/dev/null
+  PORTRAIT_TITLE_DIMENSIONS="$(file artifacts/title_screen/title-screen.png)"
+  grep -Fq '720 x 1280' <<< "$PORTRAIT_TITLE_DIMENSIONS"
+  mv artifacts/title_screen/title-screen.png \
+    artifacts/title_screen/title-screen-portrait.png
+  cp artifacts/title_screen/title-screen-landscape.png \
+    artifacts/title_screen/title-screen.png
 
   printf '%s\n' '[L5] windowed city-slice render scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
@@ -98,6 +114,18 @@ if [[ "$MODE" == "full" ]]; then
   test -s artifacts/city_slice/city-slice-initial.png
   INITIAL_CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice-initial.png)"
   grep -Fq '1280 x 720' <<< "$INITIAL_CITY_DIMENSIONS"
+  cp artifacts/city_slice/city-slice-initial.png \
+    artifacts/city_slice/city-slice-initial-landscape.png
+
+  printf '%s\n' '[L5] portrait initial city-slice visual scenario'
+  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+    --resolution 720x1280 -s selftest/city_slice_visual_scenario.gd
+  PORTRAIT_CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice-initial.png)"
+  grep -Fq '720 x 1280' <<< "$PORTRAIT_CITY_DIMENSIONS"
+  mv artifacts/city_slice/city-slice-initial.png \
+    artifacts/city_slice/city-slice-initial-portrait.png
+  cp artifacts/city_slice/city-slice-initial-landscape.png \
+    artifacts/city_slice/city-slice-initial.png
 
   printf '%s\n' '[WEB] cache-bypassed release export'
   rm -rf ../client/public/game

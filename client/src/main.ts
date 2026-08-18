@@ -33,7 +33,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "7dbc1e64";
+const GAME_PACK_VERSION = "4719a226";
 const root = document.getElementById("root");
 
 if (!root) {
@@ -61,9 +61,6 @@ async function startEngine(): Promise<void> {
   const Engine = window.Engine;
   if (!Engine) return;
 
-  canvas.width = 1280;
-  canvas.height = 720;
-
   const missing = Engine.getMissingFeatures({ threads: false });
   if (missing.length > 0) {
     showError(`Missing browser features: ${missing.join(", ")}`);
@@ -73,7 +70,7 @@ async function startEngine(): Promise<void> {
   const engine = new Engine({
     args: [],
     canvas,
-    canvasResizePolicy: 0,
+    canvasResizePolicy: 2,
     emscriptenPoolSize: 8,
     ensureCrossOriginIsolationHeaders: true,
     executable: "/manus-storage/game_04b3672b",
@@ -82,7 +79,7 @@ async function startEngine(): Promise<void> {
     focusCanvas: true,
     gdextensionLibs: [],
     godotPoolSize: 4,
-    mainPack: `/manus-storage/game_c60cad9a.pck?v=${GAME_PACK_VERSION}`,
+    mainPack: `/manus-storage/game_c244546a.pck?v=${GAME_PACK_VERSION}`,
   });
 
   try {

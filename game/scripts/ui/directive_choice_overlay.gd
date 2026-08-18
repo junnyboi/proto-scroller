@@ -9,6 +9,8 @@ const ACCENT_COLOR: Color = Color("f1b36f")
 
 var buttons: Array[Button] = []
 var profiles: Array[DirectiveProfile] = []
+var panel: ColorRect
+var title: Label
 
 
 func _ready() -> void:
@@ -20,12 +22,12 @@ func _ready() -> void:
 	shade.color = Color(0.0, 0.0, 0.0, 0.76)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(shade)
-	var panel: ColorRect = ColorRect.new()
+	panel = ColorRect.new()
 	panel.position = Vector2(126.0, 146.0)
 	panel.size = Vector2(1028.0, 406.0)
 	panel.color = PANEL_COLOR
 	add_child(panel)
-	var title: Label = Label.new()
+	title = Label.new()
 	title.position = Vector2(180.0, 174.0)
 	title.size = Vector2(920.0, 46.0)
 	title.text = "SELECT DEMOLITION DIRECTIVE"
@@ -35,6 +37,8 @@ func _ready() -> void:
 	add_child(title)
 	for index: int in range(3):
 		buttons.append(_build_card(index))
+	get_viewport().size_changed.connect(_sync_to_viewport)
+	apply_responsive_layout(get_viewport_rect().size)
 	visible = false
 
 
@@ -55,6 +59,33 @@ func show_choices(options: Array[DirectiveProfile]) -> void:
 func hide_choices() -> void:
 	visible = false
 	profiles.clear()
+
+
+func apply_responsive_layout(viewport_size: Vector2) -> void:
+	if panel == null or title == null:
+		return
+	if viewport_size.y > viewport_size.x:
+		panel.position = Vector2(36.0, 260.0)
+		panel.size = Vector2(viewport_size.x - 72.0, 760.0)
+		title.position = Vector2(58.0, 292.0)
+		title.size = Vector2(viewport_size.x - 116.0, 50.0)
+		title.add_theme_font_size_override(&"font_size", 26)
+		for index: int in range(buttons.size()):
+			buttons[index].position = Vector2(72.0, 378.0 + float(index) * 198.0)
+			buttons[index].size = Vector2(viewport_size.x - 144.0, 170.0)
+	else:
+		panel.position = Vector2(126.0, 146.0)
+		panel.size = Vector2(1028.0, 406.0)
+		title.position = Vector2(180.0, 174.0)
+		title.size = Vector2(920.0, 46.0)
+		title.add_theme_font_size_override(&"font_size", 30)
+		for index: int in range(buttons.size()):
+			buttons[index].position = Vector2(166.0 + float(index) * 324.0, 246.0)
+			buttons[index].size = Vector2(300.0, 250.0)
+
+
+func _sync_to_viewport() -> void:
+	apply_responsive_layout(get_viewport_rect().size)
 
 
 func _build_card(index: int) -> Button:

@@ -40,6 +40,7 @@ func _ready() -> void:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
 		smash_pressed.connect(robot.request_attack)
 	_build_smash_button()
+	_sync_to_viewport()
 	visible = mobile_device_detected
 	set_process(mobile_device_detected)
 	set_process_input(mobile_device_detected)
@@ -134,7 +135,25 @@ func _detect_mobile_device() -> bool:
 
 func _sync_to_viewport() -> void:
 	position = Vector2.ZERO
-	size = get_viewport_rect().size
+	var viewport_size: Vector2 = get_viewport_rect().size
+	size = viewport_size
+	if smash_button != null:
+		var portrait: bool = viewport_size.y > viewport_size.x
+		smash_button.offset_left = -160.0 if portrait else -168.0
+		smash_button.offset_top = -160.0 if portrait else -168.0
+		smash_button.offset_right = -24.0 if portrait else -36.0
+		smash_button.offset_bottom = -24.0 if portrait else -36.0
+	if joystick_active:
+		_joystick_origin.x = clampf(
+			_joystick_origin.x,
+			JOYSTICK_RADIUS + EDGE_PADDING,
+			viewport_size.x - JOYSTICK_RADIUS - EDGE_PADDING
+		)
+		_joystick_origin.y = clampf(
+			_joystick_origin.y,
+			JOYSTICK_RADIUS + EDGE_PADDING,
+			viewport_size.y - JOYSTICK_RADIUS - EDGE_PADDING
+		)
 
 
 func _build_smash_button() -> void:

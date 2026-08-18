@@ -15,14 +15,22 @@ var target: GiantRobotController
 var impact_offset: Vector2 = Vector2.ZERO
 var impact_velocity: Vector2 = Vector2.ZERO
 var _current_look_ahead: float = 0.0
+var _look_ahead_scale: float = 1.0
 @onready var _camera: Camera2D = get_node_or_null(^"Camera2D") as Camera2D
+
+
+func _ready() -> void:
+	get_viewport().size_changed.connect(_apply_responsive_framing)
+	_apply_responsive_framing()
 
 
 func _physics_process(delta: float) -> void:
 	_update_impact_spring(delta)
 	if target == null:
 		return
-	var desired_look_ahead: float = look_ahead * float(target.facing)
+	var desired_look_ahead: float = (
+		look_ahead * _look_ahead_scale * float(target.facing)
+	)
 	_current_look_ahead = move_toward(
 		_current_look_ahead,
 		desired_look_ahead,
@@ -47,6 +55,30 @@ func reset_presentation() -> void:
 	impact_velocity = Vector2.ZERO
 	if _camera != null:
 		_camera.offset = Vector2.ZERO
+
+
+func is_portrait_framing() -> bool:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	return viewport_size.y > viewport_size.x
+
+
+func visible_world_size() -> Vector2:
+	if _camera == null:
+		return get_viewport_rect().size
+	return get_viewport_rect().size / _camera.zoom
+
+
+func _apply_responsive_framing() -> void:
+	if _camera == null:
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if viewport_size.y > viewport_size.x:
+		var portrait_zoom: float = maxf(viewport_size.y / 720.0, 1.0)
+		_camera.zoom = Vector2.ONE * portrait_zoom
+		_look_ahead_scale = 0.42
+	else:
+		_camera.zoom = Vector2.ONE
+		_look_ahead_scale = 1.0
 
 
 func _update_impact_spring(delta: float) -> void:

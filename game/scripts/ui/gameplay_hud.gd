@@ -30,9 +30,16 @@ var retry_button: Button
 var extract_button: Button
 var continue_button: Button
 var rare_labels: Array[Label] = []
+var status_panel: ColorRect
+var momentum_panel: ColorRect
+var momentum_track: ColorRect
+var score_panel: ColorRect
+var score_caption: Label
+var terminal_panel: ColorRect
 var _robot: GiantRobotController
 var _pulse_age: float = 0.0
 var _overdrive_active: bool = false
+var _momentum_fill_width: float = 392.0
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -50,6 +57,8 @@ func _ready() -> void:
 	_build_directive_choice_overlay()
 	_build_boss_status()
 	_build_game_over_overlay()
+	get_viewport().size_changed.connect(_apply_responsive_layout)
+	_apply_responsive_layout()
 	if _robot != null:
 		_robot.attack_mode_selected.connect(_on_attack_mode_selected)
 		_robot.attack_committed.connect(_on_attack_committed)
@@ -96,7 +105,7 @@ func set_combo(multiplier: int, grace_remaining: float) -> void:
 func set_momentum(value: float, band: int) -> void:
 	var clamped_value: float = clampf(value, 0.0, 100.0)
 	if momentum_fill != null:
-		momentum_fill.size.x = 392.0 * clamped_value / 100.0
+		momentum_fill.size.x = _momentum_fill_width * clamped_value / 100.0
 		momentum_fill.color = _momentum_color(band)
 	if momentum_label != null:
 		momentum_label.text = (
@@ -111,7 +120,9 @@ func set_overdrive(active: bool, remaining: float) -> void:
 	if momentum_label != null and active:
 		momentum_label.text = "KINETIC OVERDRIVE  %.1fs" % maxf(remaining, 0.0)
 	if momentum_fill != null and active:
-		momentum_fill.size.x = 392.0 * clampf(remaining / 4.0, 0.0, 1.0)
+		momentum_fill.size.x = (
+			_momentum_fill_width * clampf(remaining / 4.0, 0.0, 1.0)
+		)
 		momentum_fill.color = Color("ff8a42")
 
 
@@ -247,11 +258,11 @@ func _on_attack_committed(mode: int, _attack_id: int) -> void:
 
 
 func _build_status_panel() -> void:
-	var panel: ColorRect = ColorRect.new()
-	panel.position = Vector2(24.0, 22.0)
-	panel.size = Vector2(420.0, 112.0)
-	panel.color = PANEL_COLOR
-	add_child(panel)
+	status_panel = ColorRect.new()
+	status_panel.position = Vector2(24.0, 22.0)
+	status_panel.size = Vector2(420.0, 112.0)
+	status_panel.color = PANEL_COLOR
+	add_child(status_panel)
 	status_label = Label.new()
 	status_label.name = "StatusLabel"
 	status_label.position = Vector2(48.0, 34.0)
@@ -274,11 +285,11 @@ func _build_status_panel() -> void:
 
 
 func _build_momentum_panel() -> void:
-	var panel: ColorRect = ColorRect.new()
-	panel.position = Vector2(466.0, 22.0)
-	panel.size = Vector2(500.0, 88.0)
-	panel.color = PANEL_COLOR
-	add_child(panel)
+	momentum_panel = ColorRect.new()
+	momentum_panel.position = Vector2(466.0, 22.0)
+	momentum_panel.size = Vector2(500.0, 88.0)
+	momentum_panel.color = PANEL_COLOR
+	add_child(momentum_panel)
 	momentum_label = Label.new()
 	momentum_label.name = "MomentumLabel"
 	momentum_label.position = Vector2(490.0, 30.0)
@@ -300,7 +311,7 @@ func _build_momentum_panel() -> void:
 	combo_ring.size = Vector2(38.0, 38.0)
 	combo_ring.visible = false
 	add_child(combo_ring)
-	var momentum_track: ColorRect = ColorRect.new()
+	momentum_track = ColorRect.new()
 	momentum_track.name = "MomentumTrack"
 	momentum_track.position = Vector2(490.0, 66.0)
 	momentum_track.size = Vector2(452.0, 18.0)
@@ -315,19 +326,19 @@ func _build_momentum_panel() -> void:
 
 
 func _build_score_panel() -> void:
-	var panel: ColorRect = ColorRect.new()
-	panel.position = Vector2(988.0, 22.0)
-	panel.size = Vector2(268.0, 88.0)
-	panel.color = PANEL_COLOR
-	add_child(panel)
-	var caption: Label = Label.new()
-	caption.position = Vector2(1012.0, 30.0)
-	caption.size = Vector2(220.0, 28.0)
-	caption.text = "RAMPAGE SCORE"
-	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	caption.add_theme_font_size_override(&"font_size", 18)
-	caption.modulate = ACCENT_COLOR
-	add_child(caption)
+	score_panel = ColorRect.new()
+	score_panel.position = Vector2(988.0, 22.0)
+	score_panel.size = Vector2(268.0, 88.0)
+	score_panel.color = PANEL_COLOR
+	add_child(score_panel)
+	score_caption = Label.new()
+	score_caption.position = Vector2(1012.0, 30.0)
+	score_caption.size = Vector2(220.0, 28.0)
+	score_caption.text = "RAMPAGE SCORE"
+	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	score_caption.add_theme_font_size_override(&"font_size", 18)
+	score_caption.modulate = ACCENT_COLOR
+	add_child(score_caption)
 	score_label = Label.new()
 	score_label.name = "ScoreLabel"
 	score_label.position = Vector2(1012.0, 56.0)
@@ -404,11 +415,11 @@ func _build_game_over_overlay() -> void:
 	shade.color = Color(0.015, 0.02, 0.03, 0.78)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	game_over_overlay.add_child(shade)
-	var panel: ColorRect = ColorRect.new()
-	panel.position = Vector2(365.0, 188.0)
-	panel.size = Vector2(550.0, 340.0)
-	panel.color = Color(0.025, 0.05, 0.065, 0.97)
-	game_over_overlay.add_child(panel)
+	terminal_panel = ColorRect.new()
+	terminal_panel.position = Vector2(365.0, 188.0)
+	terminal_panel.size = Vector2(550.0, 340.0)
+	terminal_panel.color = Color(0.025, 0.05, 0.065, 0.97)
+	game_over_overlay.add_child(terminal_panel)
 	overlay_title = Label.new()
 	overlay_title.position = Vector2(405.0, 218.0)
 	overlay_title.size = Vector2(470.0, 72.0)
@@ -453,6 +464,132 @@ func _build_game_over_overlay() -> void:
 	continue_button.pressed.connect(continue_pressed.emit)
 	continue_button.visible = false
 	game_over_overlay.add_child(continue_button)
+
+
+func _is_portrait_layout() -> bool:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	return viewport_size.y > viewport_size.x
+
+
+func _apply_responsive_layout() -> void:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	if viewport_size.y > viewport_size.x:
+		_apply_portrait_layout(viewport_size)
+	else:
+		_apply_landscape_layout()
+	if directive_choice_overlay != null:
+		directive_choice_overlay.apply_responsive_layout(viewport_size)
+
+
+func _apply_landscape_layout() -> void:
+	status_panel.position = Vector2(24.0, 22.0)
+	status_panel.size = Vector2(420.0, 112.0)
+	status_label.position = Vector2(48.0, 34.0)
+	health_label.position = Vector2(48.0, 68.0)
+	objective_label.position = Vector2(48.0, 100.0)
+	momentum_panel.position = Vector2(466.0, 22.0)
+	momentum_panel.size = Vector2(500.0, 88.0)
+	momentum_label.position = Vector2(490.0, 30.0)
+	momentum_label.size = Vector2(260.0, 28.0)
+	combo_label.position = Vector2(764.0, 28.0)
+	combo_label.size = Vector2(176.0, 32.0)
+	combo_ring.position = Vector2(712.0, 24.0)
+	momentum_track.position = Vector2(490.0, 66.0)
+	momentum_track.size = Vector2(452.0, 18.0)
+	momentum_fill.position = Vector2(496.0, 71.0)
+	_momentum_fill_width = 392.0
+	score_panel.position = Vector2(988.0, 22.0)
+	score_panel.size = Vector2(268.0, 88.0)
+	_set_score_geometry(Vector2(1012.0, 30.0), Vector2(220.0, 28.0), true)
+	for index: int in range(rare_labels.size()):
+		rare_labels[index].position = Vector2(1012.0, 116.0 + float(index) * 23.0)
+		rare_labels[index].size = Vector2(220.0, 22.0)
+		rare_labels[index].horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	siege_progress.position = Vector2(466.0, 112.0)
+	siege_progress.size = Vector2(500.0, 32.0)
+	siege_progress.apply_width(500.0)
+	directive_card.position = Vector2(948.0, 426.0)
+	boss_label.position = Vector2(400.0, 146.0)
+	boss_label.size = Vector2(480.0, 38.0)
+	_apply_landscape_terminal_layout()
+
+
+func _apply_portrait_layout(viewport_size: Vector2) -> void:
+	var content_width: float = viewport_size.x - 36.0
+	status_panel.position = Vector2(18.0, 18.0)
+	status_panel.size = Vector2(content_width, 116.0)
+	status_label.position = Vector2(34.0, 28.0)
+	health_label.position = Vector2(34.0, 62.0)
+	objective_label.position = Vector2(34.0, 96.0)
+	momentum_panel.position = Vector2(18.0, 146.0)
+	momentum_panel.size = Vector2(content_width, 84.0)
+	momentum_label.position = Vector2(34.0, 154.0)
+	momentum_label.size = Vector2(390.0, 28.0)
+	combo_label.position = Vector2(viewport_size.x - 220.0, 152.0)
+	combo_label.size = Vector2(186.0, 32.0)
+	combo_ring.position = Vector2(viewport_size.x - 264.0, 150.0)
+	momentum_track.position = Vector2(34.0, 194.0)
+	momentum_track.size = Vector2(content_width - 32.0, 18.0)
+	momentum_fill.position = Vector2(40.0, 199.0)
+	_momentum_fill_width = content_width - 44.0
+	score_panel.position = Vector2(18.0, 240.0)
+	score_panel.size = Vector2(content_width, 98.0)
+	_set_score_geometry(Vector2(viewport_size.x - 338.0, 248.0), Vector2(304.0, 28.0), true)
+	for index: int in range(rare_labels.size()):
+		rare_labels[index].position = Vector2(34.0, 250.0 + float(index) * 25.0)
+		rare_labels[index].size = Vector2(300.0, 22.0)
+		rare_labels[index].horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	siege_progress.position = Vector2(18.0, 348.0)
+	siege_progress.size = Vector2(content_width, 32.0)
+	siege_progress.apply_width(content_width)
+	directive_card.position = Vector2(18.0, viewport_size.y - 280.0)
+	boss_label.position = Vector2(72.0, 388.0)
+	boss_label.size = Vector2(viewport_size.x - 144.0, 38.0)
+	_apply_portrait_terminal_layout(viewport_size)
+
+
+func _set_score_geometry(origin: Vector2, label_size: Vector2, align_right: bool) -> void:
+	score_caption.position = origin
+	score_caption.size = label_size
+	score_label.position = origin + Vector2(0.0, 26.0)
+	score_label.size = Vector2(label_size.x, 42.0)
+	pending_score_label.position = origin + Vector2(0.0, 61.0)
+	pending_score_label.size = Vector2(label_size.x, 20.0)
+	var alignment: HorizontalAlignment = (
+		HORIZONTAL_ALIGNMENT_RIGHT if align_right else HORIZONTAL_ALIGNMENT_LEFT
+	)
+	score_caption.horizontal_alignment = alignment
+	score_label.horizontal_alignment = alignment
+	pending_score_label.horizontal_alignment = alignment
+
+
+func _apply_landscape_terminal_layout() -> void:
+	terminal_panel.position = Vector2(365.0, 188.0)
+	terminal_panel.size = Vector2(550.0, 340.0)
+	overlay_title.position = Vector2(405.0, 218.0)
+	overlay_title.size = Vector2(470.0, 72.0)
+	overlay_summary.position = Vector2(405.0, 296.0)
+	overlay_summary.size = Vector2(470.0, 128.0)
+	retry_button.position = Vector2(490.0, 430.0)
+	retry_button.size = Vector2(300.0, 78.0)
+	extract_button.position = Vector2(445.0, 430.0)
+	continue_button.position = Vector2(650.0, 430.0)
+
+
+func _apply_portrait_terminal_layout(viewport_size: Vector2) -> void:
+	var panel_width: float = viewport_size.x - 64.0
+	terminal_panel.position = Vector2(32.0, 304.0)
+	terminal_panel.size = Vector2(panel_width, 560.0)
+	overlay_title.position = Vector2(52.0, 334.0)
+	overlay_title.size = Vector2(viewport_size.x - 104.0, 82.0)
+	overlay_summary.position = Vector2(52.0, 430.0)
+	overlay_summary.size = Vector2(viewport_size.x - 104.0, 236.0)
+	retry_button.position = Vector2(150.0, 720.0)
+	retry_button.size = Vector2(viewport_size.x - 300.0, 88.0)
+	extract_button.position = Vector2(82.0, 720.0)
+	extract_button.size = Vector2(258.0, 88.0)
+	continue_button.position = Vector2(viewport_size.x - 340.0, 720.0)
+	continue_button.size = Vector2(258.0, 88.0)
 
 
 func _hide_terminal_choices() -> void:

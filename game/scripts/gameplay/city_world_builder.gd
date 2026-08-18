@@ -88,6 +88,7 @@ static func build_camera(parent: Node2D, robot: GiantRobotController) -> void:
 	camera_rig.target = robot
 	camera_rig.position = Vector2(640.0, 360.0)
 	var camera: Camera2D = Camera2D.new()
+	camera.name = "Camera2D"
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8.0
 	camera.position = Vector2.ZERO
