@@ -30,6 +30,7 @@ var projectile_pool: ProjectilePool
 var projectile_target_mask: int = 0
 var facing: int = -1
 var visual_ground_offset: float = 0.0
+var attack_gate_enabled: bool = true
 var _seen_attacks: Dictionary[int, bool] = {}
 var _bounce_phase: float = 0.0
 var _visual_rest_position: Vector2
@@ -112,7 +113,15 @@ func request_projectile(
 	damage: float,
 	kind: StringName
 ) -> void:
+	if not attack_gate_enabled:
+		return
 	projectile_requested.emit(origin, direction, speed, damage, kind, self)
+
+
+func set_attack_gate(enabled: bool) -> void:
+	attack_gate_enabled = enabled
+	if not enabled:
+		cancel_telegraph()
 
 
 func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
@@ -127,6 +136,7 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 	collision_layer = _base_collision_layer
 	collision_mask = _base_collision_mask
 	_seen_attacks.clear()
+	attack_gate_enabled = true
 	set_physics_process(true)
 	if visual != null:
 		visual.visible = true
@@ -156,7 +166,7 @@ func begin_telegraph(
 	origin: Vector2,
 	target_point: Vector2
 ) -> bool:
-	if telegraph_presenter == null or _telegraph_id != 0:
+	if not attack_gate_enabled or telegraph_presenter == null or _telegraph_id != 0:
 		return false
 	if kind in [&"shell", &"rocket"] and projectile_pool != null:
 		_projectile_reservation_id = projectile_pool.reserve(kind)

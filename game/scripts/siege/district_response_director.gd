@@ -1,0 +1,231 @@
+class_name DistrictResponseDirector
+extends EncounterDirector
+
+signal beat_changed(act_index: int, beat_index: int, beat_id: StringName)
+signal recovery_started(duration: float)
+signal milestone_reached(milestone: StringName)
+
+const STATE_WAITING: int = 0
+const STATE_PRESSURE: int = 1
+const STATE_RECOVERY: int = 2
+const MAX_PENDING_RECORDS: int = 12
+
+var district: DistrictDefinition
+var ledger: CapacityReservationLedger = CapacityReservationLedger.new()
+var beat_index: int = -1
+var state: int = STATE_WAITING
+var pressure_remaining: float = 0.0
+var recovery_remaining: float = 0.0
+var elapsed: float = 0.0
+var peak_pending_records: int = 0
+var _beat_reservation_id: int = 0
+var _beat_pending: Array[Dictionary] = []
+
+
+func setup(p_runtime: EncounterRuntime, p_waves: Array[EnemyWave]) -> void:
+	district = null
+	super.setup(p_runtime, p_waves)
+
+
+func setup_district(p_runtime: EncounterRuntime, p_district: DistrictDefinition) -> void:
+	runtime = p_runtime
+	district = p_district
+
+
+func start() -> void:
+	if district == null:
+		super.start()
+		return
+	stop()
+	completed = false
+	running = true
+	phase_index = -1
+	beat_index = -1
+	elapsed = 0.0
+	_advance_act()
+
+
+func stop() -> void:
+	if district == null:
+		super.stop()
+		return
+	running = false
+	state = STATE_WAITING
+	pressure_remaining = 0.0
+	recovery_remaining = 0.0
+	_beat_pending.clear()
+	if _beat_reservation_id != 0:
+		ledger.cancel(_beat_reservation_id)
+	_beat_reservation_id = 0
+	ledger.cancel_all()
+	if runtime != null:
+		runtime.set_attack_gate(true)
+
+
+func reset_to_contact() -> void:
+	stop()
+	if runtime != null:
+		runtime.release_all()
+	start()
+
+
+func _process(delta: float) -> void:
+	if district == null:
+		_process_legacy(delta)
+		return
+	advance(delta)
+
+
+func advance(delta: float) -> void:
+	if not running or completed or runtime == null or district == null:
+		return
+	elapsed += delta
+	match state:
+		STATE_WAITING:
+			_try_start_next_beat()
+		STATE_PRESSURE:
+			_process_pending(delta)
+			pressure_remaining = maxf(pressure_remaining - delta, 0.0)
+			if is_zero_approx(pressure_remaining) and _beat_pending.is_empty():
+				_start_recovery()
+		STATE_RECOVERY:
+			recovery_remaining = maxf(recovery_remaining - delta, 0.0)
+			if is_zero_approx(recovery_remaining):
+				runtime.set_attack_gate(true)
+				state = STATE_WAITING
+
+
+func current_phase_name() -> String:
+	if district == null:
+		return super.current_phase_name()
+	if phase_index < 0 or phase_index >= district.acts.size():
+		return ""
+	return district.acts[phase_index].display_name
+
+
+func pending_count() -> int:
+	if district == null:
+		return super.pending_count()
+	return _beat_pending.size()
+
+
+func current_beat_id() -> StringName:
+	if district == null or phase_index < 0 or beat_index < 0:
+		return &""
+	var act: DistrictAct = district.acts[phase_index]
+	if beat_index >= act.beats.size():
+		return &""
+	return act.beats[beat_index].beat_id
+
+
+func _advance_act() -> void:
+	phase_index += 1
+	beat_index = -1
+	if district == null or phase_index >= district.acts.size():
+		completed = true
+		running = false
+		district_completed.emit()
+		return
+	var act: DistrictAct = district.acts[phase_index]
+	phase_changed.emit(phase_index, act.display_name)
+	state = STATE_WAITING
+
+
+func _try_start_next_beat() -> void:
+	var act: DistrictAct = district.acts[phase_index]
+	if beat_index >= act.beats.size() - 1:
+		if runtime.active_count() > 0:
+			return
+		if not act.milestone_after.is_empty():
+			milestone_reached.emit(act.milestone_after)
+		_advance_act()
+		return
+	var next_beat: DistrictBeat = act.beats[beat_index + 1]
+	var reservation_id: int = ledger.reserve_beat(next_beat, runtime)
+	if reservation_id == 0:
+		return
+	beat_index += 1
+	_beat_reservation_id = reservation_id
+	_beat_pending.clear()
+	for entry: EnemySpawnEntry in next_beat.spawns:
+		if _beat_pending.size() >= MAX_PENDING_RECORDS:
+			break
+		_beat_pending.append({"entry": entry, "remaining": maxf(entry.delay, 0.0)})
+	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
+	pressure_remaining = next_beat.pressure_seconds
+	recovery_remaining = next_beat.recovery_seconds
+	runtime.set_attack_gate(true)
+	state = STATE_PRESSURE
+	beat_changed.emit(phase_index, beat_index, next_beat.beat_id)
+
+
+func _start_recovery() -> void:
+	if _beat_reservation_id != 0:
+		ledger.cancel(_beat_reservation_id)
+	_beat_reservation_id = 0
+	runtime.set_attack_gate(false)
+	state = STATE_RECOVERY
+	recovery_started.emit(recovery_remaining)
+
+
+func _process_pending(delta: float) -> void:
+	for index: int in range(_beat_pending.size() - 1, -1, -1):
+		var record: Dictionary = _beat_pending[index]
+		record.remaining = maxf(float(record.remaining) - delta, 0.0)
+		if not is_zero_approx(float(record.remaining)):
+			continue
+		var entry: EnemySpawnEntry = record.entry
+		var kind: StringName = StringName(entry.kind)
+		if runtime.acquire(kind, _resolve_position(entry)) == null:
+			continue
+		ledger.consume_actor(_beat_reservation_id, kind)
+		_beat_pending.remove_at(index)
+
+
+func _process_legacy(delta: float) -> void:
+	if not running or runtime == null or completed:
+		return
+	_process_legacy_pending(delta)
+	if not _pending.is_empty() or runtime.active_count() > 0:
+		return
+	if _respite_remaining <= 0.0:
+		_respite_remaining = waves[phase_index].minimum_respite
+	_respite_remaining = maxf(_respite_remaining - delta, 0.0)
+	if not is_zero_approx(_respite_remaining):
+		return
+	if phase_index >= waves.size() - 1:
+		completed = true
+		running = false
+		district_completed.emit()
+	else:
+		_advance_phase()
+
+
+func _process_legacy_pending(delta: float) -> void:
+	for index: int in range(_pending.size() - 1, -1, -1):
+		var record: Dictionary = _pending[index]
+		record.remaining = maxf(float(record.remaining) - delta, 0.0)
+		if not is_zero_approx(float(record.remaining)):
+			continue
+		var entry: EnemySpawnEntry = record.entry
+		if runtime.acquire(StringName(entry.kind), entry.position) != null:
+			_pending.remove_at(index)
+
+
+func _resolve_position(entry: EnemySpawnEntry) -> Vector2:
+	if entry.spawn_anchor == "WORLD":
+		return entry.position + entry.offset
+	var robot_x: float = runtime.robot.global_position.x if runtime.robot != null else 760.0
+	var position_value: Vector2 = entry.position
+	match entry.spawn_anchor:
+		"AHEAD":
+			position_value.x = robot_x + 620.0
+		"BEHIND":
+			position_value.x = robot_x - 620.0
+		"CAMERA_LEFT":
+			position_value.x = robot_x - 720.0
+		"CAMERA_RIGHT":
+			position_value.x = robot_x + 720.0
+	position_value += entry.offset
+	position_value.x = clampf(position_value.x, 80.0, 2480.0)
+	return position_value

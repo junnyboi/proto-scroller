@@ -31,6 +31,7 @@ var soldiers: Array[SoldierEnemy] = []
 var tanks: Array[TankEnemy] = []
 var helicopters: Array[HelicopterEnemy] = []
 var post_warm_creation_count: int = 0
+var attack_gate_enabled: bool = true
 
 
 func setup(
@@ -56,6 +57,7 @@ func acquire(kind: StringName, spawn_position: Vector2) -> EnemyActor2D:
 	for enemy: EnemyActor2D in _actors_for_kind(kind):
 		if not enemy.active:
 			enemy.activate(spawn_position, robot)
+			enemy.set_attack_gate(attack_gate_enabled)
 			return enemy
 	return null
 
@@ -72,6 +74,12 @@ func release_deferred(enemy: EnemyActor2D) -> void:
 func release_all() -> void:
 	for enemy: EnemyActor2D in all_actors():
 		release(enemy)
+
+
+func set_attack_gate(enabled: bool) -> void:
+	attack_gate_enabled = enabled
+	for enemy: EnemyActor2D in all_actors():
+		enemy.set_attack_gate(enabled)
 
 
 func all_actors() -> Array[EnemyActor2D]:

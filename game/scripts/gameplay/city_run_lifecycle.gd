@@ -89,7 +89,10 @@ func _finish_run(completed: bool) -> void:
 	if city.game_over_active:
 		return
 	city.game_over_active = true
-	city.encounter_director.stop()
+	if city.urban_siege != null:
+		city.urban_siege.stop_run()
+	else:
+		city.encounter_director.stop()
 	city.telegraph_presenter.cancel_all()
 	city.encounter_runtime.release_all()
 	city.projectile_root.release_all()
