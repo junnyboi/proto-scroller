@@ -21,6 +21,11 @@ const PROJECTILE_POOL_SCRIPT: Script = preload("res://scripts/combat/projectile_
 const IMPACT_FEEDBACK_SCRIPT: Script = preload(
 	"res://scripts/gameplay/impact_feedback_pool.gd"
 )
+const HIT_STOP_SCRIPT: Script = preload("res://scripts/feedback/hit_stop_lease.gd")
+const HAPTICS_SCRIPT: Script = preload("res://scripts/input/haptics_adapter.gd")
+const FEEDBACK_DIRECTOR_SCRIPT: Script = preload(
+	"res://scripts/feedback/impact_feedback_director.gd"
+)
 const ENEMY_REMAINS_FACTORY_SCRIPT: Script = preload(
 	"res://scripts/actors/enemy_remains_factory.gd"
 )
@@ -72,6 +77,10 @@ var gameplay_hud: GameplayHud
 var projectile_root: ProjectilePool
 var impact_audio_root: Node2D
 var impact_feedback_pool: ImpactFeedbackPool
+var hit_stop: HitStopLease
+var haptics_adapter: HapticsAdapter
+var impact_feedback_director: ImpactFeedbackDirector
+var camera_rig: CameraRig
 var enemy_remains_root: Node2D
 var enemy_remains_factory: EnemyRemainsFactory
 var rampage_session: RampageSession
@@ -123,6 +132,7 @@ func _ready() -> void:
 	_build_destructibles()
 	_build_enemies()
 	CityWorldBuilder.build_camera(self, robot)
+	camera_rig = get_node(^"CameraRig") as CameraRig
 	_build_hud()
 
 
@@ -165,6 +175,10 @@ func _build_services() -> void:
 	impact_feedback_pool.name = "ImpactFeedbackPool"
 	impact_feedback_pool.setup(self, impact_audio_root)
 	add_child(impact_feedback_pool)
+	hit_stop = HIT_STOP_SCRIPT.new() as HitStopLease
+	hit_stop.name = "HitStopLease"
+	hit_stop.enabled = DisplayServer.get_name() != "headless"
+	add_child(hit_stop)
 	destruction_director = DIRECTOR_SCRIPT.new() as DestructionDirector
 	destruction_director.name = "DestructionDirector"
 	destruction_director.max_results = 64
@@ -379,12 +393,23 @@ func _build_hud() -> void:
 	gameplay_hud.setup(robot)
 	gameplay_hud.retry_pressed.connect(_on_retry_pressed)
 	add_child(gameplay_hud)
+	haptics_adapter = HAPTICS_SCRIPT.new() as HapticsAdapter
+	haptics_adapter.name = "HapticsAdapter"
+	haptics_adapter.setup(mobile_detection_override)
+	add_child(haptics_adapter)
 	mobile_controls = MOBILE_CONTROLS_SCRIPT.new() as MobileControls
 	mobile_controls.setup(robot, mobile_detection_override)
-	building.cell_destroyed.connect(
-		mobile_controls.play_building_destruction_haptic
-	)
 	gameplay_hud.add_child(mobile_controls)
+	impact_feedback_director = FEEDBACK_DIRECTOR_SCRIPT.new() as ImpactFeedbackDirector
+	impact_feedback_director.name = "ImpactFeedbackDirector"
+	impact_feedback_director.setup(
+		rampage_session.event_hub,
+		hit_stop,
+		camera_rig,
+		haptics_adapter,
+		robot
+	)
+	add_child(impact_feedback_director)
 func _on_robot_heavy_impact(
 	origin: Vector2,
 	radius: float,
@@ -454,8 +479,8 @@ func _on_building_cell_destroyed(
 	rampage_events.cell_destroyed(column, row, event, building, robot)
 
 
-func _on_building_chain_reaction_started(kind: StringName) -> void:
-	rampage_events.chain_started(kind, building, robot)
+func _on_building_chain_reaction_started(kind: StringName, event: DamageEvent) -> void:
+	rampage_events.chain_started(kind, event, building, robot)
 	if kind == &"steel_support_chain":
 		gameplay_hud.set_objective("STEEL SUPPORT FAILURE / CASCADE ACTIVE")
 	else:
@@ -492,8 +517,8 @@ func _on_building_destroyed(event: DamageEvent) -> void:
 	rampage_events.building_destroyed(event, building, robot)
 
 
-func _on_prop_destroyed(prop: DestructibleProp2D, points: int) -> void:
-	rampage_events.prop_destroyed(prop, points, robot, prop == car)
+func _on_prop_destroyed(prop: DestructibleProp2D, event: DamageEvent, points: int) -> void:
+	rampage_events.prop_destroyed(prop, event, points, robot, prop == car)
 
 
 func _on_enemy_died(
@@ -611,6 +636,8 @@ func _on_robot_defeated() -> void:
 		if enemy != null:
 			enemy.set_physics_process(false)
 	projectile_root.process_mode = Node.PROCESS_MODE_DISABLED
+	impact_feedback_director.cancel_all()
+	impact_feedback_pool.reset_runtime_state()
 	if mobile_controls != null:
 		mobile_controls.set_controls_enabled(false)
 	gameplay_hud.show_game_over()

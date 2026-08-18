@@ -3,7 +3,7 @@ extends Node2D
 
 signal damage_applied(amount: float, event: DamageEvent)
 signal cell_destroyed(column: int, row: int, event: DamageEvent)
-signal chain_reaction_started(kind: StringName)
+signal chain_reaction_started(kind: StringName, event: DamageEvent)
 signal chain_reaction_step(
 	kind: StringName,
 	column: int,
@@ -310,7 +310,7 @@ func _start_chain_reaction(kind: StringName, destroyed_floor: int) -> void:
 	_chain_reaction_active = true
 	last_chain_reaction_kind = kind
 	chain_reaction_count += 1
-	chain_reaction_started.emit(kind)
+	chain_reaction_started.emit(kind, _last_destruction_event)
 	_run_chain_reaction(kind, destroyed_floor)
 
 

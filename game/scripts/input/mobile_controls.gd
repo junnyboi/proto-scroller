@@ -17,8 +17,6 @@ var mobile_device_detected: bool = false
 var joystick_active: bool = false
 var smash_button: Button
 var smash_press_count: int = 0
-var haptic_request_count: int = 0
-var last_haptic_duration_ms: int = 0
 var robot: GiantRobotController
 var _controls_enabled: bool = true
 var _joystick_touch_index: int = -1
@@ -41,7 +39,6 @@ func _ready() -> void:
 	if robot != null:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
 		smash_pressed.connect(robot.request_attack)
-		robot.attack_committed.connect(play_contextual_attack_haptic)
 	_build_smash_button()
 	visible = mobile_device_detected
 	set_process(mobile_device_detected)
@@ -117,28 +114,6 @@ func set_controls_enabled(enabled: bool) -> void:
 		move_axis_changed.emit(0.0)
 
 
-func play_smash_impact_haptic(
-	_origin: Vector2,
-	_radius: float,
-	_damage: float,
-	_impulse_per_mass: float,
-	_attack_id: int
-) -> void:
-	_request_haptic(28)
-
-
-func play_contextual_attack_haptic(_mode: int, _attack_id: int) -> void:
-	_request_haptic(28)
-
-
-func play_building_destruction_haptic(
-	_column: int,
-	_row: int,
-	_event: DamageEvent
-) -> void:
-	_request_haptic(48)
-
-
 func _detect_mobile_device() -> bool:
 	if detection_override >= 0:
 		return detection_override == 1
@@ -155,22 +130,6 @@ func _detect_mobile_device() -> bool:
 		or OS.has_feature("ios")
 		or DisplayServer.is_touchscreen_available()
 	)
-
-
-func _request_haptic(duration_ms: int) -> void:
-	if not mobile_device_detected or not _controls_enabled:
-		return
-	last_haptic_duration_ms = clampi(duration_ms, 1, 100)
-	haptic_request_count += 1
-	if detection_override >= 0:
-		return
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval(
-			"navigator.vibrate && navigator.vibrate(%d)" % last_haptic_duration_ms,
-			true
-		)
-		return
-	Input.vibrate_handheld(last_haptic_duration_ms)
 
 
 func _sync_to_viewport() -> void:
