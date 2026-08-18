@@ -5,12 +5,12 @@ extends Node
 @export var ground_anticipation_seconds: float = 0.10
 @export var ground_active_seconds: float = 0.01
 @export var ground_recovery_seconds: float = 0.22
-@export var drive_anticipation_seconds: float = 0.08
-@export var drive_active_seconds: float = 0.12
-@export var drive_recovery_seconds: float = 0.18
-@export var drive_actor_damage: float = 130.0
-@export var drive_structural_damage: float = 180.0
-@export var drive_impulse_per_mass: float = 920.0
+@export var drive_anticipation_seconds: float = 0.055
+@export var drive_active_seconds: float = 0.10
+@export var drive_recovery_seconds: float = 0.14
+@export var drive_actor_damage: float = 145.0
+@export var drive_structural_damage: float = 125.0
+@export var drive_impulse_per_mass: float = 1080.0
 @export var drive_hit_size: Vector2 = Vector2(190.0, 150.0)
 @export var drive_hit_offset: Vector2 = Vector2(105.0, 62.0)
 

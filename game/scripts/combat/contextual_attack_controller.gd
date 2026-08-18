@@ -5,6 +5,8 @@ signal attack_started(spec: AttackSpec)
 signal attack_active(spec: AttackSpec)
 signal attack_finished(spec: AttackSpec)
 
+@export_range(0.70, 1.0, 0.01) var drive_commit_speed_fraction: float = 0.90
+
 var current_spec: AttackSpec
 var resolver: AttackResolver
 var drive_impact: ShoulderDriveImpact
@@ -78,6 +80,7 @@ func _run_attack(spec: AttackSpec) -> void:
 		_robot.velocity.x *= 0.35
 		_robot.execute_ground_smash(spec.attack_id)
 	else:
+		_commit_drive_velocity(spec)
 		drive_impact.resolve(spec, _robot)
 	_robot.notify_attack_committed(spec.mode, spec.attack_id)
 	attack_active.emit(spec)
@@ -94,6 +97,13 @@ func _run_attack(spec: AttackSpec) -> void:
 	current_spec = null
 	_busy = false
 	attack_finished.emit(spec)
+
+
+func _commit_drive_velocity(spec: AttackSpec) -> void:
+	var forward_speed: float = _robot.velocity.x * float(spec.facing)
+	var captured_speed: float = _robot.max_speed * spec.speed_ratio
+	var minimum_speed: float = captured_speed * drive_commit_speed_fraction
+	_robot.velocity.x = maxf(forward_speed, minimum_speed) * float(spec.facing)
 
 
 func _apply_windup_pose(spec: AttackSpec) -> void:
