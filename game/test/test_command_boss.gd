@@ -28,7 +28,7 @@ func test_boss_reuses_one_tank_and_enters_reserved_barrage() -> void:
 	assert_eq(city.projectile_root.reservation_count(&"shell"), 1)
 
 
-func test_only_shoulder_drive_breaks_armor_then_body_accepts_damage() -> void:
+func test_only_jab_cross_breaks_armor_then_body_accepts_damage() -> void:
 	assert_true(session.start())
 	var boss: TankEnemy = session.boss
 	var armor_before: float = boss.boss_armor
@@ -41,7 +41,7 @@ func test_only_shoulder_drive_breaks_armor_then_body_accepts_damage() -> void:
 			1010 + index,
 			city.robot,
 			110.0,
-			&"shoulder_drive"
+			&"jab_cross"
 		)))
 	assert_eq(session.state, CommandBossSession.STATE_EXPOSED)
 	assert_almost_eq(boss.boss_armor, 0.0, 0.001)
@@ -56,7 +56,7 @@ func test_wreck_requires_ground_smash_and_completes_in_target_window() -> void:
 	session.advance(50.0)
 	var boss: TankEnemy = session.boss
 	boss.receive_damage(DamageEvent.new(
-		1100, city.robot, CommandBossSession.ARMOR, &"shoulder_drive"
+		1100, city.robot, CommandBossSession.ARMOR, &"jab_cross"
 	))
 	boss.receive_damage(DamageEvent.new(
 		1101, city.robot, CommandBossSession.HEALTH, &"impact"
@@ -65,7 +65,7 @@ func test_wreck_requires_ground_smash_and_completes_in_target_window() -> void:
 	assert_not_null(session.boss_wreck)
 	assert_eq(city.enemy_remains_factory.active_count(), 1)
 	assert_false(session.boss_wreck.receive_damage(DamageEvent.new(
-		1102, city.robot, 999.0, &"shoulder_drive"
+		1102, city.robot, 999.0, &"jab_cross"
 	)))
 	assert_true(session.boss_wreck.receive_damage(DamageEvent.new(
 		1103, city.robot, 999.0, &"ground_smash"
@@ -81,7 +81,7 @@ func test_district_signal_waits_until_boss_wreck_finisher() -> void:
 	assert_signal_not_emitted(city.urban_siege, "district_completed")
 	var boss: TankEnemy = session.boss
 	boss.receive_damage(DamageEvent.new(
-		1200, city.robot, CommandBossSession.ARMOR, &"shoulder_drive"
+		1200, city.robot, CommandBossSession.ARMOR, &"jab_cross"
 	))
 	boss.receive_damage(DamageEvent.new(
 		1201, city.robot, CommandBossSession.HEALTH, &"impact"

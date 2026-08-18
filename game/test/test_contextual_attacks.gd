@@ -4,23 +4,23 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 
 
-func test_resolver_locks_ground_at_699_and_drive_at_700() -> void:
+func test_resolver_locks_ground_at_699_and_jab_cross_at_700() -> void:
 	var resolver: AttackResolver = AttackResolver.new()
 	add_child_autofree(resolver)
 	var ground: AttackSpec = resolver.resolve(1, 1, 0.699, 180.0, 1020.0, 320.0)
-	var drive: AttackSpec = resolver.resolve(2, -1, 0.700, 180.0, 1020.0, 320.0)
+	var jab_cross: AttackSpec = resolver.resolve(2, -1, 0.700, 180.0, 1020.0, 320.0)
 	assert_true(ground.is_ground_smash())
 	assert_eq(ground.facing, 1)
 	assert_almost_eq(ground.speed_ratio, 0.699, 0.0001)
-	assert_true(drive.is_shoulder_drive())
-	assert_eq(drive.facing, -1)
-	assert_almost_eq(drive.speed_ratio, 0.700, 0.0001)
-	assert_almost_eq(drive.anticipation_seconds, 0.055, 0.0001)
-	assert_almost_eq(drive.active_seconds, 0.10, 0.0001)
-	assert_almost_eq(drive.recovery_seconds, 0.14, 0.0001)
-	assert_almost_eq(drive.actor_damage, 145.0, 0.001)
-	assert_almost_eq(drive.structural_damage, 125.0, 0.001)
-	assert_almost_eq(drive.impulse_per_mass, 1080.0, 0.001)
+	assert_true(jab_cross.is_jab_cross())
+	assert_eq(jab_cross.facing, -1)
+	assert_almost_eq(jab_cross.speed_ratio, 0.700, 0.0001)
+	assert_almost_eq(jab_cross.anticipation_seconds, 0.055, 0.0001)
+	assert_almost_eq(jab_cross.active_seconds, 0.10, 0.0001)
+	assert_almost_eq(jab_cross.recovery_seconds, 0.14, 0.0001)
+	assert_almost_eq(jab_cross.actor_damage, 145.0, 0.001)
+	assert_almost_eq(jab_cross.structural_damage, 125.0, 0.001)
+	assert_almost_eq(jab_cross.impulse_per_mass, 1080.0, 0.001)
 	_record_test_execution()
 
 
@@ -37,11 +37,11 @@ func test_ground_smash_uses_locked_mode_after_velocity_changes() -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
-	assert_eq(city.contextual_attacks.drive_impact.last_accepted_targets, 0)
+	assert_eq(city.contextual_attacks.jab_cross_impact.last_accepted_targets, 0)
 	_record_test_execution()
 
 
-func test_shoulder_drive_commits_forward_and_leaves_rear_target_untouched() -> void:
+func test_jab_cross_commits_forward_and_leaves_rear_target_untouched() -> void:
 	var city: CitySlice = await _city()
 	city.robot.position = Vector2(900.0, 460.0)
 	city.robot.facing = 1
@@ -53,16 +53,21 @@ func test_shoulder_drive_commits_forward_and_leaves_rear_target_untouched() -> v
 	city.streetlamp.current_health = 1.0
 	var attack_id: int = city.robot.request_attack()
 	var spec: AttackSpec = city.contextual_attacks.current_spec
-	assert_true(spec.is_shoulder_drive())
+	assert_true(spec.is_jab_cross())
+	assert_eq(city.gameplay_hud.objective_label.text, "JAB-CROSS LOCKED / FORWARD IMPACT")
 	city.robot.velocity.x = -city.robot.max_speed
 	city.robot.facing = -1
 	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
 	await get_tree().physics_frame
+	assert_eq(
+		city.gameplay_hud.objective_label.text,
+		"JAB-CROSS PUNCH / MOMENTUM TRANSFERRED"
+	)
 	assert_true(city.car.is_broken)
 	assert_false(city.streetlamp.is_broken)
-	assert_eq(city.contextual_attacks.drive_impact.last_accepted_targets, 1)
+	assert_eq(city.contextual_attacks.jab_cross_impact.last_accepted_targets, 1)
 	assert_almost_eq(
-		city.contextual_attacks.drive_impact.last_velocity_retention,
+		city.contextual_attacks.jab_cross_impact.last_velocity_retention,
 		0.92,
 		0.001
 	)
@@ -71,15 +76,15 @@ func test_shoulder_drive_commits_forward_and_leaves_rear_target_untouched() -> v
 	_record_test_execution()
 
 
-func test_shoulder_drive_concrete_drags_and_steel_requires_two_hits() -> void:
+func test_jab_cross_concrete_drags_and_steel_requires_two_hits() -> void:
 	var concrete_city: CitySlice = await _city()
 	var concrete_cell: Destructible2D = concrete_city.building.get_cell(1, 1)
 	concrete_city.robot.global_position = Vector2(1325.0, 460.0)
 	concrete_city.robot.facing = 1
 	concrete_city.robot.velocity.x = 200.0
-	var concrete_spec: AttackSpec = _drive_spec(9101)
+	var concrete_spec: AttackSpec = _jab_cross_spec(9101)
 	assert_eq(
-		concrete_city.contextual_attacks.drive_impact.resolve(
+		concrete_city.contextual_attacks.jab_cross_impact.resolve(
 			concrete_spec,
 			concrete_city.robot
 		),
@@ -95,8 +100,8 @@ func test_shoulder_drive_concrete_drags_and_steel_requires_two_hits() -> void:
 	steel_city.robot.facing = 1
 	steel_city.robot.velocity.x = 200.0
 	assert_eq(
-		steel_city.contextual_attacks.drive_impact.resolve(
-			_drive_spec(9102),
+		steel_city.contextual_attacks.jab_cross_impact.resolve(
+			_jab_cross_spec(9102),
 			steel_city.robot
 		),
 		1
@@ -105,14 +110,14 @@ func test_shoulder_drive_concrete_drags_and_steel_requires_two_hits() -> void:
 	assert_almost_eq(steel_cell.current_health, 30.0, 0.01)
 	assert_almost_eq(steel_city.robot.velocity.x, -12.0, 0.01)
 	assert_almost_eq(
-		steel_city.contextual_attacks.drive_impact.last_velocity_retention,
+		steel_city.contextual_attacks.jab_cross_impact.last_velocity_retention,
 		-0.06,
 		0.001
 	)
 	steel_city.robot.velocity.x = 200.0
 	assert_eq(
-		steel_city.contextual_attacks.drive_impact.resolve(
-			_drive_spec(9103),
+		steel_city.contextual_attacks.jab_cross_impact.resolve(
+			_jab_cross_spec(9103),
 			steel_city.robot
 		),
 		1
@@ -120,7 +125,7 @@ func test_shoulder_drive_concrete_drags_and_steel_requires_two_hits() -> void:
 	assert_true(steel_cell.is_destroyed())
 	assert_almost_eq(steel_city.robot.velocity.x, 76.0, 0.01)
 	assert_almost_eq(
-		steel_city.contextual_attacks.drive_impact.last_velocity_retention,
+		steel_city.contextual_attacks.jab_cross_impact.last_velocity_retention,
 		0.38,
 		0.001
 	)
@@ -144,9 +149,9 @@ func test_enemy_projectiles_damage_intact_building_cells() -> void:
 	_record_test_execution()
 
 
-func _drive_spec(attack_id: int) -> AttackSpec:
+func _jab_cross_spec(attack_id: int) -> AttackSpec:
 	return AttackSpec.new(
-		AttackSpec.Mode.SHOULDER_DRIVE,
+		AttackSpec.Mode.JAB_CROSS,
 		attack_id,
 		1,
 		0.8,

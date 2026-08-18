@@ -121,7 +121,7 @@ func receive_damage(event: DamageEvent) -> bool:
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
 	if boss_mode and boss_armor > 0.0:
-		if event.damage_type != &"shoulder_drive":
+		if event.damage_type != &"jab_cross":
 			return false
 		boss_armor = maxf(boss_armor - event.amount, 0.0)
 		boss_armor_changed.emit(boss_armor, boss_max_armor)

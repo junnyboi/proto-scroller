@@ -5,11 +5,11 @@ signal attack_started(spec: AttackSpec)
 signal attack_active(spec: AttackSpec)
 signal attack_finished(spec: AttackSpec)
 
-@export_range(0.70, 1.0, 0.01) var drive_commit_speed_fraction: float = 0.90
+@export_range(0.70, 1.0, 0.01) var jab_cross_commit_speed_fraction: float = 0.90
 
 var current_spec: AttackSpec
 var resolver: AttackResolver
-var drive_impact: ShoulderDriveImpact
+var jab_cross_impact: JabCrossImpact
 var overdrive_session: OverdriveSession
 var directive_session: DirectiveSession
 var _robot: GiantRobotController
@@ -36,9 +36,9 @@ func _ready() -> void:
 	resolver = AttackResolver.new()
 	resolver.name = "AttackResolver"
 	add_child(resolver)
-	drive_impact = ShoulderDriveImpact.new()
-	drive_impact.name = "ShoulderDriveImpact"
-	add_child(drive_impact)
+	jab_cross_impact = JabCrossImpact.new()
+	jab_cross_impact.name = "JabCrossImpact"
+	add_child(jab_cross_impact)
 	if _robot != null:
 		_robot.set_attack_controller(self)
 		_robot.defeated.connect(cancel_attack)
@@ -106,8 +106,8 @@ func _run_attack(spec: AttackSpec) -> void:
 		_robot.velocity.x *= 0.35
 		_robot.execute_ground_smash(spec.attack_id)
 	else:
-		_commit_drive_velocity(spec)
-		drive_impact.resolve(spec, _robot)
+		_commit_jab_cross_velocity(spec)
+		jab_cross_impact.resolve(spec, _robot)
 	if directive_session != null:
 		directive_session.attack_active(spec)
 	_robot.notify_attack_committed(spec.mode, spec.attack_id)
@@ -127,10 +127,10 @@ func _run_attack(spec: AttackSpec) -> void:
 	attack_finished.emit(spec)
 
 
-func _commit_drive_velocity(spec: AttackSpec) -> void:
+func _commit_jab_cross_velocity(spec: AttackSpec) -> void:
 	var forward_speed: float = _robot.velocity.x * float(spec.facing)
 	var captured_speed: float = _robot.max_speed * spec.speed_ratio
-	var minimum_speed: float = captured_speed * drive_commit_speed_fraction
+	var minimum_speed: float = captured_speed * jab_cross_commit_speed_fraction
 	_robot.velocity.x = maxf(forward_speed, minimum_speed) * float(spec.facing)
 
 
@@ -140,14 +140,14 @@ func _apply_windup_pose(spec: AttackSpec) -> void:
 	var facing_scale: float = absf(_rest_scale.x) * float(spec.facing)
 	_visual_root.position = _rest_position + Vector2(-5.0 * float(spec.facing), 5.0)
 	_visual_root.scale = Vector2(facing_scale * 0.98, _rest_scale.y * 0.94)
-	_visual_root.rotation = 0.045 * float(spec.facing) if spec.is_shoulder_drive() else 0.0
+	_visual_root.rotation = 0.045 * float(spec.facing) if spec.is_jab_cross() else 0.0
 
 
 func _apply_active_pose(spec: AttackSpec) -> void:
 	if _visual_root == null:
 		return
 	var facing_scale: float = absf(_rest_scale.x) * float(spec.facing)
-	if spec.is_shoulder_drive():
+	if spec.is_jab_cross():
 		_visual_root.position = _rest_position + Vector2(16.0 * float(spec.facing), 9.0)
 		_visual_root.scale = Vector2(facing_scale * 1.05, _rest_scale.y * 0.90)
 		_visual_root.rotation = 0.095 * float(spec.facing)
