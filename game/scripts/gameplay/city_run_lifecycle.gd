@@ -17,6 +17,13 @@ func setup(p_city: CitySlice) -> void:
 	if city.urban_siege != null:
 		city.urban_siege.beat_changed.connect(_on_beat_changed)
 		city.urban_siege.recovery_started.connect(_on_recovery_started)
+		city.urban_siege.directives.selected.connect(_on_directive_selected)
+		city.urban_siege.directives.progress_changed.connect(_on_directive_progress)
+		city.urban_siege.directives.bank_changed.connect(
+			city.gameplay_hud.set_directive_bank
+		)
+		city.urban_siege.directives.completed.connect(_on_directive_completed)
+		city.urban_siege.directives.failed.connect(_on_directive_failed)
 	_on_momentum_changed(
 		city.rampage_session.momentum_value(),
 		city.rampage_session.momentum_meter.band()
@@ -101,6 +108,26 @@ func _on_recovery_started(_duration: float) -> void:
 		city.encounter_director.current_phase_name(),
 		true
 	)
+
+
+func _on_directive_selected(profile: DirectiveProfile) -> void:
+	city.gameplay_hud.show_directive(profile, 0, profile.target_count, 0)
+
+
+func _on_directive_progress(current: int, target: int) -> void:
+	city.gameplay_hud.set_directive_progress(
+		city.urban_siege.directives.active_profile,
+		current,
+		target
+	)
+
+
+func _on_directive_completed(profile: DirectiveProfile, _banked_score: int) -> void:
+	city.gameplay_hud.show_directive_result("%s COMPLETE" % profile.display_name, true)
+
+
+func _on_directive_failed(profile: DirectiveProfile, _penalty: int) -> void:
+	city.gameplay_hud.show_directive_result("%s FAILED" % profile.display_name, false)
 
 
 func _on_district_completed() -> void:

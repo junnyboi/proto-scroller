@@ -24,3 +24,12 @@ func apply_event(event: GameplayEvent, active_multiplier: int) -> int:
 
 func reset_run() -> void:
 	score = 0
+
+
+func deduct(points: int) -> int:
+	var deduction: int = mini(maxi(points, 0), score)
+	if deduction <= 0:
+		return 0
+	score -= deduction
+	score_changed.emit(score, -deduction)
+	return deduction

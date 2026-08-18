@@ -79,6 +79,10 @@ func active_count() -> int:
 	return _active.size()
 
 
+func active_bodies() -> Array[DebrisBody2D]:
+	return _active.duplicate()
+
+
 func _on_recycle_requested(body: DebrisBody2D) -> void:
 	release(body)
 

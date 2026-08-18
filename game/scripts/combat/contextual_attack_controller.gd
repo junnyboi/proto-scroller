@@ -11,6 +11,7 @@ var current_spec: AttackSpec
 var resolver: AttackResolver
 var drive_impact: ShoulderDriveImpact
 var overdrive_session: OverdriveSession
+var directive_session: DirectiveSession
 var _robot: GiantRobotController
 var _visual_root: Node2D
 var _rest_position: Vector2
@@ -25,6 +26,10 @@ func setup(robot: GiantRobotController) -> void:
 
 func set_overdrive_session(session: OverdriveSession) -> void:
 	overdrive_session = session
+
+
+func set_directive_session(session: DirectiveSession) -> void:
+	directive_session = session
 
 
 func _ready() -> void:
@@ -71,6 +76,8 @@ func request_attack() -> int:
 		structure_multiplier,
 		overdrive_started
 	)
+	if directive_session != null:
+		current_spec = directive_session.decorate_attack(current_spec)
 	_busy = true
 	_robot.notify_attack_selected(current_spec.mode, current_spec.attack_id)
 	attack_started.emit(current_spec)
@@ -101,6 +108,8 @@ func _run_attack(spec: AttackSpec) -> void:
 	else:
 		_commit_drive_velocity(spec)
 		drive_impact.resolve(spec, _robot)
+	if directive_session != null:
+		directive_session.attack_active(spec)
 	_robot.notify_attack_committed(spec.mode, spec.attack_id)
 	attack_active.emit(spec)
 	if spec.active_seconds > 0.0:

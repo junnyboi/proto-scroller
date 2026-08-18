@@ -20,6 +20,8 @@ const ACTIVE_CATALYSTS: int = 2
 const ACTOR_RESERVATIONS: int = 9
 const PENDING_BEAT_RECORDS: int = 12
 const CATALYST_QUERY_RESULTS: int = 12
+const DIRECTIVE_SESSIONS: int = 1
+const DIRECTIVE_CARDS: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -60,6 +62,8 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"pending_beat_peak": (
 			city.urban_siege.director.peak_pending_records if city.urban_siege != null else 0
 		),
+		"directive_sessions": 1 if city.urban_siege.directives != null else 0,
+		"directive_cards": 1 if city.gameplay_hud.directive_card != null else 0,
 	}
 
 
@@ -77,6 +81,8 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)
+	_check_equal(errors, data, "directive_sessions", DIRECTIVE_SESSIONS)
+	_check_equal(errors, data, "directive_cards", DIRECTIVE_CARDS)
 	if int(data.catalyst_active) > ACTIVE_CATALYSTS:
 		errors.append("catalyst_active=%d cap=%d" % [data.catalyst_active, ACTIVE_CATALYSTS])
 	if int(data.actor_reservation_peak) > ACTOR_RESERVATIONS:

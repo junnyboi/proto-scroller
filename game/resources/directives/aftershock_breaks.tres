@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DirectiveProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/directives/directive_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://art/ui/directives/aftershock.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+directive_id = &"AFTERSHOCK_BREAKS"
+display_name = "AFTERSHOCK BREAKS"
+instruction = "CHAIN 2 AFTERSHOCKS"
+duration_seconds = 12.0
+target_count = 2
+structural_multiplier = 1.0
+pending_bank_fraction = 0.25
+failure_penalty_fraction = 0.20
+effect_flag = 4
+icon = ExtResource("2")

@@ -7,3 +7,4 @@ var effect_flags: int = DamageEvent.FLAG_NONE
 var result_limit: int = 0
 var structural_limit: int = 0
 var debris_limit: int = 0
+var damage_type: StringName = &"explosive"
