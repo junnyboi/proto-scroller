@@ -18,12 +18,16 @@ func setup(p_city: CitySlice) -> void:
 		city.urban_siege.beat_changed.connect(_on_beat_changed)
 		city.urban_siege.recovery_started.connect(_on_recovery_started)
 		city.urban_siege.directives.selected.connect(_on_directive_selected)
+		city.urban_siege.directives.choices_offered.connect(_on_directive_choices_offered)
 		city.urban_siege.directives.progress_changed.connect(_on_directive_progress)
 		city.urban_siege.directives.bank_changed.connect(
 			city.gameplay_hud.set_directive_bank
 		)
 		city.urban_siege.directives.completed.connect(_on_directive_completed)
 		city.urban_siege.directives.failed.connect(_on_directive_failed)
+		city.gameplay_hud.directive_choice_overlay.profile_selected.connect(
+			city.urban_siege.directives.select
+		)
 	_on_momentum_changed(
 		city.rampage_session.momentum_value(),
 		city.rampage_session.momentum_meter.band()
@@ -112,6 +116,10 @@ func _on_recovery_started(_duration: float) -> void:
 
 func _on_directive_selected(profile: DirectiveProfile) -> void:
 	city.gameplay_hud.show_directive(profile, 0, profile.target_count, 0)
+
+
+func _on_directive_choices_offered(profiles: Array[DirectiveProfile]) -> void:
+	city.gameplay_hud.directive_choice_overlay.show_choices(profiles)
 
 
 func _on_directive_progress(current: int, target: int) -> void:

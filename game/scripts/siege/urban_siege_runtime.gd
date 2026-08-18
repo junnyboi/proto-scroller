@@ -26,7 +26,9 @@ var district: DistrictDefinition
 var director: DistrictResponseDirector
 var catalysts: CatalystRuntime
 var directives: DirectiveSession
+var pause_coordinator: RunPauseCoordinator
 var run_seed: int = 0
+var _directive_pause_token: int = 0
 
 
 func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinition) -> void:
@@ -54,6 +56,12 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	)
 	add_child(directives)
 	dependencies.city.contextual_attacks.set_directive_session(directives)
+	pause_coordinator = RunPauseCoordinator.new()
+	pause_coordinator.name = "RunPauseCoordinator"
+	pause_coordinator.setup(dependencies, director, catalysts)
+	add_child(pause_coordinator)
+	directives.choices_offered.connect(_on_directive_choices_offered)
+	directives.selected.connect(_on_directive_selected)
 
 
 func start_run(p_seed: int = 0) -> void:
@@ -68,6 +76,9 @@ func stop_run() -> void:
 		catalysts.deactivate_all()
 	if directives != null:
 		directives.stop()
+	if pause_coordinator != null:
+		pause_coordinator.release_all()
+	_directive_pause_token = 0
 
 
 func reset_run() -> void:
@@ -77,7 +88,7 @@ func reset_run() -> void:
 
 
 func is_simulation_paused() -> bool:
-	return false
+	return pause_coordinator != null and pause_coordinator.is_paused()
 
 
 func _on_phase_changed(index: int, display_name: String) -> void:
@@ -90,3 +101,14 @@ func _on_phase_changed(index: int, display_name: String) -> void:
 func _on_milestone_reached(milestone: StringName) -> void:
 	if milestone == &"DIRECTIVE_CHOICE":
 		directives.offer(run_seed)
+
+
+func _on_directive_choices_offered(_profiles: Array[DirectiveProfile]) -> void:
+	if _directive_pause_token == 0:
+		_directive_pause_token = pause_coordinator.acquire(&"directive_choice")
+
+
+func _on_directive_selected(_profile: DirectiveProfile) -> void:
+	if _directive_pause_token != 0:
+		pause_coordinator.release(_directive_pause_token)
+		_directive_pause_token = 0

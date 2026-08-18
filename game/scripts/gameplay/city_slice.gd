@@ -169,6 +169,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if game_over_active or rampage_session == null or robot == null:
 		return
+	if urban_siege != null and urban_siege.is_simulation_paused():
+		return
 	var speed_ratio: float = absf(robot.velocity.x) / maxf(robot.max_speed, 1.0)
 	rampage_session.advance(speed_ratio, delta)
 

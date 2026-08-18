@@ -2,6 +2,7 @@ class_name DirectiveSession
 extends Node
 
 signal offered(profile: DirectiveProfile)
+signal choices_offered(profiles: Array[DirectiveProfile])
 signal selected(profile: DirectiveProfile)
 signal progress_changed(current: int, target: int)
 signal completed(profile: DirectiveProfile, banked_score: int)
@@ -50,14 +51,12 @@ func offer(run_seed: int) -> DirectiveProfile:
 		return active_profile
 	var index: int = posmod(run_seed + offer_count, profiles.size())
 	offer_count += 1
-	active_profile = profiles[index]
-	remaining = active_profile.duration_seconds
-	progress = 0
-	pending_score = 0
-	offered.emit(active_profile)
-	selected.emit(active_profile)
-	progress_changed.emit(progress, active_profile.target_count)
-	return active_profile
+	var ordered: Array[DirectiveProfile] = []
+	for offset: int in range(profiles.size()):
+		ordered.append(profiles[(index + offset) % profiles.size()])
+	offered.emit(ordered[0])
+	choices_offered.emit(ordered)
+	return ordered[0]
 
 
 func select(profile: DirectiveProfile) -> bool:

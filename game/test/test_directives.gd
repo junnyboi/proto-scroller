@@ -115,3 +115,21 @@ func test_directive_card_is_noninteractive_and_above_mobile_smash() -> void:
 	assert_eq(card.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	assert_false(card.get_global_rect().intersects(city.mobile_controls.smash_bounds()))
 	assert_not_null(card.icon.texture)
+
+
+func test_choice_overlay_pauses_runtime_and_selects_exactly_once() -> void:
+	var momentum_before: float = city.rampage_session.momentum_value()
+	var projectile_process_before: int = city.projectile_root.process_mode
+	session.offer(8)
+	assert_true(city.urban_siege.is_simulation_paused())
+	assert_true(city.gameplay_hud.directive_choice_overlay.visible)
+	assert_eq(city.urban_siege.pause_coordinator.lease_count(), 1)
+	assert_eq(city.projectile_root.process_mode, Node.PROCESS_MODE_DISABLED)
+	city._process(1.0)
+	assert_almost_eq(city.rampage_session.momentum_value(), momentum_before, 0.001)
+	city.gameplay_hud.directive_choice_overlay.buttons[0].pressed.emit()
+	assert_false(city.urban_siege.is_simulation_paused())
+	assert_false(city.gameplay_hud.directive_choice_overlay.visible)
+	assert_not_null(session.active_profile)
+	assert_eq(city.projectile_root.process_mode, projectile_process_before)
+	assert_false(session.select(AFTERSHOCK))

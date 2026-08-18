@@ -18,6 +18,7 @@ var momentum_fill: ColorRect
 var momentum_label: Label
 var siege_progress: SiegeProgressStrip
 var directive_card: DirectiveCard
+var directive_choice_overlay: DirectiveChoiceOverlay
 var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
@@ -40,6 +41,7 @@ func _ready() -> void:
 	_build_score_panel()
 	_build_siege_progress()
 	_build_directive_card()
+	_build_directive_choice_overlay()
 	_build_game_over_overlay()
 	if _robot != null:
 		_robot.attack_mode_selected.connect(_on_attack_mode_selected)
@@ -312,6 +314,12 @@ func _build_directive_card() -> void:
 	directive_card.position = Vector2(948.0, 426.0)
 	directive_card.size = Vector2(292.0, 104.0)
 	add_child(directive_card)
+
+
+func _build_directive_choice_overlay() -> void:
+	directive_choice_overlay = DirectiveChoiceOverlay.new()
+	directive_choice_overlay.name = "DirectiveChoiceOverlay"
+	add_child(directive_choice_overlay)
 
 
 func _build_game_over_overlay() -> void:
