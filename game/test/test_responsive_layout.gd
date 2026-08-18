@@ -61,6 +61,7 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 	assert_eq(city.gameplay_hud.siege_progress.segments.size(), 6)
 	assert_true(_inside_viewport(city.gameplay_hud.status_panel, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.score_panel, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(city.gameplay_hud.experience_track, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.directive_card, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.mobile_controls.smash_button, PORTRAIT_SIZE))
 	assert_false(

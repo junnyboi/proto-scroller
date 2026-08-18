@@ -19,6 +19,9 @@ var combo_label: Label
 var combo_ring: ComboDecayRing
 var momentum_fill: ColorRect
 var momentum_label: Label
+var experience_label: Label
+var experience_track: ColorRect
+var experience_fill: ColorRect
 var siege_progress: SiegeProgressStrip
 var directive_card: DirectiveCard
 var directive_choice_overlay: DirectiveChoiceOverlay
@@ -40,6 +43,8 @@ var _robot: GiantRobotController
 var _pulse_age: float = 0.0
 var _overdrive_active: bool = false
 var _momentum_fill_width: float = 392.0
+var _experience_fill_width: float = 254.0
+var _experience_ratio: float = 0.0
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -51,6 +56,7 @@ func _ready() -> void:
 	layer = 20
 	_build_status_panel()
 	_build_momentum_panel()
+	_build_experience_bar()
 	_build_score_panel()
 	_build_siege_progress()
 	_build_directive_card()
@@ -66,6 +72,7 @@ func _ready() -> void:
 	set_score(0)
 	set_combo(1, 0.0)
 	set_momentum(0.0, 0)
+	_set_experience(1, 0, RunExperience.required_for_level(1))
 
 
 func _process(delta: float) -> void:
@@ -88,6 +95,17 @@ func set_score(value: int) -> void:
 func set_pending_score(value: int) -> void:
 	pending_score_label.text = "+%05d AT RISK" % maxi(value, 0) if value > 0 else "SAFE"
 	pending_score_label.modulate = Color("ff9a61") if value > 0 else MUTED_COLOR
+
+
+func _set_experience(level: int, current: int, required: int) -> void:
+	_experience_ratio = (
+		clampf(float(current) / float(required), 0.0, 1.0) if required > 0 else 1.0
+	)
+	if experience_label != null:
+		experience_label.text = (
+			"LEVEL %02d  EXP %d / %d" % [maxi(level, 1), maxi(current, 0), maxi(required, 0)]
+		)
+	_apply_experience_fill()
 
 
 func set_combo(multiplier: int, grace_remaining: float) -> void:
@@ -325,6 +343,28 @@ func _build_momentum_panel() -> void:
 	add_child(momentum_fill)
 
 
+func _build_experience_bar() -> void:
+	experience_label = Label.new()
+	experience_label.name = "ExperienceLabel"
+	experience_label.position = Vector2(490.0, 88.0)
+	experience_label.size = Vector2(184.0, 20.0)
+	experience_label.add_theme_font_size_override(&"font_size", 14)
+	experience_label.modulate = MUTED_COLOR
+	add_child(experience_label)
+	experience_track = ColorRect.new()
+	experience_track.name = "ExperienceTrack"
+	experience_track.position = Vector2(680.0, 92.0)
+	experience_track.size = Vector2(262.0, 12.0)
+	experience_track.color = Color(0.11, 0.15, 0.18, 0.95)
+	add_child(experience_track)
+	experience_fill = ColorRect.new()
+	experience_fill.name = "ExperienceFill"
+	experience_fill.position = Vector2(684.0, 95.0)
+	experience_fill.size = Vector2(0.0, 6.0)
+	experience_fill.color = Color("7ae4ff")
+	add_child(experience_fill)
+
+
 func _build_score_panel() -> void:
 	score_panel = ColorRect.new()
 	score_panel.position = Vector2(988.0, 22.0)
@@ -498,6 +538,13 @@ func _apply_landscape_layout() -> void:
 	momentum_track.size = Vector2(452.0, 18.0)
 	momentum_fill.position = Vector2(496.0, 71.0)
 	_momentum_fill_width = 392.0
+	experience_label.position = Vector2(490.0, 88.0)
+	experience_label.size = Vector2(184.0, 20.0)
+	experience_track.position = Vector2(680.0, 92.0)
+	experience_track.size = Vector2(262.0, 12.0)
+	experience_fill.position = Vector2(684.0, 95.0)
+	_experience_fill_width = 254.0
+	_apply_experience_fill()
 	score_panel.position = Vector2(988.0, 22.0)
 	score_panel.size = Vector2(268.0, 88.0)
 	_set_score_geometry(Vector2(1012.0, 30.0), Vector2(220.0, 28.0), true)
@@ -522,7 +569,7 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	health_label.position = Vector2(34.0, 62.0)
 	objective_label.position = Vector2(34.0, 96.0)
 	momentum_panel.position = Vector2(18.0, 146.0)
-	momentum_panel.size = Vector2(content_width, 84.0)
+	momentum_panel.size = Vector2(content_width, 112.0)
 	momentum_label.position = Vector2(34.0, 154.0)
 	momentum_label.size = Vector2(390.0, 28.0)
 	combo_label.position = Vector2(viewport_size.x - 220.0, 152.0)
@@ -532,18 +579,25 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	momentum_track.size = Vector2(content_width - 32.0, 18.0)
 	momentum_fill.position = Vector2(40.0, 199.0)
 	_momentum_fill_width = content_width - 44.0
-	score_panel.position = Vector2(18.0, 240.0)
+	experience_label.position = Vector2(34.0, 216.0)
+	experience_label.size = Vector2(220.0, 20.0)
+	experience_track.position = Vector2(260.0, 219.0)
+	experience_track.size = Vector2(content_width - 258.0, 12.0)
+	experience_fill.position = Vector2(264.0, 222.0)
+	_experience_fill_width = content_width - 266.0
+	_apply_experience_fill()
+	score_panel.position = Vector2(18.0, 270.0)
 	score_panel.size = Vector2(content_width, 98.0)
-	_set_score_geometry(Vector2(viewport_size.x - 338.0, 248.0), Vector2(304.0, 28.0), true)
+	_set_score_geometry(Vector2(viewport_size.x - 338.0, 278.0), Vector2(304.0, 28.0), true)
 	for index: int in range(rare_labels.size()):
-		rare_labels[index].position = Vector2(34.0, 250.0 + float(index) * 25.0)
+		rare_labels[index].position = Vector2(34.0, 280.0 + float(index) * 25.0)
 		rare_labels[index].size = Vector2(300.0, 22.0)
 		rare_labels[index].horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	siege_progress.position = Vector2(18.0, 348.0)
+	siege_progress.position = Vector2(18.0, 378.0)
 	siege_progress.size = Vector2(content_width, 32.0)
 	siege_progress.apply_width(content_width)
 	directive_card.position = Vector2(18.0, viewport_size.y - 280.0)
-	boss_label.position = Vector2(72.0, 388.0)
+	boss_label.position = Vector2(72.0, 418.0)
 	boss_label.size = Vector2(viewport_size.x - 144.0, 38.0)
 	_apply_portrait_terminal_layout(viewport_size)
 
@@ -561,6 +615,11 @@ func _set_score_geometry(origin: Vector2, label_size: Vector2, align_right: bool
 	score_caption.horizontal_alignment = alignment
 	score_label.horizontal_alignment = alignment
 	pending_score_label.horizontal_alignment = alignment
+
+
+func _apply_experience_fill() -> void:
+	if experience_fill != null:
+		experience_fill.size.x = _experience_fill_width * _experience_ratio
 
 
 func _apply_landscape_terminal_layout() -> void:
