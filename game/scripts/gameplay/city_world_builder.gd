@@ -31,7 +31,6 @@ static func build_environment(parent: Node2D) -> void:
 static func build_robot(
 	parent: Node2D,
 	on_heavy_impact: Callable,
-	on_structure_impact: Callable,
 	on_health_changed: Callable,
 	on_damage_received: Callable,
 	on_defeated: Callable
@@ -76,7 +75,6 @@ static func build_robot(
 	hurtbox.add_child(hurt_shape)
 	robot.add_child(hurtbox)
 	robot.heavy_impact_requested.connect(on_heavy_impact)
-	robot.structure_impact_requested.connect(on_structure_impact)
 	robot.health_changed.connect(on_health_changed)
 	robot.damage_received.connect(on_damage_received)
 	robot.defeated.connect(on_defeated)

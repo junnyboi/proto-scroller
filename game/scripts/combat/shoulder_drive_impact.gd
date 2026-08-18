@@ -14,6 +14,16 @@ const REMAINS_LAYER: int = 1 << 9
 )
 @export_range(1, 32, 1) var max_results: int = 32
 
+@export_group("Velocity Response")
+@export_range(0.0, 1.0, 0.01) var light_retention: float = 0.94
+@export_range(0.0, 1.0, 0.01) var prop_retention: float = 0.92
+@export_range(0.0, 1.0, 0.01) var wreck_retention: float = 0.60
+@export_range(0.0, 1.0, 0.01) var tank_retention: float = 0.54
+@export_range(0.0, 1.0, 0.01) var glass_retention: float = 0.94
+@export_range(0.0, 1.0, 0.01) var concrete_retention: float = 0.72
+@export_range(0.0, 1.0, 0.01) var steel_breach_retention: float = 0.38
+@export_range(0.0, 0.25, 0.01) var steel_rebound_ratio: float = 0.06
+
 var last_query_count: int = 0
 var last_accepted_targets: int = 0
 var last_velocity_retention: float = 1.0
@@ -45,6 +55,8 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 	last_query_count = results.size()
 	last_accepted_targets = 0
 	last_velocity_retention = 1.0
+	var impact_speed: float = absf(robot.velocity.x)
+	var blocked_by_steel: bool = false
 	var seen_targets: Dictionary[int, bool] = {}
 	for result: Dictionary in results:
 		var collider: Node2D = result.get("collider") as Node2D
@@ -69,9 +81,16 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 			last_velocity_retention,
 			_retention_for_target(target)
 		)
+		blocked_by_steel = blocked_by_steel or (
+			intact_steel and _is_intact_steel(receiver)
+		)
 		if intact_steel or receiver is Destructible2D:
 			break
-	robot.velocity.x *= last_velocity_retention
+	if blocked_by_steel:
+		last_velocity_retention = -steel_rebound_ratio
+		robot.velocity.x = -float(spec.facing) * impact_speed * steel_rebound_ratio
+	else:
+		robot.velocity.x *= last_velocity_retention
 	drive_resolved.emit(spec, last_accepted_targets, last_velocity_retention)
 	return last_accepted_targets
 
@@ -138,22 +157,22 @@ func _is_intact_steel(receiver: Node) -> bool:
 
 
 func _retention_for_target(target: Node) -> float:
-	var retention: float = 0.92
+	var retention: float = light_retention
 	if target is Destructible2D:
 		var profile: StructuralMaterialProfile = (target as Destructible2D).get_material_profile()
 		if profile != null:
 			if profile.material_id == &"steel":
-				retention = 0.30
+				retention = steel_breach_retention
 			elif profile.material_id == &"concrete":
-				retention = 0.70
+				retention = concrete_retention
 			else:
-				retention = 0.90
+				retention = glass_retention
 	elif target is EnemyWreck2D:
-		retention = 0.52
+		retention = wreck_retention
 	elif target is TankEnemy:
-		retention = 0.58
+		retention = tank_retention
 	elif target is DestructibleProp2D:
-		retention = 0.88
+		retention = prop_retention
 	return retention
 
 

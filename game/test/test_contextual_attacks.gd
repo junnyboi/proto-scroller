@@ -15,6 +15,12 @@ func test_resolver_locks_ground_at_699_and_drive_at_700() -> void:
 	assert_true(drive.is_shoulder_drive())
 	assert_eq(drive.facing, -1)
 	assert_almost_eq(drive.speed_ratio, 0.700, 0.0001)
+	assert_almost_eq(drive.anticipation_seconds, 0.055, 0.0001)
+	assert_almost_eq(drive.active_seconds, 0.10, 0.0001)
+	assert_almost_eq(drive.recovery_seconds, 0.14, 0.0001)
+	assert_almost_eq(drive.actor_damage, 145.0, 0.001)
+	assert_almost_eq(drive.structural_damage, 125.0, 0.001)
+	assert_almost_eq(drive.impulse_per_mass, 1080.0, 0.001)
 	_record_test_execution()
 
 
@@ -35,7 +41,7 @@ func test_ground_smash_uses_locked_mode_after_velocity_changes() -> void:
 	_record_test_execution()
 
 
-func test_shoulder_drive_hits_front_target_once_and_leaves_rear_target_untouched() -> void:
+func test_shoulder_drive_commits_forward_and_leaves_rear_target_untouched() -> void:
 	var city: CitySlice = await _city()
 	city.robot.position = Vector2(900.0, 460.0)
 	city.robot.facing = 1
@@ -48,7 +54,7 @@ func test_shoulder_drive_hits_front_target_once_and_leaves_rear_target_untouched
 	var attack_id: int = city.robot.request_attack()
 	var spec: AttackSpec = city.contextual_attacks.current_spec
 	assert_true(spec.is_shoulder_drive())
-	city.robot.velocity.x = city.robot.max_speed * 0.20
+	city.robot.velocity.x = -city.robot.max_speed
 	city.robot.facing = -1
 	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
 	await get_tree().physics_frame
@@ -57,33 +63,21 @@ func test_shoulder_drive_hits_front_target_once_and_leaves_rear_target_untouched
 	assert_eq(city.contextual_attacks.drive_impact.last_accepted_targets, 1)
 	assert_almost_eq(
 		city.contextual_attacks.drive_impact.last_velocity_retention,
-		0.88,
+		0.92,
 		0.001
 	)
+	assert_gt(city.robot.velocity.x, city.robot.max_speed * 0.55)
 	assert_gt(attack_id, 0)
 	_record_test_execution()
 
 
-func test_shoulder_drive_concrete_slows_and_steel_stops_charge() -> void:
+func test_shoulder_drive_concrete_drags_and_steel_requires_two_hits() -> void:
 	var concrete_city: CitySlice = await _city()
 	var concrete_cell: Destructible2D = concrete_city.building.get_cell(1, 1)
 	concrete_city.robot.global_position = Vector2(1325.0, 460.0)
 	concrete_city.robot.facing = 1
 	concrete_city.robot.velocity.x = 200.0
-	var concrete_spec: AttackSpec = AttackSpec.new(
-		AttackSpec.Mode.SHOULDER_DRIVE,
-		9101,
-		1,
-		0.8,
-		0.0,
-		0.12,
-		0.18,
-		130.0,
-		180.0,
-		920.0,
-		Vector2(190.0, 150.0),
-		Vector2(105.0, 62.0)
-	)
+	var concrete_spec: AttackSpec = _drive_spec(9101)
 	assert_eq(
 		concrete_city.contextual_attacks.drive_impact.resolve(
 			concrete_spec,
@@ -92,7 +86,7 @@ func test_shoulder_drive_concrete_slows_and_steel_stops_charge() -> void:
 		1
 	)
 	assert_true(concrete_cell.is_destroyed())
-	assert_almost_eq(concrete_city.robot.velocity.x, 140.0, 0.01)
+	assert_almost_eq(concrete_city.robot.velocity.x, 144.0, 0.01)
 	concrete_city.queue_free()
 	await get_tree().process_frame
 	var steel_city: CitySlice = await _city()
@@ -100,27 +94,54 @@ func test_shoulder_drive_concrete_slows_and_steel_stops_charge() -> void:
 	steel_city.robot.global_position = Vector2(1490.0, 460.0)
 	steel_city.robot.facing = 1
 	steel_city.robot.velocity.x = 200.0
-	var steel_spec: AttackSpec = AttackSpec.new(
-		AttackSpec.Mode.SHOULDER_DRIVE,
-		9102,
-		1,
-		0.8,
-		0.0,
-		0.12,
-		0.18,
-		130.0,
-		180.0,
-		920.0,
-		Vector2(190.0, 150.0),
-		Vector2(105.0, 62.0)
-	)
 	assert_eq(
-		steel_city.contextual_attacks.drive_impact.resolve(steel_spec, steel_city.robot),
+		steel_city.contextual_attacks.drive_impact.resolve(
+			_drive_spec(9102),
+			steel_city.robot
+		),
+		1
+	)
+	assert_false(steel_cell.is_destroyed())
+	assert_almost_eq(steel_cell.current_health, 30.0, 0.01)
+	assert_almost_eq(steel_city.robot.velocity.x, -12.0, 0.01)
+	assert_almost_eq(
+		steel_city.contextual_attacks.drive_impact.last_velocity_retention,
+		-0.06,
+		0.001
+	)
+	steel_city.robot.velocity.x = 200.0
+	assert_eq(
+		steel_city.contextual_attacks.drive_impact.resolve(
+			_drive_spec(9103),
+			steel_city.robot
+		),
 		1
 	)
 	assert_true(steel_cell.is_destroyed())
-	assert_almost_eq(steel_city.robot.velocity.x, 60.0, 0.01)
+	assert_almost_eq(steel_city.robot.velocity.x, 76.0, 0.01)
+	assert_almost_eq(
+		steel_city.contextual_attacks.drive_impact.last_velocity_retention,
+		0.38,
+		0.001
+	)
 	_record_test_execution()
+
+
+func _drive_spec(attack_id: int) -> AttackSpec:
+	return AttackSpec.new(
+		AttackSpec.Mode.SHOULDER_DRIVE,
+		attack_id,
+		1,
+		0.8,
+		0.055,
+		0.10,
+		0.14,
+		145.0,
+		125.0,
+		1080.0,
+		Vector2(190.0, 150.0),
+		Vector2(105.0, 62.0)
+	)
 
 
 func _city() -> CitySlice:

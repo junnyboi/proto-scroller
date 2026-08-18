@@ -71,6 +71,31 @@ func _run() -> void:
 	await physics_frame
 	await physics_frame
 	await physics_frame
+	_check(
+		"ground_smash_leaves_building_intact",
+		city.building.destroyed_cell_count() == 0,
+		"cells=%d" % city.building.destroyed_cell_count()
+	)
+	for column: int in range(StructuralBuilding2D.COLUMNS):
+		for settle_frame: int in range(45):
+			if not city.contextual_attacks.is_busy():
+				break
+			await process_frame
+		city.robot.position = Vector2(1100.0 + float(column) * 167.0, 460.0)
+		city.robot.facing = 1
+		city.robot.velocity.x = city.robot.max_speed * 0.8
+		var attack_id: int = city.robot.request_attack()
+		var spec: AttackSpec = city.contextual_attacks.current_spec
+		_check(
+			"drive_%d_commits" % column,
+			attack_id > 0 and spec != null and spec.is_shoulder_drive(),
+			"attack_id=%d" % attack_id
+		)
+		await create_timer(spec.anticipation_seconds + 0.03).timeout
+	for wait_frame: int in range(90):
+		if city.building.is_destroyed():
+			break
+		await process_frame
 	_check("car_breaks", city.car.is_broken, "broken=%s" % city.car.is_broken)
 	_check("lamp_breaks", city.streetlamp.is_broken, "broken=%s" % city.streetlamp.is_broken)
 	_check(
