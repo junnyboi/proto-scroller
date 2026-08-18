@@ -2,6 +2,7 @@ class_name EnemyWreck2D
 extends RigidBody2D
 
 signal scrapped(wreck: EnemyWreck2D, event: DamageEvent)
+signal crash_landed(wreck: EnemyWreck2D)
 
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
@@ -15,6 +16,8 @@ var display_size: Vector2 = Vector2(220.0, 90.0)
 var collision_size: Vector2 = Vector2(205.0, 72.0)
 var wreck_texture: Texture2D
 var fatal_event: DamageEvent
+var airborne_crash: bool = false
+var crash_landing_count: int = 0
 var _seen_attacks: Dictionary[int, bool] = {}
 var _steel_profile: StructuralMaterialProfile
 
@@ -26,6 +29,9 @@ func _ready() -> void:
 	angular_damp = 1.5
 	can_sleep = true
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
+	contact_monitor = true
+	max_contacts_reported = 4
+	body_entered.connect(_on_body_entered)
 	z_index = 29
 	_build_collision()
 	_build_visual()
@@ -40,7 +46,8 @@ func activate(
 	p_mass: float,
 	p_scrap_health: float,
 	spawn_position: Vector2,
-	p_fatal_event: DamageEvent
+	p_fatal_event: DamageEvent,
+	p_airborne_crash: bool = false
 ) -> void:
 	wreck_kind = p_wreck_kind
 	wreck_texture = p_wreck_texture
@@ -50,11 +57,17 @@ func activate(
 	scrap_health = p_scrap_health
 	current_scrap_health = scrap_health
 	fatal_event = p_fatal_event
+	airborne_crash = p_airborne_crash
+	crash_landing_count = 0
 	_seen_attacks.clear()
 	scrapped_state = false
 	visible = true
 	freeze = false
 	sleeping = false
+	gravity_scale = 1.45 if airborne_crash else 1.0
+	linear_damp = 0.25 if airborne_crash else 0.9
+	angular_damp = 0.45 if airborne_crash else 1.5
+	can_sleep = not airborne_crash
 	global_position = spawn_position
 	rotation = 0.0
 	linear_velocity = Vector2.ZERO
@@ -77,6 +90,11 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	collision_mask = 0
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
+	airborne_crash = false
+	gravity_scale = 1.0
+	linear_damp = 0.9
+	angular_damp = 1.5
+	can_sleep = true
 	if not preserve_scrapped:
 		scrapped_state = false
 	var collision: CollisionShape2D = get_node_or_null(^"WreckCollision") as CollisionShape2D
@@ -109,6 +127,10 @@ func get_material_profile() -> StructuralMaterialProfile:
 
 func is_scrapped() -> bool:
 	return scrapped_state
+
+
+func is_crashing() -> bool:
+	return airborne_crash
 
 
 func _build_collision() -> void:
@@ -153,12 +175,34 @@ func _apply_fatal_impact() -> void:
 		impulse_per_mass = maxf(fatal_event.impulse_per_mass, 150.0)
 	if direction.is_zero_approx():
 		direction = Vector2.RIGHT
+	if airborne_crash:
+		linear_velocity = Vector2(
+			direction.x * impulse_per_mass * 0.34,
+			maxf(185.0, absf(direction.y) * impulse_per_mass + 120.0)
+		)
+		angular_velocity = direction.x * clampf(impulse_per_mass / 28.0, 5.0, 11.0)
+		return
 	var impulse: Vector2 = (
 		direction * impulse_per_mass * mass * 0.24
 		+ Vector2.UP * mass * impulse_per_mass * 0.10
 	)
 	linear_velocity = impulse / mass
 	angular_velocity = direction.x * clampf(impulse_per_mass / 40.0, 3.0, 8.0)
+
+
+func _on_body_entered(body: Node) -> void:
+	if not airborne_crash or not body is CollisionObject2D:
+		return
+	var collision_body: CollisionObject2D = body as CollisionObject2D
+	if collision_body.collision_layer & REMAINS_GROUND_LAYER == 0:
+		return
+	airborne_crash = false
+	crash_landing_count += 1
+	gravity_scale = 1.0
+	linear_damp = 1.1
+	angular_damp = 1.8
+	can_sleep = true
+	crash_landed.emit(self)
 
 
 func _turn_to_scrap(event: DamageEvent) -> void:

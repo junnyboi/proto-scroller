@@ -32,6 +32,8 @@ func test_next_smash_activates_four_seconds_with_immutable_modifiers() -> void:
 	assert_true(city.overdrive_session.active)
 	assert_eq(city.overdrive_session.activation_count, 1)
 	assert_eq(city.overdrive_session.remaining, 4.0)
+	assert_false(city.overdrive_session.has_method("_draw"))
+	assert_false(ResourceLoader.exists("res://art/presentation/overdrive_ring.png"))
 	assert_true(city.contextual_attacks.current_spec.opening_compression)
 	assert_almost_eq(
 		city.contextual_attacks.current_spec.impulse_per_mass,
