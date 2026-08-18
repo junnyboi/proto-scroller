@@ -30,6 +30,7 @@ func _ready() -> void:
 		add_child(segment)
 		segments.append(segment)
 	_refresh()
+	apply_width(size.x)
 
 
 func set_progress(index: int, total: int, display_name: String, recovery: bool) -> void:
@@ -42,6 +43,23 @@ func set_progress(index: int, total: int, display_name: String, recovery: bool) 
 			% [current_index + 1, total_acts, display_name, "RECOVERY" if recovery else "PRESSURE"]
 		)
 	_refresh()
+
+
+func apply_width(available_width: float) -> void:
+	if label == null:
+		return
+	label.size.x = available_width
+	var gap: float = 10.0
+	var inset: float = 8.0
+	var segment_width: float = (
+		available_width - inset * 2.0 - gap * 5.0
+	) / 6.0
+	for index: int in range(segments.size()):
+		segments[index].position = Vector2(
+			inset + float(index) * (segment_width + gap),
+			22.0
+		)
+		segments[index].size.x = segment_width
 
 
 func _refresh() -> void:

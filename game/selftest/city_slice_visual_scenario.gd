@@ -22,7 +22,9 @@ func _on_process_frame() -> void:
 
 
 func _run() -> void:
-	root.size = Vector2i(1280, 720)
+	var target_size: Vector2i = _target_size()
+	root.get_window().content_scale_size = target_size
+	root.size = target_size
 	var scene: PackedScene = load("res://scenes/gameplay/city_slice.tscn") as PackedScene
 	if scene == null:
 		quit(1)
@@ -42,9 +44,15 @@ func _run() -> void:
 		ProjectSettings.globalize_path("res://artifacts/city_slice")
 	)
 	var save_error: Error = image.save_png(ProjectSettings.globalize_path(SHOT_PATH))
-	if save_error != OK or image.get_size() != Vector2i(1280, 720):
+	if save_error != OK or image.get_size() != target_size:
 		quit(1)
 		return
 	completed = true
 	print("[CITY-VISUAL-DONE] path=%s" % SHOT_PATH)
 	quit(0)
+
+
+func _target_size() -> Vector2i:
+	if OS.get_environment("PROTO_SCROLLER_PORTRAIT") == "1":
+		return Vector2i(720, 1280)
+	return Vector2i(1280, 720)

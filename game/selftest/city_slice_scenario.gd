@@ -24,7 +24,9 @@ func _on_process_frame() -> void:
 
 
 func _run() -> void:
-	root.size = Vector2i(1280, 720)
+	var target_size: Vector2i = _target_size()
+	root.get_window().content_scale_size = target_size
+	root.size = target_size
 	var scene: PackedScene = load("res://scenes/gameplay/city_slice.tscn") as PackedScene
 	_check("city_scene_loads", scene != null, "loaded=%s" % [scene != null])
 	if scene == null:
@@ -178,7 +180,7 @@ func _run() -> void:
 		_check("shot_saved", save_error == OK, "error=%s" % save_error)
 		_check(
 			"shot_geometry",
-			image.get_size() == Vector2i(1280, 720),
+			image.get_size() == target_size,
 			"size=%s" % image.get_size()
 		)
 		shot_status = "PASS" if save_error == OK else "FAIL"
@@ -246,3 +248,9 @@ func _finish(shot_status: String, shot_path: String) -> void:
 	report_file.store_string(JSON.stringify(report, "\t"))
 	print("[SCENARIO-DONE] result=%s" % report["result"])
 	quit(0 if all_passed else 1)
+
+
+func _target_size() -> Vector2i:
+	if OS.get_environment("PROTO_SCROLLER_PORTRAIT") == "1":
+		return Vector2i(720, 1280)
+	return Vector2i(1280, 720)

@@ -30,7 +30,9 @@ func _on_process_frame() -> void:
 
 
 func _run() -> void:
-	root.size = Vector2i(1280, 720)
+	var target_size: Vector2i = _target_size()
+	root.get_window().content_scale_size = target_size
+	root.size = target_size
 	var scene_resource: PackedScene = load("res://scenes/title_screen.tscn") as PackedScene
 	_check("main_scene_loads", scene_resource != null, "loaded=%s" % [scene_resource != null])
 	if scene_resource == null:
@@ -45,7 +47,7 @@ func _run() -> void:
 
 	var button: Button = screen.get_node("%InitializeButton") as Button
 	var title_label: Label = screen.get_node("%TitleLabel") as Label
-	_check("viewport_geometry", root.size == Vector2i(1280, 720), "size=%s" % [root.size])
+	_check("viewport_geometry", root.size == target_size, "size=%s" % [root.size])
 	var title_visible: bool = title_label.is_visible_in_tree()
 	_check("title_visible", title_visible, "visible=%s" % [title_visible])
 	_check("title_text", title_label.text == "PROTO\nSCROLLER", "text=%s" % [title_label.text])
@@ -71,7 +73,7 @@ func _run() -> void:
 		)
 		_check(
 			"shot_geometry",
-			image.get_size() == Vector2i(1280, 720),
+			image.get_size() == target_size,
 			"size=%s" % [image.get_size()]
 		)
 		shot_status = "PASS" if save_error == OK else "FAIL"
@@ -132,6 +134,12 @@ func _rendered_line_height(control: Control) -> float:
 
 func _frame_budget_detail() -> String:
 	return "frames=%s max_frames=%s" % [elapsed_frames, MAX_FRAMES]
+
+
+func _target_size() -> Vector2i:
+	if OS.get_environment("PROTO_SCROLLER_PORTRAIT") == "1":
+		return Vector2i(720, 1280)
+	return Vector2i(1280, 720)
 
 
 func _send_accept(pressed: bool) -> void:

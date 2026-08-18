@@ -3,12 +3,20 @@ extends Node
 
 const TITLE_SCENE: PackedScene = preload("res://scenes/title_screen.tscn")
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+const RESPONSIVE_VIEWPORT_SCRIPT: Script = preload(
+	"res://scripts/main/responsive_viewport.gd"
+)
 
 var title_screen: TitleScreen
 var city_slice: CitySlice
+var responsive_viewport: ResponsiveViewport
 
 
 func _ready() -> void:
+	responsive_viewport = RESPONSIVE_VIEWPORT_SCRIPT.new() as ResponsiveViewport
+	responsive_viewport.name = "ResponsiveViewport"
+	add_child(responsive_viewport)
+	responsive_viewport.setup()
 	_show_title()
 
 
