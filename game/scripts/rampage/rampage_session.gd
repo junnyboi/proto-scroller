@@ -6,7 +6,10 @@ var run_score: RunScore
 var combo_tracker: ComboTracker
 var momentum_meter: MomentumMeter
 var rare_event_tracker: RareEventTracker
+var causal_chain_tracker: CausalChainTracker = CausalChainTracker.new()
 var frozen_summary: RunSummarySnapshot
+var heavy_hit_count: int = 0
+var _unique_action_tags: Dictionary[StringName, bool] = {}
 
 
 func _init() -> void:
@@ -35,6 +38,13 @@ func publish(event: GameplayEvent) -> bool:
 	combo_tracker.register_event(event)
 	momentum_meter.apply_event(event)
 	rare_event_tracker.register_event(event)
+	causal_chain_tracker.register(event)
+	if event.qualifies_for_combo and not event.action_tag.is_empty():
+		_unique_action_tags[event.action_tag] = true
+	if event.kind == GameplayEvent.Kind.PLAYER_HEAVY_HIT:
+		heavy_hit_count += 1
+		run_score.lose_half_pending()
+		combo_tracker.apply_heavy_hit_penalty()
 	event_hub.broadcast(event)
 	return true
 
@@ -42,6 +52,8 @@ func publish(event: GameplayEvent) -> bool:
 func advance(speed_ratio: float, delta: float) -> void:
 	combo_tracker.advance(delta)
 	momentum_meter.advance_motion(speed_ratio, delta)
+	run_score.advance(delta)
+	causal_chain_tracker.advance(delta)
 
 
 func reset_run() -> void:
@@ -50,6 +62,9 @@ func reset_run() -> void:
 	combo_tracker.reset_run()
 	momentum_meter.reset_run()
 	rare_event_tracker.reset_run()
+	causal_chain_tracker.reset()
+	heavy_hit_count = 0
+	_unique_action_tags.clear()
 	frozen_summary = null
 
 
@@ -67,15 +82,39 @@ func momentum_value() -> float:
 
 func freeze_summary(
 	waves_cleared: int,
-	overdrive_activations: int
+	overdrive_activations: int,
+	run_metrics: Dictionary = {}
 ) -> RunSummarySnapshot:
 	if frozen_summary == null:
+		run_score.bank_all()
+		var completed: bool = bool(run_metrics.get("completed", waves_cleared >= 6))
+		var mastery: Dictionary = MasteryEvaluator.evaluate({
+			"completed": completed,
+			"highest_act": waves_cleared,
+			"heavy_hits": heavy_hit_count,
+			"unique_actions": _unique_action_tags.size(),
+			"causal_depth": causal_chain_tracker.best_depth,
+			"overdrives": overdrive_activations,
+			"contract_succeeded": bool(run_metrics.get("contract_succeeded", false)),
+		})
+		var summary_metrics: Dictionary = run_metrics.duplicate()
+		summary_metrics.merge({
+			"grade": mastery.grade,
+			"mastery_points": mastery.points,
+			"strongest": mastery.strongest,
+			"weakest": mastery.weakest,
+			"objective": mastery.objective,
+			"heavy_hits": heavy_hit_count,
+			"unique_actions": _unique_action_tags.size(),
+			"causal_depth": causal_chain_tracker.best_depth,
+		}, true)
 		frozen_summary = RunSummarySnapshot.new(
 			run_score.score,
 			combo_tracker.peak_multiplier,
 			combo_tracker.best_chain_count,
 			waves_cleared,
 			overdrive_activations,
-			rare_event_tracker.snapshot_counts()
+			rare_event_tracker.snapshot_counts(),
+			summary_metrics
 		)
 	return frozen_summary

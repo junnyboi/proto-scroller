@@ -10,6 +10,9 @@ signal projectile_requested(
 	source: Node
 )
 signal died(actor: EnemyActor2D, event: DamageEvent)
+signal profile_changed(actor: EnemyActor2D)
+signal boss_armor_changed(current: float, maximum: float)
+signal boss_armor_broken()
 
 @export var max_health: float = 60.0
 
@@ -30,6 +33,22 @@ var projectile_pool: ProjectilePool
 var projectile_target_mask: int = 0
 var facing: int = -1
 var visual_ground_offset: float = 0.0
+var attack_gate_enabled: bool = true
+var role_id: StringName = &"BASE"
+var trait_id: StringName = &""
+var movement_multiplier: float = 1.0
+var attack_interval_multiplier: float = 1.0
+var projectile_damage_multiplier: float = 1.0
+var external_attack_interval_multiplier: float = 1.0
+var role_badge: EnemyRoleBadge
+var structural_target: StructuralBuilding2D
+var catalyst_target: Catalyst2D
+var boss_mode: bool = false
+var boss_armor: float = 0.0
+var boss_max_armor: float = 0.0
+var _base_max_health: float = 0.0
+var _shield_available: bool = false
+var _shield_damage_ratio: float = 1.0
 var _seen_attacks: Dictionary[int, bool] = {}
 var _bounce_phase: float = 0.0
 var _visual_rest_position: Vector2
@@ -49,7 +68,14 @@ var _projectile_reservation_id: int = 0
 func _ready() -> void:
 	_base_collision_layer = collision_layer
 	_base_collision_mask = collision_mask
+	_base_max_health = max_health
 	current_health = max_health
+	role_badge = EnemyRoleBadge.new()
+	role_badge.name = "RoleBadge"
+	role_badge.position = Vector2(0.0, -72.0)
+	role_badge.z_index = 4
+	add_child(role_badge)
+	role_badge.visible = false
 	if visual != null:
 		_visual_rest_position = visual.position
 		_visual_rest_scale = visual.scale
@@ -94,14 +120,26 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
-	current_health = maxf(current_health - event.amount, 0.0)
-	velocity += event.direction * event.impulse_per_mass * 0.18
+	if boss_mode and boss_armor > 0.0:
+		if event.damage_type != &"shoulder_drive":
+			return false
+		boss_armor = maxf(boss_armor - event.amount, 0.0)
+		boss_armor_changed.emit(boss_armor, boss_max_armor)
+		if is_zero_approx(boss_armor):
+			boss_armor_broken.emit()
+		return true
+	var accepted_event: DamageEvent = event
+	if _shield_available:
+		_shield_available = false
+		accepted_event = event.scaled(_shield_damage_ratio)
+	current_health = maxf(current_health - accepted_event.amount, 0.0)
+	velocity += accepted_event.direction * accepted_event.impulse_per_mass * 0.18
 	if visual != null:
 		visual.modulate = Color("ffd0a6")
 		var tween: Tween = create_tween()
 		tween.tween_property(visual, "modulate", Color.WHITE, 0.12)
 	if current_health <= 0.0:
-		_die(event)
+		_die(accepted_event)
 	return true
 
 
@@ -112,10 +150,70 @@ func request_projectile(
 	damage: float,
 	kind: StringName
 ) -> void:
+	if not attack_gate_enabled:
+		return
 	projectile_requested.emit(origin, direction, speed, damage, kind, self)
 
 
+func set_attack_gate(enabled: bool) -> void:
+	attack_gate_enabled = enabled
+	if not enabled:
+		cancel_telegraph()
+
+
+func apply_profiles(
+	role_profile: EnemyRoleProfile,
+	trait_profile: EnemyTraitProfile
+) -> void:
+	role_id = role_profile.role_id if role_profile != null else &"BASE"
+	trait_id = trait_profile.trait_id if trait_profile != null else &""
+	movement_multiplier = role_profile.movement_multiplier if role_profile != null else 1.0
+	attack_interval_multiplier = (
+		role_profile.attack_interval_multiplier if role_profile != null else 1.0
+	)
+	projectile_damage_multiplier = (
+		role_profile.damage_multiplier if role_profile != null else 1.0
+	)
+	var health_multiplier: float = (
+		role_profile.health_multiplier if role_profile != null else 1.0
+	)
+	if trait_profile != null:
+		health_multiplier *= trait_profile.health_multiplier
+	max_health = _base_max_health * health_multiplier
+	current_health = max_health
+	_shield_available = trait_profile != null and trait_profile.trait_id == &"SHIELDED"
+	_shield_damage_ratio = (
+		trait_profile.first_hit_damage_ratio if trait_profile != null else 1.0
+	)
+	role_badge.configure(role_profile, trait_profile)
+	profile_changed.emit(self)
+
+
+func clear_profiles() -> void:
+	role_id = &"BASE"
+	trait_id = &""
+	movement_multiplier = 1.0
+	attack_interval_multiplier = 1.0
+	projectile_damage_multiplier = 1.0
+	external_attack_interval_multiplier = 1.0
+	max_health = _base_max_health
+	_shield_available = false
+	_shield_damage_ratio = 1.0
+	if role_badge != null:
+		role_badge.configure(null, null)
+
+
+func configure_boss(armor: float, exposed_health: float) -> void:
+	boss_mode = true
+	boss_max_armor = maxf(armor, 1.0)
+	boss_armor = boss_max_armor
+	max_health = maxf(exposed_health, 1.0)
+	current_health = max_health
+	boss_armor_changed.emit(boss_armor, boss_max_armor)
+
+
 func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
+	clear_profiles()
 	activation_generation += 1
 	active = true
 	dead = false
@@ -127,6 +225,7 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 	collision_layer = _base_collision_layer
 	collision_mask = _base_collision_mask
 	_seen_attacks.clear()
+	attack_gate_enabled = true
 	set_physics_process(true)
 	if visual != null:
 		visual.visible = true
@@ -139,6 +238,10 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 
 func deactivate() -> void:
 	cancel_telegraph()
+	clear_profiles()
+	boss_mode = false
+	boss_armor = 0.0
+	boss_max_armor = 0.0
 	active = false
 	dead = false
 	visible = false
@@ -156,7 +259,7 @@ func begin_telegraph(
 	origin: Vector2,
 	target_point: Vector2
 ) -> bool:
-	if telegraph_presenter == null or _telegraph_id != 0:
+	if not attack_gate_enabled or telegraph_presenter == null or _telegraph_id != 0:
 		return false
 	if kind in [&"shell", &"rocket"] and projectile_pool != null:
 		_projectile_reservation_id = projectile_pool.reserve(kind)

@@ -2,6 +2,7 @@ class_name EnemyRemainsFactory
 extends Node
 
 signal wreck_scrapped(wreck: EnemyWreck2D, event: DamageEvent, points: int)
+signal wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D)
 
 const ENEMY_WRECK_SCRIPT: Script = preload("res://scripts/actors/enemy_wreck_2d.gd")
 const REMAINS_LAYER: int = 1 << 9
@@ -75,6 +76,7 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 			event,
 			true
 		)
+	wreck_spawned.emit(enemy, wreck)
 	return wreck
 
 

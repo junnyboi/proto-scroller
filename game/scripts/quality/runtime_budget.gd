@@ -15,6 +15,22 @@ const PARTICLE_SLOTS: int = 8
 const AUDIO_VOICES: int = 8
 const RARE_TAG_ROWS: int = 3
 const TELEGRAPH_RECORDS: int = 12
+const CATALYST_SLOTS: int = 2
+const ACTIVE_CATALYSTS: int = 2
+const ACTOR_RESERVATIONS: int = 9
+const PENDING_BEAT_RECORDS: int = 12
+const CATALYST_QUERY_RESULTS: int = 12
+const DIRECTIVE_SESSIONS: int = 1
+const DIRECTIVE_CARDS: int = 1
+const DIRECTIVE_OVERLAYS: int = 1
+const PAUSE_COORDINATORS: int = 1
+const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS
+const TRAIT_RUNTIMES: int = 1
+const BOSS_SESSIONS: int = 1
+const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
+const DISTRICT_RECIPES: int = 3
+const RUN_CONTRACTS: int = 3
+const TERMINAL_CHOICE_OVERLAYS: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -43,6 +59,33 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
+		"catalyst_total": (
+			city.urban_siege.catalysts.total_count() if city.urban_siege != null else 0
+		),
+		"catalyst_active": (
+			city.urban_siege.catalysts.active_count() if city.urban_siege != null else 0
+		),
+		"actor_reservation_peak": (
+			city.urban_siege.director.ledger.peak_pending if city.urban_siege != null else 0
+		),
+		"pending_beat_peak": (
+			city.urban_siege.director.peak_pending_records if city.urban_siege != null else 0
+		),
+		"directive_sessions": 1 if city.urban_siege.directives != null else 0,
+		"directive_cards": 1 if city.gameplay_hud.directive_card != null else 0,
+		"directive_overlays": (
+			1 if city.gameplay_hud.directive_choice_overlay != null else 0
+		),
+		"pause_coordinators": (
+			1 if city.urban_siege.pause_coordinator != null else 0
+		),
+		"role_badges": city.encounter_runtime.total_count(),
+		"trait_runtimes": 1 if city.urban_siege.trait_runtime != null else 0,
+		"boss_sessions": 1 if city.urban_siege.boss_session != null else 0,
+		"causal_records": city.rampage_session.causal_chain_tracker.active_count(),
+		"district_recipes": city.urban_siege.DISTRICT_DECK.recipes.size(),
+		"run_contracts": city.urban_siege.RUN_CONTRACTS.size(),
+		"terminal_choice_overlays": 1 if city.gameplay_hud.extract_button != null else 0,
 	}
 
 
@@ -59,6 +102,38 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "audio_voices", AUDIO_VOICES)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
+	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)
+	_check_equal(errors, data, "directive_sessions", DIRECTIVE_SESSIONS)
+	_check_equal(errors, data, "directive_cards", DIRECTIVE_CARDS)
+	_check_equal(errors, data, "directive_overlays", DIRECTIVE_OVERLAYS)
+	_check_equal(errors, data, "pause_coordinators", PAUSE_COORDINATORS)
+	_check_equal(errors, data, "role_badges", ROLE_BADGES)
+	_check_equal(errors, data, "trait_runtimes", TRAIT_RUNTIMES)
+	_check_equal(errors, data, "boss_sessions", BOSS_SESSIONS)
+	_check_equal(errors, data, "district_recipes", DISTRICT_RECIPES)
+	_check_equal(errors, data, "run_contracts", RUN_CONTRACTS)
+	_check_equal(
+		errors,
+		data,
+		"terminal_choice_overlays",
+		TERMINAL_CHOICE_OVERLAYS
+	)
+	if int(data.causal_records) > CAUSAL_RECORDS:
+		errors.append(
+			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]
+		)
+	if int(data.catalyst_active) > ACTIVE_CATALYSTS:
+		errors.append("catalyst_active=%d cap=%d" % [data.catalyst_active, ACTIVE_CATALYSTS])
+	if int(data.actor_reservation_peak) > ACTOR_RESERVATIONS:
+		errors.append(
+			"actor_reservation_peak=%d cap=%d"
+			% [data.actor_reservation_peak, ACTOR_RESERVATIONS]
+		)
+	if int(data.pending_beat_peak) > PENDING_BEAT_RECORDS:
+		errors.append(
+			"pending_beat_peak=%d cap=%d"
+			% [data.pending_beat_peak, PENDING_BEAT_RECORDS]
+		)
 	if int(data.telegraph_peak) > TELEGRAPH_RECORDS:
 		errors.append("telegraph_peak=%d cap=%d" % [data.telegraph_peak, TELEGRAPH_RECORDS])
 	return errors

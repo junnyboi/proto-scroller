@@ -59,6 +59,15 @@ func reset_run() -> void:
 	_same_tag_streak = 0
 
 
+func apply_heavy_hit_penalty() -> int:
+	var previous: int = current_multiplier
+	current_multiplier = maxi(current_multiplier - 1, 1)
+	if current_chain_count > 0:
+		grace_remaining = maxf(grace_remaining, 0.75)
+	combo_changed.emit(current_multiplier, grace_remaining)
+	return previous - current_multiplier
+
+
 func _grow_multiplier() -> void:
 	current_multiplier = mini(current_multiplier + 1, MAX_MULTIPLIER)
 

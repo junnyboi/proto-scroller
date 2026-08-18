@@ -17,7 +17,8 @@ func queue_explosion(
 	peak_damage: float,
 	impulse_per_mass: float,
 	attack_id: int,
-	source: Node = null
+	source: Node = null,
+	options: DamageQueryOptions = null
 ) -> void:
 	if radius <= 0.0 or peak_damage <= 0.0:
 		return
@@ -28,6 +29,13 @@ func queue_explosion(
 		"impulse_per_mass": maxf(impulse_per_mass, 0.0),
 		"attack_id": attack_id,
 		"source": source,
+		"root_attack_id": options.root_attack_id if options != null else attack_id,
+		"causal_depth": options.causal_depth if options != null else 0,
+		"effect_flags": options.effect_flags if options != null else DamageEvent.FLAG_NONE,
+		"result_limit": options.result_limit if options != null else 0,
+		"structural_limit": options.structural_limit if options != null else 0,
+		"debris_limit": options.debris_limit if options != null else 0,
+		"damage_type": options.damage_type if options != null else &"explosive",
 	})
 
 
@@ -51,12 +59,17 @@ func _resolve_explosion(data: Dictionary) -> void:
 		var source_object: CollisionObject2D = data["source"] as CollisionObject2D
 		if source_object != null:
 			parameters.exclude = [source_object.get_rid()]
+	var query_limit: int = int(data.result_limit)
+	if query_limit <= 0:
+		query_limit = max_results
 	var results: Array[Dictionary] = get_world_2d().direct_space_state.intersect_shape(
 		parameters,
-		max_results
+		mini(query_limit, max_results)
 	)
 	var seen: Dictionary[int, bool] = {}
 	var accepted_targets: int = 0
+	var structural_targets: int = 0
+	var debris_targets: int = 0
 	for result: Dictionary in results:
 		var collider: Object = result.get("collider") as Object
 		if collider == null:
@@ -72,6 +85,15 @@ func _resolve_explosion(data: Dictionary) -> void:
 		var target_node: Node2D = collider as Node2D
 		if target_node == null:
 			continue
+		var receiver: Node = _damage_receiver(target_node)
+		if receiver is Destructible2D and int(data.structural_limit) > 0:
+			if structural_targets >= int(data.structural_limit):
+				continue
+			structural_targets += 1
+		if receiver is DebrisBody2D and int(data.debris_limit) > 0:
+			if debris_targets >= int(data.debris_limit):
+				continue
+			debris_targets += 1
 		var offset: Vector2 = target_node.global_position - origin
 		var distance: float = offset.length()
 		var direction: Vector2 = offset.normalized()
@@ -85,10 +107,13 @@ func _resolve_explosion(data: Dictionary) -> void:
 			data["attack_id"] as int,
 			data["source"] as Node,
 			(data["peak_damage"] as float) * falloff,
-			&"explosive",
+			StringName(data.damage_type),
 			origin,
 			direction,
-			(data["impulse_per_mass"] as float) * falloff
+			(data["impulse_per_mass"] as float) * falloff,
+			int(data.root_attack_id),
+			int(data.causal_depth),
+			int(data.effect_flags)
 		)
 		var accepted: bool = _deliver_damage(target_node, event)
 		_apply_rigid_impulse(target_node, event)
@@ -104,12 +129,19 @@ func _is_source_related(candidate: Node, source: Node) -> bool:
 
 
 func _deliver_damage(start_node: Node, event: DamageEvent) -> bool:
+	var receiver: Node = _damage_receiver(start_node)
+	if receiver != null:
+		return bool(receiver.call("receive_damage", event))
+	return false
+
+
+func _damage_receiver(start_node: Node) -> Node:
 	var receiver: Node = start_node
 	while receiver != null:
 		if receiver.has_method("receive_damage"):
-			return bool(receiver.call("receive_damage", event))
+			return receiver
 		receiver = receiver.get_parent()
-	return false
+	return null
 
 
 func _apply_rigid_impulse(start_node: Node, event: DamageEvent) -> void:

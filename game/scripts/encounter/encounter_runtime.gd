@@ -10,6 +10,7 @@ signal projectile_requested(
 	source: Node
 )
 signal enemy_died(enemy: EnemyActor2D, event: DamageEvent, points: int)
+signal enemy_acquired(enemy: EnemyActor2D)
 
 const WORLD_LAYER: int = 1 << 0
 const ENEMY_LAYER: int = 1 << 2
@@ -31,16 +32,34 @@ var soldiers: Array[SoldierEnemy] = []
 var tanks: Array[TankEnemy] = []
 var helicopters: Array[HelicopterEnemy] = []
 var post_warm_creation_count: int = 0
+var attack_gate_enabled: bool = true
+var structural_target: StructuralBuilding2D
+var role_profiles: Dictionary[StringName, EnemyRoleProfile] = {}
+var trait_profiles: Dictionary[StringName, EnemyTraitProfile] = {}
 
 
 func setup(
 	p_robot: GiantRobotController,
 	p_telegraphs: TelegraphPresenter2D,
-	p_projectile_pool: ProjectilePool
+	p_projectile_pool: ProjectilePool,
+	p_structural_target: StructuralBuilding2D = null
 ) -> void:
 	robot = p_robot
 	telegraphs = p_telegraphs
 	projectile_pool = p_projectile_pool
+	structural_target = p_structural_target
+
+
+func configure_profiles(
+	roles: Array[EnemyRoleProfile],
+	traits: Array[EnemyTraitProfile]
+) -> void:
+	role_profiles.clear()
+	trait_profiles.clear()
+	for profile: EnemyRoleProfile in roles:
+		role_profiles[profile.role_id] = profile
+	for profile: EnemyTraitProfile in traits:
+		trait_profiles[profile.trait_id] = profile
 
 
 func _ready() -> void:
@@ -52,10 +71,25 @@ func _ready() -> void:
 		helicopters.append(_create_enemy(&"helicopter", index) as HelicopterEnemy)
 
 
-func acquire(kind: StringName, spawn_position: Vector2) -> EnemyActor2D:
+func acquire(
+	kind: StringName,
+	spawn_position: Vector2,
+	role_id: StringName = &"",
+	trait_id: StringName = &""
+) -> EnemyActor2D:
 	for enemy: EnemyActor2D in _actors_for_kind(kind):
 		if not enemy.active:
 			enemy.activate(spawn_position, robot)
+			var accepted_trait: StringName = trait_id
+			if trait_id == &"COMMAND" and _has_active_command():
+				accepted_trait = &""
+			enemy.apply_profiles(
+				role_profiles.get(role_id) as EnemyRoleProfile,
+				trait_profiles.get(accepted_trait) as EnemyTraitProfile
+			)
+			enemy.structural_target = structural_target
+			enemy.set_attack_gate(attack_gate_enabled)
+			enemy_acquired.emit(enemy)
 			return enemy
 	return null
 
@@ -72,6 +106,12 @@ func release_deferred(enemy: EnemyActor2D) -> void:
 func release_all() -> void:
 	for enemy: EnemyActor2D in all_actors():
 		release(enemy)
+
+
+func set_attack_gate(enabled: bool) -> void:
+	attack_gate_enabled = enabled
+	for enemy: EnemyActor2D in all_actors():
+		enemy.set_attack_gate(enabled)
 
 
 func all_actors() -> Array[EnemyActor2D]:
@@ -97,6 +137,18 @@ func available_count(kind: StringName) -> int:
 
 func total_count(kind: StringName = &"") -> int:
 	return all_actors().size() if kind.is_empty() else _actors_for_kind(kind).size()
+
+
+func set_catalyst_target(catalyst: Catalyst2D) -> void:
+	for enemy: EnemyActor2D in all_actors():
+		enemy.catalyst_target = catalyst
+
+
+func _has_active_command() -> bool:
+	for enemy: EnemyActor2D in all_actors():
+		if enemy.active and not enemy.dead and enemy.trait_id == &"COMMAND":
+			return true
+	return false
 
 
 func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
@@ -128,7 +180,7 @@ func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
 	enemy.set_meta(&"combat_team", &"enemy")
 	enemy.telegraph_presenter = telegraphs
 	enemy.projectile_pool = projectile_pool
-	enemy.projectile_target_mask = ROBOT_LAYER | BUILDING_LAYER
+	enemy.projectile_target_mask = ROBOT_LAYER | BUILDING_LAYER | (1 << 7)
 	var visual: Sprite2D = CityWorldBuilder.fit_sprite(texture, display_size)
 	visual.name = "Visual"
 	if kind != &"helicopter":

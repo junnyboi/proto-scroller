@@ -2,6 +2,8 @@ class_name GameplayHud
 extends CanvasLayer
 
 signal retry_pressed
+signal extract_pressed
+signal continue_pressed
 
 const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
@@ -12,14 +14,21 @@ var health_label: Label
 var status_label: Label
 var objective_label: Label
 var score_label: Label
+var pending_score_label: Label
 var combo_label: Label
 var combo_ring: ComboDecayRing
 var momentum_fill: ColorRect
 var momentum_label: Label
+var siege_progress: SiegeProgressStrip
+var directive_card: DirectiveCard
+var directive_choice_overlay: DirectiveChoiceOverlay
+var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
 var retry_button: Button
+var extract_button: Button
+var continue_button: Button
 var rare_labels: Array[Label] = []
 var _robot: GiantRobotController
 var _pulse_age: float = 0.0
@@ -36,6 +45,10 @@ func _ready() -> void:
 	_build_status_panel()
 	_build_momentum_panel()
 	_build_score_panel()
+	_build_siege_progress()
+	_build_directive_card()
+	_build_directive_choice_overlay()
+	_build_boss_status()
 	_build_game_over_overlay()
 	if _robot != null:
 		_robot.attack_mode_selected.connect(_on_attack_mode_selected)
@@ -61,6 +74,11 @@ func set_health(current: float, maximum: float) -> void:
 func set_score(value: int) -> void:
 	if score_label != null:
 		score_label.text = "%08d" % maxi(value, 0)
+
+
+func set_pending_score(value: int) -> void:
+	pending_score_label.text = "+%05d AT RISK" % maxi(value, 0) if value > 0 else "SAFE"
+	pending_score_label.modulate = Color("ff9a61") if value > 0 else MUTED_COLOR
 
 
 func set_combo(multiplier: int, grace_remaining: float) -> void:
@@ -113,13 +131,55 @@ func set_objective(text: String) -> void:
 		objective_label.text = text
 
 
+func set_siege_progress(
+	index: int,
+	total: int,
+	display_name: String,
+	recovery: bool
+) -> void:
+	if siege_progress != null:
+		siege_progress.set_progress(index, total, display_name, recovery)
+
+
+func show_directive(
+	profile: DirectiveProfile,
+	current: int,
+	target: int,
+	bank: int
+) -> void:
+	directive_card.show_directive(profile, current, target, bank)
+
+
+func set_directive_progress(profile: DirectiveProfile, current: int, target: int) -> void:
+	directive_card.set_progress(profile, current, target)
+
+
+func set_directive_bank(points: int) -> void:
+	directive_card.set_bank(points)
+
+
+func set_boss_status(state: StringName, current: float = 0.0, maximum: float = 1.0) -> void:
+	if state == &"IDLE" or state == &"COMPLETE":
+		boss_label.visible = false
+		return
+	boss_label.visible = true
+	var ratio: int = roundi(clampf(current / maxf(maximum, 1.0), 0.0, 1.0) * 100.0)
+	boss_label.text = "COMMAND UNIT  %s  %03d%%" % [String(state).replace("_", " "), ratio]
+
+
+func show_directive_result(text: String, success: bool) -> void:
+	directive_card.show_result(text, success)
+
+
 func show_game_over(summary: RunSummarySnapshot = null) -> void:
+	_hide_terminal_choices()
 	set_status("CITY RESPONSE / LOST")
 	set_objective("CHASSIS SIGNAL TERMINATED")
 	_show_summary(summary, false)
 
 
 func show_district_complete(summary: RunSummarySnapshot) -> void:
+	_hide_terminal_choices()
 	set_status("DISTRICT RESPONSE / BROKEN")
 	set_objective("RETALIATION EXHAUSTED / EXTRACTION OPEN")
 	_show_summary(summary, true)
@@ -129,23 +189,48 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 	overlay_title.text = "DISTRICT CLEARED" if completed else "GAME OVER"
 	if summary != null:
 		var summary_format: String = (
-			"SCORE  %08d\nPEAK COMBO  x%d    BEST CHAIN  %d\n"
-			+ "WAVES  %d / 4    OVERDRIVES  %d\nRARE EVENTS  %d"
+			"GRADE %s  /  %03d PTS    SCORE %08d\n"
+				+ "ACTS %d/6   HITS %d   VARIETY %d   DEPTH %d\n"
+				+ "STRONGEST %s   WEAKEST %s\n%s"
 		)
 		overlay_summary.text = (
 			summary_format % [
+				summary.grade,
+				summary.mastery_points,
 				summary.score,
-				summary.peak_combo,
-				summary.best_chain,
 				summary.waves_cleared,
-				summary.overdrive_activations,
-				summary.rare_events.size(),
+				summary.heavy_hits,
+				summary.unique_actions,
+				summary.causal_depth,
+				summary.strongest_metric,
+				summary.weakest_metric,
+				summary.retry_objective,
 			]
 		)
 	else:
 		overlay_summary.text = "CHASSIS SIGNAL LOST"
 	game_over_overlay.visible = true
 	retry_button.grab_focus()
+
+
+func show_cycle_choice(cycle: int, can_continue: bool) -> void:
+	overlay_title.text = "DISTRICT SECURED"
+	overlay_summary.text = (
+		"CYCLE %d COMPLETE\nEXTRACT THE RESULT OR ESCALATE THE SAME CITY" % cycle
+	)
+	retry_button.visible = false
+	extract_button.visible = true
+	continue_button.visible = can_continue
+	game_over_overlay.visible = true
+	if can_continue:
+		continue_button.grab_focus()
+	else:
+		extract_button.grab_focus()
+
+
+func hide_terminal_overlay() -> void:
+	game_over_overlay.visible = false
+	_hide_terminal_choices()
 
 
 func _on_attack_mode_selected(mode: int, _attack_id: int) -> void:
@@ -250,6 +335,15 @@ func _build_score_panel() -> void:
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	score_label.add_theme_font_size_override(&"font_size", 30)
 	add_child(score_label)
+	pending_score_label = Label.new()
+	pending_score_label.name = "PendingScoreLabel"
+	pending_score_label.position = Vector2(1012.0, 91.0)
+	pending_score_label.size = Vector2(220.0, 20.0)
+	pending_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	pending_score_label.add_theme_font_size_override(&"font_size", 14)
+	pending_score_label.text = "SAFE"
+	pending_score_label.modulate = MUTED_COLOR
+	add_child(pending_score_label)
 	for index: int in range(RuntimeBudget.RARE_TAG_ROWS):
 		var rare_label: Label = Label.new()
 		rare_label.name = "RareEvent%d" % index
@@ -261,6 +355,40 @@ func _build_score_panel() -> void:
 		rare_label.visible = false
 		add_child(rare_label)
 		rare_labels.append(rare_label)
+
+
+func _build_siege_progress() -> void:
+	siege_progress = SiegeProgressStrip.new()
+	siege_progress.name = "SiegeProgressStrip"
+	siege_progress.position = Vector2(466.0, 112.0)
+	siege_progress.size = Vector2(500.0, 32.0)
+	add_child(siege_progress)
+
+
+func _build_directive_card() -> void:
+	directive_card = DirectiveCard.new()
+	directive_card.name = "DirectiveCard"
+	directive_card.position = Vector2(948.0, 426.0)
+	directive_card.size = Vector2(292.0, 104.0)
+	add_child(directive_card)
+
+
+func _build_directive_choice_overlay() -> void:
+	directive_choice_overlay = DirectiveChoiceOverlay.new()
+	directive_choice_overlay.name = "DirectiveChoiceOverlay"
+	add_child(directive_choice_overlay)
+
+
+func _build_boss_status() -> void:
+	boss_label = Label.new()
+	boss_label.name = "BossStatus"
+	boss_label.position = Vector2(400.0, 146.0)
+	boss_label.size = Vector2(480.0, 38.0)
+	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_label.add_theme_font_size_override(&"font_size", 21)
+	boss_label.modulate = Color("ff8c64")
+	boss_label.visible = false
+	add_child(boss_label)
 
 
 func _build_game_over_overlay() -> void:
@@ -307,6 +435,30 @@ func _build_game_over_overlay() -> void:
 	retry_button.add_theme_font_size_override(&"font_size", 30)
 	retry_button.pressed.connect(retry_pressed.emit)
 	game_over_overlay.add_child(retry_button)
+	extract_button = Button.new()
+	extract_button.name = "ExtractButton"
+	extract_button.position = Vector2(445.0, 430.0)
+	extract_button.size = Vector2(185.0, 78.0)
+	extract_button.text = "EXTRACT"
+	extract_button.add_theme_font_size_override(&"font_size", 25)
+	extract_button.pressed.connect(extract_pressed.emit)
+	extract_button.visible = false
+	game_over_overlay.add_child(extract_button)
+	continue_button = Button.new()
+	continue_button.name = "ContinueButton"
+	continue_button.position = Vector2(650.0, 430.0)
+	continue_button.size = Vector2(185.0, 78.0)
+	continue_button.text = "CONTINUE"
+	continue_button.add_theme_font_size_override(&"font_size", 25)
+	continue_button.pressed.connect(continue_pressed.emit)
+	continue_button.visible = false
+	game_over_overlay.add_child(continue_button)
+
+
+func _hide_terminal_choices() -> void:
+	retry_button.visible = true
+	extract_button.visible = false
+	continue_button.visible = false
 
 
 func _momentum_color(band: int) -> Color:

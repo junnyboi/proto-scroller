@@ -120,7 +120,10 @@ func _make_event(
 		&"shoulder_drive",
 		collider.global_position,
 		direction,
-		spec.impulse_per_mass
+		spec.impulse_per_mass,
+		spec.attack_id,
+		0,
+		spec.effect_flags
 	)
 
 

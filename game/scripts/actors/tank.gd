@@ -35,7 +35,8 @@ func _physics_process(delta: float) -> void:
 		if advance_telegraph(delta):
 			_fire_snapshot()
 			state = State.AIM
-			_cooldown = fire_interval
+			_cooldown = fire_interval * attack_interval_multiplier \
+				* external_attack_interval_multiplier
 		move_and_slide()
 		update_movement_bounce(delta)
 		return
@@ -54,9 +55,9 @@ func _physics_process(delta: float) -> void:
 		state = State.AIM
 	var desired_speed: float = 0.0
 	if state == State.ADVANCE:
-		desired_speed = float(facing) * move_speed
+		desired_speed = float(facing) * move_speed * movement_multiplier
 	elif state == State.REVERSE:
-		desired_speed = -float(facing) * move_speed
+		desired_speed = -float(facing) * move_speed * movement_multiplier
 	velocity.x = move_toward(velocity.x, desired_speed, acceleration * delta)
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	if state == State.AIM and _cooldown <= 0.0:
@@ -69,6 +70,10 @@ func _begin_shell() -> void:
 	var cannon_y: float = visual.position.y - 22.0 if visual != null else -48.0
 	var origin: Vector2 = global_position + Vector2(float(facing) * 112.0, cannon_y)
 	var target_point: Vector2 = target.global_position + Vector2(0.0, 35.0)
+	if role_id == &"SUPPORT_BREAKER" and structural_target != null:
+		var cell: Destructible2D = structural_target.get_cell(1, 1)
+		if cell != null and not cell.is_destroyed():
+			target_point = cell.global_position
 	if begin_telegraph(&"shell", anticipation_duration, origin, target_point):
 		state = State.ANTICIPATE
 	else:
@@ -76,7 +81,10 @@ func _begin_shell() -> void:
 
 
 func _fire_snapshot() -> void:
-	fire_telegraphed_projectile(shell_speed, shell_damage)
+	fire_telegraphed_projectile(
+		shell_speed,
+		shell_damage * projectile_damage_multiplier
+	)
 
 
 func _reset_archetype_state() -> void:

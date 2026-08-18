@@ -46,17 +46,12 @@ const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop
 const ENCOUNTER_RUNTIME_SCRIPT: Script = preload(
 	"res://scripts/encounter/encounter_runtime.gd"
 )
-const ENCOUNTER_DIRECTOR_SCRIPT: Script = preload(
-	"res://scripts/encounter/encounter_director.gd"
-)
+const URBAN_SIEGE_SCRIPT: Script = preload("res://scripts/siege/urban_siege_runtime.gd")
 const TELEGRAPH_SCRIPT: Script = preload(
 	"res://scripts/encounter/telegraph_presenter_2d.gd"
 )
-const CONTACT_WAVE: EnemyWave = preload("res://resources/encounters/wave_01_contact.tres")
-const ARMOR_WAVE: EnemyWave = preload("res://resources/encounters/wave_02_armor.tres")
-const AIR_WAVE: EnemyWave = preload("res://resources/encounters/wave_03_air.tres")
-const RETALIATION_WAVE: EnemyWave = preload(
-	"res://resources/encounters/wave_04_retaliation.tres"
+const CONTACT_DISTRICT: DistrictDefinition = preload(
+	"res://resources/siege/district_contact.tres"
 )
 const SOLDIER_DEFEAT_POOL_SCRIPT: Script = preload(
 	"res://scripts/actors/soldier_defeat_pool.gd"
@@ -107,6 +102,7 @@ var contextual_attacks: ContextualAttackController
 var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
 var encounter_director: EncounterDirector
+var urban_siege: UrbanSiegeRuntime
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
@@ -160,6 +156,7 @@ func _ready() -> void:
 	CityWorldBuilder.build_camera(self, robot)
 	camera_rig = get_node(^"CameraRig") as CameraRig
 	_build_hud()
+	_build_urban_siege()
 	run_lifecycle = RUN_LIFECYCLE_SCRIPT.new() as CityRunLifecycle
 	run_lifecycle.name = "CityRunLifecycle"
 	run_lifecycle.setup(self)
@@ -168,6 +165,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if game_over_active or rampage_session == null or robot == null:
+		return
+	if urban_siege != null and urban_siege.is_simulation_paused():
 		return
 	var speed_ratio: float = absf(robot.velocity.x) / maxf(robot.max_speed, 1.0)
 	rampage_session.advance(speed_ratio, delta)
@@ -185,6 +184,7 @@ func _build_services() -> void:
 	rampage_session = RAMPAGE_SESSION_SCRIPT.new() as RampageSession
 	rampage_session.name = "RampageSession"
 	rampage_session.run_score.score_changed.connect(_on_score_changed)
+	rampage_session.run_score.pending_changed.connect(_on_pending_score_changed)
 	rampage_session.combo_tracker.combo_changed.connect(_on_combo_changed)
 	add_child(rampage_session)
 	rampage_events = RAMPAGE_EVENT_ADAPTER_SCRIPT.new(rampage_session) as RampageEventAdapter
@@ -347,24 +347,39 @@ func _build_enemies() -> void:
 	add_child(telegraph_presenter)
 	encounter_runtime = ENCOUNTER_RUNTIME_SCRIPT.new() as EncounterRuntime
 	encounter_runtime.name = "EncounterRuntime"
-	encounter_runtime.setup(robot, telegraph_presenter, projectile_root)
+	encounter_runtime.setup(robot, telegraph_presenter, projectile_root, building)
 	encounter_runtime.projectile_requested.connect(_on_projectile_requested)
 	encounter_runtime.enemy_died.connect(_on_enemy_died)
 	add_child(encounter_runtime)
 	soldier = encounter_runtime.soldiers[0]
 	tank = encounter_runtime.tanks[0]
 	helicopter = encounter_runtime.helicopters[0]
-	encounter_director = ENCOUNTER_DIRECTOR_SCRIPT.new() as EncounterDirector
-	encounter_director.name = "EncounterDirector"
-	var waves: Array[EnemyWave] = [CONTACT_WAVE, ARMOR_WAVE, AIR_WAVE, RETALIATION_WAVE]
-	encounter_director.setup(encounter_runtime, waves)
-	add_child(encounter_director)
 	if DisplayServer.get_name() == "headless":
 		encounter_runtime.acquire(&"soldier", Vector2(1320.0, 542.5))
 		encounter_runtime.acquire(&"tank", Vector2(1700.0, 551.0))
 		encounter_runtime.acquire(&"helicopter", Vector2(1500.0, 180.0))
-	else:
-		encounter_director.start()
+
+
+func _build_urban_siege() -> void:
+	var dependencies: UrbanSiegeDependencies = UrbanSiegeDependencies.new()
+	dependencies.city = self
+	dependencies.robot = robot
+	dependencies.encounter_runtime = encounter_runtime
+	dependencies.projectile_pool = projectile_root
+	dependencies.telegraphs = telegraph_presenter
+	dependencies.destruction_director = destruction_director
+	dependencies.rampage_session = rampage_session
+	dependencies.gameplay_hud = gameplay_hud
+	dependencies.mobile_controls = mobile_controls
+	dependencies.debris_pool = debris_pool
+	dependencies.remains_factory = enemy_remains_factory
+	urban_siege = URBAN_SIEGE_SCRIPT.new() as UrbanSiegeRuntime
+	urban_siege.name = "UrbanSiegeRuntime"
+	urban_siege.setup(dependencies, CONTACT_DISTRICT)
+	add_child(urban_siege)
+	encounter_director = urban_siege.director
+	if DisplayServer.get_name() != "headless":
+		urban_siege.start_run()
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
 	gameplay_hud.setup(robot)
@@ -394,13 +409,16 @@ func _on_robot_heavy_impact(
 	impulse_per_mass: float,
 	attack_id: int
 ) -> void:
+	var options: DamageQueryOptions = DamageQueryOptions.new()
+	options.damage_type = &"ground_smash"
 	destruction_director.queue_explosion(
 		origin,
 		radius,
 		damage,
 		impulse_per_mass,
 		attack_id,
-		robot
+		robot,
+		options
 	)
 	AerialDebrisLauncher.launch(get_tree(), debris_pool, robot, origin, impulse_per_mass, attack_id)
 	gameplay_hud.set_objective("IMPACT REGISTERED / PHYSICS FIELD ACTIVE")
@@ -567,6 +585,11 @@ func _on_robot_damage_received(event: DamageEvent, accepted_damage: float) -> vo
 func _on_score_changed(next_score: int, _awarded: int) -> void:
 	if gameplay_hud != null:
 		gameplay_hud.set_score(next_score)
+
+
+func _on_pending_score_changed(value: int) -> void:
+	if gameplay_hud != null:
+		gameplay_hud.set_pending_score(value)
 
 
 func _on_combo_changed(multiplier: int, grace_remaining: float) -> void:
