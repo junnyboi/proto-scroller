@@ -199,7 +199,12 @@ func _process_pending(delta: float) -> void:
 			continue
 		var entry: EnemySpawnEntry = record.entry
 		var kind: StringName = StringName(entry.kind)
-		if runtime.acquire(kind, _resolve_position(entry)) == null:
+		if runtime.acquire(
+			kind,
+			_resolve_position(entry),
+			entry.role_id,
+			entry.trait_id
+		) == null:
 			continue
 		ledger.consume_actor(_beat_reservation_id, kind)
 		_beat_pending.remove_at(index)

@@ -6,6 +6,8 @@ const FLAG_CATALYST: int = 1 << 0
 const FLAG_DIRECTIVE_BREACH: int = 1 << 1
 const FLAG_DIRECTIVE_AFTERSHOCK: int = 1 << 2
 const FLAG_DIRECTIVE_SKYBREAKER: int = 1 << 3
+const FLAG_VOLATILE: int = 1 << 4
+const MAX_CAUSAL_DEPTH: int = 3
 
 var attack_id: int
 var source: Node

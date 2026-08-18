@@ -349,7 +349,7 @@ func _build_enemies() -> void:
 	add_child(telegraph_presenter)
 	encounter_runtime = ENCOUNTER_RUNTIME_SCRIPT.new() as EncounterRuntime
 	encounter_runtime.name = "EncounterRuntime"
-	encounter_runtime.setup(robot, telegraph_presenter, projectile_root)
+	encounter_runtime.setup(robot, telegraph_presenter, projectile_root, building)
 	encounter_runtime.projectile_requested.connect(_on_projectile_requested)
 	encounter_runtime.enemy_died.connect(_on_enemy_died)
 	add_child(encounter_runtime)

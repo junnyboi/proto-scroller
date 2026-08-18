@@ -10,6 +10,7 @@ signal projectile_requested(
 	source: Node
 )
 signal died(actor: EnemyActor2D, event: DamageEvent)
+signal profile_changed(actor: EnemyActor2D)
 
 @export var max_health: float = 60.0
 
@@ -31,6 +32,18 @@ var projectile_target_mask: int = 0
 var facing: int = -1
 var visual_ground_offset: float = 0.0
 var attack_gate_enabled: bool = true
+var role_id: StringName = &"BASE"
+var trait_id: StringName = &""
+var movement_multiplier: float = 1.0
+var attack_interval_multiplier: float = 1.0
+var projectile_damage_multiplier: float = 1.0
+var external_attack_interval_multiplier: float = 1.0
+var role_badge: EnemyRoleBadge
+var structural_target: StructuralBuilding2D
+var catalyst_target: Catalyst2D
+var _base_max_health: float = 0.0
+var _shield_available: bool = false
+var _shield_damage_ratio: float = 1.0
 var _seen_attacks: Dictionary[int, bool] = {}
 var _bounce_phase: float = 0.0
 var _visual_rest_position: Vector2
@@ -50,7 +63,14 @@ var _projectile_reservation_id: int = 0
 func _ready() -> void:
 	_base_collision_layer = collision_layer
 	_base_collision_mask = collision_mask
+	_base_max_health = max_health
 	current_health = max_health
+	role_badge = EnemyRoleBadge.new()
+	role_badge.name = "RoleBadge"
+	role_badge.position = Vector2(0.0, -72.0)
+	role_badge.z_index = 4
+	add_child(role_badge)
+	role_badge.visible = false
 	if visual != null:
 		_visual_rest_position = visual.position
 		_visual_rest_scale = visual.scale
@@ -95,14 +115,18 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
-	current_health = maxf(current_health - event.amount, 0.0)
-	velocity += event.direction * event.impulse_per_mass * 0.18
+	var accepted_event: DamageEvent = event
+	if _shield_available:
+		_shield_available = false
+		accepted_event = event.scaled(_shield_damage_ratio)
+	current_health = maxf(current_health - accepted_event.amount, 0.0)
+	velocity += accepted_event.direction * accepted_event.impulse_per_mass * 0.18
 	if visual != null:
 		visual.modulate = Color("ffd0a6")
 		var tween: Tween = create_tween()
 		tween.tween_property(visual, "modulate", Color.WHITE, 0.12)
 	if current_health <= 0.0:
-		_die(event)
+		_die(accepted_event)
 	return true
 
 
@@ -124,7 +148,50 @@ func set_attack_gate(enabled: bool) -> void:
 		cancel_telegraph()
 
 
+func apply_profiles(
+	role_profile: EnemyRoleProfile,
+	trait_profile: EnemyTraitProfile
+) -> void:
+	role_id = role_profile.role_id if role_profile != null else &"BASE"
+	trait_id = trait_profile.trait_id if trait_profile != null else &""
+	movement_multiplier = role_profile.movement_multiplier if role_profile != null else 1.0
+	attack_interval_multiplier = (
+		role_profile.attack_interval_multiplier if role_profile != null else 1.0
+	)
+	projectile_damage_multiplier = (
+		role_profile.damage_multiplier if role_profile != null else 1.0
+	)
+	var health_multiplier: float = (
+		role_profile.health_multiplier if role_profile != null else 1.0
+	)
+	if trait_profile != null:
+		health_multiplier *= trait_profile.health_multiplier
+	max_health = _base_max_health * health_multiplier
+	current_health = max_health
+	_shield_available = trait_profile != null and trait_profile.trait_id == &"SHIELDED"
+	_shield_damage_ratio = (
+		trait_profile.first_hit_damage_ratio if trait_profile != null else 1.0
+	)
+	role_badge.configure(role_profile, trait_profile)
+	profile_changed.emit(self)
+
+
+func clear_profiles() -> void:
+	role_id = &"BASE"
+	trait_id = &""
+	movement_multiplier = 1.0
+	attack_interval_multiplier = 1.0
+	projectile_damage_multiplier = 1.0
+	external_attack_interval_multiplier = 1.0
+	max_health = _base_max_health
+	_shield_available = false
+	_shield_damage_ratio = 1.0
+	if role_badge != null:
+		role_badge.configure(null, null)
+
+
 func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
+	clear_profiles()
 	activation_generation += 1
 	active = true
 	dead = false
@@ -149,6 +216,7 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 
 func deactivate() -> void:
 	cancel_telegraph()
+	clear_profiles()
 	active = false
 	dead = false
 	visible = false

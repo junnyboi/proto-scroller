@@ -104,7 +104,7 @@ func _resolve_after_delay(catalyst: Catalyst2D, event: DamageEvent) -> void:
 		&"steel",
 		catalyst.get_instance_id(),
 		0,
-		&"transformer"
+			catalyst.profile.catalyst_id.to_lower()
 	)
 	gameplay_event.root_attack_id = event.root_attack_id
 	gameplay_event.causal_depth = event.causal_depth + 1

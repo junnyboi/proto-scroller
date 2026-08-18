@@ -38,7 +38,8 @@ func _physics_process(delta: float) -> void:
 		if advance_telegraph(delta):
 			_fire_snapshot()
 			state = State.STRAFE
-			_cooldown = fire_interval
+			_cooldown = fire_interval * attack_interval_multiplier \
+				* external_attack_interval_multiplier
 		move_and_slide()
 		return
 	_update_facing()
@@ -60,9 +61,16 @@ func _physics_process(delta: float) -> void:
 		_state_time = 0.0
 	var desired_velocity: Vector2
 	if state == State.BREAK:
-		desired_velocity = Vector2(float(_attack_side) * maximum_speed, -35.0)
+		desired_velocity = Vector2(
+			float(_attack_side) * maximum_speed * movement_multiplier,
+			-35.0
+		)
 	else:
-		desired_velocity = global_position.direction_to(desired_point) * maximum_speed
+		desired_velocity = (
+			global_position.direction_to(desired_point)
+			* maximum_speed
+			* movement_multiplier
+		)
 	velocity = velocity.move_toward(desired_velocity, acceleration * delta)
 	if state == State.STRAFE and _cooldown <= 0.0:
 		_begin_rocket()
@@ -78,7 +86,10 @@ func _begin_rocket() -> void:
 
 
 func _fire_snapshot() -> void:
-	fire_telegraphed_projectile(rocket_speed, rocket_damage)
+	fire_telegraphed_projectile(
+		rocket_speed,
+		rocket_damage * projectile_damage_multiplier
+	)
 
 
 func _reset_archetype_state() -> void:

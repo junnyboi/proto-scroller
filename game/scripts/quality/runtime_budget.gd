@@ -24,6 +24,8 @@ const DIRECTIVE_SESSIONS: int = 1
 const DIRECTIVE_CARDS: int = 1
 const DIRECTIVE_OVERLAYS: int = 1
 const PAUSE_COORDINATORS: int = 1
+const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS
+const TRAIT_RUNTIMES: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -72,6 +74,8 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"pause_coordinators": (
 			1 if city.urban_siege.pause_coordinator != null else 0
 		),
+		"role_badges": city.encounter_runtime.total_count(),
+		"trait_runtimes": 1 if city.urban_siege.trait_runtime != null else 0,
 	}
 
 
@@ -93,6 +97,8 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "directive_cards", DIRECTIVE_CARDS)
 	_check_equal(errors, data, "directive_overlays", DIRECTIVE_OVERLAYS)
 	_check_equal(errors, data, "pause_coordinators", PAUSE_COORDINATORS)
+	_check_equal(errors, data, "role_badges", ROLE_BADGES)
+	_check_equal(errors, data, "trait_runtimes", TRAIT_RUNTIMES)
 	if int(data.catalyst_active) > ACTIVE_CATALYSTS:
 		errors.append("catalyst_active=%d cap=%d" % [data.catalyst_active, ACTIVE_CATALYSTS])
 	if int(data.actor_reservation_peak) > ACTOR_RESERVATIONS:

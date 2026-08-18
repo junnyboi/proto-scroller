@@ -30,7 +30,8 @@ func _physics_process(delta: float) -> void:
 		if advance_telegraph(delta):
 			_fire_snapshot()
 			state = State.AIM
-			_cooldown = fire_interval
+			_cooldown = fire_interval * attack_interval_multiplier \
+				* external_attack_interval_multiplier
 		move_and_slide()
 		update_movement_bounce(delta)
 		return
@@ -50,9 +51,9 @@ func _physics_process(delta: float) -> void:
 		state = State.AIM
 	var desired_speed: float = 0.0
 	if state == State.APPROACH:
-		desired_speed = float(facing) * move_speed
+		desired_speed = float(facing) * move_speed * movement_multiplier
 	elif state == State.RETREAT:
-		desired_speed = -float(facing) * move_speed
+		desired_speed = -float(facing) * move_speed * movement_multiplier
 	velocity.x = move_toward(velocity.x, desired_speed, acceleration * delta)
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	if state == State.AIM and _cooldown <= 0.0:
@@ -65,6 +66,13 @@ func _begin_fire() -> void:
 	var muzzle_y: float = visual.position.y - 18.0 if visual != null else -28.0
 	var origin: Vector2 = global_position + Vector2(float(facing) * 34.0, muzzle_y)
 	var target_point: Vector2 = target.global_position + Vector2(0.0, 45.0)
+	if (
+		role_id == &"CATALYST_MARKER"
+		and catalyst_target != null
+		and catalyst_target.armed
+		and not catalyst_target.spent
+	):
+		target_point = catalyst_target.global_position
 	if begin_telegraph(&"bullet", anticipation_duration, origin, target_point):
 		state = State.ANTICIPATE
 	else:
@@ -76,7 +84,7 @@ func _fire_snapshot() -> void:
 		telegraph_origin(),
 		telegraph_direction(),
 		projectile_speed,
-		projectile_damage,
+		projectile_damage * projectile_damage_multiplier,
 		&"bullet"
 	)
 	finish_telegraph()

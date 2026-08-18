@@ -20,6 +20,20 @@ const AFTERSHOCK_PROFILE: DirectiveProfile = preload(
 const SKYBREAKER_PROFILE: DirectiveProfile = preload(
 	"res://resources/directives/skybreaker.tres"
 )
+const GAS_MAIN_PROFILE: CatalystProfile = preload("res://resources/catalysts/gas_main.tres")
+const ROLE_PROFILES: Array[EnemyRoleProfile] = [
+	preload("res://resources/roles/advancing_soldier.tres"),
+	preload("res://resources/roles/suppressor.tres"),
+	preload("res://resources/roles/anchor_tank.tres"),
+	preload("res://resources/roles/support_breaker.tres"),
+	preload("res://resources/roles/strafe_helicopter.tres"),
+	preload("res://resources/roles/catalyst_marker.tres"),
+]
+const TRAIT_PROFILES: Array[EnemyTraitProfile] = [
+	preload("res://resources/traits/command.tres"),
+	preload("res://resources/traits/volatile.tres"),
+	preload("res://resources/traits/shielded.tres"),
+]
 
 var dependencies: UrbanSiegeDependencies
 var district: DistrictDefinition
@@ -27,6 +41,7 @@ var director: DistrictResponseDirector
 var catalysts: CatalystRuntime
 var directives: DirectiveSession
 var pause_coordinator: RunPauseCoordinator
+var trait_runtime: EnemyTraitRuntime
 var run_seed: int = 0
 var _directive_pause_token: int = 0
 
@@ -56,6 +71,11 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	)
 	add_child(directives)
 	dependencies.city.contextual_attacks.set_directive_session(directives)
+	dependencies.encounter_runtime.configure_profiles(ROLE_PROFILES, TRAIT_PROFILES)
+	trait_runtime = EnemyTraitRuntime.new()
+	trait_runtime.name = "EnemyTraitRuntime"
+	trait_runtime.setup(dependencies)
+	add_child(trait_runtime)
 	pause_coordinator = RunPauseCoordinator.new()
 	pause_coordinator.name = "RunPauseCoordinator"
 	pause_coordinator.setup(dependencies, director, catalysts)
@@ -78,6 +98,8 @@ func stop_run() -> void:
 		directives.stop()
 	if pause_coordinator != null:
 		pause_coordinator.release_all()
+	if trait_runtime != null:
+		trait_runtime.reset_all()
 	_directive_pause_token = 0
 
 
@@ -101,6 +123,13 @@ func _on_phase_changed(index: int, display_name: String) -> void:
 func _on_milestone_reached(milestone: StringName) -> void:
 	if milestone == &"DIRECTIVE_CHOICE":
 		directives.offer(run_seed)
+	elif milestone == &"GAS_MAIN":
+		var gas_main: Catalyst2D = catalysts.activate(
+			1,
+			GAS_MAIN_PROFILE,
+			Vector2(1340.0, 610.0)
+		)
+		dependencies.encounter_runtime.set_catalyst_target(gas_main)
 
 
 func _on_directive_choices_offered(_profiles: Array[DirectiveProfile]) -> void:

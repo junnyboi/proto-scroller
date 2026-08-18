@@ -43,6 +43,7 @@ func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
 	freeze = true
 	_catalyst_seen_attacks.clear()
 	visual.texture = intact_texture
+	visual.modulate = Color("7de3d7") if profile.catalyst_id == &"GAS_MAIN" else Color.WHITE
 	_fit_visual(intact_display_size)
 	queue_redraw()
 
