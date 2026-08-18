@@ -15,9 +15,10 @@ const OVERDRIVE_ACTIVATION_SFX: AudioStream = preload(
 	"res://audio/sfx/rampage/overdrive_activation.wav"
 )
 const COMBO_BREAK_SFX: AudioStream = preload("res://audio/sfx/rampage/combo_break.wav")
+const SPARK_SCALE_NORMALIZER: float = 1.0 / 16.0
 
-@export_range(1, 16, 1) var particle_capacity: int = 8
-@export_range(1, 16, 1) var audio_capacity: int = 8
+@export_range(1, 16, 1) var particle_capacity: int = RuntimeBudget.PARTICLE_SLOTS
+@export_range(1, 16, 1) var audio_capacity: int = RuntimeBudget.AUDIO_VOICES
 
 var last_material_audio: StringName = &""
 var material_audio_play_count: int = 0
@@ -64,8 +65,8 @@ func spawn_particles(
 	particles.gravity = Vector2(0.0, profile.particle_gravity)
 	particles.initial_velocity_min = impact_speed * profile.particle_speed_min
 	particles.initial_velocity_max = impact_speed * profile.particle_speed_max
-	particles.scale_amount_min = profile.particle_scale_min
-	particles.scale_amount_max = profile.particle_scale_max
+	particles.scale_amount_min = profile.particle_scale_min * SPARK_SCALE_NORMALIZER
+	particles.scale_amount_max = profile.particle_scale_max * SPARK_SCALE_NORMALIZER
 	particles.color = profile.particle_color
 	particles.set_meta(&"structural_material", profile.material_id)
 	particles.set_meta(&"priority", priority)

@@ -5,7 +5,7 @@ const TELEGRAPH_BADGE: Texture2D = preload(
 	"res://art/presentation/telegraph_badge.png"
 )
 
-@export_range(1, 16, 1) var capacity: int = 12
+@export_range(1, 16, 1) var capacity: int = RuntimeBudget.TELEGRAPH_RECORDS
 
 var denial_count: int = 0
 var peak_active_count: int = 0

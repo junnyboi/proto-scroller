@@ -53,7 +53,15 @@ func test_pool_stays_at_eight_and_tracks_drop_and_recycle() -> void:
 		assert_not_null(pool.play_audio(profile, Vector2.ZERO, 300.0, true, 5))
 	assert_null(pool.spawn_particles(Vector2.ZERO, Vector2.RIGHT, 300.0, profile, 1))
 	assert_null(pool.play_audio(profile, Vector2.ZERO, 300.0, true, 1))
-	assert_not_null(pool.spawn_particles(Vector2.ZERO, Vector2.RIGHT, 300.0, profile, 6))
+	var normalized_spark: CPUParticles2D = pool.spawn_particles(
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		300.0,
+		profile,
+		6
+	)
+	assert_not_null(normalized_spark)
+	assert_lte(normalized_spark.scale_amount_max, 0.5)
 	assert_not_null(pool.play_audio(profile, Vector2.ZERO, 300.0, true, 6))
 	assert_eq(pool.particle_child_count(), 8)
 	assert_eq(pool.audio_child_count(), 8)

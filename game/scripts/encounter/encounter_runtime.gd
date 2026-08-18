@@ -44,11 +44,12 @@ func setup(
 
 
 func _ready() -> void:
-	for index: int in range(6):
+	for index: int in range(RuntimeBudget.SOLDIERS):
 		soldiers.append(_create_enemy(&"soldier", index) as SoldierEnemy)
-	for index: int in range(2):
+	for index: int in range(RuntimeBudget.TANKS):
 		tanks.append(_create_enemy(&"tank", index) as TankEnemy)
-	helicopters.append(_create_enemy(&"helicopter", 0) as HelicopterEnemy)
+	for index: int in range(RuntimeBudget.HELICOPTERS):
+		helicopters.append(_create_enemy(&"helicopter", index) as HelicopterEnemy)
 
 
 func acquire(kind: StringName, spawn_position: Vector2) -> EnemyActor2D:

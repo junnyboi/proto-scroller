@@ -7,7 +7,9 @@ const ENEMY_WRECK_SCRIPT: Script = preload("res://scripts/actors/enemy_wreck_2d.
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 
-@export_range(1, 12, 1) var wreck_capacity: int = 6
+@export_range(1, 12, 1) var wreck_capacity: int = RuntimeBudget.WRECKS
+
+var peak_active_count: int = 0
 
 var _wreck_root: Node2D
 var _scrap_pool: DebrisPool
@@ -48,6 +50,7 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 		_release_wreck(_active_wrecks.front())
 	var wreck: EnemyWreck2D = _free_wrecks.pop_back()
 	_active_wrecks.append(wreck)
+	peak_active_count = maxi(peak_active_count, _active_wrecks.size())
 	if enemy is TankEnemy:
 		wreck.activate(
 			&"tank",
@@ -71,6 +74,14 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 			event
 		)
 	return wreck
+
+
+func active_count() -> int:
+	return _active_wrecks.size()
+
+
+func total_count() -> int:
+	return _active_wrecks.size() + _free_wrecks.size()
 
 
 func _on_wreck_scrapped(wreck: EnemyWreck2D, event: DamageEvent) -> void:

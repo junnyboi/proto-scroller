@@ -4,9 +4,9 @@ extends Node2D
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd")
 
 @export_range(1, 64, 1) var capacity: int = 24
-@export_range(1, 32, 1) var bullet_capacity: int = 16
-@export_range(1, 8, 1) var shell_capacity: int = 4
-@export_range(1, 8, 1) var rocket_capacity: int = 4
+@export_range(1, 32, 1) var bullet_capacity: int = RuntimeBudget.BULLETS
+@export_range(1, 8, 1) var shell_capacity: int = RuntimeBudget.SHELLS
+@export_range(1, 8, 1) var rocket_capacity: int = RuntimeBudget.ROCKETS
 
 var recycle_count: int = 0
 var denial_count: int = 0

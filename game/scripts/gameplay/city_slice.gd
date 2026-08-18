@@ -190,7 +190,9 @@ func _build_services() -> void:
 	rampage_events = RAMPAGE_EVENT_ADAPTER_SCRIPT.new(rampage_session) as RampageEventAdapter
 	projectile_root = PROJECTILE_POOL_SCRIPT.new() as ProjectilePool
 	projectile_root.name = "ProjectileRoot"
-	projectile_root.capacity = 24
+	projectile_root.capacity = (
+		RuntimeBudget.BULLETS + RuntimeBudget.SHELLS + RuntimeBudget.ROCKETS
+	)
 	projectile_root.z_index = 45
 	add_child(projectile_root)
 	impact_audio_root = Node2D.new()
@@ -221,18 +223,18 @@ func _build_services() -> void:
 	add_child(destruction_director)
 	debris_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
 	debris_pool.name = "BuildingDebrisPool"
-	debris_pool.capacity = 24
+	debris_pool.capacity = RuntimeBudget.STRUCTURAL_DEBRIS
 	debris_pool.z_index = 30
 	debris_pool.aerial_impact_accepted.connect(_on_aerial_impact_accepted)
 	add_child(debris_pool)
 	enemy_scrap_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
 	enemy_scrap_pool.name = "EnemyScrapPool"
-	enemy_scrap_pool.capacity = 32
+	enemy_scrap_pool.capacity = RuntimeBudget.ENEMY_SCRAP
 	enemy_scrap_pool.z_index = 31
 	add_child(enemy_scrap_pool)
 	soldier_defeat_pool = SOLDIER_DEFEAT_POOL_SCRIPT.new() as SoldierDefeatPool
 	soldier_defeat_pool.name = "SoldierDefeatPool"
-	soldier_defeat_pool.capacity = 8
+	soldier_defeat_pool.capacity = RuntimeBudget.SOLDIER_DEFEATS
 	soldier_defeat_pool.z_index = 28
 	enemy_remains_root.add_child(soldier_defeat_pool)
 	enemy_remains_factory = ENEMY_REMAINS_FACTORY_SCRIPT.new() as EnemyRemainsFactory

@@ -3,7 +3,7 @@ extends Node
 
 signal tags_changed(tags: PackedStringArray)
 
-const MAX_VISIBLE_TAGS: int = 3
+const MAX_VISIBLE_TAGS: int = RuntimeBudget.RARE_TAG_ROWS
 
 var counts: Dictionary[StringName, int] = {}
 var _visible_tags: Array[StringName] = []

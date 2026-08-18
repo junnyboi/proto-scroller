@@ -250,7 +250,7 @@ func _build_score_panel() -> void:
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	score_label.add_theme_font_size_override(&"font_size", 30)
 	add_child(score_label)
-	for index: int in range(3):
+	for index: int in range(RuntimeBudget.RARE_TAG_ROWS):
 		var rare_label: Label = Label.new()
 		rare_label.name = "RareEvent%d" % index
 		rare_label.position = Vector2(1012.0, 116.0 + float(index) * 23.0)

@@ -1,0 +1,91 @@
+extends GutTest
+
+const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+const MAIN_SCENE: PackedScene = preload("res://scenes/main/main.tscn")
+
+
+func test_runtime_snapshot_matches_every_approved_cap() -> void:
+	var city: CitySlice = await _spawn_city()
+	var snapshot: Dictionary = RuntimeBudget.snapshot(city)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+	assert_eq(snapshot.enemy_total, 9)
+	assert_eq(snapshot.projectile_total, 24)
+	assert_eq(snapshot.structural_debris_total, 24)
+	assert_eq(snapshot.enemy_scrap_total, 32)
+	assert_eq(snapshot.soldier_defeat_total, 8)
+	assert_eq(snapshot.wreck_total, 4)
+	assert_eq(snapshot.particle_slots, 8)
+	assert_eq(snapshot.audio_voices, 8)
+	assert_eq(snapshot.rare_rows, 3)
+
+
+func test_pool_saturation_recycles_without_node_or_capacity_growth() -> void:
+	var city: CitySlice = await _spawn_city()
+	var baseline: Dictionary = RuntimeBudget.snapshot(city)
+	var profile: StructuralMaterialProfile = StructuralMaterialProfile.concrete()
+	for request_index: int in range(96):
+		city.debris_pool.acquire(
+			Transform2D(0.0, Vector2(500.0, 300.0)),
+			Vector2.RIGHT * 800.0,
+			0.0,
+			4.0
+		)
+		city.enemy_scrap_pool.acquire(
+			Transform2D(0.0, Vector2(600.0, 300.0)),
+			Vector2.LEFT * 700.0,
+			0.0,
+			5.0
+		)
+		city.impact_feedback_pool.spawn_particles(
+			Vector2.ZERO,
+			Vector2.RIGHT,
+			300.0,
+			profile,
+			5
+		)
+	var after: Dictionary = RuntimeBudget.snapshot(city)
+	assert_eq(after.node_count, baseline.node_count)
+	assert_eq(after.structural_debris_total, RuntimeBudget.STRUCTURAL_DEBRIS)
+	assert_eq(after.enemy_scrap_total, RuntimeBudget.ENEMY_SCRAP)
+	assert_eq(after.particle_slots, RuntimeBudget.PARTICLE_SLOTS)
+	assert_eq(after.structural_debris_peak, RuntimeBudget.STRUCTURAL_DEBRIS)
+	assert_eq(after.enemy_scrap_peak, RuntimeBudget.ENEMY_SCRAP)
+	assert_gt(city.debris_pool.recycle_count, 0)
+	assert_gt(city.enemy_scrap_pool.recycle_count, 0)
+
+
+func test_three_retry_generations_have_identical_clean_runtime_shape() -> void:
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	main.start_game()
+	await get_tree().process_frame
+	var expected_nodes: int = int(RuntimeBudget.snapshot(main.city_slice).node_count)
+	for retry_index: int in range(3):
+		main.city_slice.rampage_events.legacy_score(100 + retry_index)
+		main.city_slice.rampage_session.momentum_meter.apply_event(GameplayEvent.new(
+			StringName("retry_momentum_%d" % retry_index),
+			0,
+			GameplayEvent.Kind.DAMAGE_APPLIED,
+			&"",
+			0,
+			45.0
+		))
+		main.retry_game()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var snapshot: Dictionary = RuntimeBudget.snapshot(main.city_slice)
+		assert_eq(snapshot.node_count, expected_nodes)
+		assert_eq(main.city_slice.score, 0)
+		assert_eq(main.city_slice.rampage_session.momentum_value(), 0.0)
+		assert_eq(snapshot.enemy_post_warm_creations, 0)
+		assert_eq(RuntimeBudget.validation_errors(main.city_slice), PackedStringArray())
+
+
+func _spawn_city() -> CitySlice:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.set_physics_process(false)
+	return city
