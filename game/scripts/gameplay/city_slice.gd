@@ -385,6 +385,11 @@ func _build_hud() -> void:
 	gameplay_hud.setup(robot)
 	gameplay_hud.retry_pressed.connect(_on_retry_pressed)
 	add_child(gameplay_hud)
+	var experience: RunExperience = rampage_session.run_experience
+	experience.experience_changed.connect(gameplay_hud._set_experience)
+	gameplay_hud._set_experience(
+		experience.level, experience.current_experience, experience.experience_required()
+	)
 	haptics_adapter = HAPTICS_SCRIPT.new() as HapticsAdapter
 	haptics_adapter.name = "HapticsAdapter"
 	haptics_adapter.setup(mobile_detection_override)
