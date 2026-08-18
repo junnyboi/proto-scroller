@@ -21,7 +21,10 @@ func resolve(
 	actual_speed_ratio: float,
 	ground_damage: float,
 	ground_impulse_per_mass: float,
-	ground_radius: float
+	ground_radius: float,
+	force_multiplier: float = 1.0,
+	structure_multiplier: float = 1.0,
+	opening_compression: bool = false
 ) -> AttackSpec:
 	if actual_speed_ratio >= drive_speed_threshold:
 		return AttackSpec.new(
@@ -33,10 +36,11 @@ func resolve(
 			drive_active_seconds,
 			drive_recovery_seconds,
 			drive_actor_damage,
-			drive_structural_damage,
-			drive_impulse_per_mass,
+			drive_structural_damage * structure_multiplier,
+			drive_impulse_per_mass * force_multiplier,
 			drive_hit_size,
-			drive_hit_offset
+			drive_hit_offset,
+			opening_compression
 		)
 	return AttackSpec.new(
 		AttackSpec.Mode.GROUND_SMASH,
@@ -47,8 +51,8 @@ func resolve(
 		ground_active_seconds,
 		ground_recovery_seconds,
 		ground_damage,
-		ground_damage,
-		ground_impulse_per_mass,
+		ground_damage * structure_multiplier,
+		ground_impulse_per_mass * force_multiplier,
 		Vector2.ONE * ground_radius * 2.0,
 		Vector2.ZERO
 	)

@@ -44,6 +44,9 @@ var hit_size: Vector2:
 var hit_offset: Vector2:
 	get:
 		return _hit_offset
+var opening_compression: bool:
+	get:
+		return _opening_compression
 
 var _mode: Mode
 var _attack_id: int
@@ -57,6 +60,7 @@ var _structural_damage: float
 var _impulse_per_mass: float
 var _hit_size: Vector2
 var _hit_offset: Vector2
+var _opening_compression: bool
 
 
 func _init(
@@ -71,7 +75,8 @@ func _init(
 	p_structural_damage: float,
 	p_impulse_per_mass: float,
 	p_hit_size: Vector2,
-	p_hit_offset: Vector2
+	p_hit_offset: Vector2,
+	p_opening_compression: bool = false
 ) -> void:
 	_mode = p_mode
 	_attack_id = p_attack_id
@@ -85,6 +90,7 @@ func _init(
 	_impulse_per_mass = maxf(p_impulse_per_mass, 0.0)
 	_hit_size = p_hit_size.max(Vector2.ONE)
 	_hit_offset = p_hit_offset
+	_opening_compression = p_opening_compression
 
 
 func is_ground_smash() -> bool:

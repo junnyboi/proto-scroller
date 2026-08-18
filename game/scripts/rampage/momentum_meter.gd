@@ -3,6 +3,7 @@ extends Node
 
 signal momentum_changed(value: float, band: int)
 signal overdrive_ready
+signal overdrive_active_changed(active: bool)
 
 enum Band {
 	NORMAL,
@@ -23,10 +24,11 @@ const IDLE_GRACE_SECONDS: float = 1.0
 var value: float = 0.0
 var _idle_elapsed: float = 0.0
 var _ready_locked: bool = false
+var _overdrive_active: bool = false
 
 
 func advance_motion(actual_speed_ratio: float, delta: float) -> void:
-	if _ready_locked or delta <= 0.0:
+	if _ready_locked or _overdrive_active or delta <= 0.0:
 		return
 	if actual_speed_ratio >= GAIN_SPEED_RATIO:
 		_idle_elapsed = 0.0
@@ -45,7 +47,7 @@ func advance_motion(actual_speed_ratio: float, delta: float) -> void:
 
 
 func apply_event(event: GameplayEvent) -> void:
-	if event == null or _ready_locked or is_zero_approx(event.momentum_delta):
+	if event == null or _ready_locked or _overdrive_active or is_zero_approx(event.momentum_delta):
 		return
 	_set_value(value + event.momentum_delta)
 
@@ -64,6 +66,27 @@ func is_ready() -> bool:
 	return _ready_locked
 
 
+func is_overdrive_active() -> bool:
+	return _overdrive_active
+
+
+func consume_ready() -> bool:
+	if not _ready_locked or _overdrive_active:
+		return false
+	_ready_locked = false
+	value = 0.0
+	_idle_elapsed = 0.0
+	momentum_changed.emit(value, band())
+	return true
+
+
+func set_overdrive_active(active: bool) -> void:
+	if _overdrive_active == active:
+		return
+	_overdrive_active = active
+	overdrive_active_changed.emit(active)
+
+
 func acceleration_multiplier() -> float:
 	return 1.08 if value >= SURGE_THRESHOLD else 1.0
 
@@ -72,6 +95,7 @@ func reset_run() -> void:
 	value = 0.0
 	_idle_elapsed = 0.0
 	_ready_locked = false
+	_overdrive_active = false
 
 
 func _set_value(next_value: float) -> void:

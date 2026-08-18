@@ -17,9 +17,13 @@ var combo_ring: ComboDecayRing
 var momentum_fill: ColorRect
 var momentum_label: Label
 var game_over_overlay: Control
+var overlay_title: Label
+var overlay_summary: Label
 var retry_button: Button
+var rare_labels: Array[Label] = []
 var _robot: GiantRobotController
 var _pulse_age: float = 0.0
+var _overdrive_active: bool = false
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -77,7 +81,26 @@ func set_momentum(value: float, band: int) -> void:
 		momentum_fill.size.x = 392.0 * clamped_value / 100.0
 		momentum_fill.color = _momentum_color(band)
 	if momentum_label != null:
-		momentum_label.text = "MOMENTUM %03d%%" % roundi(clamped_value)
+		momentum_label.text = (
+			"OVERDRIVE READY / PRESS SMASH"
+			if band == MomentumMeter.Band.READY
+			else "MOMENTUM %03d%%" % roundi(clamped_value)
+		)
+
+
+func set_overdrive(active: bool, remaining: float) -> void:
+	_overdrive_active = active
+	if momentum_label != null and active:
+		momentum_label.text = "KINETIC OVERDRIVE  %.1fs" % maxf(remaining, 0.0)
+	if momentum_fill != null and active:
+		momentum_fill.size.x = 392.0 * clampf(remaining / 4.0, 0.0, 1.0)
+		momentum_fill.color = Color("ff8a42")
+
+
+func set_rare_tags(tags: PackedStringArray) -> void:
+	for index: int in range(rare_labels.size()):
+		rare_labels[index].text = tags[index] if index < tags.size() else ""
+		rare_labels[index].visible = index < tags.size()
 
 
 func set_status(text: String) -> void:
@@ -90,9 +113,37 @@ func set_objective(text: String) -> void:
 		objective_label.text = text
 
 
-func show_game_over() -> void:
+func show_game_over(summary: RunSummarySnapshot = null) -> void:
 	set_status("CITY RESPONSE / LOST")
 	set_objective("CHASSIS SIGNAL TERMINATED")
+	_show_summary(summary, false)
+
+
+func show_district_complete(summary: RunSummarySnapshot) -> void:
+	set_status("DISTRICT RESPONSE / BROKEN")
+	set_objective("RETALIATION EXHAUSTED / EXTRACTION OPEN")
+	_show_summary(summary, true)
+
+
+func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
+	overlay_title.text = "DISTRICT CLEARED" if completed else "GAME OVER"
+	if summary != null:
+		var summary_format: String = (
+			"SCORE  %08d\nPEAK COMBO  x%d    BEST CHAIN  %d\n"
+			+ "WAVES  %d / 4    OVERDRIVES  %d\nRARE EVENTS  %d"
+		)
+		overlay_summary.text = (
+			summary_format % [
+				summary.score,
+				summary.peak_combo,
+				summary.best_chain,
+				summary.waves_cleared,
+				summary.overdrive_activations,
+				summary.rare_events.size(),
+			]
+		)
+	else:
+		overlay_summary.text = "CHASSIS SIGNAL LOST"
 	game_over_overlay.visible = true
 	retry_button.grab_focus()
 
@@ -199,6 +250,17 @@ func _build_score_panel() -> void:
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	score_label.add_theme_font_size_override(&"font_size", 30)
 	add_child(score_label)
+	for index: int in range(3):
+		var rare_label: Label = Label.new()
+		rare_label.name = "RareEvent%d" % index
+		rare_label.position = Vector2(1012.0, 116.0 + float(index) * 23.0)
+		rare_label.size = Vector2(220.0, 22.0)
+		rare_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		rare_label.add_theme_font_size_override(&"font_size", 16)
+		rare_label.modulate = ACCENT_COLOR
+		rare_label.visible = false
+		add_child(rare_label)
+		rare_labels.append(rare_label)
 
 
 func _build_game_over_overlay() -> void:
@@ -219,25 +281,26 @@ func _build_game_over_overlay() -> void:
 	panel.size = Vector2(550.0, 340.0)
 	panel.color = Color(0.025, 0.05, 0.065, 0.97)
 	game_over_overlay.add_child(panel)
-	var title: Label = Label.new()
-	title.position = Vector2(405.0, 232.0)
-	title.size = Vector2(470.0, 86.0)
-	title.text = "GAME OVER"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override(&"font_size", 58)
-	title.modulate = ACCENT_COLOR
-	game_over_overlay.add_child(title)
-	var subtitle: Label = Label.new()
-	subtitle.position = Vector2(405.0, 320.0)
-	subtitle.size = Vector2(470.0, 46.0)
-	subtitle.text = "CHASSIS SIGNAL LOST"
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override(&"font_size", 24)
-	subtitle.modulate = MUTED_COLOR
-	game_over_overlay.add_child(subtitle)
+	overlay_title = Label.new()
+	overlay_title.position = Vector2(405.0, 218.0)
+	overlay_title.size = Vector2(470.0, 72.0)
+	overlay_title.text = "GAME OVER"
+	overlay_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	overlay_title.add_theme_font_size_override(&"font_size", 48)
+	overlay_title.modulate = ACCENT_COLOR
+	game_over_overlay.add_child(overlay_title)
+	overlay_summary = Label.new()
+	overlay_summary.position = Vector2(405.0, 296.0)
+	overlay_summary.size = Vector2(470.0, 128.0)
+	overlay_summary.text = "CHASSIS SIGNAL LOST"
+	overlay_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	overlay_summary.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	overlay_summary.add_theme_font_size_override(&"font_size", 20)
+	overlay_summary.modulate = MUTED_COLOR
+	game_over_overlay.add_child(overlay_summary)
 	retry_button = Button.new()
 	retry_button.name = "RetryButton"
-	retry_button.position = Vector2(490.0, 398.0)
+	retry_button.position = Vector2(490.0, 430.0)
 	retry_button.size = Vector2(300.0, 78.0)
 	retry_button.text = "RETRY"
 	retry_button.focus_mode = Control.FOCUS_ALL

@@ -30,6 +30,10 @@ const ENEMY_REMAINS_FACTORY_SCRIPT: Script = preload(
 	"res://scripts/actors/enemy_remains_factory.gd"
 )
 const RAMPAGE_SESSION_SCRIPT: Script = preload("res://scripts/rampage/rampage_session.gd")
+const OVERDRIVE_SCRIPT: Script = preload("res://scripts/rampage/overdrive_session.gd")
+const RUN_LIFECYCLE_SCRIPT: Script = preload(
+	"res://scripts/gameplay/city_run_lifecycle.gd"
+)
 const RAMPAGE_EVENT_ADAPTER_SCRIPT: Script = preload(
 	"res://scripts/rampage/rampage_event_adapter.gd"
 )
@@ -97,6 +101,8 @@ var enemy_remains_root: Node2D
 var enemy_remains_factory: EnemyRemainsFactory
 var rampage_session: RampageSession
 var rampage_events: RampageEventAdapter
+var overdrive_session: OverdriveSession
+var run_lifecycle: CityRunLifecycle
 var contextual_attacks: ContextualAttackController
 var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
@@ -144,11 +150,20 @@ func _ready() -> void:
 	contextual_attacks.name = "ContextualAttackController"
 	contextual_attacks.setup(robot)
 	add_child(contextual_attacks)
+	overdrive_session = OVERDRIVE_SCRIPT.new() as OverdriveSession
+	overdrive_session.name = "OverdriveSession"
+	overdrive_session.setup(rampage_session.momentum_meter, robot)
+	add_child(overdrive_session)
+	contextual_attacks.set_overdrive_session(overdrive_session)
 	_build_destructibles()
 	_build_enemies()
 	CityWorldBuilder.build_camera(self, robot)
 	camera_rig = get_node(^"CameraRig") as CameraRig
 	_build_hud()
+	run_lifecycle = RUN_LIFECYCLE_SCRIPT.new() as CityRunLifecycle
+	run_lifecycle.name = "CityRunLifecycle"
+	run_lifecycle.setup(self)
+	add_child(run_lifecycle)
 
 
 func _process(delta: float) -> void:
@@ -171,7 +186,6 @@ func _build_services() -> void:
 	rampage_session.name = "RampageSession"
 	rampage_session.run_score.score_changed.connect(_on_score_changed)
 	rampage_session.combo_tracker.combo_changed.connect(_on_combo_changed)
-	rampage_session.momentum_meter.momentum_changed.connect(_on_momentum_changed)
 	add_child(rampage_session)
 	rampage_events = RAMPAGE_EVENT_ADAPTER_SCRIPT.new(rampage_session) as RampageEventAdapter
 	projectile_root = PROJECTILE_POOL_SCRIPT.new() as ProjectilePool
@@ -558,15 +572,6 @@ func _on_combo_changed(multiplier: int, grace_remaining: float) -> void:
 		gameplay_hud.set_combo(multiplier, grace_remaining)
 
 
-func _on_momentum_changed(value: float, band: int) -> void:
-	if robot != null:
-		robot.set_acceleration_multiplier(
-			rampage_session.momentum_meter.acceleration_multiplier()
-		)
-	if gameplay_hud != null:
-		gameplay_hud.set_momentum(value, band)
-
-
 func _on_projectile_requested(
 	origin: Vector2,
 	direction: Vector2,
@@ -592,18 +597,8 @@ func _on_robot_health_changed(current: float, maximum: float) -> void:
 
 
 func _on_robot_defeated() -> void:
-	if game_over_active:
-		return
-	game_over_active = true
-	encounter_director.stop()
-	telegraph_presenter.cancel_all()
-	encounter_runtime.release_all()
-	projectile_root.release_all()
-	impact_feedback_director.cancel_all()
-	impact_feedback_pool.reset_runtime_state()
-	if mobile_controls != null:
-		mobile_controls.set_controls_enabled(false)
-	gameplay_hud.show_game_over()
+	if run_lifecycle != null:
+		run_lifecycle.robot_defeated()
 
 
 func _on_retry_pressed() -> void:
