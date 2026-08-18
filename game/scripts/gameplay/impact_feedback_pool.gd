@@ -11,12 +11,18 @@ const STEEL_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/steel_groan.wav"
 )
 const IMPACT_SPARK: Texture2D = preload("res://art/presentation/impact_spark.png")
+const OVERDRIVE_ACTIVATION_SFX: AudioStream = preload(
+	"res://audio/sfx/rampage/overdrive_activation.wav"
+)
+const COMBO_BREAK_SFX: AudioStream = preload("res://audio/sfx/rampage/combo_break.wav")
 
 @export_range(1, 16, 1) var particle_capacity: int = 8
 @export_range(1, 16, 1) var audio_capacity: int = 8
 
 var last_material_audio: StringName = &""
 var material_audio_play_count: int = 0
+var semantic_audio_play_count: int = 0
+var last_semantic_audio: StringName = &""
 var particle_recycle_count: int = 0
 var particle_drop_count: int = 0
 var audio_recycle_count: int = 0
@@ -111,6 +117,32 @@ func audio_stream_for_material(material_id: StringName) -> AudioStream:
 			return CONCRETE_IMPACT_SFX
 
 
+func play_semantic(
+	cue: StringName,
+	origin: Vector2,
+	priority: int = 6
+) -> AudioStreamPlayer2D:
+	var stream: AudioStream = (
+		OVERDRIVE_ACTIVATION_SFX if cue == &"overdrive" else COMBO_BREAK_SFX
+	)
+	var player: AudioStreamPlayer2D = _acquire_audio_slot(priority)
+	if player == null:
+		audio_drop_count += 1
+		return null
+	player.stop()
+	player.name = "%sCue" % String(cue).capitalize()
+	player.stream = stream
+	player.global_position = origin
+	player.volume_db = -3.0 if cue == &"overdrive" else -5.0
+	player.pitch_scale = 1.0
+	player.set_meta(&"priority", priority)
+	player.set_meta(&"started_msec", Time.get_ticks_msec())
+	last_semantic_audio = cue
+	semantic_audio_play_count += 1
+	player.play()
+	return player
+
+
 func pitch_for_material(material_id: StringName, impact_speed: float) -> float:
 	var speed_pitch: float = clampf(impact_speed / 900.0, 0.0, 0.16)
 	match material_id:
@@ -134,6 +166,8 @@ func reset_runtime_state() -> void:
 	particle_drop_count = 0
 	audio_recycle_count = 0
 	audio_drop_count = 0
+	semantic_audio_play_count = 0
+	last_semantic_audio = &""
 
 
 func particle_child_count() -> int:

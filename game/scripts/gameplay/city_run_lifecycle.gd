@@ -8,6 +8,7 @@ func setup(p_city: CitySlice) -> void:
 	city = p_city
 	city.rampage_session.momentum_meter.momentum_changed.connect(_on_momentum_changed)
 	city.rampage_session.rare_event_tracker.tags_changed.connect(_on_rare_tags_changed)
+	city.rampage_session.combo_tracker.combo_broken.connect(_on_combo_broken)
 	city.overdrive_session.activated.connect(_on_overdrive_activated)
 	city.overdrive_session.time_changed.connect(_on_overdrive_time_changed)
 	city.overdrive_session.ended.connect(_on_overdrive_ended)
@@ -35,6 +36,11 @@ func _on_momentum_changed(value: float, band: int) -> void:
 
 func _on_overdrive_activated(_attack_id: int) -> void:
 	_apply_movement_modifier()
+	city.impact_feedback_pool.play_semantic(
+		&"overdrive",
+		city.robot.global_position,
+		7
+	)
 	city.gameplay_hud.set_overdrive(true, city.overdrive_session.remaining)
 	city.gameplay_hud.set_objective("KINETIC OVERDRIVE / FOUR SECOND BREAKTHROUGH")
 
@@ -61,6 +67,14 @@ func _apply_movement_modifier() -> void:
 
 func _on_rare_tags_changed(tags: PackedStringArray) -> void:
 	city.gameplay_hud.set_rare_tags(tags)
+
+
+func _on_combo_broken() -> void:
+	city.impact_feedback_pool.play_semantic(
+		&"combo_break",
+		city.robot.global_position,
+		6
+	)
 
 
 func _on_encounter_phase_changed(index: int, display_name: String) -> void:

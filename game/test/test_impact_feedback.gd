@@ -106,3 +106,44 @@ func test_accepted_events_coalesce_to_one_strongest_feedback_transaction() -> vo
 	city.impact_feedback_director.cancel_all()
 	assert_false(city.hit_stop.is_active())
 	assert_eq(city.camera_rig.impact_offset, Vector2.ZERO)
+
+
+func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
+	var overdrive_stream: AudioStreamWAV = (
+		ImpactFeedbackPool.OVERDRIVE_ACTIVATION_SFX as AudioStreamWAV
+	)
+	var combo_stream: AudioStreamWAV = ImpactFeedbackPool.COMBO_BREAK_SFX as AudioStreamWAV
+	assert_eq(overdrive_stream.mix_rate, 48000)
+	assert_eq(combo_stream.mix_rate, 48000)
+	assert_eq(overdrive_stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_eq(combo_stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_false(overdrive_stream.stereo)
+	assert_false(combo_stream.stereo)
+	assert_between(overdrive_stream.get_length(), 0.65, 1.0)
+	assert_between(combo_stream.get_length(), 0.18, 0.35)
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.rampage_session.momentum_meter.apply_event(GameplayEvent.new(
+		&"audio_ready",
+		0,
+		GameplayEvent.Kind.DAMAGE_APPLIED,
+		&"",
+		0,
+		100.0
+	))
+	assert_gt(city.contextual_attacks.request_attack(), 0)
+	assert_eq(city.impact_feedback_pool.last_semantic_audio, &"overdrive")
+	city.rampage_session.combo_tracker.register_event(GameplayEvent.new(
+		&"audio_combo",
+		0,
+		GameplayEvent.Kind.PROP_DESTROYED,
+		GameplayEvent.PROP_BREAK,
+		0,
+		0.0,
+		true
+	))
+	city.rampage_session.combo_tracker.advance(4.0)
+	assert_eq(city.impact_feedback_pool.last_semantic_audio, &"combo_break")
+	assert_eq(city.impact_feedback_pool.semantic_audio_play_count, 2)
+	assert_eq(city.impact_feedback_pool.audio_child_count(), 8)
