@@ -26,9 +26,22 @@ printf '%s\n' '[L3] import'
 run_engine "$GODOT" --headless --path . --import
 
 printf '%s\n' '[L1] parse and lint'
+"$GODOT" --version | grep -Fq '4.7.1'
+grep -Fq 'config/features=PackedStringArray("4.7", "GL Compatibility")' project.godot
+grep -Fq 'window/size/viewport_width=1280' project.godot
+grep -Fq 'window/size/viewport_height=720' project.godot
+grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
+grep -Fq 'variant/extensions_support=false' export_presets.cfg
+grep -Fq 'variant/thread_support=false' export_presets.cfg
 CITY_SLICE_LINES="$(wc -l < scripts/gameplay/city_slice.gd)"
 test "$CITY_SLICE_LINES" -le 1000
+test "$CITY_SLICE_LINES" -lt 650
 printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
+test -z "$(find art audio -type f \( -iname '*candidate*' -o -iname '*carrier*' -o -iname '*original*' \) -print -quit)"
+for cue in audio/sfx/rampage/overdrive_activation.wav audio/sfx/rampage/combo_break.wav; do
+  test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
+  test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
+done
 while IFS= read -r -d '' script; do
   gdlint "$script"
   run_engine "$GODOT" --headless --path . --check-only -s "$script"
@@ -95,6 +108,9 @@ if [[ "$MODE" == "full" ]]; then
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.wasm' -size +0c -printf '.' | wc -c)" -ge 1
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.pck' -size +0c -printf '.' | wc -c)" -ge 1
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.js' -size +0c -printf '.' | wc -c)" -ge 1
+  PCK_BYTES="$(stat -c %s ../client/public/game/game.pck)"
+  test "$PCK_BYTES" -le 8388608
+  printf 'pck_bytes=%s\n' "$PCK_BYTES"
   (
     cd ../client/public/game
     find . -maxdepth 1 -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum

@@ -4,6 +4,7 @@ extends EnemyActor2D
 enum State {
 	APPROACH,
 	STRAFE,
+	ANTICIPATE,
 	BREAK,
 }
 
@@ -14,6 +15,7 @@ enum State {
 @export var fire_interval: float = 2.1
 @export var rocket_speed: float = 440.0
 @export var rocket_damage: float = 14.0
+@export var anticipation_duration: float = 0.90
 
 var state: State = State.APPROACH
 var _cooldown: float = 1.0
@@ -29,7 +31,15 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if dead or target == null:
+	if dead or not active or target == null:
+		return
+	if state == State.ANTICIPATE:
+		velocity = velocity.move_toward(Vector2.ZERO, acceleration * delta)
+		if advance_telegraph(delta):
+			_fire_snapshot()
+			state = State.STRAFE
+			_cooldown = fire_interval
+		move_and_slide()
 		return
 	_update_facing()
 	_state_time += delta
@@ -55,12 +65,24 @@ func _physics_process(delta: float) -> void:
 		desired_velocity = global_position.direction_to(desired_point) * maximum_speed
 	velocity = velocity.move_toward(desired_velocity, acceleration * delta)
 	if state == State.STRAFE and _cooldown <= 0.0:
-		_fire_rocket()
-		_cooldown = fire_interval
+		_begin_rocket()
 	move_and_slide()
 
 
-func _fire_rocket() -> void:
+func _begin_rocket() -> void:
 	var origin: Vector2 = global_position + Vector2(float(facing) * 62.0, 18.0)
-	var direction: Vector2 = origin.direction_to(target.global_position)
-	request_projectile(origin, direction, rocket_speed, rocket_damage, &"rocket")
+	if begin_telegraph(&"rocket", anticipation_duration, origin, target.global_position):
+		state = State.ANTICIPATE
+	else:
+		_cooldown = 0.25
+
+
+func _fire_snapshot() -> void:
+	fire_telegraphed_projectile(rocket_speed, rocket_damage)
+
+
+func _reset_archetype_state() -> void:
+	state = State.APPROACH
+	_cooldown = 1.0
+	_state_time = 0.0
+	_attack_side = 1

@@ -57,12 +57,13 @@ func cell_destroyed(
 
 func chain_started(
 	kind: StringName,
+	event: DamageEvent,
 	building: StructuralBuilding2D,
 	robot: GiantRobotController
 ) -> bool:
 	return _session.publish(GameplayEvent.new(
 		StringName("chain:%d" % building.chain_reaction_count),
-		0,
+		event.attack_id,
 		GameplayEvent.Kind.CHAIN_COLLAPSE,
 		GameplayEvent.CHAIN_COLLAPSE,
 		600,
@@ -99,13 +100,14 @@ func building_destroyed(
 
 func prop_destroyed(
 	prop: DestructibleProp2D,
+	event: DamageEvent,
 	points: int,
 	robot: GiantRobotController,
 	_is_car: bool
 ) -> bool:
 	return _session.publish(GameplayEvent.new(
 		StringName("prop:%d" % prop.get_instance_id()),
-		0,
+		event.attack_id,
 		GameplayEvent.Kind.PROP_DESTROYED,
 		GameplayEvent.PROP_BREAK,
 		points,
@@ -115,7 +117,7 @@ func prop_destroyed(
 		&"",
 		robot.get_instance_id(),
 		prop.get_instance_id(),
-		&"destruction"
+		event.damage_type
 	))
 
 

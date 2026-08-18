@@ -1,7 +1,7 @@
 class_name DestructibleProp2D
 extends RigidBody2D
 
-signal destroyed(prop: DestructibleProp2D)
+signal destroyed(prop: DestructibleProp2D, event: DamageEvent)
 
 const REMAINS_LAYER: int = 1 << 9
 const WORLD_LAYER: int = 1 << 0
@@ -40,11 +40,11 @@ func receive_damage(event: DamageEvent) -> bool:
 		_seen_attacks[event.attack_id] = true
 	current_health = maxf(current_health - event.amount, 0.0)
 	if current_health <= 0.0:
-		_break_prop()
+		_break_prop(event)
 	return true
 
 
-func _break_prop() -> void:
+func _break_prop(event: DamageEvent) -> void:
 	is_broken = true
 	visual.texture = destroyed_texture
 	_fit_visual(destroyed_display_size)
@@ -54,7 +54,7 @@ func _break_prop() -> void:
 	freeze = false
 	sleeping = false
 	call_deferred("_apply_destroyed_collision")
-	destroyed.emit(self)
+	destroyed.emit(self, event)
 
 
 func _apply_destroyed_collision() -> void:

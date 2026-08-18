@@ -46,6 +46,8 @@ func _run() -> void:
 		"soldier=%s tank=%s helicopter=%s"
 		% [city.soldier != null, city.tank != null, city.helicopter != null]
 	)
+	for pooled_enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		pooled_enemy.set_physics_process(false)
 	city.robot.set_physics_process(false)
 	var initial_x: float = city.robot.position.x
 	for frame_index: int in range(90):
@@ -62,32 +64,32 @@ func _run() -> void:
 	_check("robot_turns", city.robot.facing == -1, "facing=%s" % city.robot.facing)
 	city.car.current_health = 1.0
 	city.streetlamp.current_health = 1.0
-	for row: int in range(StructuralBuilding2D.ROWS):
-		for column: int in range(StructuralBuilding2D.COLUMNS):
-			city.building.get_cell(column, row).current_health = 1.0
-	city.robot.stomp_radius = 950.0
-	city.robot.stomp_damage = 300.0
+	city.robot.position = Vector2(1150.0, 460.0)
+	city.robot.stomp_radius = 500.0
+	city.robot.stomp_damage = 200.0
 	city.trigger_test_stomp()
 	await physics_frame
 	await physics_frame
 	await physics_frame
 	_check(
-		"ground_smash_leaves_building_intact",
-		city.building.destroyed_cell_count() == 0,
+		"ground_smash_damages_building",
+		city.building.destroyed_cell_count() == 1,
 		"cells=%d" % city.building.destroyed_cell_count()
 	)
-	for column: int in range(StructuralBuilding2D.COLUMNS):
+	var drive_columns: Array[int] = [1, 2, 2]
+	for drive_index: int in range(drive_columns.size()):
 		for settle_frame: int in range(45):
 			if not city.contextual_attacks.is_busy():
 				break
 			await process_frame
+		var column: int = drive_columns[drive_index]
 		city.robot.position = Vector2(1100.0 + float(column) * 167.0, 460.0)
 		city.robot.facing = 1
 		city.robot.velocity.x = city.robot.max_speed * 0.8
 		var attack_id: int = city.robot.request_attack()
 		var spec: AttackSpec = city.contextual_attacks.current_spec
 		_check(
-			"drive_%d_commits" % column,
+			"drive_%d_commits" % drive_index,
 			attack_id > 0 and spec != null and spec.is_shoulder_drive(),
 			"attack_id=%d" % attack_id
 		)
@@ -109,6 +111,59 @@ func _run() -> void:
 		city.debris_pool.active_count() > 0,
 		"active=%s" % city.debris_pool.active_count()
 	)
+	city.overdrive_session.end_overdrive()
+	city.rampage_session.momentum_meter.reset_run()
+	for pressure_tick: int in range(900):
+		city.rampage_session.advance(0.75, 0.1)
+	_check(
+		"pressure_trace_reaches_ready",
+		city.rampage_session.momentum_meter.is_ready(),
+		"momentum=%.1f" % city.rampage_session.momentum_value()
+	)
+	for settle_frame: int in range(45):
+		if not city.contextual_attacks.is_busy():
+			break
+		await process_frame
+	city.robot.velocity.x = 0.0
+	var overdrive_attack: int = city.robot.request_attack()
+	_check(
+		"overdrive_activates_from_smash",
+		overdrive_attack > 0 and city.overdrive_session.active,
+		"attack_id=%d active=%s" % [overdrive_attack, city.overdrive_session.active]
+	)
+	city.overdrive_session._process(4.0)
+	_check(
+		"overdrive_restores_modifiers",
+		not city.overdrive_session.active
+		and is_equal_approx(city.robot.acceleration_multiplier, 1.0),
+		"active=%s acceleration=%.2f"
+		% [city.overdrive_session.active, city.robot.acceleration_multiplier]
+	)
+	var warned: bool = city.tank.begin_telegraph(
+		&"shell",
+		0.75,
+		city.tank.global_position,
+		city.robot.global_position
+	)
+	_check(
+		"heavy_warning_reserves",
+		warned and city.projectile_root.reservation_count(&"shell") == 1,
+		"warned=%s reservations=%d"
+		% [warned, city.projectile_root.reservation_count(&"shell")]
+	)
+	city.tank.cancel_telegraph()
+	_check(
+		"warning_cancel_is_atomic",
+		city.telegraph_presenter.active_count() == 0
+		and city.projectile_root.reservation_count(&"shell") == 0,
+		"warnings=%d reservations=%d"
+		% [
+			city.telegraph_presenter.active_count(),
+			city.projectile_root.reservation_count(&"shell"),
+		]
+	)
+	var cap_errors: PackedStringArray = RuntimeBudget.validation_errors(city)
+	_check("runtime_caps_hold", cap_errors.is_empty(), "errors=%s" % cap_errors)
 	var shot_status: String = "SKIP"
 	var shot_path: String = ""
 	if DisplayServer.get_name() == "headless":
@@ -128,6 +183,34 @@ func _run() -> void:
 		)
 		shot_status = "PASS" if save_error == OK else "FAIL"
 		shot_path = SHOT_PATH
+	city.robot.receive_damage(DamageEvent.new(
+		99901,
+		city.tank,
+		city.robot.current_health + 1.0,
+		&"shell",
+		city.robot.global_position
+	))
+	await process_frame
+	_check(
+		"defeat_freezes_run",
+		city.game_over_active and city.rampage_session.frozen_summary != null,
+		"game_over=%s summary=%s"
+		% [city.game_over_active, city.rampage_session.frozen_summary != null]
+	)
+	root.remove_child(city)
+	city.queue_free()
+	var retry_city: CitySlice = scene.instantiate() as CitySlice
+	root.add_child(retry_city)
+	await process_frame
+	await process_frame
+	_check(
+		"retry_is_fresh",
+		retry_city.score == 0
+		and is_zero_approx(retry_city.rampage_session.momentum_value())
+		and RuntimeBudget.validation_errors(retry_city).is_empty(),
+		"score=%d momentum=%.1f"
+		% [retry_city.score, retry_city.rampage_session.momentum_value()]
+	)
 	_check(
 		"frame_budget",
 		elapsed_frames <= MAX_FRAMES,

@@ -27,13 +27,19 @@ const REMAINS_LAYER: int = 1 << 9
 var last_query_count: int = 0
 var last_accepted_targets: int = 0
 var last_velocity_retention: float = 1.0
+var last_opening_compression: bool = false
 var _shape: RectangleShape2D = RectangleShape2D.new()
 
 
 func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 	if spec == null or robot == null or not spec.is_shoulder_drive():
 		return 0
-	_shape.size = spec.hit_size
+	last_opening_compression = spec.opening_compression
+	_shape.size = (
+		spec.hit_size * Vector2(1.20, 1.08)
+		if spec.opening_compression
+		else spec.hit_size
+	)
 	var parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
 	parameters.shape = _shape
 	parameters.transform = Transform2D(

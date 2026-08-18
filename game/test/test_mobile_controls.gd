@@ -89,13 +89,12 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	assert_true(city.contextual_attacks.current_spec.is_ground_smash())
 	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
 	assert_eq(city.mobile_controls.smash_touch_index(), 8)
-	assert_eq(city.mobile_controls.haptic_request_count, 0)
+	assert_eq(city.haptics_adapter.request_count, 0)
 	await get_tree().create_timer(0.14).timeout
-	assert_eq(city.mobile_controls.last_haptic_duration_ms, 28)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
-	assert_eq(city.mobile_controls.haptic_request_count, 1)
+	assert_eq(city.haptics_adapter.request_count, 1)
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(8, smash_position, false)
 	)
@@ -109,7 +108,7 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
 	assert_eq(city.mobile_controls.smash_touch_index(), 9)
 	await get_tree().create_timer(0.11).timeout
-	assert_eq(city.mobile_controls.haptic_request_count, 2)
+	assert_eq(city.haptics_adapter.request_count, 2)
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(9, smash_position, false)
 	)
@@ -128,14 +127,15 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 			)
 		)
 	)
-	assert_eq(city.mobile_controls.haptic_request_count, 3)
-	assert_eq(city.mobile_controls.last_haptic_duration_ms, 48)
+	await get_tree().process_frame
+	assert_eq(city.haptics_adapter.request_count, 3)
+	assert_eq(city.haptics_adapter.last_duration_ms, 52)
 	city.robot.receive_damage(DamageEvent.new(9201, null, 9999.0))
 	assert_true(city.game_over_active)
 	assert_false(city.mobile_controls.joystick_active)
 	assert_eq(city.mobile_controls.movement_axis(), 0.0)
-	city.mobile_controls.play_building_destruction_haptic(0, 0, null)
-	assert_eq(city.mobile_controls.haptic_request_count, 3)
+	assert_eq(city.mobile_controls.joystick_touch_index(), -1)
+	assert_eq(city.mobile_controls.smash_touch_index(), -1)
 	_record_test_execution()
 
 

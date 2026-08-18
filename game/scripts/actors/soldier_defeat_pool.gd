@@ -1,9 +1,10 @@
 class_name SoldierDefeatPool
 extends Node2D
 
-@export_range(1, 24, 1) var capacity: int = 8
+@export_range(1, 24, 1) var capacity: int = RuntimeBudget.SOLDIER_DEFEATS
 
 var recycle_count: int = 0
+var peak_active_count: int = 0
 var _free: Array[SoldierDefeatBody2D] = []
 var _active: Array[SoldierDefeatBody2D] = []
 
@@ -27,6 +28,7 @@ func acquire(
 		recycle_count += 1
 	var body: SoldierDefeatBody2D = _free.pop_back()
 	_active.append(body)
+	peak_active_count = maxi(peak_active_count, _active.size())
 	body.activate(world_position, facing, impact_event)
 	return body
 

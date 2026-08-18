@@ -10,6 +10,7 @@ signal attack_finished(spec: AttackSpec)
 var current_spec: AttackSpec
 var resolver: AttackResolver
 var drive_impact: ShoulderDriveImpact
+var overdrive_session: OverdriveSession
 var _robot: GiantRobotController
 var _visual_root: Node2D
 var _rest_position: Vector2
@@ -20,6 +21,10 @@ var _busy: bool = false
 
 func setup(robot: GiantRobotController) -> void:
 	_robot = robot
+
+
+func set_overdrive_session(session: OverdriveSession) -> void:
+	overdrive_session = session
 
 
 func _ready() -> void:
@@ -43,14 +48,28 @@ func request_attack() -> int:
 	if _busy or _robot == null or not _robot.can_request_attack():
 		return 0
 	var attack_id: int = _robot.reserve_attack_id()
+	var overdrive_started: bool = (
+		overdrive_session.consume_ready_for_attack(attack_id)
+		if overdrive_session != null
+		else false
+	)
 	var speed_ratio: float = absf(_robot.velocity.x) / maxf(_robot.max_speed, 1.0)
+	var force_multiplier: float = (
+		overdrive_session.force_multiplier() if overdrive_session != null else 1.0
+	)
+	var structure_multiplier: float = (
+		overdrive_session.structure_multiplier() if overdrive_session != null else 1.0
+	)
 	current_spec = resolver.resolve(
 		attack_id,
 		_robot.facing,
 		speed_ratio,
 		_robot.stomp_damage,
 		_robot.stomp_impulse_per_mass,
-		_robot.stomp_radius
+		_robot.stomp_radius,
+		force_multiplier,
+		structure_multiplier,
+		overdrive_started
 	)
 	_busy = true
 	_robot.notify_attack_selected(current_spec.mode, current_spec.attack_id)

@@ -11,6 +11,7 @@ signal aerial_impact_accepted(
 @export_range(1, 128, 1) var capacity: int = 48
 
 var recycle_count: int = 0
+var peak_active_count: int = 0
 var _free: Array[DebrisBody2D] = []
 var _active: Array[DebrisBody2D] = []
 
@@ -48,6 +49,7 @@ func acquire(
 		recycle_count += 1
 	var body: DebrisBody2D = _free.pop_back()
 	_active.append(body)
+	peak_active_count = maxi(peak_active_count, _active.size())
 	body.activate(
 		spawn_transform,
 		linear_impulse,

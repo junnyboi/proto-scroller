@@ -1,0 +1,82 @@
+class_name RuntimeBudget
+extends RefCounted
+
+const SOLDIERS: int = 6
+const TANKS: int = 2
+const HELICOPTERS: int = 1
+const BULLETS: int = 16
+const SHELLS: int = 4
+const ROCKETS: int = 4
+const STRUCTURAL_DEBRIS: int = 24
+const ENEMY_SCRAP: int = 32
+const SOLDIER_DEFEATS: int = 8
+const WRECKS: int = 4
+const PARTICLE_SLOTS: int = 8
+const AUDIO_VOICES: int = 8
+const RARE_TAG_ROWS: int = 3
+const TELEGRAPH_RECORDS: int = 12
+const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
+
+
+static func snapshot(city: CitySlice) -> Dictionary:
+	return {
+		"node_count": _count_nodes(city),
+		"enemy_total": city.encounter_runtime.total_count(),
+		"enemy_active": city.encounter_runtime.active_count(),
+		"enemy_post_warm_creations": city.encounter_runtime.post_warm_creation_count,
+		"projectile_total": city.projectile_root.total_count(),
+		"projectile_active": city.projectile_root.active_count(),
+		"structural_debris_total": (
+			city.debris_pool.active_count() + city.debris_pool.available_count()
+		),
+		"structural_debris_peak": city.debris_pool.peak_active_count,
+		"enemy_scrap_total": (
+			city.enemy_scrap_pool.active_count() + city.enemy_scrap_pool.available_count()
+		),
+		"enemy_scrap_peak": city.enemy_scrap_pool.peak_active_count,
+		"soldier_defeat_total": city.soldier_defeat_pool.total_count(),
+		"soldier_defeat_peak": city.soldier_defeat_pool.peak_active_count,
+		"wreck_total": city.enemy_remains_factory.total_count(),
+		"wreck_peak": city.enemy_remains_factory.peak_active_count,
+		"particle_slots": city.impact_feedback_pool.particle_child_count(),
+		"audio_voices": city.impact_feedback_pool.audio_child_count(),
+		"telegraph_active": city.telegraph_presenter.active_count(),
+		"telegraph_peak": city.telegraph_presenter.peak_active_count,
+		"rare_rows": city.gameplay_hud.rare_labels.size(),
+	}
+
+
+static func validation_errors(city: CitySlice) -> PackedStringArray:
+	var data: Dictionary = snapshot(city)
+	var errors: PackedStringArray = []
+	_check_equal(errors, data, "enemy_total", SOLDIERS + TANKS + HELICOPTERS)
+	_check_equal(errors, data, "projectile_total", BULLETS + SHELLS + ROCKETS)
+	_check_equal(errors, data, "structural_debris_total", STRUCTURAL_DEBRIS)
+	_check_equal(errors, data, "enemy_scrap_total", ENEMY_SCRAP)
+	_check_equal(errors, data, "soldier_defeat_total", SOLDIER_DEFEATS)
+	_check_equal(errors, data, "wreck_total", WRECKS)
+	_check_equal(errors, data, "particle_slots", PARTICLE_SLOTS)
+	_check_equal(errors, data, "audio_voices", AUDIO_VOICES)
+	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
+	_check_equal(errors, data, "enemy_post_warm_creations", 0)
+	if int(data.telegraph_peak) > TELEGRAPH_RECORDS:
+		errors.append("telegraph_peak=%d cap=%d" % [data.telegraph_peak, TELEGRAPH_RECORDS])
+	return errors
+
+
+static func _check_equal(
+	errors: PackedStringArray,
+	data: Dictionary,
+	key: String,
+	expected: int
+) -> void:
+	var actual: int = int(data[key])
+	if actual != expected:
+		errors.append("%s=%d expected=%d" % [key, actual, expected])
+
+
+static func _count_nodes(root: Node) -> int:
+	var count: int = 1
+	for child: Node in root.get_children():
+		count += _count_nodes(child)
+	return count

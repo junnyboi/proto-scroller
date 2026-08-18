@@ -21,10 +21,19 @@ const PROJECTILE_POOL_SCRIPT: Script = preload("res://scripts/combat/projectile_
 const IMPACT_FEEDBACK_SCRIPT: Script = preload(
 	"res://scripts/gameplay/impact_feedback_pool.gd"
 )
+const HIT_STOP_SCRIPT: Script = preload("res://scripts/feedback/hit_stop_lease.gd")
+const HAPTICS_SCRIPT: Script = preload("res://scripts/input/haptics_adapter.gd")
+const FEEDBACK_DIRECTOR_SCRIPT: Script = preload(
+	"res://scripts/feedback/impact_feedback_director.gd"
+)
 const ENEMY_REMAINS_FACTORY_SCRIPT: Script = preload(
 	"res://scripts/actors/enemy_remains_factory.gd"
 )
 const RAMPAGE_SESSION_SCRIPT: Script = preload("res://scripts/rampage/rampage_session.gd")
+const OVERDRIVE_SCRIPT: Script = preload("res://scripts/rampage/overdrive_session.gd")
+const RUN_LIFECYCLE_SCRIPT: Script = preload(
+	"res://scripts/gameplay/city_run_lifecycle.gd"
+)
 const RAMPAGE_EVENT_ADAPTER_SCRIPT: Script = preload(
 	"res://scripts/rampage/rampage_event_adapter.gd"
 )
@@ -34,9 +43,21 @@ const STRUCTURAL_BUILDING_SCRIPT: Script = preload(
 	"res://scripts/destruction/structural_building_2d.gd"
 )
 const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop_2d.gd")
-const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
-const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
-const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
+const ENCOUNTER_RUNTIME_SCRIPT: Script = preload(
+	"res://scripts/encounter/encounter_runtime.gd"
+)
+const ENCOUNTER_DIRECTOR_SCRIPT: Script = preload(
+	"res://scripts/encounter/encounter_director.gd"
+)
+const TELEGRAPH_SCRIPT: Script = preload(
+	"res://scripts/encounter/telegraph_presenter_2d.gd"
+)
+const CONTACT_WAVE: EnemyWave = preload("res://resources/encounters/wave_01_contact.tres")
+const ARMOR_WAVE: EnemyWave = preload("res://resources/encounters/wave_02_armor.tres")
+const AIR_WAVE: EnemyWave = preload("res://resources/encounters/wave_03_air.tres")
+const RETALIATION_WAVE: EnemyWave = preload(
+	"res://resources/encounters/wave_04_retaliation.tres"
+)
 const SOLDIER_DEFEAT_POOL_SCRIPT: Script = preload(
 	"res://scripts/actors/soldier_defeat_pool.gd"
 )
@@ -72,11 +93,20 @@ var gameplay_hud: GameplayHud
 var projectile_root: ProjectilePool
 var impact_audio_root: Node2D
 var impact_feedback_pool: ImpactFeedbackPool
+var hit_stop: HitStopLease
+var haptics_adapter: HapticsAdapter
+var impact_feedback_director: ImpactFeedbackDirector
+var camera_rig: CameraRig
 var enemy_remains_root: Node2D
 var enemy_remains_factory: EnemyRemainsFactory
 var rampage_session: RampageSession
 var rampage_events: RampageEventAdapter
+var overdrive_session: OverdriveSession
+var run_lifecycle: CityRunLifecycle
 var contextual_attacks: ContextualAttackController
+var telegraph_presenter: TelegraphPresenter2D
+var encounter_runtime: EncounterRuntime
+var encounter_director: EncounterDirector
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
@@ -120,10 +150,20 @@ func _ready() -> void:
 	contextual_attacks.name = "ContextualAttackController"
 	contextual_attacks.setup(robot)
 	add_child(contextual_attacks)
+	overdrive_session = OVERDRIVE_SCRIPT.new() as OverdriveSession
+	overdrive_session.name = "OverdriveSession"
+	overdrive_session.setup(rampage_session.momentum_meter, robot)
+	add_child(overdrive_session)
+	contextual_attacks.set_overdrive_session(overdrive_session)
 	_build_destructibles()
 	_build_enemies()
 	CityWorldBuilder.build_camera(self, robot)
+	camera_rig = get_node(^"CameraRig") as CameraRig
 	_build_hud()
+	run_lifecycle = RUN_LIFECYCLE_SCRIPT.new() as CityRunLifecycle
+	run_lifecycle.name = "CityRunLifecycle"
+	run_lifecycle.setup(self)
+	add_child(run_lifecycle)
 
 
 func _process(delta: float) -> void:
@@ -146,12 +186,13 @@ func _build_services() -> void:
 	rampage_session.name = "RampageSession"
 	rampage_session.run_score.score_changed.connect(_on_score_changed)
 	rampage_session.combo_tracker.combo_changed.connect(_on_combo_changed)
-	rampage_session.momentum_meter.momentum_changed.connect(_on_momentum_changed)
 	add_child(rampage_session)
 	rampage_events = RAMPAGE_EVENT_ADAPTER_SCRIPT.new(rampage_session) as RampageEventAdapter
 	projectile_root = PROJECTILE_POOL_SCRIPT.new() as ProjectilePool
 	projectile_root.name = "ProjectileRoot"
-	projectile_root.capacity = 24
+	projectile_root.capacity = (
+		RuntimeBudget.BULLETS + RuntimeBudget.SHELLS + RuntimeBudget.ROCKETS
+	)
 	projectile_root.z_index = 45
 	add_child(projectile_root)
 	impact_audio_root = Node2D.new()
@@ -165,11 +206,16 @@ func _build_services() -> void:
 	impact_feedback_pool.name = "ImpactFeedbackPool"
 	impact_feedback_pool.setup(self, impact_audio_root)
 	add_child(impact_feedback_pool)
+	hit_stop = HIT_STOP_SCRIPT.new() as HitStopLease
+	hit_stop.name = "HitStopLease"
+	hit_stop.enabled = DisplayServer.get_name() != "headless"
+	add_child(hit_stop)
 	destruction_director = DIRECTOR_SCRIPT.new() as DestructionDirector
 	destruction_director.name = "DestructionDirector"
 	destruction_director.max_results = 64
 	destruction_director.blast_mask = (
-		PROP_LAYER
+		HURTBOX_LAYER
+		| PROP_LAYER
 		| ENEMY_LAYER
 		| DEBRIS_LAYER
 		| REMAINS_LAYER
@@ -177,18 +223,18 @@ func _build_services() -> void:
 	add_child(destruction_director)
 	debris_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
 	debris_pool.name = "BuildingDebrisPool"
-	debris_pool.capacity = 24
+	debris_pool.capacity = RuntimeBudget.STRUCTURAL_DEBRIS
 	debris_pool.z_index = 30
 	debris_pool.aerial_impact_accepted.connect(_on_aerial_impact_accepted)
 	add_child(debris_pool)
 	enemy_scrap_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
 	enemy_scrap_pool.name = "EnemyScrapPool"
-	enemy_scrap_pool.capacity = 32
+	enemy_scrap_pool.capacity = RuntimeBudget.ENEMY_SCRAP
 	enemy_scrap_pool.z_index = 31
 	add_child(enemy_scrap_pool)
 	soldier_defeat_pool = SOLDIER_DEFEAT_POOL_SCRIPT.new() as SoldierDefeatPool
 	soldier_defeat_pool.name = "SoldierDefeatPool"
-	soldier_defeat_pool.capacity = 8
+	soldier_defeat_pool.capacity = RuntimeBudget.SOLDIER_DEFEATS
 	soldier_defeat_pool.z_index = 28
 	enemy_remains_root.add_child(soldier_defeat_pool)
 	enemy_remains_factory = ENEMY_REMAINS_FACTORY_SCRIPT.new() as EnemyRemainsFactory
@@ -296,94 +342,51 @@ func _create_prop(
 
 
 func _build_enemies() -> void:
-	soldier = _create_enemy(
-		SOLDIER_SCRIPT,
-		SOLDIER_TEXTURE,
-		Vector2(1320.0, 542.5),
-		Vector2(68.0, 108.0),
-		Vector2(42.0, 95.0)
-	) as SoldierEnemy
-	tank = _create_enemy(
-		TANK_SCRIPT,
-		TANK_TEXTURE,
-		Vector2(1700.0, 551.0),
-		Vector2(235.0, 100.0),
-		Vector2(220.0, 78.0)
-	) as TankEnemy
-	helicopter = _create_enemy(
-		HELICOPTER_SCRIPT,
-		HELICOPTER_TEXTURE,
-		Vector2(1500.0, 180.0),
-		Vector2(235.0, 72.0),
-		Vector2(210.0, 58.0)
-	) as HelicopterEnemy
-	helicopter.collision_mask = 0
-	soldier.died.connect(_on_enemy_died.bind(500))
-	tank.died.connect(_on_enemy_died.bind(1500))
-	helicopter.died.connect(_on_enemy_died.bind(1200))
-
-
-func _create_enemy(
-	script: Script,
-	texture: Texture2D,
-	position_value: Vector2,
-	display_size: Vector2,
-	collision_size: Vector2
-) -> EnemyActor2D:
-	var enemy: EnemyActor2D = script.new() as EnemyActor2D
-	enemy.position = position_value
-	enemy.collision_layer = ENEMY_LAYER
-	enemy.collision_mask = WORLD_LAYER
-	enemy.z_index = 30
-	enemy.set_meta(&"combat_team", &"enemy")
-	var visual: Sprite2D = CityWorldBuilder.fit_sprite(texture, display_size)
-	visual.name = "Visual"
-	if enemy is SoldierEnemy or enemy is TankEnemy:
-		var rendered_height: float = texture.get_size().y * absf(visual.scale.y)
-		visual.position.y = (
-			LAND_VISUAL_BASELINE_Y - position_value.y - rendered_height * 0.5
-		)
-		enemy.movement_bounce_enabled = true
-		if enemy is SoldierEnemy:
-			enemy.bounce_height = 5.5
-			enemy.bounce_frequency = 3.8
-			enemy.bounce_squash = 0.055
-			enemy.bounce_speed_reference = 92.0
-		else:
-			enemy.bounce_height = 2.5
-			enemy.bounce_frequency = 2.2
-			enemy.bounce_squash = 0.025
-			enemy.bounce_speed_reference = 62.0
-	enemy.add_child(visual)
-	var collision: CollisionShape2D = CollisionShape2D.new()
-	var rectangle: RectangleShape2D = RectangleShape2D.new()
-	rectangle.size = collision_size
-	collision.shape = rectangle
-	enemy.add_child(collision)
-	var hurtbox: Area2D = Area2D.new()
-	hurtbox.collision_layer = HURTBOX_LAYER
-	hurtbox.collision_mask = 0
-	var hurt_shape: CollisionShape2D = CollisionShape2D.new()
-	var hurt_rectangle: RectangleShape2D = RectangleShape2D.new()
-	hurt_rectangle.size = collision_size * 1.12
-	hurt_shape.shape = hurt_rectangle
-	hurtbox.add_child(hurt_shape)
-	enemy.add_child(hurtbox)
-	enemy.set_target(robot)
-	enemy.projectile_requested.connect(_on_projectile_requested)
-	add_child(enemy)
-	return enemy
+	telegraph_presenter = TELEGRAPH_SCRIPT.new() as TelegraphPresenter2D
+	telegraph_presenter.name = "TelegraphPresenter"
+	add_child(telegraph_presenter)
+	encounter_runtime = ENCOUNTER_RUNTIME_SCRIPT.new() as EncounterRuntime
+	encounter_runtime.name = "EncounterRuntime"
+	encounter_runtime.setup(robot, telegraph_presenter, projectile_root)
+	encounter_runtime.projectile_requested.connect(_on_projectile_requested)
+	encounter_runtime.enemy_died.connect(_on_enemy_died)
+	add_child(encounter_runtime)
+	soldier = encounter_runtime.soldiers[0]
+	tank = encounter_runtime.tanks[0]
+	helicopter = encounter_runtime.helicopters[0]
+	encounter_director = ENCOUNTER_DIRECTOR_SCRIPT.new() as EncounterDirector
+	encounter_director.name = "EncounterDirector"
+	var waves: Array[EnemyWave] = [CONTACT_WAVE, ARMOR_WAVE, AIR_WAVE, RETALIATION_WAVE]
+	encounter_director.setup(encounter_runtime, waves)
+	add_child(encounter_director)
+	if DisplayServer.get_name() == "headless":
+		encounter_runtime.acquire(&"soldier", Vector2(1320.0, 542.5))
+		encounter_runtime.acquire(&"tank", Vector2(1700.0, 551.0))
+		encounter_runtime.acquire(&"helicopter", Vector2(1500.0, 180.0))
+	else:
+		encounter_director.start()
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
 	gameplay_hud.setup(robot)
 	gameplay_hud.retry_pressed.connect(_on_retry_pressed)
 	add_child(gameplay_hud)
+	haptics_adapter = HAPTICS_SCRIPT.new() as HapticsAdapter
+	haptics_adapter.name = "HapticsAdapter"
+	haptics_adapter.setup(mobile_detection_override)
+	add_child(haptics_adapter)
 	mobile_controls = MOBILE_CONTROLS_SCRIPT.new() as MobileControls
 	mobile_controls.setup(robot, mobile_detection_override)
-	building.cell_destroyed.connect(
-		mobile_controls.play_building_destruction_haptic
-	)
 	gameplay_hud.add_child(mobile_controls)
+	impact_feedback_director = FEEDBACK_DIRECTOR_SCRIPT.new() as ImpactFeedbackDirector
+	impact_feedback_director.name = "ImpactFeedbackDirector"
+	impact_feedback_director.setup(
+		rampage_session.event_hub,
+		hit_stop,
+		camera_rig,
+		haptics_adapter,
+		robot
+	)
+	add_child(impact_feedback_director)
 func _on_robot_heavy_impact(
 	origin: Vector2,
 	radius: float,
@@ -426,7 +429,7 @@ func _material_for_target(
 
 func _on_building_damage_applied(amount: float, event: DamageEvent) -> void:
 	rampage_events.building_damage(amount, event, building, robot)
-	if event.damage_type != &"shoulder_drive":
+	if event.damage_type in [&"floor_chain", &"steel_support_chain"]:
 		return
 	var material_profile: StructuralMaterialProfile = _material_for_target(
 		building,
@@ -453,8 +456,8 @@ func _on_building_cell_destroyed(
 	rampage_events.cell_destroyed(column, row, event, building, robot)
 
 
-func _on_building_chain_reaction_started(kind: StringName) -> void:
-	rampage_events.chain_started(kind, building, robot)
+func _on_building_chain_reaction_started(kind: StringName, event: DamageEvent) -> void:
+	rampage_events.chain_started(kind, event, building, robot)
 	if kind == &"steel_support_chain":
 		gameplay_hud.set_objective("STEEL SUPPORT FAILURE / CASCADE ACTIVE")
 	else:
@@ -491,8 +494,8 @@ func _on_building_destroyed(event: DamageEvent) -> void:
 	rampage_events.building_destroyed(event, building, robot)
 
 
-func _on_prop_destroyed(prop: DestructibleProp2D, points: int) -> void:
-	rampage_events.prop_destroyed(prop, points, robot, prop == car)
+func _on_prop_destroyed(prop: DestructibleProp2D, event: DamageEvent, points: int) -> void:
+	rampage_events.prop_destroyed(prop, event, points, robot, prop == car)
 
 
 func _on_enemy_died(
@@ -503,12 +506,14 @@ func _on_enemy_died(
 	rampage_events.enemy_defeated(enemy, event, points, robot)
 	if enemy is SoldierEnemy:
 		_spawn_soldier_defeat_body(enemy, event)
+		encounter_runtime.release_deferred(enemy)
 		return
 	var wreck: EnemyWreck2D = enemy_remains_factory.spawn_wreck(enemy, event)
 	if enemy is TankEnemy:
 		tank_wreck = wreck
 	else:
 		helicopter_wreck = wreck
+	encounter_runtime.release_deferred(enemy)
 
 
 func _spawn_soldier_defeat_body(
@@ -569,15 +574,6 @@ func _on_combo_changed(multiplier: int, grace_remaining: float) -> void:
 		gameplay_hud.set_combo(multiplier, grace_remaining)
 
 
-func _on_momentum_changed(value: float, band: int) -> void:
-	if robot != null:
-		robot.set_acceleration_multiplier(
-			rampage_session.momentum_meter.acceleration_multiplier()
-		)
-	if gameplay_hud != null:
-		gameplay_hud.set_momentum(value, band)
-
-
 func _on_projectile_requested(
 	origin: Vector2,
 	direction: Vector2,
@@ -586,7 +582,15 @@ func _on_projectile_requested(
 	kind: StringName,
 	source: Node
 ) -> void:
-	projectile_root.acquire(origin, direction, speed, damage, source, ROBOT_LAYER, kind)
+	projectile_root.acquire(
+		origin,
+		direction,
+		speed,
+		damage,
+		source,
+		ROBOT_LAYER | BUILDING_LAYER,
+		kind
+	)
 
 
 func _on_robot_health_changed(current: float, maximum: float) -> void:
@@ -595,16 +599,8 @@ func _on_robot_health_changed(current: float, maximum: float) -> void:
 
 
 func _on_robot_defeated() -> void:
-	if game_over_active:
-		return
-	game_over_active = true
-	for enemy: EnemyActor2D in [soldier, tank, helicopter]:
-		if enemy != null:
-			enemy.set_physics_process(false)
-	projectile_root.process_mode = Node.PROCESS_MODE_DISABLED
-	if mobile_controls != null:
-		mobile_controls.set_controls_enabled(false)
-	gameplay_hud.show_game_over()
+	if run_lifecycle != null:
+		run_lifecycle.robot_defeated()
 
 
 func _on_retry_pressed() -> void:

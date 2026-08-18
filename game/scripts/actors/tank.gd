@@ -4,6 +4,7 @@ extends EnemyActor2D
 enum State {
 	ADVANCE,
 	AIM,
+	ANTICIPATE,
 	REVERSE,
 }
 
@@ -14,6 +15,7 @@ enum State {
 @export var fire_interval: float = 2.75
 @export var shell_speed: float = 560.0
 @export var shell_damage: float = 20.0
+@export var anticipation_duration: float = 0.75
 @export var gravity: float = 1400.0
 
 var state: State = State.ADVANCE
@@ -26,7 +28,16 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if dead:
+	if dead or not active:
+		return
+	if state == State.ANTICIPATE:
+		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
+		if advance_telegraph(delta):
+			_fire_snapshot()
+			state = State.AIM
+			_cooldown = fire_interval
+		move_and_slide()
+		update_movement_bounce(delta)
 		return
 	velocity.y = minf(velocity.y + gravity * delta, 900.0)
 	if target == null:
@@ -49,15 +60,25 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, desired_speed, acceleration * delta)
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	if state == State.AIM and _cooldown <= 0.0:
-		_fire_shell()
-		_cooldown = fire_interval
+		_begin_shell()
 	move_and_slide()
 	update_movement_bounce(delta)
 
 
-func _fire_shell() -> void:
+func _begin_shell() -> void:
 	var cannon_y: float = visual.position.y - 22.0 if visual != null else -48.0
 	var origin: Vector2 = global_position + Vector2(float(facing) * 112.0, cannon_y)
 	var target_point: Vector2 = target.global_position + Vector2(0.0, 35.0)
-	var direction: Vector2 = origin.direction_to(target_point)
-	request_projectile(origin, direction, shell_speed, shell_damage, &"shell")
+	if begin_telegraph(&"shell", anticipation_duration, origin, target_point):
+		state = State.ANTICIPATE
+	else:
+		_cooldown = 0.20
+
+
+func _fire_snapshot() -> void:
+	fire_telegraphed_projectile(shell_speed, shell_damage)
+
+
+func _reset_archetype_state() -> void:
+	state = State.ADVANCE
+	_cooldown = 1.25

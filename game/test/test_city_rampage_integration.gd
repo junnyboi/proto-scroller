@@ -104,7 +104,15 @@ func test_chain_collapse_bonus_uses_approved_tag_score_and_momentum() -> void:
 	city.rampage_session.event_hub.event_published.connect(
 		func(event: GameplayEvent) -> void: published.append(event)
 	)
-	assert_true(city.rampage_events.chain_started(&"floor_chain", city.building, city.robot))
+	var chain_event: DamageEvent = DamageEvent.new(771, city.robot, 120.0, &"ground_smash")
+	assert_true(
+		city.rampage_events.chain_started(
+			&"floor_chain",
+			chain_event,
+			city.building,
+			city.robot
+		)
+	)
 	assert_eq(city.score, 600)
 	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.momentum_value(), 24.0)
