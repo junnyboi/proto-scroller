@@ -100,7 +100,7 @@ func test_materials_change_resistance_debris_and_particles() -> void:
 			6000 + column,
 			city.robot,
 			64.8,
-			&"shoulder_drive",
+			&"jab_cross",
 			cell.global_position,
 			Vector2.RIGHT,
 			207.0
@@ -185,7 +185,7 @@ func test_robot_is_immune_to_self_and_player_team_damage() -> void:
 	_record_test_execution()
 
 
-func test_shoulder_drive_destroys_only_the_struck_lower_bay() -> void:
+func test_jab_cross_destroys_only_the_struck_lower_bay() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -278,7 +278,7 @@ func test_all_steel_supports_trigger_building_wide_chain_reaction() -> void:
 	_record_test_execution()
 
 
-func test_walking_stops_at_building_until_shoulder_drive_opens_one_bay() -> void:
+func test_walking_stops_at_building_until_jab_cross_opens_one_bay() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -297,7 +297,7 @@ func test_walking_stops_at_building_until_shoulder_drive_opens_one_bay() -> void
 	city.robot.velocity.x = city.robot.max_speed * 0.8
 	var attack_id: int = city.robot.request_attack()
 	var spec: AttackSpec = city.contextual_attacks.current_spec
-	assert_true(spec.is_shoulder_drive())
+	assert_true(spec.is_jab_cross())
 	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
 	await get_tree().physics_frame
 	await get_tree().physics_frame

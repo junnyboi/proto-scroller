@@ -21,9 +21,9 @@ func before_each() -> void:
 	session = city.urban_siege.directives
 
 
-func test_breach_decorates_drive_only_and_caps_multiplier() -> void:
+func test_breach_decorates_jab_cross_only_and_caps_multiplier() -> void:
 	assert_true(session.select(BREACH))
-	var drive: AttackSpec = city.contextual_attacks.resolver.resolve(
+	var jab_cross: AttackSpec = city.contextual_attacks.resolver.resolve(
 		100,
 		1,
 		0.8,
@@ -31,9 +31,9 @@ func test_breach_decorates_drive_only_and_caps_multiplier() -> void:
 		1000.0,
 		96.0
 	)
-	var modified_drive: AttackSpec = session.decorate_attack(drive)
-	assert_almost_eq(modified_drive.structural_damage, 187.5, 0.01)
-	assert_eq(modified_drive.effect_flags, DamageEvent.FLAG_DIRECTIVE_BREACH)
+	var modified_jab_cross: AttackSpec = session.decorate_attack(jab_cross)
+	assert_almost_eq(modified_jab_cross.structural_damage, 187.5, 0.01)
+	assert_eq(modified_jab_cross.effect_flags, DamageEvent.FLAG_DIRECTIVE_BREACH)
 	var smash: AttackSpec = city.contextual_attacks.resolver.resolve(
 		101,
 		1,

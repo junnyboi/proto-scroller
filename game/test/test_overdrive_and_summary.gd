@@ -25,8 +25,8 @@ func test_next_smash_activates_four_seconds_with_immutable_modifiers() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.rampage_session.momentum_meter.apply_event(_momentum_event(&"city_ready", 100.0))
 	city.robot.velocity.x = city.robot.max_speed * 0.8
-	var base_force: float = city.contextual_attacks.resolver.drive_impulse_per_mass
-	var base_structure: float = city.contextual_attacks.resolver.drive_structural_damage
+	var base_force: float = city.contextual_attacks.resolver.jab_cross_impulse_per_mass
+	var base_structure: float = city.contextual_attacks.resolver.jab_cross_structural_damage
 	var attack_id: int = city.contextual_attacks.request_attack()
 	assert_gt(attack_id, 0)
 	assert_true(city.overdrive_session.active)

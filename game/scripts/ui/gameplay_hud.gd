@@ -246,15 +246,15 @@ func hide_terminal_overlay() -> void:
 
 func _on_attack_mode_selected(mode: int, _attack_id: int) -> void:
 	set_objective(
-		"DRIVE LOCKED / FORWARD IMPACT"
-		if mode == AttackSpec.Mode.SHOULDER_DRIVE
+		"JAB-CROSS LOCKED / FORWARD IMPACT"
+		if mode == AttackSpec.Mode.JAB_CROSS
 		else "GROUND LOCKED / RADIAL IMPACT"
 	)
 
 
 func _on_attack_committed(mode: int, _attack_id: int) -> void:
-	if mode == AttackSpec.Mode.SHOULDER_DRIVE:
-		set_objective("SHOULDER DRIVE / MOMENTUM TRANSFERRED")
+	if mode == AttackSpec.Mode.JAB_CROSS:
+		set_objective("JAB-CROSS PUNCH / MOMENTUM TRANSFERRED")
 
 
 func _build_status_panel() -> void:

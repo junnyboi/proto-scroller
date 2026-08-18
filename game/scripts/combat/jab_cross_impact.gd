@@ -1,7 +1,7 @@
-class_name ShoulderDriveImpact
+class_name JabCrossImpact
 extends Node2D
 
-signal drive_resolved(spec: AttackSpec, accepted_targets: int, velocity_retention: float)
+signal jab_cross_resolved(spec: AttackSpec, accepted_targets: int, velocity_retention: float)
 
 const ENEMY_LAYER: int = 1 << 2
 const HURTBOX_LAYER: int = 1 << 6
@@ -32,7 +32,7 @@ var _shape: RectangleShape2D = RectangleShape2D.new()
 
 
 func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
-	if spec == null or robot == null or not spec.is_shoulder_drive():
+	if spec == null or robot == null or not spec.is_jab_cross():
 		return 0
 	last_opening_compression = spec.opening_compression
 	_shape.size = (
@@ -97,7 +97,7 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 		robot.velocity.x = -float(spec.facing) * impact_speed * steel_rebound_ratio
 	else:
 		robot.velocity.x *= last_velocity_retention
-	drive_resolved.emit(spec, last_accepted_targets, last_velocity_retention)
+	jab_cross_resolved.emit(spec, last_accepted_targets, last_velocity_retention)
 	return last_accepted_targets
 
 
@@ -117,7 +117,7 @@ func _make_event(
 		spec.attack_id,
 		robot,
 		damage,
-		&"shoulder_drive",
+		&"jab_cross",
 		collider.global_position,
 		direction,
 		spec.impulse_per_mass,

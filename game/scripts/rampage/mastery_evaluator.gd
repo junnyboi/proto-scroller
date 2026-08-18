@@ -65,7 +65,7 @@ static func _objective_for(weakest: StringName) -> String:
 		&"DEFENSE":
 			return "RETRY: TAKE FEWER HEAVY HITS"
 		&"VARIETY":
-			return "RETRY: MIX DRIVE, SMASH, AND CATALYSTS"
+			return "RETRY: MIX JAB-CROSS, SMASH, AND CATALYSTS"
 		&"CAUSALITY":
 			return "RETRY: BUILD A DEEPER DESTRUCTION CHAIN"
 		&"OVERDRIVE":

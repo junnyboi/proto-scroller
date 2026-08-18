@@ -78,21 +78,21 @@ func _run() -> void:
 		city.building.destroyed_cell_count() == 1,
 		"cells=%d" % city.building.destroyed_cell_count()
 	)
-	var drive_columns: Array[int] = [1, 2, 2]
-	for drive_index: int in range(drive_columns.size()):
+	var jab_cross_columns: Array[int] = [1, 2, 2]
+	for jab_cross_index: int in range(jab_cross_columns.size()):
 		for settle_frame: int in range(45):
 			if not city.contextual_attacks.is_busy():
 				break
 			await process_frame
-		var column: int = drive_columns[drive_index]
+		var column: int = jab_cross_columns[jab_cross_index]
 		city.robot.position = Vector2(1100.0 + float(column) * 167.0, 460.0)
 		city.robot.facing = 1
 		city.robot.velocity.x = city.robot.max_speed * 0.8
 		var attack_id: int = city.robot.request_attack()
 		var spec: AttackSpec = city.contextual_attacks.current_spec
 		_check(
-			"drive_%d_commits" % drive_index,
-			attack_id > 0 and spec != null and spec.is_shoulder_drive(),
+			"jab_cross_%d_commits" % jab_cross_index,
+			attack_id > 0 and spec != null and spec.is_jab_cross(),
 			"attack_id=%d" % attack_id
 		)
 		await create_timer(spec.anticipation_seconds + 0.03).timeout

@@ -80,7 +80,7 @@ func decorate_attack(spec: AttackSpec) -> AttackSpec:
 	var structure_multiplier: float = 1.0
 	if (
 			effect_profile.directive_id == &"DEMOLITION_BREACH"
-		and spec.is_shoulder_drive()
+		and spec.is_jab_cross()
 	):
 		structure_multiplier = effect_profile.structural_multiplier
 	return AttackSpec.new(

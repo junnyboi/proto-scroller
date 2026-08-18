@@ -5,7 +5,7 @@ extends RefCounted
 
 enum Mode {
 	GROUND_SMASH,
-	SHOULDER_DRIVE,
+	JAB_CROSS,
 }
 
 var mode: Mode:
@@ -103,5 +103,5 @@ func is_ground_smash() -> bool:
 	return _mode == Mode.GROUND_SMASH
 
 
-func is_shoulder_drive() -> bool:
-	return _mode == Mode.SHOULDER_DRIVE
+func is_jab_cross() -> bool:
+	return _mode == Mode.JAB_CROSS

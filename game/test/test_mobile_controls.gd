@@ -104,7 +104,7 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(9, smash_position, true)
 	)
-	assert_true(city.contextual_attacks.current_spec.is_shoulder_drive())
+	assert_true(city.contextual_attacks.current_spec.is_jab_cross())
 	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
 	assert_eq(city.mobile_controls.smash_touch_index(), 9)
 	await get_tree().create_timer(0.11).timeout
