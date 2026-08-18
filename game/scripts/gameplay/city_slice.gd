@@ -112,7 +112,6 @@ func _ready() -> void:
 	robot = CityWorldBuilder.build_robot(
 		self,
 		_on_robot_heavy_impact,
-		_on_robot_structure_impact,
 		_on_robot_health_changed,
 		_on_robot_damage_received,
 		_on_robot_defeated
@@ -170,8 +169,7 @@ func _build_services() -> void:
 	destruction_director.name = "DestructionDirector"
 	destruction_director.max_results = 64
 	destruction_director.blast_mask = (
-		HURTBOX_LAYER
-		| PROP_LAYER
+		PROP_LAYER
 		| ENEMY_LAYER
 		| DEBRIS_LAYER
 		| REMAINS_LAYER
@@ -405,45 +403,6 @@ func _on_robot_heavy_impact(
 	gameplay_hud.set_objective("IMPACT REGISTERED / PHYSICS FIELD ACTIVE")
 
 
-func _on_robot_structure_impact(
-	target: Node,
-	hit_position: Vector2,
-	direction: Vector2,
-	impact_speed: float,
-	impact_mass: float,
-	attack_id: int
-) -> void:
-	if target == null or not target.has_method("receive_damage"):
-		return
-	var structural_damage: float = clampf(
-		impact_mass * impact_speed * impact_speed / 25000.0,
-		12.0,
-		240.0
-	)
-	var event: DamageEvent = DamageEvent.new(
-		attack_id,
-		robot,
-		structural_damage,
-		&"structural",
-		hit_position,
-		direction,
-		impact_speed * 1.15
-	)
-	var material_profile: StructuralMaterialProfile = _material_for_target(
-		target,
-		hit_position
-	)
-	if bool(target.call("receive_damage", event)):
-		impact_feedback_pool.play_audio(material_profile, hit_position, impact_speed)
-		impact_feedback_pool.spawn_particles(
-			hit_position,
-			direction,
-			impact_speed,
-			material_profile
-		)
-		gameplay_hud.set_objective("STRUCTURAL BREACH / MOMENTUM TRANSFERRED")
-
-
 func _material_for_target(
 	target: Node,
 	hit_position: Vector2
@@ -467,6 +426,23 @@ func _material_for_target(
 
 func _on_building_damage_applied(amount: float, event: DamageEvent) -> void:
 	rampage_events.building_damage(amount, event, building, robot)
+	if event.damage_type != &"shoulder_drive":
+		return
+	var material_profile: StructuralMaterialProfile = _material_for_target(
+		building,
+		event.hit_position
+	)
+	impact_feedback_pool.play_audio(
+		material_profile,
+		event.hit_position,
+		event.impulse_per_mass
+	)
+	impact_feedback_pool.spawn_particles(
+		event.hit_position,
+		event.direction,
+		event.impulse_per_mass,
+		material_profile
+	)
 
 
 func _on_building_cell_destroyed(

@@ -95,15 +95,16 @@ func test_materials_change_resistance_debris_and_particles() -> void:
 	add_child_autofree(city)
 	await get_tree().process_frame
 	for column: int in range(StructuralBuilding2D.COLUMNS):
-		var hit_position: Vector2 = (
-			city.building.get_cell(column, 1).global_position
-		)
-		city.robot.request_structure_impact(
-			city.building,
-			hit_position,
+		var cell: Destructible2D = city.building.get_cell(column, 1)
+		cell.receive_damage(DamageEvent.new(
+			6000 + column,
+			city.robot,
+			64.8,
+			&"shoulder_drive",
+			cell.global_position,
 			Vector2.RIGHT,
-			180.0
-		)
+			207.0
+		))
 	assert_true(city.building.is_cell_destroyed(0, 1))
 	assert_false(city.building.is_cell_destroyed(1, 1))
 	assert_false(city.building.is_cell_destroyed(2, 1))
@@ -131,6 +132,9 @@ func test_stomp_breaks_the_nearby_car_and_lamp() -> void:
 	await get_tree().process_frame
 	city.car.current_health = 1.0
 	city.streetlamp.current_health = 0.05
+	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
+		enemy.global_position.x = 2500.0
+	city.robot.position = Vector2(1150.0, 460.0)
 	city.robot.stomp_radius = 500.0
 	city.robot.stomp_damage = 200.0
 	var original_health: float = city.robot.current_health
@@ -180,18 +184,22 @@ func test_robot_is_immune_to_self_and_player_team_damage() -> void:
 	_record_test_execution()
 
 
-func test_impact_destroys_only_the_struck_lower_bay() -> void:
+func test_shoulder_drive_destroys_only_the_struck_lower_bay() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
-	var hit_position: Vector2 = city.building.global_position + Vector2(-210.0, -110.0)
-	var attack_id: int = city.robot.request_structure_impact(
-		city.building,
-		hit_position,
-		Vector2.RIGHT,
-		260.0
-	)
-	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
+		enemy.set_physics_process(false)
+	city.car.global_position.x = 600.0
+	city.streetlamp.global_position.x = 600.0
+	city.robot.position = Vector2(1100.0, 460.0)
+	city.robot.facing = 1
+	city.robot.velocity.x = city.robot.max_speed * 0.8
+	var attack_id: int = city.robot.request_attack()
+	var spec: AttackSpec = city.contextual_attacks.current_spec
+	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
+	await get_tree().physics_frame
 	assert_gt(attack_id, 0)
 	assert_true(city.building.is_cell_destroyed(0, 1))
 	assert_false(city.building.is_cell_destroyed(1, 1))
@@ -261,21 +269,38 @@ func test_all_steel_supports_trigger_building_wide_chain_reaction() -> void:
 	_record_test_execution()
 
 
-func test_robot_tunnels_through_successive_lower_bays() -> void:
+func test_walking_stops_at_building_until_shoulder_drive_opens_one_bay() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
 	city.robot.set_physics_process(false)
 	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
 		enemy.set_physics_process(false)
-	city.robot.position = Vector2(1100.0, 460.0)
-	for step_index: int in range(240):
+	city.robot.position = Vector2(1050.0, 460.0)
+	var glass_cell: Destructible2D = city.building.get_cell(0, 1)
+	for step_index: int in range(120):
 		city.robot.physics_step(1.0, 1.0 / 60.0)
 		await get_tree().physics_frame
-	assert_gt(city.robot.position.x, city.building.position.x + 320.0)
-	for column: int in range(StructuralBuilding2D.COLUMNS):
-		assert_true(city.building.is_cell_destroyed(column, 1))
-	assert_true(city.building.is_destroyed())
+	assert_lt(city.robot.position.x, 1170.0)
+	assert_false(glass_cell.is_destroyed())
+	assert_eq(glass_cell.current_health, glass_cell.max_health)
+	city.robot.facing = 1
+	city.robot.velocity.x = city.robot.max_speed * 0.8
+	var attack_id: int = city.robot.request_attack()
+	var spec: AttackSpec = city.contextual_attacks.current_spec
+	assert_true(spec.is_shoulder_drive())
+	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_gt(attack_id, 0)
+	assert_true(glass_cell.is_destroyed())
+	for step_index: int in range(90):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		await get_tree().physics_frame
+	assert_gt(city.robot.position.x, 1200.0)
+	assert_lt(city.robot.position.x, 1340.0)
+	assert_false(city.building.is_cell_destroyed(1, 1))
+	assert_false(city.building.is_destroyed())
 	assert_gt(city.debris_pool.active_count(), 0)
 	_record_test_execution()
 
