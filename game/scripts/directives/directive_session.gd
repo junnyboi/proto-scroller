@@ -19,6 +19,7 @@ const SKYBREAKER_BODY_CAP: int = 3
 var dependencies: UrbanSiegeDependencies
 var profiles: Array[DirectiveProfile] = []
 var active_profile: DirectiveProfile
+var selected_profile: DirectiveProfile
 var remaining: float = 0.0
 var progress: int = 0
 var pending_score: int = 0
@@ -63,6 +64,7 @@ func select(profile: DirectiveProfile) -> bool:
 	if profile == null or active_profile != null:
 		return false
 	active_profile = profile
+	selected_profile = profile
 	remaining = profile.duration_seconds
 	progress = 0
 	pending_score = 0
@@ -109,6 +111,7 @@ func attack_active(spec: AttackSpec) -> void:
 
 func stop() -> void:
 	active_profile = null
+	selected_profile = null
 	remaining = 0.0
 	progress = 0
 	pending_score = 0

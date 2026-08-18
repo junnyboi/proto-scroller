@@ -12,6 +12,7 @@ var health_label: Label
 var status_label: Label
 var objective_label: Label
 var score_label: Label
+var pending_score_label: Label
 var combo_label: Label
 var combo_ring: ComboDecayRing
 var momentum_fill: ColorRect
@@ -69,6 +70,11 @@ func set_health(current: float, maximum: float) -> void:
 func set_score(value: int) -> void:
 	if score_label != null:
 		score_label.text = "%08d" % maxi(value, 0)
+
+
+func set_pending_score(value: int) -> void:
+	pending_score_label.text = "+%05d AT RISK" % maxi(value, 0) if value > 0 else "SAFE"
+	pending_score_label.modulate = Color("ff9a61") if value > 0 else MUTED_COLOR
 
 
 func set_combo(multiplier: int, grace_remaining: float) -> void:
@@ -177,17 +183,22 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 	overlay_title.text = "DISTRICT CLEARED" if completed else "GAME OVER"
 	if summary != null:
 		var summary_format: String = (
-			"SCORE  %08d\nPEAK COMBO  x%d    BEST CHAIN  %d\n"
-				+ "ACTS  %d / 6    OVERDRIVES  %d\nRARE EVENTS  %d"
+			"GRADE %s  /  %03d PTS    SCORE %08d\n"
+				+ "ACTS %d/6   HITS %d   VARIETY %d   DEPTH %d\n"
+				+ "STRONGEST %s   WEAKEST %s\n%s"
 		)
 		overlay_summary.text = (
 			summary_format % [
+				summary.grade,
+				summary.mastery_points,
 				summary.score,
-				summary.peak_combo,
-				summary.best_chain,
 				summary.waves_cleared,
-				summary.overdrive_activations,
-				summary.rare_events.size(),
+				summary.heavy_hits,
+				summary.unique_actions,
+				summary.causal_depth,
+				summary.strongest_metric,
+				summary.weakest_metric,
+				summary.retry_objective,
 			]
 		)
 	else:
@@ -298,6 +309,15 @@ func _build_score_panel() -> void:
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	score_label.add_theme_font_size_override(&"font_size", 30)
 	add_child(score_label)
+	pending_score_label = Label.new()
+	pending_score_label.name = "PendingScoreLabel"
+	pending_score_label.position = Vector2(1012.0, 91.0)
+	pending_score_label.size = Vector2(220.0, 20.0)
+	pending_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	pending_score_label.add_theme_font_size_override(&"font_size", 14)
+	pending_score_label.text = "SAFE"
+	pending_score_label.modulate = MUTED_COLOR
+	add_child(pending_score_label)
 	for index: int in range(RuntimeBudget.RARE_TAG_ROWS):
 		var rare_label: Label = Label.new()
 		rare_label.name = "RareEvent%d" % index

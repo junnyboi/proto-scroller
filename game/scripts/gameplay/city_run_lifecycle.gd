@@ -161,7 +161,25 @@ func _finish_run(completed: bool) -> void:
 	if city.game_over_active:
 		return
 	city.game_over_active = true
+	var run_metrics: Dictionary = {"completed": completed}
 	if city.urban_siege != null:
+		var directive: DirectiveProfile = city.urban_siege.directives.selected_profile
+		run_metrics.directive_path = (
+			directive.directive_id if directive != null else &"NONE"
+		)
+		run_metrics.boss_result = (
+			&"WRECK_RESOLVED"
+			if city.urban_siege.boss_session.state == CommandBossSession.STATE_COMPLETE
+			else &"UNRESOLVED"
+		)
+		run_metrics.contract_succeeded = (
+			city.urban_siege.directives.completion_count > 0
+		)
+		run_metrics.contract_result = (
+			&"COMPLETE" if bool(run_metrics.contract_succeeded) else &"FAILED"
+		)
+		run_metrics.run_seed = city.urban_siege.run_seed
+		run_metrics.cycle_count = 1
 		city.urban_siege.stop_run()
 	else:
 		city.encounter_director.stop()
@@ -179,7 +197,8 @@ func _finish_run(completed: bool) -> void:
 	)
 	var summary: RunSummarySnapshot = city.rampage_session.freeze_summary(
 		waves_cleared,
-		city.overdrive_session.activation_count
+		city.overdrive_session.activation_count,
+		run_metrics
 	)
 	if completed:
 		city.gameplay_hud.show_district_complete(summary)

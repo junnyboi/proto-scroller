@@ -187,6 +187,7 @@ func _build_services() -> void:
 	rampage_session = RAMPAGE_SESSION_SCRIPT.new() as RampageSession
 	rampage_session.name = "RampageSession"
 	rampage_session.run_score.score_changed.connect(_on_score_changed)
+	rampage_session.run_score.pending_changed.connect(_on_pending_score_changed)
 	rampage_session.combo_tracker.combo_changed.connect(_on_combo_changed)
 	add_child(rampage_session)
 	rampage_events = RAMPAGE_EVENT_ADAPTER_SCRIPT.new(rampage_session) as RampageEventAdapter
@@ -588,6 +589,11 @@ func _on_robot_damage_received(event: DamageEvent, accepted_damage: float) -> vo
 func _on_score_changed(next_score: int, _awarded: int) -> void:
 	if gameplay_hud != null:
 		gameplay_hud.set_score(next_score)
+
+
+func _on_pending_score_changed(value: int) -> void:
+	if gameplay_hud != null:
+		gameplay_hud.set_pending_score(value)
 
 
 func _on_combo_changed(multiplier: int, grace_remaining: float) -> void:
