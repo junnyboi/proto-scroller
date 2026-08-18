@@ -39,9 +39,21 @@ const STRUCTURAL_BUILDING_SCRIPT: Script = preload(
 	"res://scripts/destruction/structural_building_2d.gd"
 )
 const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop_2d.gd")
-const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
-const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
-const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
+const ENCOUNTER_RUNTIME_SCRIPT: Script = preload(
+	"res://scripts/encounter/encounter_runtime.gd"
+)
+const ENCOUNTER_DIRECTOR_SCRIPT: Script = preload(
+	"res://scripts/encounter/encounter_director.gd"
+)
+const TELEGRAPH_SCRIPT: Script = preload(
+	"res://scripts/encounter/telegraph_presenter_2d.gd"
+)
+const CONTACT_WAVE: EnemyWave = preload("res://resources/encounters/wave_01_contact.tres")
+const ARMOR_WAVE: EnemyWave = preload("res://resources/encounters/wave_02_armor.tres")
+const AIR_WAVE: EnemyWave = preload("res://resources/encounters/wave_03_air.tres")
+const RETALIATION_WAVE: EnemyWave = preload(
+	"res://resources/encounters/wave_04_retaliation.tres"
+)
 const SOLDIER_DEFEAT_POOL_SCRIPT: Script = preload(
 	"res://scripts/actors/soldier_defeat_pool.gd"
 )
@@ -86,6 +98,9 @@ var enemy_remains_factory: EnemyRemainsFactory
 var rampage_session: RampageSession
 var rampage_events: RampageEventAdapter
 var contextual_attacks: ContextualAttackController
+var telegraph_presenter: TelegraphPresenter2D
+var encounter_runtime: EncounterRuntime
+var encounter_director: EncounterDirector
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
@@ -311,83 +326,29 @@ func _create_prop(
 
 
 func _build_enemies() -> void:
-	soldier = _create_enemy(
-		SOLDIER_SCRIPT,
-		SOLDIER_TEXTURE,
-		Vector2(1320.0, 542.5),
-		Vector2(68.0, 108.0),
-		Vector2(42.0, 95.0)
-	) as SoldierEnemy
-	tank = _create_enemy(
-		TANK_SCRIPT,
-		TANK_TEXTURE,
-		Vector2(1700.0, 551.0),
-		Vector2(235.0, 100.0),
-		Vector2(220.0, 78.0)
-	) as TankEnemy
-	helicopter = _create_enemy(
-		HELICOPTER_SCRIPT,
-		HELICOPTER_TEXTURE,
-		Vector2(1500.0, 180.0),
-		Vector2(235.0, 72.0),
-		Vector2(210.0, 58.0)
-	) as HelicopterEnemy
-	helicopter.collision_mask = 0
-	soldier.died.connect(_on_enemy_died.bind(500))
-	tank.died.connect(_on_enemy_died.bind(1500))
-	helicopter.died.connect(_on_enemy_died.bind(1200))
-
-
-func _create_enemy(
-	script: Script,
-	texture: Texture2D,
-	position_value: Vector2,
-	display_size: Vector2,
-	collision_size: Vector2
-) -> EnemyActor2D:
-	var enemy: EnemyActor2D = script.new() as EnemyActor2D
-	enemy.position = position_value
-	enemy.collision_layer = ENEMY_LAYER
-	enemy.collision_mask = WORLD_LAYER
-	enemy.z_index = 30
-	enemy.set_meta(&"combat_team", &"enemy")
-	var visual: Sprite2D = CityWorldBuilder.fit_sprite(texture, display_size)
-	visual.name = "Visual"
-	if enemy is SoldierEnemy or enemy is TankEnemy:
-		var rendered_height: float = texture.get_size().y * absf(visual.scale.y)
-		visual.position.y = (
-			LAND_VISUAL_BASELINE_Y - position_value.y - rendered_height * 0.5
-		)
-		enemy.movement_bounce_enabled = true
-		if enemy is SoldierEnemy:
-			enemy.bounce_height = 5.5
-			enemy.bounce_frequency = 3.8
-			enemy.bounce_squash = 0.055
-			enemy.bounce_speed_reference = 92.0
-		else:
-			enemy.bounce_height = 2.5
-			enemy.bounce_frequency = 2.2
-			enemy.bounce_squash = 0.025
-			enemy.bounce_speed_reference = 62.0
-	enemy.add_child(visual)
-	var collision: CollisionShape2D = CollisionShape2D.new()
-	var rectangle: RectangleShape2D = RectangleShape2D.new()
-	rectangle.size = collision_size
-	collision.shape = rectangle
-	enemy.add_child(collision)
-	var hurtbox: Area2D = Area2D.new()
-	hurtbox.collision_layer = HURTBOX_LAYER
-	hurtbox.collision_mask = 0
-	var hurt_shape: CollisionShape2D = CollisionShape2D.new()
-	var hurt_rectangle: RectangleShape2D = RectangleShape2D.new()
-	hurt_rectangle.size = collision_size * 1.12
-	hurt_shape.shape = hurt_rectangle
-	hurtbox.add_child(hurt_shape)
-	enemy.add_child(hurtbox)
-	enemy.set_target(robot)
-	enemy.projectile_requested.connect(_on_projectile_requested)
-	add_child(enemy)
-	return enemy
+	telegraph_presenter = TELEGRAPH_SCRIPT.new() as TelegraphPresenter2D
+	telegraph_presenter.name = "TelegraphPresenter"
+	add_child(telegraph_presenter)
+	encounter_runtime = ENCOUNTER_RUNTIME_SCRIPT.new() as EncounterRuntime
+	encounter_runtime.name = "EncounterRuntime"
+	encounter_runtime.setup(robot, telegraph_presenter, projectile_root)
+	encounter_runtime.projectile_requested.connect(_on_projectile_requested)
+	encounter_runtime.enemy_died.connect(_on_enemy_died)
+	add_child(encounter_runtime)
+	soldier = encounter_runtime.soldiers[0]
+	tank = encounter_runtime.tanks[0]
+	helicopter = encounter_runtime.helicopters[0]
+	encounter_director = ENCOUNTER_DIRECTOR_SCRIPT.new() as EncounterDirector
+	encounter_director.name = "EncounterDirector"
+	var waves: Array[EnemyWave] = [CONTACT_WAVE, ARMOR_WAVE, AIR_WAVE, RETALIATION_WAVE]
+	encounter_director.setup(encounter_runtime, waves)
+	add_child(encounter_director)
+	if DisplayServer.get_name() == "headless":
+		encounter_runtime.acquire(&"soldier", Vector2(1320.0, 542.5))
+		encounter_runtime.acquire(&"tank", Vector2(1700.0, 551.0))
+		encounter_runtime.acquire(&"helicopter", Vector2(1500.0, 180.0))
+	else:
+		encounter_director.start()
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
 	gameplay_hud.setup(robot)
@@ -529,12 +490,14 @@ func _on_enemy_died(
 	rampage_events.enemy_defeated(enemy, event, points, robot)
 	if enemy is SoldierEnemy:
 		_spawn_soldier_defeat_body(enemy, event)
+		encounter_runtime.release_deferred(enemy)
 		return
 	var wreck: EnemyWreck2D = enemy_remains_factory.spawn_wreck(enemy, event)
 	if enemy is TankEnemy:
 		tank_wreck = wreck
 	else:
 		helicopter_wreck = wreck
+	encounter_runtime.release_deferred(enemy)
 
 
 func _spawn_soldier_defeat_body(
@@ -632,10 +595,10 @@ func _on_robot_defeated() -> void:
 	if game_over_active:
 		return
 	game_over_active = true
-	for enemy: EnemyActor2D in [soldier, tank, helicopter]:
-		if enemy != null:
-			enemy.set_physics_process(false)
-	projectile_root.process_mode = Node.PROCESS_MODE_DISABLED
+	encounter_director.stop()
+	telegraph_presenter.cancel_all()
+	encounter_runtime.release_all()
+	projectile_root.release_all()
 	impact_feedback_director.cancel_all()
 	impact_feedback_pool.reset_runtime_state()
 	if mobile_controls != null:
