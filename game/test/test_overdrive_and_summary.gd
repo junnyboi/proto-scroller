@@ -117,7 +117,7 @@ func test_district_completion_shows_frozen_summary_and_disables_play() -> void:
 	assert_true(city.game_over_active)
 	assert_true(city.gameplay_hud.game_over_overlay.visible)
 	assert_eq(city.gameplay_hud.overlay_title.text, "DISTRICT CLEARED")
-	assert_true(city.gameplay_hud.overlay_summary.text.contains("WAVES  4 / 4"))
+	assert_true(city.gameplay_hud.overlay_summary.text.contains("ACTS  6 / 6"))
 	assert_false(city.mobile_controls.joystick_active)
 	assert_eq(city.projectile_root.active_count(), 0)
 	assert_eq(city.telegraph_presenter.active_count(), 0)

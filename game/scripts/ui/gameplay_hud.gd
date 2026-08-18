@@ -16,6 +16,7 @@ var combo_label: Label
 var combo_ring: ComboDecayRing
 var momentum_fill: ColorRect
 var momentum_label: Label
+var siege_progress: SiegeProgressStrip
 var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
@@ -36,6 +37,7 @@ func _ready() -> void:
 	_build_status_panel()
 	_build_momentum_panel()
 	_build_score_panel()
+	_build_siege_progress()
 	_build_game_over_overlay()
 	if _robot != null:
 		_robot.attack_mode_selected.connect(_on_attack_mode_selected)
@@ -113,6 +115,16 @@ func set_objective(text: String) -> void:
 		objective_label.text = text
 
 
+func set_siege_progress(
+	index: int,
+	total: int,
+	display_name: String,
+	recovery: bool
+) -> void:
+	if siege_progress != null:
+		siege_progress.set_progress(index, total, display_name, recovery)
+
+
 func show_game_over(summary: RunSummarySnapshot = null) -> void:
 	set_status("CITY RESPONSE / LOST")
 	set_objective("CHASSIS SIGNAL TERMINATED")
@@ -130,7 +142,7 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 	if summary != null:
 		var summary_format: String = (
 			"SCORE  %08d\nPEAK COMBO  x%d    BEST CHAIN  %d\n"
-			+ "WAVES  %d / 4    OVERDRIVES  %d\nRARE EVENTS  %d"
+				+ "ACTS  %d / 6    OVERDRIVES  %d\nRARE EVENTS  %d"
 		)
 		overlay_summary.text = (
 			summary_format % [
@@ -261,6 +273,14 @@ func _build_score_panel() -> void:
 		rare_label.visible = false
 		add_child(rare_label)
 		rare_labels.append(rare_label)
+
+
+func _build_siege_progress() -> void:
+	siege_progress = SiegeProgressStrip.new()
+	siege_progress.name = "SiegeProgressStrip"
+	siege_progress.position = Vector2(466.0, 112.0)
+	siege_progress.size = Vector2(500.0, 32.0)
+	add_child(siege_progress)
 
 
 func _build_game_over_overlay() -> void:

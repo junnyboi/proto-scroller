@@ -14,6 +14,9 @@ func setup(p_city: CitySlice) -> void:
 	city.overdrive_session.ended.connect(_on_overdrive_ended)
 	city.encounter_director.phase_changed.connect(_on_encounter_phase_changed)
 	city.encounter_director.district_completed.connect(_on_district_completed)
+	if city.urban_siege != null:
+		city.urban_siege.beat_changed.connect(_on_beat_changed)
+		city.urban_siege.recovery_started.connect(_on_recovery_started)
 	_on_momentum_changed(
 		city.rampage_session.momentum_value(),
 		city.rampage_session.momentum_meter.band()
@@ -78,7 +81,26 @@ func _on_combo_broken() -> void:
 
 
 func _on_encounter_phase_changed(index: int, display_name: String) -> void:
-	city.gameplay_hud.set_objective("WAVE %d / 4  %s" % [index + 1, display_name])
+	city.gameplay_hud.set_objective("ACT %d / 6  %s" % [index + 1, display_name])
+	city.gameplay_hud.set_siege_progress(index, 6, display_name, false)
+
+
+func _on_beat_changed(act_index: int, _beat_index: int, _beat_id: StringName) -> void:
+	city.gameplay_hud.set_siege_progress(
+		act_index,
+		6,
+		city.encounter_director.current_phase_name(),
+		false
+	)
+
+
+func _on_recovery_started(_duration: float) -> void:
+	city.gameplay_hud.set_siege_progress(
+		city.encounter_director.phase_index,
+		6,
+		city.encounter_director.current_phase_name(),
+		true
+	)
 
 
 func _on_district_completed() -> void:
@@ -100,10 +122,10 @@ func _finish_run(completed: bool) -> void:
 	city.impact_feedback_pool.reset_runtime_state()
 	city.overdrive_session.end_overdrive()
 	city.mobile_controls.set_controls_enabled(false)
-	var waves_cleared: int = 4 if completed else clampi(
-		city.encounter_director.phase_index,
+	var waves_cleared: int = 6 if completed else clampi(
+		city.encounter_director.phase_index + 1,
 		0,
-		4
+		6
 	)
 	var summary: RunSummarySnapshot = city.rampage_session.freeze_summary(
 		waves_cleared,

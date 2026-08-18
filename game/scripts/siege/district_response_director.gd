@@ -9,6 +9,8 @@ const STATE_WAITING: int = 0
 const STATE_PRESSURE: int = 1
 const STATE_RECOVERY: int = 2
 const MAX_PENDING_RECORDS: int = 12
+const MAXIMUM_ACT_OVERRUN: float = 20.0
+const LOW_THREAT_WEIGHT: int = 2
 
 var district: DistrictDefinition
 var ledger: CapacityReservationLedger = CapacityReservationLedger.new()
@@ -17,6 +19,7 @@ var state: int = STATE_WAITING
 var pressure_remaining: float = 0.0
 var recovery_remaining: float = 0.0
 var elapsed: float = 0.0
+var act_elapsed: float = 0.0
 var peak_pending_records: int = 0
 var _beat_reservation_id: int = 0
 var _beat_pending: Array[Dictionary] = []
@@ -42,6 +45,7 @@ func start() -> void:
 	phase_index = -1
 	beat_index = -1
 	elapsed = 0.0
+	act_elapsed = 0.0
 	_advance_act()
 
 
@@ -80,6 +84,7 @@ func advance(delta: float) -> void:
 	if not running or completed or runtime == null or district == null:
 		return
 	elapsed += delta
+	act_elapsed += delta
 	match state:
 		STATE_WAITING:
 			_try_start_next_beat()
@@ -118,6 +123,20 @@ func current_beat_id() -> StringName:
 	return act.beats[beat_index].beat_id
 
 
+func phase_count() -> int:
+	return district.acts.size() if district != null else waves.size()
+
+
+func is_recovery_active() -> bool:
+	return district != null and state == STATE_RECOVERY
+
+
+func current_act_progress() -> float:
+	if district == null or phase_index < 0 or phase_index >= district.acts.size():
+		return 0.0
+	return clampf(act_elapsed / maxf(district.acts[phase_index].target_duration, 1.0), 0.0, 1.0)
+
+
 func _advance_act() -> void:
 	phase_index += 1
 	beat_index = -1
@@ -127,6 +146,7 @@ func _advance_act() -> void:
 		district_completed.emit()
 		return
 	var act: DistrictAct = district.acts[phase_index]
+	act_elapsed = 0.0
 	phase_changed.emit(phase_index, act.display_name)
 	state = STATE_WAITING
 
@@ -134,7 +154,10 @@ func _advance_act() -> void:
 func _try_start_next_beat() -> void:
 	var act: DistrictAct = district.acts[phase_index]
 	if beat_index >= act.beats.size() - 1:
-		if runtime.active_count() > 0:
+		if act_elapsed < act.target_duration:
+			return
+		var overrun_expired: bool = act_elapsed >= act.target_duration + MAXIMUM_ACT_OVERRUN
+		if _threat_weight() > LOW_THREAT_WEIGHT and not overrun_expired:
 			return
 		if not act.milestone_after.is_empty():
 			milestone_reached.emit(act.milestone_after)
@@ -229,3 +252,11 @@ func _resolve_position(entry: EnemySpawnEntry) -> Vector2:
 	position_value += entry.offset
 	position_value.x = clampf(position_value.x, 80.0, 2480.0)
 	return position_value
+
+
+func _threat_weight() -> int:
+	return (
+		runtime.active_count(&"soldier")
+		+ runtime.active_count(&"tank") * 3
+		+ runtime.active_count(&"helicopter") * 2
+	)

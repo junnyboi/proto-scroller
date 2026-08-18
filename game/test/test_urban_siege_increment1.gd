@@ -14,11 +14,12 @@ func before_each() -> void:
 
 
 func test_contact_resource_has_bounded_pressure_and_recovery() -> void:
-	assert_eq(DISTRICT.acts.size(), 1)
-	assert_eq(DISTRICT.acts[0].beats.size(), 2)
-	for beat: DistrictBeat in DISTRICT.acts[0].beats:
-		assert_between(beat.pressure_seconds, 8.0, 15.0)
-		assert_between(beat.recovery_seconds, 2.0, 4.0)
+	assert_eq(DISTRICT.acts.size(), 6)
+	assert_eq(DISTRICT.acts[0].beats.size(), 4)
+	for act: DistrictAct in DISTRICT.acts:
+		for beat: DistrictBeat in act.beats:
+			assert_between(beat.pressure_seconds, 8.0, 15.0)
+			assert_between(beat.recovery_seconds, 2.0, 4.0)
 
 
 func test_reservation_is_atomic_and_cancels_without_growth() -> void:
@@ -27,7 +28,7 @@ func test_reservation_is_atomic_and_cancels_without_growth() -> void:
 	var beat: DistrictBeat = DISTRICT.acts[0].beats[0]
 	var reservation_id: int = ledger.reserve_beat(beat, city.encounter_runtime)
 	assert_gt(reservation_id, 0)
-	assert_eq(ledger.pending_count(&"soldier"), 2)
+	assert_eq(ledger.pending_count(&"soldier"), 1)
 	assert_eq(city.encounter_runtime.total_count(), 9)
 	ledger.cancel(reservation_id)
 	assert_eq(ledger.pending_count(), 0)
@@ -42,9 +43,7 @@ func test_timed_director_reinforces_then_opens_recovery_gate() -> void:
 	assert_eq(director.current_beat_id(), &"SCOUT_PROBE")
 	director.advance(0.01)
 	assert_eq(city.encounter_runtime.active_count(&"soldier"), 1)
-	director.advance(3.6)
-	assert_eq(city.encounter_runtime.active_count(&"soldier"), 2)
-	director.advance(7.0)
+	director.advance(9.1)
 	assert_eq(director.state, DistrictResponseDirector.STATE_RECOVERY)
 	assert_false(city.encounter_runtime.attack_gate_enabled)
 	director.advance(3.1)

@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://scripts/siege/district_beat.gd" id="3"]
 [ext_resource type="Script" path="res://scripts/encounter/enemy_spawn_entry.gd" id="4"]
 
-[sub_resource type="Resource" id="ProbeA"]
+[sub_resource type="Resource" id="SoldierAhead"]
 script = ExtResource("4")
 kind = &"soldier"
 delay = 0.0
@@ -13,57 +13,286 @@ position = Vector2(0, 542.5)
 spawn_anchor = "AHEAD"
 offset = Vector2(0, 0)
 
-[sub_resource type="Resource" id="ProbeB"]
+[sub_resource type="Resource" id="SoldierAheadLate"]
 script = ExtResource("4")
 kind = &"soldier"
-delay = 3.5
+delay = 3.0
 position = Vector2(0, 542.5)
 spawn_anchor = "AHEAD"
-offset = Vector2(135, 0)
+offset = Vector2(150, 0)
 
-[sub_resource type="Resource" id="ScoutProbe"]
-script = ExtResource("3")
-beat_id = &"SCOUT_PROBE"
-pressure_seconds = 10.0
-recovery_seconds = 3.0
-spawns = Array[ExtResource("4")]([SubResource("ProbeA"), SubResource("ProbeB")])
-catalyst_slot = 0
-
-[sub_resource type="Resource" id="CrossA"]
+[sub_resource type="Resource" id="SoldierBehind"]
 script = ExtResource("4")
 kind = &"soldier"
 delay = 0.0
 position = Vector2(0, 542.5)
 spawn_anchor = "BEHIND"
-offset = Vector2(-80, 0)
+offset = Vector2(-60, 0)
 
-[sub_resource type="Resource" id="CrossB"]
+[sub_resource type="Resource" id="SoldierBehindLate"]
 script = ExtResource("4")
 kind = &"soldier"
-delay = 2.0
+delay = 3.0
 position = Vector2(0, 542.5)
-spawn_anchor = "AHEAD"
-offset = Vector2(180, 0)
+spawn_anchor = "BEHIND"
+offset = Vector2(-180, 0)
 
-[sub_resource type="Resource" id="CrossfireArrival"]
+[sub_resource type="Resource" id="TankAhead"]
+script = ExtResource("4")
+kind = &"tank"
+delay = 0.0
+position = Vector2(0, 551)
+spawn_anchor = "AHEAD"
+offset = Vector2(170, 0)
+
+[sub_resource type="Resource" id="TankBehind"]
+script = ExtResource("4")
+kind = &"tank"
+delay = 1.0
+position = Vector2(0, 551)
+spawn_anchor = "BEHIND"
+offset = Vector2(-170, 0)
+
+[sub_resource type="Resource" id="HelicopterAhead"]
+script = ExtResource("4")
+kind = &"helicopter"
+delay = 0.0
+position = Vector2(0, 180)
+spawn_anchor = "CAMERA_RIGHT"
+offset = Vector2(0, 180)
+
+[sub_resource type="Resource" id="Contact01"]
+script = ExtResource("3")
+beat_id = &"SCOUT_PROBE"
+pressure_seconds = 9.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("SoldierAhead")])
+catalyst_slot = 0
+
+[sub_resource type="Resource" id="Contact02"]
+script = ExtResource("3")
+beat_id = &"REAR_CONTACT"
+pressure_seconds = 10.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Contact03"]
+script = ExtResource("3")
+beat_id = &"SCOUT_REINFORCEMENT"
+pressure_seconds = 11.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("SoldierAhead"), SubResource("SoldierAheadLate")])
+
+[sub_resource type="Resource" id="Contact04"]
 script = ExtResource("3")
 beat_id = &"CROSSFIRE_ARRIVAL"
 pressure_seconds = 12.0
 recovery_seconds = 3.0
-spawns = Array[ExtResource("4")]([SubResource("CrossA"), SubResource("CrossB")])
-catalyst_slot = -1
+spawns = Array[ExtResource("4")]([SubResource("SoldierAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Containment01"]
+script = ExtResource("3")
+beat_id = &"ARMOR_ENTRY"
+pressure_seconds = 11.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("SoldierAheadLate")])
+
+[sub_resource type="Resource" id="Containment02"]
+script = ExtResource("3")
+beat_id = &"LANE_CLAMP"
+pressure_seconds = 12.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("SoldierAhead"), SubResource("SoldierBehind"), SubResource("SoldierAheadLate")])
+
+[sub_resource type="Resource" id="Containment03"]
+script = ExtResource("3")
+beat_id = &"REAR_ARMOR"
+pressure_seconds = 11.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankBehind"), SubResource("SoldierBehindLate")])
+
+[sub_resource type="Resource" id="Containment04"]
+script = ExtResource("3")
+beat_id = &"HARD_CONTAINMENT"
+pressure_seconds = 13.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("SoldierAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Escalation01"]
+script = ExtResource("3")
+beat_id = &"AIR_ENTRY"
+pressure_seconds = 11.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("HelicopterAhead"), SubResource("SoldierAhead")])
+
+[sub_resource type="Resource" id="Escalation02"]
+script = ExtResource("3")
+beat_id = &"GROUND_ANCHOR"
+pressure_seconds = 12.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Escalation03"]
+script = ExtResource("3")
+beat_id = &"AIR_CROSSFIRE"
+pressure_seconds = 13.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("HelicopterAhead"), SubResource("SoldierBehind"), SubResource("SoldierAheadLate")])
+
+[sub_resource type="Resource" id="Escalation04"]
+script = ExtResource("3")
+beat_id = &"ARMORED_PIVOT"
+pressure_seconds = 12.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankBehind"), SubResource("SoldierAhead")])
+
+[sub_resource type="Resource" id="Escalation05"]
+script = ExtResource("3")
+beat_id = &"COMBINED_ARMS"
+pressure_seconds = 14.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("HelicopterAhead"), SubResource("TankAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Command01"]
+script = ExtResource("3")
+beat_id = &"COMMAND_SCREEN"
+pressure_seconds = 12.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("SoldierAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Command02"]
+script = ExtResource("3")
+beat_id = &"COMMAND_REAR"
+pressure_seconds = 13.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankBehind"), SubResource("SoldierBehind"), SubResource("SoldierAheadLate")])
+
+[sub_resource type="Resource" id="Command03"]
+script = ExtResource("3")
+beat_id = &"COMMAND_AIR"
+pressure_seconds = 13.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("HelicopterAhead"), SubResource("SoldierAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Command04"]
+script = ExtResource("3")
+beat_id = &"COMMAND_PINCER"
+pressure_seconds = 14.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("TankBehind"), SubResource("SoldierAhead")])
+
+[sub_resource type="Resource" id="Command05"]
+script = ExtResource("3")
+beat_id = &"COMMAND_BREAK"
+pressure_seconds = 14.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("HelicopterAhead"), SubResource("TankAhead"), SubResource("SoldierAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Retaliation01"]
+script = ExtResource("3")
+beat_id = &"RETALIATION_FRONT"
+pressure_seconds = 12.0
+recovery_seconds = 2.5
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("SoldierAhead"), SubResource("SoldierAheadLate")])
+
+[sub_resource type="Resource" id="Retaliation02"]
+script = ExtResource("3")
+beat_id = &"RETALIATION_REAR"
+pressure_seconds = 13.0
+recovery_seconds = 2.5
+spawns = Array[ExtResource("4")]([SubResource("TankBehind"), SubResource("SoldierBehind"), SubResource("SoldierBehindLate")])
+
+[sub_resource type="Resource" id="Retaliation03"]
+script = ExtResource("3")
+beat_id = &"RETALIATION_AIR"
+pressure_seconds = 13.0
+recovery_seconds = 2.5
+spawns = Array[ExtResource("4")]([SubResource("HelicopterAhead"), SubResource("SoldierAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Retaliation04"]
+script = ExtResource("3")
+beat_id = &"RETALIATION_SQUEEZE"
+pressure_seconds = 14.0
+recovery_seconds = 2.5
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("TankBehind"), SubResource("SoldierAhead"), SubResource("SoldierBehind")])
+
+[sub_resource type="Resource" id="Retaliation05"]
+script = ExtResource("3")
+beat_id = &"RETALIATION_PEAK"
+pressure_seconds = 15.0
+recovery_seconds = 2.5
+spawns = Array[ExtResource("4")]([SubResource("HelicopterAhead"), SubResource("TankAhead"), SubResource("SoldierAhead"), SubResource("SoldierBehind"), SubResource("SoldierAheadLate")])
+
+[sub_resource type="Resource" id="CommandTest01"]
+script = ExtResource("3")
+beat_id = &"SIEGE_TEST"
+pressure_seconds = 12.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("SoldierAhead")])
+
+[sub_resource type="Resource" id="CommandTest02"]
+script = ExtResource("3")
+beat_id = &"ARMOR_TEST"
+pressure_seconds = 13.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankBehind"), SubResource("HelicopterAhead")])
+
+[sub_resource type="Resource" id="CommandTest03"]
+script = ExtResource("3")
+beat_id = &"COMMAND_TEST"
+pressure_seconds = 15.0
+recovery_seconds = 3.0
+spawns = Array[ExtResource("4")]([SubResource("TankAhead"), SubResource("HelicopterAhead"), SubResource("SoldierAhead"), SubResource("SoldierBehind")])
 
 [sub_resource type="Resource" id="ContactAct"]
 script = ExtResource("2")
 act_id = &"CONTACT"
 display_name = "CONTACT"
-target_duration = 75.0
-beats = Array[ExtResource("3")]([SubResource("ScoutProbe"), SubResource("CrossfireArrival")])
-milestone_after = &"CONTACT_COMPLETE"
-elite_allowed = false
+target_duration = 70.0
+beats = Array[ExtResource("3")]([SubResource("Contact01"), SubResource("Contact02"), SubResource("Contact03"), SubResource("Contact04")])
+
+[sub_resource type="Resource" id="ContainmentAct"]
+script = ExtResource("2")
+act_id = &"CONTAINMENT"
+display_name = "CONTAINMENT"
+target_duration = 70.0
+beats = Array[ExtResource("3")]([SubResource("Containment01"), SubResource("Containment02"), SubResource("Containment03"), SubResource("Containment04")])
+milestone_after = &"DIRECTIVE_CHOICE"
+
+[sub_resource type="Resource" id="EscalationAct"]
+script = ExtResource("2")
+act_id = &"ESCALATION"
+display_name = "ESCALATION"
+target_duration = 85.0
+beats = Array[ExtResource("3")]([SubResource("Escalation01"), SubResource("Escalation02"), SubResource("Escalation03"), SubResource("Escalation04"), SubResource("Escalation05")])
+
+[sub_resource type="Resource" id="CommandAct"]
+script = ExtResource("2")
+act_id = &"COMMAND_RESPONSE"
+display_name = "COMMAND RESPONSE"
+target_duration = 85.0
+beats = Array[ExtResource("3")]([SubResource("Command01"), SubResource("Command02"), SubResource("Command03"), SubResource("Command04"), SubResource("Command05")])
+elite_allowed = true
+
+[sub_resource type="Resource" id="RetaliationAct"]
+script = ExtResource("2")
+act_id = &"RETALIATION"
+display_name = "RETALIATION"
+target_duration = 85.0
+beats = Array[ExtResource("3")]([SubResource("Retaliation01"), SubResource("Retaliation02"), SubResource("Retaliation03"), SubResource("Retaliation04"), SubResource("Retaliation05")])
+elite_allowed = true
+
+[sub_resource type="Resource" id="CommandTestAct"]
+script = ExtResource("2")
+act_id = &"COMMAND_TEST"
+display_name = "COMMAND TEST"
+target_duration = 55.0
+beats = Array[ExtResource("3")]([SubResource("CommandTest01"), SubResource("CommandTest02"), SubResource("CommandTest03")])
+milestone_after = &"DISTRICT_COMPLETE"
+elite_allowed = true
 
 [resource]
 script = ExtResource("1")
-district_id = &"DISTRICT_CONTACT"
-display_name = "DISTRICT CONTACT"
-acts = Array[ExtResource("2")]([SubResource("ContactAct")])
+district_id = &"URBAN_SIEGE_01"
+display_name = "URBAN SIEGE"
+acts = Array[ExtResource("2")]([SubResource("ContactAct"), SubResource("ContainmentAct"), SubResource("EscalationAct"), SubResource("CommandAct"), SubResource("RetaliationAct"), SubResource("CommandTestAct")])
