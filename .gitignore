@@ -115,3 +115,5 @@ client/public/__manus__/version.json
 # Proto Scroller Godot
 /game/.godot/
 /game/artifacts/
+/client/public/game/*.pck
+/client/public/game/*.wasm

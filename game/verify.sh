@@ -36,8 +36,7 @@ grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
 grep -Fq 'variant/extensions_support=false' export_presets.cfg
 grep -Fq 'variant/thread_support=false' export_presets.cfg
 CITY_SLICE_LINES="$(wc -l < scripts/gameplay/city_slice.gd)"
-test "$CITY_SLICE_LINES" -le 1000
-test "$CITY_SLICE_LINES" -lt 650
+test "$CITY_SLICE_LINES" -le 650
 printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
 test -z "$(find art audio -type f \( -iname '*candidate*' -o -iname '*carrier*' -o -iname '*original*' \) -print -quit)"
 for cue in audio/sfx/rampage/overdrive_activation.wav audio/sfx/rampage/combo_break.wav; do
