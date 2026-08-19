@@ -1,0 +1,447 @@
+{
+  "schema_version": 1,
+  "model": "gpt-image-2",
+  "master_directory": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1",
+  "carrier": "#FF00FF",
+  "processor": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/process_assets.py",
+  "assets": [
+    {
+      "asset_id": "armor_plating_icon",
+      "subject": "Armor Plating icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/armor_plating_icon_master.png",
+      "master_sha256": "caa85034574b455f06594129bd20739e272044129f1b539103aa113e9ddcb750",
+      "shipping_path": "res://art/ui/upgrades/armor_plating.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 54552,
+      "shipping_sha256": "f760cf8d227e326eac57668779b7c64503cad350b5fafcea1e1ddb5f9f30d440",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "armor_plating_overlay",
+      "subject": "Armor overlay",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/armor_plating_overlay_master.png",
+      "master_sha256": "618d3e373e515a407f30a3dd5ee3ffdb58c12a85f1f11c4cda09a509f54846c0",
+      "shipping_path": "res://art/robot/upgrades/armor_plating_overlay.png",
+      "dimensions": [
+        209,
+        193
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 11380,
+      "shipping_sha256": "33b77886473fc7035b40530a56cde4ee816394dd7441b31d258febc623e44ca8",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "destruction_debris_atlas",
+      "subject": "4x4 debris atlas",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/destruction_debris_atlas_master.png",
+      "master_sha256": "c421de6f7a01c260cd14daf3e5ad919a04c2b56188ee7a8ebffa6273b34b2cc2",
+      "shipping_path": "res://art/destruction/destruction_debris_atlas.png",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 172971,
+      "shipping_sha256": "39da9b32db01afd99dcb32abed89b370c57f2fda4fb3fc63b811f644e43fc8b0",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "destruction_icon",
+      "subject": "Destruction icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/destruction_icon_master.png",
+      "master_sha256": "0a0d165514c2b279516e7c6206ef0d7eed80f66317324bf07db37159d0418796",
+      "shipping_path": "res://art/ui/upgrades/destruction_icon.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 80866,
+      "shipping_sha256": "1f1995c547b444d7ce9200d6d59022833cc5e20d5ba0c3f4f52b51b60a57cd73",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "machine_gun_mount",
+      "subject": "Machine Gun mount",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/machine_gun_mount_master.png",
+      "master_sha256": "914be83947ce9230a45a384d97c6208af4b6947e7cb9cd4561fd55fed9aaf6af",
+      "shipping_path": "res://art/player/weapons/machine_gun_mount.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 34051,
+      "shipping_sha256": "9925c2c348fab24b5602083da5e389c0844c54dfe31da1f1179c54dd935e2ae1",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "machine_gun_icon",
+      "subject": "Machine Gun icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/machine_gun_icon_master.png",
+      "master_sha256": "d49412a214643349221d9fed40d6e44921329c6dbdcda195459109829553f315",
+      "shipping_path": "res://art/ui/upgrades/machine_gun.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 9258,
+      "shipping_sha256": "52ca8c8b64f1e11133cdbb705465fe1afeb0c1da887c21dde9c13f47ed314f9f",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "machine_gun_muzzle_flash",
+      "subject": "Muzzle flash",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/machine_gun_muzzle_flash_master.png",
+      "master_sha256": "51326ef6f8e0407239cd7b9061a1aaa8571877ad8b257825dd5cb35f7f921649",
+      "shipping_path": "res://art/player/weapons/machine_gun_muzzle_flash.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 3739,
+      "shipping_sha256": "f8d697c2a55b6865281c04d9fa388e18ee1451736010c00e6a8359fe4a095f34",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "machine_gun_impact",
+      "subject": "Ricochet impact",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/machine_gun_impact_master.png",
+      "master_sha256": "b63d7d4e8c3d03979604d345be8c454c30cfafa64341cb1991309a7d7005f8d8",
+      "shipping_path": "res://art/player/weapons/machine_gun_impact.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 1745,
+      "shipping_sha256": "d6bc92deabd0ea98884809c1d5a929c4714c2512452713bb4c182bd80fcda828",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "player_missile_body",
+      "subject": "Missile body",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/player_missile_body_master.png",
+      "master_sha256": "822f6940d8c1e2b6d53c29062321dbfb7bac8e9f06725a7077e9c556fd1c6a39",
+      "shipping_path": "res://art/player/weapons/player_missile_body.png",
+      "dimensions": [
+        512,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 10985,
+      "shipping_sha256": "73e46b6ca21def2e30951572467b8ea583d8734532a891d71d56e87b30489077",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "player_missile_explosion_atlas",
+      "subject": "4x2 explosion atlas",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/player_missile_explosion_atlas_master.png",
+      "master_sha256": "cc6f4455e4849df4127e7037bfaef84265c8286b24c3c22288de0a09024039cb",
+      "shipping_path": "res://art/player/weapons/player_missile_explosion_atlas.png",
+      "dimensions": [
+        1024,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 57388,
+      "shipping_sha256": "77ba87ff8a21c161123df842f0785603e8fbddcabfa26f3727d77465c912a1b4",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "missile_icon",
+      "subject": "Missile icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/missile_icon_master.png",
+      "master_sha256": "c4f140e80e7e57ce43cd8c7dd3166d7c2803dcec8718a751b674aa4cbc61d05f",
+      "shipping_path": "res://art/ui/upgrades/upgrade_missile_plus_one.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 27436,
+      "shipping_sha256": "e364302661074189f6f570051d598a96c4cfbd2f759b2fb968a3b848318ce0db",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "laser_emitter",
+      "subject": "Laser emitter",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/laser_emitter_master.png",
+      "master_sha256": "3a1b6567cdedaef07e01eb8efe379416f6785bb8a7850d0e7467b00111c720a1",
+      "shipping_path": "res://art/robot/weapons/laser_emitter.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 43683,
+      "shipping_sha256": "7cebce9ed5240d5408233a76073c55fc6df1013a6c973814245a5326f6bc2db9",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "laser_icon",
+      "subject": "Laser icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/laser_icon_master.png",
+      "master_sha256": "d48f924e5987162a5935edfaf140c34667fc28163102dd676eaecabb6a5b4909",
+      "shipping_path": "res://art/ui/upgrades/laser_plus_1.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 33351,
+      "shipping_sha256": "517889042ccd1b162cf822c550623c57a037f9fb06285951e92688ac4f2e2274",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flamethrower_nozzle",
+      "subject": "Flamethrower nozzle",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flamethrower_nozzle_master.png",
+      "master_sha256": "3a901653ea3016d7e867a21293d022bca837173109997dad8123d6590ca366d3",
+      "shipping_path": "res://art/player/weapons/flamethrower_nozzle.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 33778,
+      "shipping_sha256": "55af339fb355a30c7bb4e46be6383552f6e67739bd8ed5226aece258912ea031",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flame_plume_atlas",
+      "subject": "4x2 flame plume atlas",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flame_plume_atlas_master.png",
+      "master_sha256": "05803713b9be06caf1af31d7a69df4e050d672996551c1e3fd91850826b50891",
+      "shipping_path": "res://art/presentation/flame_plume_atlas.png",
+      "dimensions": [
+        1024,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 41843,
+      "shipping_sha256": "8a74fe149bb4bdfd78581ba065403aac518d2769f55cf8d8f678337a6de5a83f",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flame_ignition_atlas",
+      "subject": "3x2 ignition atlas",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flame_ignition_atlas_master.png",
+      "master_sha256": "b7f50ccb535c09ace8a7d8e63cd5f87b8af11f37a2f50e85f53aaf33a665f34d",
+      "shipping_path": "res://art/presentation/flame_ignition_atlas.png",
+      "dimensions": [
+        768,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 25770,
+      "shipping_sha256": "54092e23f6d7582f7429d772896f72b6b9db2495be80dc9001a5a5d69587cb91",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flame_contact_atlas",
+      "subject": "4x1 contact atlas",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flame_contact_atlas_master.png",
+      "master_sha256": "5c8a9cb64d24a84abef660175ef76d7d6ce319832ce9cb30cae3597b50ca914e",
+      "shipping_path": "res://art/presentation/flame_contact_atlas.png",
+      "dimensions": [
+        1024,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 9087,
+      "shipping_sha256": "a22f23299fae58833d33e4790d0d3a5a8fcad86e52a45675e30817b55b935fc2",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "scorch_decals",
+      "subject": "2x2 scorch atlas",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/scorch_decals_master.png",
+      "master_sha256": "3a7259c848568c0163459ad275d6ce0f1ab8897e0a42a334c9460a42a674f353",
+      "shipping_path": "res://art/presentation/scorch_decals.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 37500,
+      "shipping_sha256": "683d72e2f7be1962b6ff15716d123124a7cac2192eb658ad6ac478c300fca7ea",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flamethrower_icon",
+      "subject": "Flamethrower icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flamethrower_icon_master.png",
+      "master_sha256": "8058790d615a3bdc230504955656f1c53f11dcd7b30e9bacef992d0c62711726",
+      "shipping_path": "res://art/ui/upgrades/flamethrower.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 10054,
+      "shipping_sha256": "c5fa61c6d8b15c04f8bd544104071dc76cee4bd677efb2248da435fa30f40262",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "engine_upgrade_badge",
+      "subject": "Engine icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/engine_upgrade_badge_master.png",
+      "master_sha256": "8b0207f8b972df6c58c9f22ad442f3f3cbf6a1eb563be22c2aacada7d8524dc6",
+      "shipping_path": "res://art/ui/upgrades/engine_upgrade_badge.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 16238,
+      "shipping_sha256": "4808e91242eb4bdb3364538d539874bdb49bf2375c9232f0c2002b261cb3d359",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "kinetic_field_icon",
+      "subject": "Kinetic Field icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/kinetic_field_icon_master.png",
+      "master_sha256": "fdcbaca20bd6a1bea37b083c6a2b7f86ab5807d80fa9f8dc087267b9481ba2c8",
+      "shipping_path": "res://art/ui/upgrades/kinetic_field_icon.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 20793,
+      "shipping_sha256": "53ec7473ab10379adb09e8f2cbfa9b9eb59cb786779ce796fa92170f3442804c",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "kinetic_impact_halo",
+      "subject": "Kinetic impact halo",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/kinetic_impact_halo_master.png",
+      "master_sha256": "d7deadd9d8f5a38ac568219c7cdf0aba874bd61f97459b25fcad99fd75225aa9",
+      "shipping_path": "res://art/presentation/kinetic_impact_halo.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 18414,
+      "shipping_sha256": "1e6ac91782eb42ea43858a3abdf6d72650c3795685868a198e98fdad2e655014",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "shockwave_ground_ring",
+      "subject": "Shockwave ring",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/shockwave_ground_ring_master.png",
+      "master_sha256": "5c7e20b53a1623ffb720fb498670c72d0485cc90a7bb6fb6a44c61517b0b893f",
+      "shipping_path": "res://art/effects/shockwave_ground_ring.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 64034,
+      "shipping_sha256": "f20344e044c85788e4c8a4ec1211ed7b55823270d7d7eb648447c158970652de",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "shockwave_icon",
+      "subject": "Shockwave icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "implementation-plan section 14.2",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/shockwave_icon_master.png",
+      "master_sha256": "3d476788a70ff7918987c829df9b3656221e54950d6a01bd7f3fa14de34bead1",
+      "shipping_path": "res://art/ui/upgrades/shockwave_plus_one_icon.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 20370,
+      "shipping_sha256": "0eac66ce2c9046069196cff36cb395c00d79f4524af0332ae243b44cf3a10c8f",
+      "reviewer": "pending-human-release-review"
+    }
+  ],
+  "optional_assets_omitted": [
+    "urban_prop_fragments",
+    "laser_impact_atlas",
+    "engine_rank_pips",
+    "kinetic_field_rank_pip"
+  ]
+}

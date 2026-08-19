@@ -15,6 +15,9 @@ const OVERDRIVE_ACTIVATION_SFX: AudioStream = preload(
 	"res://audio/sfx/rampage/overdrive_activation.wav"
 )
 const COMBO_BREAK_SFX: AudioStream = preload("res://audio/sfx/rampage/combo_break.wav")
+const UPGRADE_CONFIRM_SFX: AudioStream = preload(
+	"res://audio/sfx/upgrades/upgrade_confirm.wav"
+)
 const SPARK_SCALE_NORMALIZER: float = 1.0 / 16.0
 
 @export_range(1, 16, 1) var particle_capacity: int = RuntimeBudget.PARTICLE_SLOTS
@@ -123,9 +126,11 @@ func play_semantic(
 	origin: Vector2,
 	priority: int = 6
 ) -> AudioStreamPlayer2D:
-	var stream: AudioStream = (
-		OVERDRIVE_ACTIVATION_SFX if cue == &"overdrive" else COMBO_BREAK_SFX
-	)
+	var stream: AudioStream = COMBO_BREAK_SFX
+	if cue == &"overdrive":
+		stream = OVERDRIVE_ACTIVATION_SFX
+	elif cue == &"upgrade":
+		stream = UPGRADE_CONFIRM_SFX
 	var player: AudioStreamPlayer2D = _acquire_audio_slot(priority)
 	if player == null:
 		audio_drop_count += 1

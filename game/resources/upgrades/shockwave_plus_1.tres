@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="UpgradeProfile" format=3]
 
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://art/ui/upgrades/shockwave_plus_one_icon.png" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -8,6 +9,7 @@ upgrade_id = &"SHOCKWAVE"
 display_name = "SHOCKWAVE +1"
 description = "Ground Smash emits a longer-lived expanding shockwave ring."
 category = &"melee"
+icon = ExtResource("2")
 max_rank = 3
 runtime_key = &"SHOCKWAVE"
 offer_weight = 90
