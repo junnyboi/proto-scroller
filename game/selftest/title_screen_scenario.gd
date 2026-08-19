@@ -50,7 +50,17 @@ func _run() -> void:
 	_check("viewport_geometry", root.size == target_size, "size=%s" % [root.size])
 	var title_visible: bool = title_label.is_visible_in_tree()
 	_check("title_visible", title_visible, "visible=%s" % [title_visible])
-	_check("title_text", title_label.text == "PROTO\nSCROLLER", "text=%s" % [title_label.text])
+	_check(
+		"title_text",
+		title_label.text == "PROTO SCROLLER\nFIELD BRIEFING",
+		"text=%s" % [title_label.text]
+	)
+	_check(
+		"begin_expedition_action",
+		button.text == "BEGIN EXPEDITION",
+		"text=%s" % [button.text]
+	)
+	_check_briefing_content(screen)
 	_check("button_focused", button.has_focus(), "focused=%s" % [button.has_focus()])
 	_check_minimum_text_height(screen, button)
 	_check_layout_contract(screen, button)
@@ -85,7 +95,11 @@ func _run() -> void:
 	await process_frame
 	var status_label: Label = screen.get_node("%StatusLabel") as Label
 	_check("input_initializes", screen.initialized, "initialized=%s" % [screen.initialized])
-	_check("ready_status", status_label.text == "SYSTEM READY", "status=%s" % [status_label.text])
+	_check(
+		"ready_status",
+		status_label.text == "EXPEDITION ACTIVE",
+		"status=%s" % [status_label.text]
+	)
 	_check("frame_budget", elapsed_frames <= MAX_FRAMES, _frame_budget_detail())
 	_finish(shot_status, shot_path)
 
@@ -123,6 +137,40 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 		"telemetry_inside_viewport",
 		viewport_rect.encloses(telemetry_rect),
 		"viewport=%s telemetry=%s" % [viewport_rect, telemetry_rect]
+	)
+
+
+func _check_briefing_content(screen: TitleScreen) -> void:
+	var story: String = (screen.get_node("%InstructionLabel") as Label).text
+	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
+	var panel: VBoxContainer = screen.get_node("TelemetryPanel/PanelStack") as VBoxContainer
+	var briefing_text: String = ""
+	for label_node: Node in panel.find_children("*", "Label", true, false):
+		briefing_text += (label_node as Label).text + "\n"
+	_check(
+		"story_present",
+		story.contains("city defense grid went silent"),
+		"text=%s" % [story]
+	)
+	_check(
+		"tutorial_present",
+		controls.contains("A / D") and controls.contains("SPACE")
+		and controls.contains("Mobile joystick") and controls.contains("SMASH"),
+		"text=%s" % [controls]
+	)
+	_check(
+		"objectives_present",
+		briefing_text.contains("Survive the city response")
+		and briefing_text.contains("earn EXP")
+		and briefing_text.contains("1 of 2 upgrades"),
+		"text=%s" % [briefing_text]
+	)
+	_check(
+		"enemy_and_retry_intel_present",
+		briefing_text.contains("Soldiers + tanks")
+		and briefing_text.contains("Helicopters + rockets")
+		and briefing_text.contains("reset when you Retry"),
+		"text=%s" % [briefing_text]
 	)
 
 

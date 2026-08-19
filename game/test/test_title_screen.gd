@@ -27,9 +27,37 @@ func test_launch_scene_contract() -> void:
 		ProjectSettings.get_setting("application/run/main_scene"),
 		"res://scenes/main/main.tscn"
 	)
-	assert_eq(title_label.text, "PROTO\nSCROLLER")
-	assert_eq(initialize_button.text, "INITIALIZE")
+	assert_eq(title_label.text, "PROTO SCROLLER\nFIELD BRIEFING")
+	assert_eq(initialize_button.text, "BEGIN EXPEDITION")
 	assert_eq(initialize_button.focus_mode, Control.FOCUS_ALL)
+	var buttons: Array[Node] = screen.find_children("*", "Button", true, false)
+	assert_eq(buttons.size(), 1, "The briefing must expose one launch action only.")
+	_record_test_execution()
+
+
+func test_briefing_teaches_story_controls_objectives_and_run_rules() -> void:
+	var story: String = (screen.get_node("%InstructionLabel") as Label).text
+	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
+	var enemy_intel: String = (screen.get_node("%EnemyIntel") as Label).text
+	var run_rule: String = (screen.get_node("%RunRule") as Label).text
+	assert_true(story.contains("city defense grid went silent"))
+	for required_control: String in ["A / D", "Mobile joystick", "SPACE", "SMASH"]:
+		assert_true(controls.contains(required_control), required_control)
+	assert_eq(
+		(screen.get_node("TelemetryPanel/PanelStack/PrimaryObjective") as Label).text,
+		"PRIMARY  Survive the city response."
+	)
+	assert_true(
+		(screen.get_node("TelemetryPanel/PanelStack/ObjectiveOne") as Label)
+		.text.contains("earn EXP")
+	)
+	assert_true(
+		(screen.get_node("TelemetryPanel/PanelStack/ObjectiveThree") as Label)
+		.text.contains("1 of 2 upgrades")
+	)
+	assert_true(enemy_intel.contains("Soldiers + tanks"))
+	assert_true(enemy_intel.contains("Helicopters + rockets"))
+	assert_true(run_rule.contains("reset when you Retry"))
 	_record_test_execution()
 
 
@@ -39,11 +67,11 @@ func test_initialize_seam_transitions_once() -> void:
 	assert_false(screen.initialized)
 	assert_true(screen.initialize_game())
 	assert_true(screen.initialized)
-	assert_eq(status_label.text, "SYSTEM READY")
-	assert_eq(initialize_button.text, "READY")
+	assert_eq(status_label.text, "EXPEDITION ACTIVE")
+	assert_eq(initialize_button.text, "DEPLOYING")
 	assert_true(initialize_button.disabled)
 	assert_false(screen.initialize_game(), "A second initialization must reject without mutation.")
-	assert_eq(status_label.text, "SYSTEM READY")
+	assert_eq(status_label.text, "EXPEDITION ACTIVE")
 	_record_test_execution()
 
 
