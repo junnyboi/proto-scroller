@@ -38,6 +38,11 @@ func setup(city: Node) -> PackedStringArray:
 		runtimes[&"MACHINE_GUN"] as MachineGunRuntime
 	)
 	machine_gun.setup_arsenal(arsenal)
+	var laser: PlayerLaserWeapon = runtimes[&"LASER"] as PlayerLaserWeapon
+	laser.setup_arsenal(
+		arsenal,
+		robot.get_node(^"VisualRoot/LaserEmitter") as Node2D
+	)
 	session = UpgradeSession.new()
 	session.name = "UpgradeSession"
 	add_child(session)
@@ -105,6 +110,8 @@ func _create_runtime(
 			runtime = ShockwaveUpgradeRuntime.new()
 		&"MACHINE_GUN":
 			runtime = MachineGunRuntime.new()
+		&"LASER":
+			runtime = PlayerLaserWeapon.new()
 		_:
 			runtime = UpgradeRuntime.new()
 			runtime.setup(profile.runtime_key, profile.max_rank)

@@ -64,6 +64,10 @@ static func build_robot(
 	impact_origin.name = "GroundImpactOrigin"
 	impact_origin.position = Vector2(0.0, 126.0)
 	robot.add_child(impact_origin)
+	var laser_emitter: Marker2D = Marker2D.new()
+	laser_emitter.name = "LaserEmitter"
+	laser_emitter.position = Vector2(54.0, -32.0)
+	visual_root.add_child(laser_emitter)
 	var hurtbox: Area2D = Area2D.new()
 	hurtbox.name = "Hurtbox"
 	hurtbox.collision_layer = HURTBOX_LAYER
