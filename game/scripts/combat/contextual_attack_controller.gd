@@ -52,6 +52,11 @@ func _ready() -> void:
 			_rest_position = _visual_root.position
 			_rest_scale = _visual_root.scale
 			_rest_rotation = _visual_root.rotation
+		var presenter: RobotAnimationPresenter = (
+			_robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+		)
+		if presenter != null:
+			presenter.bind_attacks(self)
 
 
 func request_attack() -> int:
@@ -144,7 +149,7 @@ func _commit_jab_cross_velocity(spec: AttackSpec) -> void:
 func _apply_windup_pose(spec: AttackSpec) -> void:
 	if _visual_root == null:
 		return
-	var facing_scale: float = absf(_rest_scale.x) * float(spec.facing)
+	var facing_scale: float = _visual_scale_x(spec.facing)
 	_visual_root.position = _rest_position + Vector2(-5.0 * float(spec.facing), 5.0)
 	_visual_root.scale = Vector2(facing_scale * 0.98, _rest_scale.y * 0.94)
 	_visual_root.rotation = 0.045 * float(spec.facing) if spec.is_jab_cross() else 0.0
@@ -153,7 +158,7 @@ func _apply_windup_pose(spec: AttackSpec) -> void:
 func _apply_active_pose(spec: AttackSpec) -> void:
 	if _visual_root == null:
 		return
-	var facing_scale: float = absf(_rest_scale.x) * float(spec.facing)
+	var facing_scale: float = _visual_scale_x(spec.facing)
 	if spec.is_jab_cross():
 		_visual_root.position = _rest_position + Vector2(16.0 * float(spec.facing), 9.0)
 		_visual_root.scale = Vector2(facing_scale * 1.05, _rest_scale.y * 0.90)
@@ -167,7 +172,7 @@ func _apply_active_pose(spec: AttackSpec) -> void:
 func _apply_recovery_pose(spec: AttackSpec) -> void:
 	if _visual_root == null:
 		return
-	var facing_scale: float = absf(_rest_scale.x) * float(_robot.facing)
+	var facing_scale: float = _visual_scale_x(_robot.facing)
 	_visual_root.position = _rest_position + Vector2(4.0 * float(spec.facing), 3.0)
 	_visual_root.scale = Vector2(facing_scale, _rest_scale.y * 0.97)
 	_visual_root.rotation = 0.025 * float(spec.facing)
@@ -178,7 +183,14 @@ func _restore_pose() -> void:
 		return
 	_visual_root.position = _rest_position
 	_visual_root.scale = Vector2(
-		absf(_rest_scale.x) * float(_robot.facing),
+		_visual_scale_x(_robot.facing),
 		_rest_scale.y
 	)
 	_visual_root.rotation = _rest_rotation
+
+
+func _visual_scale_x(facing: int) -> float:
+	var baked_facing: bool = bool(
+		_visual_root.get_meta(&"baked_directional_art", false)
+	)
+	return absf(_rest_scale.x) * (1.0 if baked_facing else float(facing))

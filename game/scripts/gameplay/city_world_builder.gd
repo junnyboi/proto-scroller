@@ -18,8 +18,11 @@ const SKY_TEXTURE: Texture2D = preload("res://art/city/parallax/sky.png")
 const FAR_TEXTURE: Texture2D = preload("res://art/city/parallax/far_skyline.png")
 const INFRA_TEXTURE: Texture2D = preload("res://art/city/parallax/infrastructure.png")
 const NEAR_TEXTURE: Texture2D = preload("res://art/city/parallax/near_buildings.png")
-const ROBOT_TEXTURE: Texture2D = preload(
-	"res://art/robot/provisional/robot_draft_idle.png"
+const ROBOT_ATLAS: Texture2D = preload(
+	"res://art/robot/grunt/grunt_horizontal_atlas.png"
+)
+const ROBOT_ANIMATION_PRESENTER: Script = preload(
+	"res://scripts/player/robot_animation_presenter.gd"
 )
 
 
@@ -55,8 +58,12 @@ static func build_robot(
 	robot.add_child(body_shape)
 	var visual_root: Node2D = Node2D.new()
 	visual_root.name = "VisualRoot"
-	var robot_sprite: Sprite2D = fit_sprite(ROBOT_TEXTURE, Vector2(265.0, 245.0))
-	robot_sprite.name = "ProvisionalRobotSprite"
+	visual_root.set_meta(&"baked_directional_art", true)
+	var robot_sprite: AnimatedSprite2D = AnimatedSprite2D.new()
+	robot_sprite.name = "RobotAnimatedSprite"
+	robot_sprite.sprite_frames = RobotSpriteFramesBuilder.build(ROBOT_ATLAS)
+	robot_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	robot_sprite.scale = Vector2.ONE * 1.246
 	robot_sprite.position.y = 72.0
 	visual_root.add_child(robot_sprite)
 	robot.add_child(visual_root)
@@ -68,6 +75,10 @@ static func build_robot(
 	laser_emitter.name = "LaserEmitter"
 	laser_emitter.position = Vector2(54.0, -32.0)
 	visual_root.add_child(laser_emitter)
+	var animation_presenter: RobotAnimationPresenter = ROBOT_ANIMATION_PRESENTER.new()
+	animation_presenter.name = "RobotAnimationPresenter"
+	animation_presenter.setup(robot, robot_sprite)
+	robot.add_child(animation_presenter)
 	var hurtbox: Area2D = Area2D.new()
 	hurtbox.name = "Hurtbox"
 	hurtbox.collision_layer = HURTBOX_LAYER
