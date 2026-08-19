@@ -71,7 +71,8 @@ func process_controls(delta: float) -> void:
 	)
 	if not is_equal_approx(previous_axis, _current_axis):
 		move_axis_changed.emit(_current_axis)
-	queue_redraw()
+		if joystick_active:
+			queue_redraw()
 
 
 func handle_touch_input(event: InputEvent) -> void:
@@ -152,6 +153,7 @@ func _sync_to_viewport() -> void:
 		smash_button.offset_right = -24.0 if portrait else -36.0
 		smash_button.offset_bottom = -24.0 if portrait else -36.0
 	if joystick_active:
+		var previous_origin: Vector2 = _joystick_origin
 		_joystick_origin.x = clampf(
 			_joystick_origin.x,
 			JOYSTICK_RADIUS + EDGE_PADDING,
@@ -162,6 +164,8 @@ func _sync_to_viewport() -> void:
 			JOYSTICK_RADIUS + EDGE_PADDING,
 			viewport_size.y - JOYSTICK_RADIUS - EDGE_PADDING
 		)
+		if not previous_origin.is_equal_approx(_joystick_origin):
+			queue_redraw()
 
 
 func _build_smash_button() -> void:
@@ -227,14 +231,16 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 	if event.index != _joystick_touch_index:
 		return
 	var displacement: Vector2 = event.position - _touch_anchor
-	_knob_offset = displacement.limit_length(JOYSTICK_RADIUS)
+	var next_knob_offset: Vector2 = displacement.limit_length(JOYSTICK_RADIUS)
 	var raw_axis: float = clampf(
 		displacement.x / JOYSTICK_RADIUS,
 		-1.0,
 		1.0
 	)
 	_target_axis = _apply_deadzone(raw_axis)
-	queue_redraw()
+	if not next_knob_offset.is_equal_approx(_knob_offset):
+		_knob_offset = next_knob_offset
+		queue_redraw()
 	get_viewport().set_input_as_handled()
 
 
@@ -261,11 +267,13 @@ func _press_joystick(touch_index: int, touch_position: Vector2) -> void:
 
 
 func _release_joystick() -> void:
+	var visual_was_active: bool = joystick_active
 	_joystick_touch_index = -1
 	_target_axis = 0.0
 	_knob_offset = Vector2.ZERO
 	joystick_active = false
-	queue_redraw()
+	if visual_was_active:
+		queue_redraw()
 
 
 func _press_smash(touch_index: int) -> void:

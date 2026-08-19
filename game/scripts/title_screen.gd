@@ -34,6 +34,7 @@ var locale_preference_path: String = L10n.PREFERENCE_PATH
 @onready var initialize_button: Button = %InitializeButton
 @onready var language_selector: HBoxContainer = %LanguageSelector
 @onready var language_label: Label = %LanguageLabel
+@onready var automatic_button: Button = %AutomaticButton
 @onready var english_button: Button = %EnglishButton
 @onready var chinese_button: Button = %ChineseButton
 @onready var status_label: Label = %StatusLabel
@@ -45,6 +46,7 @@ func _ready() -> void:
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	briefing_toggle.pressed.connect(toggle_briefing)
 	briefing_backdrop.pressed.connect(close_briefing)
+	automatic_button.pressed.connect(_on_automatic_pressed)
 	english_button.pressed.connect(_on_english_pressed)
 	chinese_button.pressed.connect(_on_chinese_pressed)
 	initialize_button.call_deferred("grab_focus")
@@ -80,6 +82,7 @@ func initialize_game() -> bool:
 	initialize_button.text = L10n.t("title.deploying")
 	initialize_button.disabled = true
 	briefing_toggle.disabled = true
+	automatic_button.disabled = true
 	english_button.disabled = true
 	chinese_button.disabled = true
 	return true
@@ -123,9 +126,24 @@ func select_language(locale: String) -> bool:
 	return true
 
 
+func select_automatic_language() -> bool:
+	if initialized or not L10n.use_automatic_locale(locale_preference_path):
+		_sync_language_selector()
+		return false
+	_apply_localized_text()
+	L10n.apply_locale_font(self)
+	L10n.apply_cjk_font(chinese_button)
+	_apply_responsive_layout()
+	return true
+
+
 func _on_initialize_pressed() -> void:
 	if initialize_game():
 		start_requested.emit()
+
+
+func _on_automatic_pressed() -> void:
+	select_automatic_language()
 
 
 func _on_english_pressed() -> void:
@@ -175,6 +193,7 @@ func _apply_localized_text() -> void:
 		"title.briefing_close" if briefing_open else "title.briefing_available"
 	)
 	language_label.text = L10n.t("title.language")
+	automatic_button.text = L10n.t("title.language_auto")
 	english_button.text = L10n.t("title.language_en")
 	chinese_button.text = L10n.t("title.language_zh_cn")
 	_sync_language_selector()
@@ -209,7 +228,7 @@ func _apply_landscape_layout() -> void:
 	_set_rect(%InstructionLabel, Rect2(52.0, 380.0, 610.0, 46.0))
 	_set_rect($StatusRail, Rect2(744.0, 36.0, 504.0, 68.0))
 	_set_rect(initialize_button, Rect2(52.0, 450.0, 360.0, 72.0))
-	_set_rect(language_selector, Rect2(52.0, 530.0, 360.0, 48.0))
+	_set_rect(language_selector, Rect2(52.0, 530.0, 448.0, 48.0))
 	_set_rect($HintLabel, Rect2(430.0, 464.0, 160.0, 46.0))
 	_set_rect($MoveChip, Rect2(52.0, 590.0, 164.0, 48.0))
 	_set_rect($SmashChip, Rect2(236.0, 590.0, 178.0, 48.0))
@@ -247,14 +266,17 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	initialize_button.add_theme_font_size_override(&"font_size", button_size)
 	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
 	language_label.add_theme_font_size_override(&"font_size", body_size)
+	automatic_button.add_theme_font_size_override(&"font_size", body_size)
 	english_button.add_theme_font_size_override(&"font_size", body_size)
 	chinese_button.add_theme_font_size_override(&"font_size", body_size)
 
 
 func _sync_language_selector() -> void:
+	var automatic_selected: bool = L10n.uses_automatic_locale(locale_preference_path)
 	var chinese_selected: bool = L10n.current_locale() == "zh-CN"
-	english_button.set_pressed_no_signal(not chinese_selected)
-	chinese_button.set_pressed_no_signal(chinese_selected)
+	automatic_button.set_pressed_no_signal(automatic_selected)
+	english_button.set_pressed_no_signal(not automatic_selected and not chinese_selected)
+	chinese_button.set_pressed_no_signal(not automatic_selected and chinese_selected)
 
 
 func _set_rect(control: Control, rect: Rect2) -> void:

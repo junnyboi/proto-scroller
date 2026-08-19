@@ -32,13 +32,18 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 
 func set_paused(value: bool) -> void:
 	super.set_paused(value)
-	field.paused = value
+	field.set_paused(value)
+
+
+func continue_cycle() -> void:
+	super.continue_cycle()
+	field.set_paused(false)
 
 
 func stop_and_release() -> void:
 	super.stop_and_release()
 	field.reset_field()
-	field.paused = true
+	field.set_paused(true)
 
 
 func reset_run() -> void:

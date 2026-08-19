@@ -47,6 +47,9 @@ var _overdrive_active: bool = false
 var _momentum_fill_width: float = 392.0
 var _experience_fill_width: float = 254.0
 var _experience_ratio: float = 0.0
+var _displayed_combo_multiplier: int = -1
+var _displayed_overdrive_key: String = ""
+var _displayed_overdrive_seconds: String = ""
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -124,8 +127,13 @@ func _set_experience(level: int, current: int, required: int) -> void:
 func set_combo(multiplier: int, grace_remaining: float) -> void:
 	if combo_label == null:
 		return
-	combo_label.text = L10n.t("hud.combo", {"multiplier": clampi(multiplier, 1, 5)})
-	combo_label.visible = multiplier > 1
+	var clamped_multiplier: int = clampi(multiplier, 1, 5)
+	if _displayed_combo_multiplier != clamped_multiplier:
+		combo_label.text = L10n.t("hud.combo", {"multiplier": clamped_multiplier})
+		_displayed_combo_multiplier = clamped_multiplier
+	var should_show_combo: bool = clamped_multiplier > 1
+	if combo_label.visible != should_show_combo:
+		combo_label.visible = should_show_combo
 	combo_label.modulate.a = clampf(grace_remaining / 0.55, 0.55, 1.0)
 	if combo_ring != null:
 		combo_ring.set_ratio(
@@ -136,8 +144,12 @@ func set_combo(multiplier: int, grace_remaining: float) -> void:
 func set_momentum(value: float, band: int) -> void:
 	var clamped_value: float = clampf(value, 0.0, 100.0)
 	if momentum_fill != null:
-		momentum_fill.size.x = _momentum_fill_width * clamped_value / 100.0
-		momentum_fill.color = _momentum_color(band)
+		var next_width: float = _momentum_fill_width * clamped_value / 100.0
+		if not is_equal_approx(momentum_fill.size.x, next_width):
+			momentum_fill.size.x = next_width
+		var next_color: Color = _momentum_color(band)
+		if momentum_fill.color != next_color:
+			momentum_fill.color = next_color
 	if momentum_label != null:
 		momentum_label.text = (
 			(
@@ -156,12 +168,21 @@ func set_overdrive(active: bool, remaining: float) -> void:
 		var key: String = (
 			"hud.overdrive_portrait" if _is_portrait_layout() else "hud.overdrive_landscape"
 		)
-		momentum_label.text = L10n.t(key, {"seconds": "%.1f" % maxf(remaining, 0.0)})
+		var displayed_seconds: String = "%.1f" % maxf(remaining, 0.0)
+		if key != _displayed_overdrive_key or displayed_seconds != _displayed_overdrive_seconds:
+			momentum_label.text = L10n.t(key, {"seconds": displayed_seconds})
+			_displayed_overdrive_key = key
+			_displayed_overdrive_seconds = displayed_seconds
+	elif not active:
+		_displayed_overdrive_key = ""
+		_displayed_overdrive_seconds = ""
 	if momentum_fill != null and active:
-		momentum_fill.size.x = (
-			_momentum_fill_width * clampf(remaining / 4.0, 0.0, 1.0)
-		)
-		momentum_fill.color = Color("ff8a42")
+		var next_width: float = _momentum_fill_width * clampf(remaining / 4.0, 0.0, 1.0)
+		if not is_equal_approx(momentum_fill.size.x, next_width):
+			momentum_fill.size.x = next_width
+		var overdrive_color: Color = Color("ff8a42")
+		if momentum_fill.color != overdrive_color:
+			momentum_fill.color = overdrive_color
 
 
 func set_rare_tags(tags: PackedStringArray) -> void:
