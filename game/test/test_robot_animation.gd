@@ -167,16 +167,42 @@ func test_dodge_uses_facing_lean_and_restores_clean_sprite_state() -> void:
 	var presenter: RobotAnimationPresenter = (
 		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
+	presenter.set_process(false)
+	robot.collision_mask = 0
+	robot.gravity = 0.0
+	robot.global_position = Vector2(600.0, 460.0)
+	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
 	robot.facing = -1
 	robot.facing_changed.emit(-1)
 	assert_true(robot._start_dodge())
 	assert_true(presenter.dodging)
 	assert_gt(sprite.skew, 0.0)
 	assert_lt(sprite.modulate.a, 1.0)
-	robot.physics_step(0.0, robot.dodge_duration + 0.01)
+	assert_eq(presenter.afterimage_slot_count(), RuntimeBudget.DODGE_AFTERIMAGE_SLOTS)
+	assert_eq(presenter.active_afterimage_count(), 1)
+	for step_index: int in range(4):
+		robot.physics_step(0.0, 0.04)
+		presenter._process(0.04)
+	assert_gte(presenter.active_afterimage_count(), 4)
+	var minimum_x: float = INF
+	var maximum_x: float = -INF
+	for ghost: Sprite2D in presenter._afterimages:
+		if ghost.visible:
+			minimum_x = minf(minimum_x, ghost.global_position.x)
+			maximum_x = maxf(maximum_x, ghost.global_position.x)
+	assert_gt(maximum_x - minimum_x, 30.0)
+	for saturation_index: int in range(16):
+		presenter._spawn_afterimage()
+	assert_eq(presenter.active_afterimage_count(), RuntimeBudget.DODGE_AFTERIMAGE_SLOTS)
+	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
+	robot.physics_step(0.0, 0.03)
+	presenter._process(0.03)
 	assert_false(presenter.dodging)
 	assert_eq(sprite.skew, 0.0)
 	assert_eq(sprite.modulate, Color.WHITE)
+	presenter._process(RobotAnimationPresenter.AFTERIMAGE_LIFETIME + 0.01)
+	assert_eq(presenter.active_afterimage_count(), 0)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
 func _assert_attack(

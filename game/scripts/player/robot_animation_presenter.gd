@@ -4,6 +4,10 @@ extends Node
 const ATTACK_EVENT_FRAME: int = AttackResolver.ATTACK_EVENT_FRAME
 const WALK_REFERENCE_SPEED: float = 260.0
 const AUDIO_VOICE_CAPACITY: int = 4
+const AFTERIMAGE_CAPACITY: int = 8
+const AFTERIMAGE_INTERVAL: float = 0.035
+const AFTERIMAGE_LIFETIME: float = 0.22
+const AFTERIMAGE_ALPHA: float = 0.34
 const WALK_SERVO_FRAMES: Array[int] = [2, 15]
 const WALK_CONTACT_FRAMES: Array[int] = [5, 18]
 const FOOTSTEP_SFX: AudioStream = preload(
@@ -28,6 +32,11 @@ var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
 var _audio_players: Array[AudioStreamPlayer2D] = []
 var _audio_cursor: int = 0
+var _afterimage_root: Node2D
+var _afterimages: Array[Sprite2D] = []
+var _afterimage_remaining: Array[float] = []
+var _afterimage_cursor: int = 0
+var _afterimage_elapsed: float = 0.0
 
 
 func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
@@ -41,6 +50,7 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	robot.dodge_finished.connect(_on_dodge_finished)
 	sprite.frame_changed.connect(_on_sprite_frame_changed)
 	_prewarm_audio()
+	_prewarm_afterimages()
 	_show_idle()
 
 
@@ -52,7 +62,25 @@ func audio_voice_count() -> int:
 	return _audio_players.size()
 
 
-func _process(_delta: float) -> void:
+func afterimage_slot_count() -> int:
+	return _afterimages.size()
+
+
+func active_afterimage_count() -> int:
+	var active_count: int = 0
+	for ghost: Sprite2D in _afterimages:
+		if ghost.visible:
+			active_count += 1
+	return active_count
+
+
+func _process(delta: float) -> void:
+	_advance_afterimages(delta)
+	if dodging:
+		_afterimage_elapsed += delta
+		while _afterimage_elapsed >= AFTERIMAGE_INTERVAL:
+			_afterimage_elapsed -= AFTERIMAGE_INTERVAL
+			_spawn_afterimage()
 	if robot == null or sprite == null or attacking:
 		return
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
@@ -119,6 +147,8 @@ func _on_dodge_started(p_facing: int, _duration: float) -> void:
 	_show_idle()
 	sprite.skew = -float(p_facing) * 0.10
 	sprite.modulate = Color(0.72, 0.94, 1.0, 0.82)
+	_afterimage_elapsed = 0.0
+	_spawn_afterimage()
 
 
 func _on_dodge_finished() -> void:
@@ -193,6 +223,52 @@ func _prewarm_audio() -> void:
 		player.attenuation = 0.45
 		add_child(player)
 		_audio_players.append(player)
+
+
+func _prewarm_afterimages() -> void:
+	_afterimage_root = Node2D.new()
+	_afterimage_root.name = "DodgeAfterimagePool"
+	_afterimage_root.top_level = true
+	_afterimage_root.z_as_relative = false
+	_afterimage_root.z_index = 99
+	add_child(_afterimage_root)
+	for index: int in range(AFTERIMAGE_CAPACITY):
+		var ghost: Sprite2D = Sprite2D.new()
+		ghost.name = "DodgeAfterimage%02d" % index
+		ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ghost.visible = false
+		_afterimage_root.add_child(ghost)
+		_afterimages.append(ghost)
+		_afterimage_remaining.append(0.0)
+
+
+func _spawn_afterimage() -> void:
+	if sprite == null or _afterimages.is_empty():
+		return
+	var ghost: Sprite2D = _afterimages[_afterimage_cursor]
+	var frame_texture: Texture2D = sprite.sprite_frames.get_frame_texture(
+		sprite.animation,
+		sprite.frame
+	)
+	ghost.texture = frame_texture
+	ghost.global_transform = sprite.global_transform
+	ghost.skew = sprite.skew
+	ghost.modulate = Color(0.35, 0.92, 1.0, AFTERIMAGE_ALPHA)
+	ghost.visible = true
+	_afterimage_remaining[_afterimage_cursor] = AFTERIMAGE_LIFETIME
+	_afterimage_cursor = (_afterimage_cursor + 1) % _afterimages.size()
+
+
+func _advance_afterimages(delta: float) -> void:
+	for index: int in range(_afterimages.size()):
+		var ghost: Sprite2D = _afterimages[index]
+		if not ghost.visible:
+			continue
+		_afterimage_remaining[index] = maxf(_afterimage_remaining[index] - delta, 0.0)
+		var ratio: float = _afterimage_remaining[index] / AFTERIMAGE_LIFETIME
+		ghost.modulate.a = AFTERIMAGE_ALPHA * ratio * ratio
+		if is_zero_approx(_afterimage_remaining[index]):
+			ghost.visible = false
 
 
 func _play_mechanics(

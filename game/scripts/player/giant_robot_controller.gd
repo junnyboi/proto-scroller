@@ -66,6 +66,8 @@ var base_max_speed: float = 0.0
 var base_ground_acceleration: float = 0.0
 var base_air_acceleration: float = 0.0
 var base_ground_deceleration: float = 0.0
+var base_dodge_speed: float = 0.0
+var base_dodge_duration: float = 0.0
 var dodge_count: int = 0
 var invulnerable_rejection_count: int = 0
 var dodge_invulnerable: bool:
@@ -102,6 +104,8 @@ func _ready() -> void:
 	base_ground_acceleration = ground_acceleration
 	base_air_acceleration = air_acceleration
 	base_ground_deceleration = ground_deceleration
+	base_dodge_speed = dodge_speed
+	base_dodge_duration = dodge_duration
 	current_health = max_health
 	_apply_visual_facing()
 
@@ -229,6 +233,19 @@ func set_engine_multipliers(
 	ground_deceleration = next_deceleration
 	if not preserve_overspeed:
 		velocity.x = signed_ratio * max_speed
+	return true
+
+
+func _set_dodge_multipliers(speed_multiplier: float, duration_multiplier: float) -> bool:
+	var next_speed: float = base_dodge_speed * maxf(speed_multiplier, 1.0)
+	var next_duration: float = base_dodge_duration * maxf(duration_multiplier, 1.0)
+	if is_equal_approx(dodge_speed, next_speed) and is_equal_approx(
+		dodge_duration,
+		next_duration
+	):
+		return false
+	dodge_speed = next_speed
+	dodge_duration = next_duration
 	return true
 
 

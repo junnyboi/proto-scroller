@@ -130,6 +130,10 @@ func _create_runtime(
 			var engine: EngineUpgradeRuntime = EngineUpgradeRuntime.new()
 			engine.setup_robot(robot)
 			runtime = engine
+		&"DASH_AMPLIFIER":
+			var dash: DashAmplifierRuntime = DashAmplifierRuntime.new()
+			dash.setup_robot(robot)
+			runtime = dash
 		&"KINETIC_FIELD":
 			runtime = KineticFieldRuntime.new()
 		&"DESTRUCTION":

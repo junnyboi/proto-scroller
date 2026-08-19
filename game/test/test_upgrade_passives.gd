@@ -58,6 +58,40 @@ func test_engine_uses_immutable_baselines_and_preserves_signed_ratio() -> void:
 	assert_false(city.robot.set_engine_multipliers(1.16, 1.24, 1.16))
 
 
+func test_dash_amplifier_extends_range_and_duration_from_immutable_baselines() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	city.robot.global_position = Vector2(200.0, 460.0)
+	var dash: DashAmplifierRuntime = (
+		city.upgrade_assembler.runtimes[&"DASH_AMPLIFIER"] as DashAmplifierRuntime
+	)
+	assert_true(dash.apply_rank(1))
+	assert_almost_eq(city.robot.dodge_speed, 561.6, 0.001)
+	assert_almost_eq(city.robot.dodge_duration, 0.207, 0.001)
+	assert_true(dash.apply_rank(3))
+	assert_almost_eq(city.robot.dodge_speed, 644.8, 0.001)
+	assert_almost_eq(city.robot.dodge_duration, 0.261, 0.001)
+	assert_almost_eq(
+		city.robot.dodge_speed * city.robot.dodge_duration,
+		168.2928,
+		0.001
+	)
+	assert_false(dash.apply_rank(3))
+	assert_true(city.robot._start_dodge())
+	assert_almost_eq(city.robot.velocity.x, city.robot.dodge_speed, 0.001)
+	city.robot.physics_step(0.0, city.robot.dodge_duration)
+	assert_true(city.robot.dodge_invulnerable)
+	assert_almost_eq(city.robot.dodge_invulnerability_remaining, 0.039, 0.002)
+	dash.reset_run()
+	assert_eq(dash.current_rank, 0)
+	assert_almost_eq(city.robot.dodge_speed, 520.0, 0.001)
+	assert_almost_eq(city.robot.dodge_duration, 0.18, 0.001)
+
+
 func test_kinetic_decorates_once_and_directive_flags_are_ored() -> void:
 	var runtime: KineticFieldRuntime = KineticFieldRuntime.new()
 	add_child_autofree(runtime)

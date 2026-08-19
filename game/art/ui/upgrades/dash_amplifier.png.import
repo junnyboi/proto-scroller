@@ -2,22 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1keh1rt4yhwf"
-path="res://.godot/imported/command_deck_portrait.jpg-6f045811128204214ef040e7738432d5.ctex"
+uid="uid://be70dixracifa"
+path="res://.godot/imported/dash_amplifier.png-063f05ea7e78ad6edb32b40a80e83035.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/ui/title_screen/command_deck_portrait.jpg"
-dest_files=["res://.godot/imported/command_deck_portrait.jpg-6f045811128204214ef040e7738432d5.ctex"]
+source_file="res://art/ui/upgrades/dash_amplifier.png"
+dest_files=["res://.godot/imported/dash_amplifier.png-063f05ea7e78ad6edb32b40a80e83035.ctex"]
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
-compress/lossy_quality=0.5
+compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

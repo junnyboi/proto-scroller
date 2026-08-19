@@ -10,7 +10,7 @@ func test_art_manifest_covers_all_required_assets_with_bounded_bytes() -> void:
 	var manifest_text: String = FileAccess.get_file_as_string(MANIFEST_PATH)
 	var manifest: Dictionary = JSON.parse_string(manifest_text) as Dictionary
 	var assets: Array = manifest.assets as Array
-	assert_eq(assets.size(), 24)
+	assert_eq(assets.size(), 25)
 	var total_bytes: int = 0
 	for record_variant: Variant in assets:
 		var record: Dictionary = record_variant as Dictionary
@@ -26,7 +26,7 @@ func test_every_upgrade_profile_has_a_generated_icon() -> void:
 	var catalog: UpgradeCatalog = load(
 		"res://resources/upgrades/upgrade_catalog.tres"
 	) as UpgradeCatalog
-	assert_eq(catalog.profiles.size(), 9)
+	assert_eq(catalog.profiles.size(), 10)
 	for profile: UpgradeProfile in catalog.profiles:
 		assert_not_null(profile.icon, "%s icon" % profile.upgrade_id)
 		assert_gte(profile.icon.get_width(), 256)
