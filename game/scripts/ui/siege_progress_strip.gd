@@ -11,6 +11,7 @@ var label: Label
 var current_index: int = 0
 var total_acts: int = 6
 var recovery_active: bool = false
+var compact_mode: bool = false
 
 
 func _ready() -> void:
@@ -45,21 +46,34 @@ func set_progress(index: int, total: int, display_name: String, recovery: bool) 
 	_refresh()
 
 
+func set_compact(compact: bool) -> void:
+	compact_mode = compact
+	if label == null:
+		return
+	label.size.y = 14.0 if compact else 20.0
+	label.horizontal_alignment = (
+		HORIZONTAL_ALIGNMENT_LEFT if compact else HORIZONTAL_ALIGNMENT_CENTER
+	)
+	label.add_theme_font_size_override(&"font_size", 10 if compact else 14)
+	apply_width(size.x)
+
+
 func apply_width(available_width: float) -> void:
 	if label == null:
 		return
 	label.size.x = available_width
-	var gap: float = 10.0
-	var inset: float = 8.0
+	var gap: float = 4.0 if compact_mode else 10.0
+	var inset: float = 4.0 if compact_mode else 8.0
 	var segment_width: float = (
 		available_width - inset * 2.0 - gap * 5.0
 	) / 6.0
 	for index: int in range(segments.size()):
 		segments[index].position = Vector2(
 			inset + float(index) * (segment_width + gap),
-			22.0
+			15.0 if compact_mode else 22.0
 		)
 		segments[index].size.x = segment_width
+		segments[index].size.y = 4.0 if compact_mode else 6.0
 
 
 func _refresh() -> void:

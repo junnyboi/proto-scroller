@@ -46,11 +46,15 @@ func apply_responsive_layout() -> void:
 		return
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	if viewport_size.y > viewport_size.x:
-		position = Vector2(18.0, 412.0)
-		size = Vector2(viewport_size.x - 36.0, 28.0)
+		position = Vector2(0.0, 204.0)
+		size = Vector2(minf(300.0, viewport_size.x * 0.46), 20.0)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		label.add_theme_font_size_override(&"font_size", 10)
 	else:
 		position = Vector2(466.0, 146.0)
 		size = Vector2(500.0, 24.0)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override(&"font_size", 15)
 	label.size = size
 
 

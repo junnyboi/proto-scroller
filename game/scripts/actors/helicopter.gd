@@ -11,6 +11,7 @@ enum State {
 @export var maximum_speed: float = 180.0
 @export var acceleration: float = 320.0
 @export var standoff_x: float = 520.0
+@export var portrait_standoff_x: float = 280.0
 @export var lane_y: float = 180.0
 @export var fire_interval: float = 2.1
 @export var rocket_speed: float = 440.0
@@ -46,7 +47,7 @@ func _physics_process(delta: float) -> void:
 	_state_time += delta
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	var desired_point: Vector2 = Vector2(
-		target.global_position.x + float(_attack_side) * standoff_x,
+		target.global_position.x + float(_attack_side) * effective_standoff_x(),
 		lane_y
 	)
 	if state == State.APPROACH and global_position.distance_to(desired_point) < 70.0:
@@ -83,6 +84,11 @@ func _begin_rocket() -> void:
 		state = State.ANTICIPATE
 	else:
 		_cooldown = 0.25
+
+
+func effective_standoff_x() -> float:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	return portrait_standoff_x if viewport_size.y > viewport_size.x else standoff_x
 
 
 func _fire_snapshot() -> void:

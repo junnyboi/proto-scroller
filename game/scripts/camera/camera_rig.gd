@@ -5,11 +5,13 @@ extends Node2D
 @export var look_ahead_speed: float = 700.0
 @export var follow_speed: float = 850.0
 @export var fixed_y: float = 360.0
+@export var portrait_fixed_y: float = 427.0
 @export var minimum_x: float = 640.0
 @export var maximum_x: float = 2560.0
 @export var impact_spring_strength: float = 145.0
 @export var impact_spring_damping: float = 24.0
 @export var maximum_impact_offset: float = 24.0
+@export var portrait_visible_world_height: float = 854.0
 
 var target: GiantRobotController
 var impact_offset: Vector2 = Vector2.ZERO
@@ -42,7 +44,7 @@ func _physics_process(delta: float) -> void:
 		maximum_x
 	)
 	global_position.x = move_toward(global_position.x, desired_x, follow_speed * delta)
-	global_position.y = fixed_y
+	global_position.y = portrait_fixed_y if is_portrait_framing() else fixed_y
 
 
 func add_impact_impulse(impulse: Vector2) -> void:
@@ -73,9 +75,13 @@ func _apply_responsive_framing() -> void:
 		return
 	var viewport_size: Vector2 = get_viewport_rect().size
 	if viewport_size.y > viewport_size.x:
-		var portrait_zoom: float = maxf(viewport_size.y / 720.0, 1.0)
+		var portrait_zoom: float = clampf(
+			viewport_size.y / portrait_visible_world_height,
+			1.35,
+			1.60
+		)
 		_camera.zoom = Vector2.ONE * portrait_zoom
-		_look_ahead_scale = 0.42
+		_look_ahead_scale = 0.78
 	else:
 		_camera.zoom = Vector2.ONE
 		_look_ahead_scale = 1.0

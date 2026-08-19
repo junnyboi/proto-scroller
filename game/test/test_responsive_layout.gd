@@ -56,8 +56,17 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 	await get_tree().physics_frame
 	var camera_rig: CameraRig = city.get_node("CameraRig") as CameraRig
 	assert_true(camera_rig.is_portrait_framing())
-	assert_almost_eq(camera_rig.visible_world_size().y, 720.0, 0.1)
-	assert_eq(city.gameplay_hud.status_panel.position, Vector2(18.0, 18.0))
+	assert_gte(camera_rig.visible_world_size().x, 479.0)
+	assert_gte(camera_rig.visible_world_size().y, 853.0)
+	assert_eq(city.gameplay_hud.status_panel.position, Vector2.ZERO)
+	assert_eq(city.gameplay_hud.status_panel.size, Vector2(300.0, 48.0))
+	assert_lte(city.gameplay_hud.score_panel.get_rect().end.y, 172.0)
+	assert_lte(city.gameplay_hud.weapon_status_strip.get_rect().end.y, 224.0)
+	var hud_footprint: Rect2 = Rect2(Vector2.ZERO, Vector2(300.0, 224.0))
+	assert_lt(
+		hud_footprint.get_area() / (float(PORTRAIT_SIZE.x) * float(PORTRAIT_SIZE.y)),
+		0.08
+	)
 	assert_eq(city.gameplay_hud.siege_progress.segments.size(), 6)
 	assert_true(_inside_viewport(city.gameplay_hud.status_panel, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.score_panel, PORTRAIT_SIZE))
@@ -69,6 +78,24 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 			city.mobile_controls.smash_bounds()
 		)
 	)
+	city.encounter_runtime.release_all()
+	var helicopter: HelicopterEnemy = city.encounter_runtime.acquire(
+		&"helicopter",
+		Vector2(city.robot.global_position.x, 180.0)
+	) as HelicopterEnemy
+	assert_not_null(helicopter)
+	assert_eq(helicopter.effective_standoff_x(), 280.0)
+	var visible_world: Vector2 = camera_rig.visible_world_size()
+	var world_view: Rect2 = Rect2(
+		camera_rig.global_position - visible_world * 0.5,
+		visible_world
+	)
+	assert_true(world_view.has_point(helicopter.global_position))
+	var screen_scale: Vector2 = Vector2(PORTRAIT_SIZE) / visible_world
+	var helicopter_screen_position: Vector2 = (
+		helicopter.global_position - world_view.position
+	) * screen_scale
+	assert_false(hud_footprint.has_point(helicopter_screen_position))
 	assert_eq(city.gameplay_hud.directive_choice_overlay.buttons.size(), 3)
 	for button: Button in city.gameplay_hud.directive_choice_overlay.buttons:
 		assert_true(_inside_viewport(button, PORTRAIT_SIZE))

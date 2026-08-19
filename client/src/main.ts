@@ -33,7 +33,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "525b266a";
+const GAME_PACK_VERSION = "32dc5b90";
 const root = document.getElementById("root");
 
 if (!root) {
@@ -73,13 +73,13 @@ async function startEngine(): Promise<void> {
     canvasResizePolicy: 2,
     emscriptenPoolSize: 8,
     ensureCrossOriginIsolationHeaders: true,
-    executable: "/manus-storage/game_2d78d682",
+    executable: "/manus-storage/game_37e3a4d7",
     experimentalVK: false,
     fileSizes: {},
     focusCanvas: true,
     gdextensionLibs: [],
     godotPoolSize: 4,
-    mainPack: `/manus-storage/game_b0828b73.pck?v=${GAME_PACK_VERSION}`,
+    mainPack: `/manus-storage/game_978ac405.pck?v=${GAME_PACK_VERSION}`,
   });
 
   try {
