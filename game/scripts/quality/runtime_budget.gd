@@ -43,6 +43,8 @@ const LASER_BEAM_SLOTS: int = 2
 const FLAME_VISUAL_SLOTS: int = 6
 const SCORCH_VISUAL_SLOTS: int = 8
 const FLAMETHROWER_LOOP_VOICES: int = 1
+const PLAYER_MISSILES: int = 4
+const MISSILE_EXPLOSION_QUEUE: int = 8
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -122,6 +124,8 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"flame_visual_slots": FlamethrowerRuntime.FLAME_CAPACITY,
 		"scorch_visual_slots": FlamethrowerRuntime.SCORCH_CAPACITY,
 		"flamethrower_loop_voices": FlamethrowerRuntime.LOOP_AUDIO_VOICES,
+		"player_missiles": MissileProjectilePool.CAPACITY,
+		"missile_explosion_queue": MissileWeapon.EXPLOSION_QUEUE_CAPACITY,
 	}
 
 
@@ -172,6 +176,8 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "flame_visual_slots", FLAME_VISUAL_SLOTS)
 	_check_equal(errors, data, "scorch_visual_slots", SCORCH_VISUAL_SLOTS)
 	_check_equal(errors, data, "flamethrower_loop_voices", FLAMETHROWER_LOOP_VOICES)
+	_check_equal(errors, data, "player_missiles", PLAYER_MISSILES)
+	_check_equal(errors, data, "missile_explosion_queue", MISSILE_EXPLOSION_QUEUE)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]

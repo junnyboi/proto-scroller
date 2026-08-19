@@ -50,6 +50,11 @@ func setup(city: Node) -> PackedStringArray:
 		arsenal,
 		robot.get_node(^"VisualRoot/LaserEmitter") as Node2D
 	)
+	var missiles: MissileWeapon = runtimes[&"MISSILE"] as MissileWeapon
+	missiles.setup_arsenal(
+		arsenal,
+		robot.get_node(^"VisualRoot/LaserEmitter") as Node2D
+	)
 	session = UpgradeSession.new()
 	session.name = "UpgradeSession"
 	add_child(session)
@@ -121,6 +126,8 @@ func _create_runtime(
 			runtime = PlayerLaserWeapon.new()
 		&"FLAMETHROWER":
 			runtime = FlamethrowerRuntime.new()
+		&"MISSILE":
+			runtime = MissileWeapon.new()
 		_:
 			runtime = UpgradeRuntime.new()
 			runtime.setup(profile.runtime_key, profile.max_rank)
