@@ -13,6 +13,7 @@ var projectile_radius: float = 5.0
 var damage_type: StringName = &"projectile"
 var active: bool = false
 var _attack_id: int
+var _root_attack_id: int
 
 
 func _ready() -> void:
@@ -44,6 +45,7 @@ func activate(
 ) -> void:
 	_next_attack_id += 1
 	_attack_id = _next_attack_id
+	_root_attack_id = _attack_id
 	active = true
 	visible = true
 	set_physics_process(true)
@@ -61,6 +63,9 @@ func activate(
 	elif kind == &"rocket":
 		projectile_radius = 7.0
 		projectile_color = Color("ff9d52")
+	elif kind == &"machine_gun":
+		projectile_radius = 4.0
+		projectile_color = Color("78e7ff")
 	else:
 		projectile_radius = 5.0
 		projectile_color = Color("ffb45e")
@@ -68,6 +73,24 @@ func activate(
 	if collision != null and collision.shape is CircleShape2D:
 		(collision.shape as CircleShape2D).radius = maxf(projectile_radius, 5.0)
 	queue_redraw()
+
+
+func set_delivery_identity(
+	p_attack_id: int,
+	p_root_attack_id: int,
+	delivery_lifetime: float
+) -> void:
+	_attack_id = p_attack_id
+	_root_attack_id = p_root_attack_id if p_root_attack_id != 0 else p_attack_id
+	lifetime = maxf(delivery_lifetime, 0.01)
+
+
+func attack_id() -> int:
+	return _attack_id
+
+
+func root_attack_id() -> int:
+	return _root_attack_id
 
 
 func deactivate() -> void:
@@ -122,8 +145,9 @@ func _deliver_damage(collider: Object, hit_position: Vector2) -> void:
 				damage_type,
 				hit_position,
 				velocity.normalized(),
-				0.0
-			)
+					0.0,
+					_root_attack_id
+				)
 			receiver.call("receive_damage", event)
 			return
 		receiver = receiver.get_parent()

@@ -7,6 +7,7 @@ const HELICOPTERS: int = 1
 const BULLETS: int = 16
 const SHELLS: int = 4
 const ROCKETS: int = 4
+const PLAYER_BULLETS: int = 8
 const STRUCTURAL_DEBRIS: int = 24
 const ENEMY_SCRAP: int = 32
 const SOLDIER_DEFEATS: int = 8
@@ -37,6 +38,7 @@ const UPGRADE_CARDS: int = 2
 const WEAPON_STATUS_STRIPS: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
+const PLAYER_ARSENALS: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -48,6 +50,13 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"enemy_post_warm_creations": city.encounter_runtime.post_warm_creation_count,
 		"projectile_total": city.projectile_root.total_count(),
 		"projectile_active": city.projectile_root.active_count(),
+		"hostile_projectile_total": (
+			city.projectile_root.bullet_capacity
+			+ city.projectile_root.shell_capacity
+			+ city.projectile_root.rocket_capacity
+		),
+		"player_bullet_total": city.projectile_root.player_bullet_capacity,
+		"player_bullet_active": city.projectile_root.active_count(&"player_bullet"),
 		"structural_debris_total": (
 			city.debris_pool.active_count() + city.debris_pool.available_count()
 		),
@@ -100,6 +109,11 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"weapon_status_strips": 1 if city.gameplay_hud.weapon_status_strip != null else 0,
 		"cosmetic_debris_instances": CosmeticDebrisField2D.CAPACITY,
 		"shockwave_ring_slots": ShockwaveUpgradeRuntime.CAPACITY,
+		"player_arsenals": (
+			1
+			if city.upgrade_assembler.get_node_or_null(^"PlayerArsenalRuntime") != null
+			else 0
+		),
 	}
 
 
@@ -107,7 +121,14 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	var data: Dictionary = snapshot(city)
 	var errors: PackedStringArray = []
 	_check_equal(errors, data, "enemy_total", SOLDIERS + TANKS + HELICOPTERS)
-	_check_equal(errors, data, "projectile_total", BULLETS + SHELLS + ROCKETS)
+	_check_equal(
+		errors,
+		data,
+		"projectile_total",
+		BULLETS + SHELLS + ROCKETS + PLAYER_BULLETS
+	)
+	_check_equal(errors, data, "hostile_projectile_total", BULLETS + SHELLS + ROCKETS)
+	_check_equal(errors, data, "player_bullet_total", PLAYER_BULLETS)
 	_check_equal(errors, data, "structural_debris_total", STRUCTURAL_DEBRIS)
 	_check_equal(errors, data, "enemy_scrap_total", ENEMY_SCRAP)
 	_check_equal(errors, data, "soldier_defeat_total", SOLDIER_DEFEATS)
@@ -138,6 +159,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "weapon_status_strips", WEAPON_STATUS_STRIPS)
 	_check_equal(errors, data, "cosmetic_debris_instances", COSMETIC_DEBRIS_INSTANCES)
 	_check_equal(errors, data, "shockwave_ring_slots", SHOCKWAVE_RING_SLOTS)
+	_check_equal(errors, data, "player_arsenals", PLAYER_ARSENALS)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]
