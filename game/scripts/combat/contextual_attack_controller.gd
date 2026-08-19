@@ -12,6 +12,7 @@ var resolver: AttackResolver
 var jab_cross_impact: JabCrossImpact
 var overdrive_session: OverdriveSession
 var directive_session: DirectiveSession
+var kinetic_field_runtime: KineticFieldRuntime
 var _robot: GiantRobotController
 var _visual_root: Node2D
 var _rest_position: Vector2
@@ -30,6 +31,10 @@ func set_overdrive_session(session: OverdriveSession) -> void:
 
 func set_directive_session(session: DirectiveSession) -> void:
 	directive_session = session
+
+
+func set_kinetic_field_runtime(runtime: KineticFieldRuntime) -> void:
+	kinetic_field_runtime = runtime
 
 
 func _ready() -> void:
@@ -76,6 +81,8 @@ func request_attack() -> int:
 		structure_multiplier,
 		overdrive_started
 	)
+	if kinetic_field_runtime != null:
+		current_spec = kinetic_field_runtime.decorate_attack(current_spec)
 	if directive_session != null:
 		current_spec = directive_session.decorate_attack(current_spec)
 	_busy = true

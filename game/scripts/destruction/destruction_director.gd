@@ -32,6 +32,7 @@ func queue_explosion(
 		"root_attack_id": options.root_attack_id if options != null else attack_id,
 		"causal_depth": options.causal_depth if options != null else 0,
 		"effect_flags": options.effect_flags if options != null else DamageEvent.FLAG_NONE,
+		"kinetic_debris_bonus": options.kinetic_debris_bonus if options != null else 0.0,
 		"result_limit": options.result_limit if options != null else 0,
 		"structural_limit": options.structural_limit if options != null else 0,
 		"debris_limit": options.debris_limit if options != null else 0,
@@ -113,8 +114,9 @@ func _resolve_explosion(data: Dictionary) -> void:
 			(data["impulse_per_mass"] as float) * falloff,
 			int(data.root_attack_id),
 			int(data.causal_depth),
-			int(data.effect_flags)
-		)
+				int(data.effect_flags),
+				float(data.kinetic_debris_bonus)
+			)
 		var accepted: bool = _deliver_damage(target_node, event)
 		_apply_rigid_impulse(target_node, event)
 		if accepted:

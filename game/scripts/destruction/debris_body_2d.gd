@@ -24,8 +24,15 @@ var _primary_color: Color = Color("4f4a46")
 var _facet_color: Color = Color("786d65")
 var _aerial_source: Node
 var _aerial_attack_id: int = 0
+var _aerial_root_attack_id: int = 0
 var _aerial_damage: float = 0.0
 var _aerial_target: EnemyActor2D
+var _kinetic_armed: bool = false
+var _kinetic_source: Node
+var _kinetic_root_attack_id: int = 0
+var _kinetic_delivery_id: int = 0
+var _kinetic_bonus_damage: float = 0.0
+var _kinetic_effect_flags: int = DamageEvent.FLAG_NONE
 
 
 func _ready() -> void:
@@ -81,14 +88,35 @@ func arm_aerial_impact(
 	source: Node,
 	attack_id: int,
 	damage: float,
-	target: EnemyActor2D
+	target: EnemyActor2D,
+	root_attack_id: int = 0
 ) -> void:
 	_aerial_source = source
 	_aerial_attack_id = attack_id
+	_aerial_root_attack_id = root_attack_id if root_attack_id != 0 else attack_id
 	_aerial_damage = maxf(damage, 0.0)
 	_aerial_target = target
 	aerial_impact_armed = _aerial_damage > 0.0 and target != null
 	aerial_hit_count = 0
+
+
+func arm_kinetic_impact(
+	source: Node,
+	root_attack_id: int,
+	delivery_id: int,
+	bonus_damage: float,
+	effect_flags: int
+) -> void:
+	_kinetic_source = source
+	_kinetic_root_attack_id = root_attack_id
+	_kinetic_delivery_id = delivery_id
+	_kinetic_bonus_damage = maxf(bonus_damage, 0.0)
+	_kinetic_effect_flags = effect_flags | DamageEvent.FLAG_KINETIC_FIELD
+	_kinetic_armed = delivery_id < 0 and root_attack_id > 0
+
+
+func kinetic_delivery_id() -> int:
+	return _kinetic_delivery_id
 
 
 func material_id() -> StringName:
@@ -99,7 +127,14 @@ func deactivate() -> void:
 	aerial_impact_armed = false
 	_aerial_source = null
 	_aerial_target = null
+	_aerial_root_attack_id = 0
 	_aerial_damage = 0.0
+	_kinetic_armed = false
+	_kinetic_source = null
+	_kinetic_root_attack_id = 0
+	_kinetic_delivery_id = 0
+	_kinetic_bonus_damage = 0.0
+	_kinetic_effect_flags = DamageEvent.FLAG_NONE
 	_active = false
 	set_physics_process(false)
 	linear_velocity = Vector2.ZERO
@@ -134,22 +169,59 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 
 
 func _on_body_entered(body: Node) -> void:
-	if not aerial_impact_armed or body != _aerial_target:
+	if aerial_impact_armed and body == _aerial_target:
+		_resolve_aerial_impact()
 		return
-	aerial_impact_armed = false
+	if not _kinetic_armed:
+		return
+	var receiver: Node = _find_damage_receiver(body)
+	if receiver == null or receiver == _kinetic_source:
+		return
+	_kinetic_armed = false
 	var direction: Vector2 = linear_velocity.normalized()
 	var event: DamageEvent = DamageEvent.new(
-		_aerial_attack_id,
-		_aerial_source,
-		_aerial_damage,
+		_kinetic_delivery_id,
+		_kinetic_source,
+		4.0 + _kinetic_bonus_damage,
 		&"debris_impact",
 		global_position,
 		direction,
-		linear_velocity.length()
+		linear_velocity.length(),
+		_kinetic_root_attack_id,
+		1,
+		_kinetic_effect_flags
 	)
+	receiver.call("receive_damage", event)
+
+
+func _resolve_aerial_impact() -> void:
+	aerial_impact_armed = false
+	var direction: Vector2 = linear_velocity.normalized()
+	var event: DamageEvent = DamageEvent.new(
+		_kinetic_delivery_id if _kinetic_armed else _aerial_attack_id,
+		_kinetic_source if _kinetic_armed else _aerial_source,
+		_aerial_damage + _kinetic_bonus_damage,
+		&"debris_impact",
+		global_position,
+		direction,
+		linear_velocity.length(),
+		_kinetic_root_attack_id if _kinetic_armed else _aerial_root_attack_id,
+		1 if _kinetic_armed else 0,
+		_kinetic_effect_flags if _kinetic_armed else DamageEvent.FLAG_NONE
+	)
+	_kinetic_armed = false
 	if _aerial_target.receive_damage(event):
 		aerial_hit_count += 1
 		aerial_impact_accepted.emit(self, event, _aerial_target)
+
+
+func _find_damage_receiver(start_node: Node) -> Node:
+	var receiver: Node = start_node
+	while receiver != null:
+		if receiver.has_method("receive_damage"):
+			return receiver
+		receiver = receiver.get_parent()
+	return null
 
 
 func _draw() -> void:

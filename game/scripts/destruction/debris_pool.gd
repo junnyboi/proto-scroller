@@ -12,6 +12,7 @@ signal aerial_impact_accepted(
 
 var recycle_count: int = 0
 var peak_active_count: int = 0
+var kinetic_field_runtime: KineticFieldRuntime
 var _free: Array[DebrisBody2D] = []
 var _active: Array[DebrisBody2D] = []
 
@@ -81,6 +82,16 @@ func active_count() -> int:
 
 func active_bodies() -> Array[DebrisBody2D]:
 	return _active.duplicate()
+
+
+func set_kinetic_field_runtime(runtime: KineticFieldRuntime) -> void:
+	kinetic_field_runtime = runtime
+
+
+func arm_kinetic_debris(body: DebrisBody2D, source_event: DamageEvent) -> bool:
+	if kinetic_field_runtime == null:
+		return false
+	return kinetic_field_runtime.arm_debris(body, source_event)
 
 
 func _on_recycle_requested(body: DebrisBody2D) -> void:

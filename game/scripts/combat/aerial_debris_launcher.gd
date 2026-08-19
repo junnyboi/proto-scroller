@@ -13,7 +13,8 @@ static func launch(
 	source: Node,
 	origin: Vector2,
 	impulse_per_mass: float,
-	attack_id: int
+	attack_id: int,
+	options: DamageQueryOptions = null
 ) -> int:
 	if tree == null or pool == null or source == null:
 		return 0
@@ -43,13 +44,28 @@ static func launch(
 			float(debris_index - 1) * body_mass * 7.0,
 			body_mass,
 			Vector2(30.0 + float(debris_index) * 5.0, 18.0),
-			&"concrete"
+				&"concrete"
+			)
+		var source_event: DamageEvent = DamageEvent.new(
+			attack_id,
+			source,
+			0.0,
+			&"ground_smash",
+			spawn_position,
+			Vector2.UP,
+			impulse_per_mass,
+			options.root_attack_id if options != null else attack_id,
+			0,
+			options.effect_flags if options != null else DamageEvent.FLAG_NONE,
+			options.kinetic_debris_bonus if options != null else 0.0
 		)
+		pool.arm_kinetic_debris(debris, source_event)
 		debris.arm_aerial_impact(
 			source,
 			attack_id * 10 + debris_index + 1,
 			IMPACT_DAMAGE,
-			target
+			target,
+			attack_id
 		)
 		launched += 1
 	return launched

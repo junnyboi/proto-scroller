@@ -123,7 +123,8 @@ func _make_event(
 		spec.impulse_per_mass,
 		spec.attack_id,
 		0,
-		spec.effect_flags
+		spec.effect_flags,
+		spec.kinetic_debris_bonus
 	)
 
 
