@@ -8,6 +8,10 @@ signal aerial_impact_accepted(
 	target: EnemyActor2D
 )
 
+const ACTIVE_COLLISION_LAYER: int = 1 << 8
+const ACTIVE_COLLISION_MASK: int = (1 << 0) | (1 << 2)
+const ACTIVE_CONTACT_LIMIT: int = 4
+
 @export_range(0.5, 30.0, 0.5) var hard_lifetime: float = 10.0
 @export_range(0.0, 5.0, 0.1) var sleeping_recycle_delay: float = 1.5
 @export var max_linear_speed: float = 1500.0
@@ -38,12 +42,9 @@ var _kinetic_effect_flags: int = DamageEvent.FLAG_NONE
 func _ready() -> void:
 	can_sleep = true
 	gravity_scale = 1.0
-	collision_layer = 1 << 8
-	collision_mask = (1 << 0) | (1 << 2)
-	contact_monitor = true
-	max_contacts_reported = 4
 	body_entered.connect(_on_body_entered)
 	_ensure_fallback_shape()
+	_set_collision_participation(false)
 	set_physics_process(false)
 
 
@@ -64,6 +65,7 @@ func activate(
 	_facet_color = facet_color
 	set_meta(&"structural_material", _material_id)
 	_apply_body_size()
+	_set_collision_participation(true)
 	global_transform = spawn_transform
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
@@ -124,6 +126,7 @@ func material_id() -> StringName:
 
 
 func deactivate() -> void:
+	_set_collision_participation(false)
 	aerial_impact_armed = false
 	_aerial_source = null
 	_aerial_target = null
@@ -309,11 +312,26 @@ func _ensure_fallback_shape() -> void:
 
 
 func _apply_body_size() -> void:
-	var shape_node: CollisionShape2D = get_node_or_null(^"CollisionShape2D") as CollisionShape2D
-	if shape_node == null and get_child_count() > 0:
-		shape_node = get_child(0) as CollisionShape2D
+	var shape_node: CollisionShape2D = _collision_shape()
 	if shape_node == null:
 		return
 	var rectangle: RectangleShape2D = shape_node.shape as RectangleShape2D
 	if rectangle != null:
 		rectangle.size = _body_size
+
+
+func _set_collision_participation(enabled: bool) -> void:
+	collision_layer = ACTIVE_COLLISION_LAYER if enabled else 0
+	collision_mask = ACTIVE_COLLISION_MASK if enabled else 0
+	contact_monitor = enabled
+	max_contacts_reported = ACTIVE_CONTACT_LIMIT if enabled else 0
+	var shape_node: CollisionShape2D = _collision_shape()
+	if shape_node != null:
+		shape_node.disabled = not enabled
+
+
+func _collision_shape() -> CollisionShape2D:
+	var shape_node: CollisionShape2D = get_node_or_null(^"CollisionShape2D") as CollisionShape2D
+	if shape_node == null and get_child_count() > 0:
+		shape_node = get_child(0) as CollisionShape2D
+	return shape_node

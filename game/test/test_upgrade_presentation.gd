@@ -10,17 +10,28 @@ func test_destruction_adds_one_visual_counterpart_per_baseline_unit_only() -> vo
 	var runtime: DestructionUpgradeRuntime = (
 		city.upgrade_assembler.runtimes[&"DESTRUCTION"] as DestructionUpgradeRuntime
 	)
+	assert_false(runtime.field.is_processing())
 	assert_true(runtime.apply_rank(1))
 	var physical_before: int = city.debris_pool.active_count()
 	var event: GameplayEvent = _debris_event(1, 4, &"concrete")
 	assert_true(city.rampage_session.publish(event))
 	assert_eq(runtime.field.active_count(), 4)
+	assert_true(runtime.field.is_processing())
 	assert_eq(runtime.visual_spawn_count, 4)
 	assert_eq(city.debris_pool.active_count(), physical_before)
 	var node_count: int = int(RuntimeBudget.snapshot(city).node_count)
 	runtime.call(&"_on_event_published", event)
 	assert_eq(runtime.field.active_count(), 4)
 	assert_eq(int(RuntimeBudget.snapshot(city).node_count), node_count)
+	runtime.set_paused(true)
+	assert_false(runtime.field.is_processing())
+	runtime.set_paused(false)
+	assert_true(runtime.field.is_processing())
+	runtime.field.call(&"_process", 2.0)
+	assert_eq(runtime.field.active_count(), 0)
+	assert_false(runtime.field.is_processing())
+	runtime.field.reset_field()
+	assert_false(runtime.field.is_processing())
 
 
 func test_cosmetic_debris_saturates_at_64_and_recycles_without_growth() -> void:
