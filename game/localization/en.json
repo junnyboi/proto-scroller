@@ -38,6 +38,9 @@
   "title.smash_chip": "SPACE   SMASH",
   "title.briefing_available": "FIELD BRIEFING AVAILABLE  [TAB]",
   "title.briefing_close": "CLOSE BRIEFING  [TAB / ESC]",
+  "title.language": "LANGUAGE",
+  "title.language_en": "EN",
+  "title.language_zh_cn": "简体中文",
 
   "hud.health": "CHASSIS {current} / {maximum}",
   "hud.pending_score": "+{value} AT RISK",

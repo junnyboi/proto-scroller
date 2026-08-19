@@ -6,6 +6,7 @@ const MINIMUM_TEXT_HEIGHT: float = 32.0
 const REPORT_PATH: String = "res://artifacts/title_screen/report.json"
 const SHOT_PATH: String = "res://artifacts/title_screen/title-screen.png"
 const BRIEFING_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-briefing.png"
+const LANGUAGE_PREFERENCE_PATH: String = "user://title-scenario-language.cfg"
 
 var checks: Array[Dictionary] = []
 var completed: bool = false
@@ -31,6 +32,7 @@ func _on_process_frame() -> void:
 
 
 func _run() -> void:
+	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 	var target_size: Vector2i = _target_size()
 	root.get_window().content_scale_size = target_size
 	root.size = target_size
@@ -41,6 +43,7 @@ func _run() -> void:
 		return
 
 	var screen: TitleScreen = scene_resource.instantiate() as TitleScreen
+	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	root.add_child(screen)
 	await process_frame
 	await process_frame
@@ -62,6 +65,7 @@ func _run() -> void:
 		"text=%s" % [button.text]
 	)
 	_check_briefing_content(screen)
+	_check_language_selector(screen)
 	_check("button_focused", button.has_focus(), "focused=%s" % [button.has_focus()])
 	_check_minimum_text_height(screen, button)
 	_check_layout_contract(screen, button)
@@ -137,6 +141,7 @@ func _check_minimum_text_height(screen: TitleScreen, button: Button) -> void:
 
 func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
+	var language_selector: HBoxContainer = screen.get_node("%LanguageSelector") as HBoxContainer
 	var status_rail: PanelContainer = screen.get_node("StatusRail") as PanelContainer
 	var button_rect: Rect2 = button.get_global_rect()
 	var briefing_toggle_rect: Rect2 = briefing_toggle.get_global_rect()
@@ -146,6 +151,11 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 		"action_briefing_separation",
 		not button_rect.intersects(briefing_toggle_rect),
 		"button=%s briefing=%s" % [button_rect, briefing_toggle_rect]
+	)
+	_check(
+		"language_below_launch",
+		language_selector.get_global_rect().position.y >= button_rect.end.y,
+		"button=%s language=%s" % [button_rect, language_selector.get_global_rect()]
 	)
 	_check(
 		"status_rail_inside_viewport",
@@ -191,6 +201,28 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 		briefing_text.contains(L10n.t("title.enemy_intel"))
 		and briefing_text.contains(L10n.t("title.run_protocol")),
 		"text=%s" % [briefing_text]
+	)
+
+
+func _check_language_selector(screen: TitleScreen) -> void:
+	var initial_locale: String = L10n.current_locale()
+	var alternate_locale: String = "en" if initial_locale == "zh-CN" else "zh-CN"
+	var switched: bool = screen.select_language(alternate_locale)
+	_check(
+		"language_switches_live",
+		switched and L10n.current_locale() == alternate_locale,
+		"locale=%s" % [L10n.current_locale()]
+	)
+	_check(
+		"language_preference_persists",
+		L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH) == alternate_locale,
+		"persisted=%s" % [L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH)]
+	)
+	var restored: bool = screen.select_language(initial_locale)
+	_check(
+		"language_restores_requested_locale",
+		restored and L10n.current_locale() == initial_locale,
+		"locale=%s" % [L10n.current_locale()]
 	)
 
 
@@ -248,6 +280,7 @@ func _check(check_name: String, passed: bool, detail: String) -> void:
 
 func _finish(shot_status: String, shot_path: String) -> void:
 	completed = true
+	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 	var all_passed: bool = true
 	for item: Dictionary in checks:
 		if not bool(item["passed"]):

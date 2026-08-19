@@ -9,6 +9,9 @@ const CATALOG_PATHS: Dictionary = {
 }
 const LOCALE_OVERRIDE_ENV: String = "PROTO_SCROLLER_LOCALE"
 const CJK_FONT_PATH: String = "res://art/fonts/DroidSansFallbackFull-ProtoScroller.ttf"
+const PREFERENCE_PATH: String = "user://localization.cfg"
+const PREFERENCE_SECTION: String = "localization"
+const PREFERENCE_KEY: String = "locale"
 
 static var _catalogs: Dictionary = {}
 static var _locale: String = ""
@@ -28,12 +31,18 @@ static func t(key: String, placeholders: Dictionary = {}) -> String:
 	return value.format(placeholders)
 
 
-static func set_locale(locale: String) -> bool:
+static func set_locale(
+	locale: String,
+	persist: bool = false,
+	preference_path: String = PREFERENCE_PATH
+) -> bool:
 	_ensure_loaded()
 	var normalized: String = _normalize_locale(locale)
 	if not SUPPORTED_LOCALES.has(normalized):
 		return false
 	_locale = normalized
+	if persist and not _save_preferred_locale(normalized, preference_path):
+		push_warning("Unable to persist localization preference: %s" % preference_path)
 	return true
 
 
@@ -46,19 +55,36 @@ static func available_locales() -> PackedStringArray:
 	return SUPPORTED_LOCALES.duplicate()
 
 
+static func preferred_locale(preference_path: String = PREFERENCE_PATH) -> String:
+	var config: ConfigFile = ConfigFile.new()
+	if config.load(preference_path) != OK:
+		return ""
+	var normalized: String = _normalize_locale(
+		String(config.get_value(PREFERENCE_SECTION, PREFERENCE_KEY, ""))
+	)
+	return normalized if SUPPORTED_LOCALES.has(normalized) else ""
+
+
+static func clear_locale_preference(preference_path: String = PREFERENCE_PATH) -> bool:
+	if not FileAccess.file_exists(preference_path):
+		return true
+	return DirAccess.remove_absolute(ProjectSettings.globalize_path(preference_path)) == OK
+
+
 static func apply_locale_font(root: Node) -> void:
 	_ensure_loaded()
-	if _locale != "zh-CN":
+	if _locale == "zh-CN" and not _load_cjk_font():
 		return
-	if _cjk_font == null:
-		_cjk_font = load(CJK_FONT_PATH) as Font
-	if _cjk_font == null:
-		push_error("Unable to load Simplified Chinese font: %s" % CJK_FONT_PATH)
-		return
-	if root is Control:
-		(root as Control).add_theme_font_override(&"font", _cjk_font)
+	_apply_font_to_control(root as Control if root is Control else null)
 	for node: Node in root.find_children("*", "Control", true, false):
-		(node as Control).add_theme_font_override(&"font", _cjk_font)
+		_apply_font_to_control(node as Control)
+
+
+static func apply_cjk_font(control: Control) -> bool:
+	if control == null or not _load_cjk_font():
+		return false
+	control.add_theme_font_override(&"font", _cjk_font)
+	return true
 
 
 static func keys_for_locale(locale: String) -> PackedStringArray:
@@ -102,8 +128,35 @@ static func _detect_locale() -> String:
 		var normalized_override: String = _normalize_locale(override)
 		if SUPPORTED_LOCALES.has(normalized_override):
 			return normalized_override
+	var persisted: String = preferred_locale()
+	if not persisted.is_empty():
+		return persisted
 	var detected: String = _normalize_locale(OS.get_locale())
 	return detected if SUPPORTED_LOCALES.has(detected) else DEFAULT_LOCALE
+
+
+static func _save_preferred_locale(locale: String, preference_path: String) -> bool:
+	var config: ConfigFile = ConfigFile.new()
+	config.set_value(PREFERENCE_SECTION, PREFERENCE_KEY, locale)
+	return config.save(preference_path) == OK
+
+
+static func _load_cjk_font() -> bool:
+	if _cjk_font == null:
+		_cjk_font = load(CJK_FONT_PATH) as Font
+	if _cjk_font == null:
+		push_error("Unable to load Simplified Chinese font: %s" % CJK_FONT_PATH)
+		return false
+	return true
+
+
+static func _apply_font_to_control(control: Control) -> void:
+	if control == null:
+		return
+	if _locale == "zh-CN":
+		control.add_theme_font_override(&"font", _cjk_font)
+	else:
+		control.remove_theme_font_override(&"font")
 
 
 static func _normalize_locale(locale: String) -> String:

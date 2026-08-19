@@ -2,6 +2,7 @@ extends GutTest
 
 const TITLE_SCREEN_SCENE: PackedScene = preload("res://scenes/title_screen.tscn")
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
+const LANGUAGE_PREFERENCE_PATH: String = "user://test-title-language.cfg"
 const MINIMUM_TEXT_HEIGHT: float = 32.0
 
 var screen: TitleScreen
@@ -14,10 +15,17 @@ func before_all() -> void:
 
 
 func before_each() -> void:
+	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 	L10n.set_locale("en")
 	screen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
+	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	add_child_autofree(screen)
 	await get_tree().process_frame
+
+
+func after_each() -> void:
+	L10n.set_locale("en")
+	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 
 
 func test_launch_scene_contract() -> void:
@@ -37,6 +45,25 @@ func test_launch_scene_contract() -> void:
 		if button.text.contains(L10n.t("title.begin")):
 			launch_actions += 1
 	assert_eq(launch_actions, 1, "The Command Deck must expose one launch action only.")
+	var english_button: Button = screen.get_node("%EnglishButton") as Button
+	var chinese_button: Button = screen.get_node("%ChineseButton") as Button
+	assert_true(english_button.button_pressed)
+	assert_false(chinese_button.button_pressed)
+	assert_true(chinese_button.get_theme_font(&"font").has_char("中".unicode_at(0)))
+	assert_true(screen.select_language("zh-CN"))
+	assert_eq(L10n.current_locale(), "zh-CN")
+	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "zh-CN")
+	assert_eq(title_label.text, L10n.t("title.command_heading"))
+	assert_true(chinese_button.button_pressed)
+	assert_false(english_button.button_pressed)
+	assert_true(
+		(screen.get_node("%BriefingArt") as TextureRect)
+		.texture.resource_path.contains("briefing_landscape_zh_cn")
+	)
+	assert_true(screen.select_language("en"))
+	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "en")
+	assert_true(english_button.button_pressed)
+	assert_false(chinese_button.button_pressed)
 	_record_test_execution()
 
 
@@ -80,6 +107,8 @@ func test_initialize_seam_transitions_once() -> void:
 	assert_eq(status_label.text, L10n.t("title.expedition_active"))
 	assert_eq(initialize_button.text, L10n.t("title.deploying"))
 	assert_true(initialize_button.disabled)
+	assert_true((screen.get_node("%EnglishButton") as Button).disabled)
+	assert_true((screen.get_node("%ChineseButton") as Button).disabled)
 	assert_false(screen.initialize_game(), "A second initialization must reject without mutation.")
 	assert_eq(status_label.text, L10n.t("title.expedition_active"))
 	_record_test_execution()
@@ -109,7 +138,13 @@ func test_all_ui_text_meets_the_32_pixel_rendered_height_pin() -> void:
 
 func test_launch_action_does_not_overlap_briefing_action() -> void:
 	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
+	var language_selector: HBoxContainer = screen.get_node("%LanguageSelector") as HBoxContainer
 	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
+	assert_gte(
+		language_selector.get_global_rect().position.y,
+		initialize_button.get_global_rect().end.y,
+		"The language selector must remain below the launch action."
+	)
 	assert_false(
 		initialize_button.get_global_rect().intersects(briefing_toggle.get_global_rect()),
 		"Launch and briefing actions must remain spatially distinct."

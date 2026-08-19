@@ -24,6 +24,7 @@ const PORTRAIT_BRIEFING_ART_ZH_CN: Texture2D = preload(
 
 var initialized: bool = false
 var briefing_open: bool = false
+var locale_preference_path: String = L10n.PREFERENCE_PATH
 
 @onready var background_art: TextureRect = %BackgroundArt
 @onready var briefing_art: TextureRect = %BriefingArt
@@ -31,6 +32,10 @@ var briefing_open: bool = false
 @onready var briefing_backdrop: Button = %BriefingBackdrop
 @onready var briefing_toggle: Button = %BriefingToggle
 @onready var initialize_button: Button = %InitializeButton
+@onready var language_selector: HBoxContainer = %LanguageSelector
+@onready var language_label: Label = %LanguageLabel
+@onready var english_button: Button = %EnglishButton
+@onready var chinese_button: Button = %ChineseButton
 @onready var status_label: Label = %StatusLabel
 @onready var instruction_label: Label = %InstructionLabel
 @onready var system_value: Label = %SystemValue
@@ -40,10 +45,13 @@ func _ready() -> void:
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	briefing_toggle.pressed.connect(toggle_briefing)
 	briefing_backdrop.pressed.connect(close_briefing)
+	english_button.pressed.connect(_on_english_pressed)
+	chinese_button.pressed.connect(_on_chinese_pressed)
 	initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_localized_text()
 	L10n.apply_locale_font(self)
+	L10n.apply_cjk_font(chinese_button)
 	_apply_responsive_layout()
 
 
@@ -72,6 +80,8 @@ func initialize_game() -> bool:
 	initialize_button.text = L10n.t("title.deploying")
 	initialize_button.disabled = true
 	briefing_toggle.disabled = true
+	english_button.disabled = true
+	chinese_button.disabled = true
 	return true
 
 
@@ -102,9 +112,28 @@ func toggle_briefing() -> void:
 		open_briefing()
 
 
+func select_language(locale: String) -> bool:
+	if initialized or not L10n.set_locale(locale, true, locale_preference_path):
+		_sync_language_selector()
+		return false
+	_apply_localized_text()
+	L10n.apply_locale_font(self)
+	L10n.apply_cjk_font(chinese_button)
+	_apply_responsive_layout()
+	return true
+
+
 func _on_initialize_pressed() -> void:
 	if initialize_game():
 		start_requested.emit()
+
+
+func _on_english_pressed() -> void:
+	select_language("en")
+
+
+func _on_chinese_pressed() -> void:
+	select_language("zh-CN")
 
 
 func is_portrait_layout() -> bool:
@@ -145,6 +174,10 @@ func _apply_localized_text() -> void:
 	briefing_toggle.text = L10n.t(
 		"title.briefing_close" if briefing_open else "title.briefing_available"
 	)
+	language_label.text = L10n.t("title.language")
+	english_button.text = L10n.t("title.language_en")
+	chinese_button.text = L10n.t("title.language_zh_cn")
+	_sync_language_selector()
 	status_label.text = L10n.t(
 		"title.expedition_active" if initialized else "title.mission_briefing"
 	)
@@ -176,9 +209,10 @@ func _apply_landscape_layout() -> void:
 	_set_rect(%InstructionLabel, Rect2(52.0, 380.0, 610.0, 46.0))
 	_set_rect($StatusRail, Rect2(744.0, 36.0, 504.0, 68.0))
 	_set_rect(initialize_button, Rect2(52.0, 450.0, 360.0, 72.0))
+	_set_rect(language_selector, Rect2(52.0, 530.0, 360.0, 48.0))
 	_set_rect($HintLabel, Rect2(430.0, 464.0, 160.0, 46.0))
-	_set_rect($MoveChip, Rect2(52.0, 546.0, 164.0, 48.0))
-	_set_rect($SmashChip, Rect2(236.0, 546.0, 178.0, 48.0))
+	_set_rect($MoveChip, Rect2(52.0, 590.0, 164.0, 48.0))
+	_set_rect($SmashChip, Rect2(236.0, 590.0, 178.0, 48.0))
 	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
 	_set_font_sizes(24, 56, 24)
 
@@ -190,10 +224,11 @@ func _apply_portrait_layout() -> void:
 	_set_rect(%TitleLabel, Rect2(56.0, 122.0, 608.0, 82.0))
 	_set_rect(%InstructionLabel, Rect2(56.0, 206.0, 608.0, 50.0))
 	_set_rect($StatusRail, Rect2(54.0, 268.0, 612.0, 92.0))
-	_set_rect(initialize_button, Rect2(104.0, 922.0, 512.0, 100.0))
-	_set_rect($HintLabel, Rect2(260.0, 1038.0, 200.0, 50.0))
-	_set_rect($MoveChip, Rect2(120.0, 1092.0, 214.0, 62.0))
-	_set_rect($SmashChip, Rect2(372.0, 1092.0, 228.0, 62.0))
+	_set_rect(initialize_button, Rect2(104.0, 900.0, 512.0, 92.0))
+	_set_rect(language_selector, Rect2(104.0, 1004.0, 512.0, 52.0))
+	_set_rect($HintLabel, Rect2(260.0, 1062.0, 200.0, 46.0))
+	_set_rect($MoveChip, Rect2(120.0, 1114.0, 214.0, 58.0))
+	_set_rect($SmashChip, Rect2(372.0, 1114.0, 228.0, 58.0))
 	_set_rect(briefing_toggle, Rect2(174.0, 1180.0, 372.0, 70.0))
 	_set_font_sizes(24, 48, 24)
 
@@ -211,6 +246,15 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	(%TitleLabel as Label).add_theme_font_size_override(&"font_size", title_size)
 	initialize_button.add_theme_font_size_override(&"font_size", button_size)
 	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
+	language_label.add_theme_font_size_override(&"font_size", body_size)
+	english_button.add_theme_font_size_override(&"font_size", body_size)
+	chinese_button.add_theme_font_size_override(&"font_size", body_size)
+
+
+func _sync_language_selector() -> void:
+	var chinese_selected: bool = L10n.current_locale() == "zh-CN"
+	english_button.set_pressed_no_signal(not chinese_selected)
+	chinese_button.set_pressed_no_signal(chinese_selected)
 
 
 func _set_rect(control: Control, rect: Rect2) -> void:
