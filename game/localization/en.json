@@ -134,6 +134,8 @@
   "upgrade.laser.description": "Autonomous long-range beam that penetrates multiple targets.",
   "upgrade.engine.name": "ENGINE UPGRADE",
   "upgrade.engine.description": "Increase top speed, acceleration, and deceleration without momentum loss.",
+  "upgrade.dash_amplifier.name": "DASH AMPLIFIER",
+  "upgrade.dash_amplifier.description": "Extend dodge range and duration each rank. Invulnerability remains 300 ms.",
   "upgrade.destruction.name": "DESTRUCTION",
   "upgrade.destruction.description": "Every accepted debris burst gains a second visual fragment.",
 
