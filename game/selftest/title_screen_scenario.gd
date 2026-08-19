@@ -214,6 +214,11 @@ func _check_language_selector(screen: TitleScreen) -> void:
 		and automatic_button.text == _expected_automatic_label(),
 		"pressed=%s text=%s" % [automatic_button.button_pressed, automatic_button.text]
 	)
+	_check(
+		"automatic_mode_explains_detection_source",
+		automatic_button.tooltip_text == L10n.t("title.language_auto_tooltip"),
+		"tooltip=%s" % [automatic_button.tooltip_text]
+	)
 	var switched: bool = screen.select_language(alternate_locale)
 	_check(
 		"language_switches_live",

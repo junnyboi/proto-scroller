@@ -200,6 +200,7 @@ func _apply_localized_text() -> void:
 			"resolved": _resolved_language_label(L10n.automatic_locale()),
 		}
 	)
+	automatic_button.tooltip_text = L10n.t("title.language_auto_tooltip")
 	english_button.text = L10n.t("title.language_en")
 	chinese_button.text = L10n.t("title.language_zh_cn")
 	_sync_language_selector()

@@ -49,6 +49,7 @@ func test_launch_scene_contract() -> void:
 	var english_button: Button = screen.get_node("%EnglishButton") as Button
 	var chinese_button: Button = screen.get_node("%ChineseButton") as Button
 	assert_eq(automatic_button.text, _expected_automatic_label())
+	assert_eq(automatic_button.tooltip_text, L10n.t("title.language_auto_tooltip"))
 	assert_true(automatic_button.button_pressed)
 	assert_false(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
@@ -58,6 +59,7 @@ func test_launch_scene_contract() -> void:
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "zh-CN")
 	assert_eq(title_label.text, L10n.t("title.command_heading"))
 	assert_eq(automatic_button.text, _expected_automatic_label())
+	assert_eq(automatic_button.tooltip_text, L10n.t("title.language_auto_tooltip"))
 	assert_false(automatic_button.button_pressed)
 	assert_true(chinese_button.button_pressed)
 	assert_false(english_button.button_pressed)

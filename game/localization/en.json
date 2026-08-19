@@ -41,6 +41,7 @@
   "title.language": "LANGUAGE",
   "title.language_auto": "AUTO",
   "title.language_auto_resolved": "{automatic} · {resolved}",
+  "title.language_auto_tooltip": "Follows your browser or operating-system language.",
   "title.language_resolved_en": "EN",
   "title.language_resolved_zh_cn": "ZH-CN",
   "title.language_en": "EN",
