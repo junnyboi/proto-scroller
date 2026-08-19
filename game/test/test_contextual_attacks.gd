@@ -218,6 +218,8 @@ func test_recovery_space_buffers_facing_dodge_with_300ms_invulnerability() -> vo
 	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
 	assert_eq(city.robot.dodge_count, 1)
 	assert_true(city.robot.dodge_invulnerable)
+	assert_false(city.robot.dodge_ready)
+	assert_almost_eq(city.robot.dodge_cooldown_remaining, 1.20, 0.025)
 	assert_almost_eq(city.robot.dodge_invulnerability_remaining, 0.30, 0.025)
 	var start_x: float = city.robot.global_position.x
 	city.robot.physics_step(0.0, 0.05)
@@ -228,8 +230,12 @@ func test_recovery_space_buffers_facing_dodge_with_300ms_invulnerability() -> vo
 	assert_eq(city.robot.invulnerable_rejection_count, 1)
 	city.robot.physics_step(0.0, 0.26)
 	assert_false(city.robot.dodge_invulnerable)
+	assert_false(city.robot._start_dodge())
 	assert_true(city.robot.receive_damage(DamageEvent.new(8802, null, 40.0)))
 	assert_eq(city.robot.current_health, health_before - 40.0)
+	city.robot.physics_step(0.0, 0.90)
+	assert_true(city.robot.dodge_ready)
+	assert_eq(city.robot.dodge_cooldown_remaining, 0.0)
 
 
 func test_movement_releases_on_first_step_after_attack_recovery() -> void:

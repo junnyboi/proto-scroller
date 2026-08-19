@@ -70,7 +70,12 @@ func _ready() -> void:
 
 func request_attack() -> int:
 	if _busy:
-		if phase == Phase.RECOVERY and not _dodge_buffered and _robot.can_request_attack():
+		if (
+			phase == Phase.RECOVERY
+			and not _dodge_buffered
+			and _robot.can_request_attack()
+			and _robot.dodge_ready
+		):
 			_dodge_buffered = true
 			buffered_dodge_count += 1
 			dodge_buffered.emit(current_spec.attack_id)
