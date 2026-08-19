@@ -98,6 +98,7 @@ var rampage_session: RampageSession
 var rampage_events: RampageEventAdapter
 var overdrive_session: OverdriveSession
 var run_lifecycle: CityRunLifecycle
+var upgrade_assembler: PlayerUpgradeAssembler
 var contextual_attacks: ContextualAttackController
 var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
@@ -161,6 +162,9 @@ func _ready() -> void:
 	run_lifecycle.name = "CityRunLifecycle"
 	run_lifecycle.setup(self)
 	add_child(run_lifecycle)
+	upgrade_assembler = PlayerUpgradeAssembler.new()
+	add_child(upgrade_assembler)
+	assert(upgrade_assembler.setup(self).is_empty())
 
 
 func _process(delta: float) -> void:

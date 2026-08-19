@@ -17,6 +17,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.particle_slots, 8)
 	assert_eq(snapshot.audio_voices, 8)
 	assert_eq(snapshot.rare_rows, 3)
+	assert_eq(snapshot.upgrade_sessions, 1)
 
 
 func test_pool_saturation_recycles_without_node_or_capacity_growth() -> void:
