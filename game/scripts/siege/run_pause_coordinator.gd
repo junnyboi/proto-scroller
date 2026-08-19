@@ -55,7 +55,11 @@ func _apply_pause(paused: bool) -> void:
 	dependencies.robot.set_control_enabled(not paused)
 	if paused:
 		dependencies.city.contextual_attacks.cancel_attack()
-	dependencies.city.mobile_controls.set_controls_enabled(not paused)
+	var preserve_upgrade_touches: bool = paused and _leases.values().has(&"upgrade_choice")
+	dependencies.city.mobile_controls.set_controls_enabled(
+		not paused,
+		preserve_upgrade_touches
+	)
 	dependencies.encounter_runtime.set_attack_gate(not paused)
 	dependencies.encounter_runtime.process_mode = (
 		Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT

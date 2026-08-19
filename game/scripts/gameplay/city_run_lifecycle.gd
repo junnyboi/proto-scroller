@@ -121,10 +121,12 @@ func _on_recovery_started(_duration: float) -> void:
 
 
 func _on_directive_selected(profile: DirectiveProfile) -> void:
+	city.upgrade_assembler.session.set_presentation_blocked(false)
 	city.gameplay_hud.show_directive(profile, 0, profile.target_count, 0)
 
 
 func _on_directive_choices_offered(profiles: Array[DirectiveProfile]) -> void:
+	city.upgrade_assembler.session.set_presentation_blocked(true)
 	city.gameplay_hud.directive_choice_overlay.show_choices(profiles)
 
 

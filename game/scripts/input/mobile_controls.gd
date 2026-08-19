@@ -27,6 +27,7 @@ var _knob_offset: Vector2
 var _target_axis: float = 0.0
 var _current_axis: float = 0.0
 var _smash_cooldown_remaining: float = 0.0
+var _preserve_touch_ownership_while_disabled: bool = false
 
 
 func _ready() -> void:
@@ -73,7 +74,10 @@ func process_controls(delta: float) -> void:
 
 
 func handle_touch_input(event: InputEvent) -> void:
-	if not mobile_device_detected or not _controls_enabled:
+	if not mobile_device_detected:
+		return
+	if not _controls_enabled:
+		_handle_disabled_release(event)
 		return
 	if event is InputEventScreenTouch:
 		_handle_screen_touch(event as InputEventScreenTouch)
@@ -104,15 +108,18 @@ func smash_bounds() -> Rect2:
 	return smash_button.get_global_rect()
 
 
-func set_controls_enabled(enabled: bool) -> void:
+func set_controls_enabled(enabled: bool, preserve_touch_ownership: bool = false) -> void:
 	_controls_enabled = enabled
+	_preserve_touch_ownership_while_disabled = not enabled and preserve_touch_ownership
 	if smash_button != null:
 		smash_button.modulate.a = 1.0 if enabled else 0.35
-	if not enabled:
+	if not enabled and not preserve_touch_ownership:
 		_release_joystick()
 		_release_smash()
 		_current_axis = 0.0
 		move_axis_changed.emit(0.0)
+	elif enabled:
+		_preserve_touch_ownership_while_disabled = false
 
 
 func _detect_mobile_device() -> bool:
@@ -199,6 +206,20 @@ func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 		if event.index == _smash_touch_index:
 			_release_smash()
 	get_viewport().set_input_as_handled()
+
+
+func _handle_disabled_release(event: InputEvent) -> void:
+	if not _preserve_touch_ownership_while_disabled:
+		return
+	if event is not InputEventScreenTouch:
+		return
+	var touch: InputEventScreenTouch = event as InputEventScreenTouch
+	if touch.pressed:
+		return
+	if touch.index == _joystick_touch_index:
+		_release_joystick()
+	if touch.index == _smash_touch_index:
+		_release_smash()
 
 
 func _handle_screen_drag(event: InputEventScreenDrag) -> void:

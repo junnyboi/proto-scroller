@@ -303,6 +303,13 @@ func test_walking_stops_at_building_until_jab_cross_opens_one_bay() -> void:
 	await get_tree().physics_frame
 	assert_gt(attack_id, 0)
 	assert_true(glass_cell.is_destroyed())
+	await get_tree().process_frame
+	var upgrade_session: UpgradeSession = city.upgrade_assembler.session
+	if upgrade_session.active_offer != null:
+		var offer_sequence: int = upgrade_session.active_offer.sequence
+		var selected: StringName = upgrade_session.active_offer.choice_ids[0]
+		assert_true(upgrade_session.select_choice(selected, offer_sequence))
+	assert_false(city.urban_siege.pause_coordinator.is_paused())
 	for step_index: int in range(90):
 		city.robot.physics_step(1.0, 1.0 / 60.0)
 		await get_tree().physics_frame

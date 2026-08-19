@@ -22,6 +22,7 @@ func setup(city: Node) -> PackedStringArray:
 	add_child(session)
 	var siege: UrbanSiegeRuntime = city.get("urban_siege") as UrbanSiegeRuntime
 	var rampage: RampageSession = city.get("rampage_session") as RampageSession
+	var hud: GameplayHud = city.get("gameplay_hud") as GameplayHud
 	var errors: PackedStringArray = session.setup(
 		siege.run_seed,
 		CATALOG,
@@ -29,6 +30,29 @@ func setup(city: Node) -> PackedStringArray:
 		runtimes,
 		city.get_instance_id()
 	)
-	session.set_presentation_blocked(true)
+	session.offer_opened.connect(_on_offer_opened.bind(hud))
+	session.offer_resolved.connect(_on_offer_resolved.bind(hud))
+	session.queue_drained.connect(hud.upgrade_choice_overlay.hide_offer)
+	session.rank_changed.connect(hud.weapon_status_strip.set_rank)
+	hud.upgrade_choice_overlay.choice_selected.connect(session.select_choice)
+	session.set_presentation_blocked(false)
 	rampage.run_experience.level_gained.connect(session.queue_level)
 	return errors
+
+
+func _on_offer_opened(offer: UpgradeOffer, hud: GameplayHud) -> void:
+	hud.upgrade_choice_overlay.show_offer(
+		offer,
+		CATALOG,
+		session.ranks,
+		offer.sequence + session.pending.size()
+	)
+
+
+func _on_offer_resolved(
+	_offer: UpgradeOffer,
+	_selected_id: StringName,
+	_new_rank: int,
+	hud: GameplayHud
+) -> void:
+	hud.upgrade_choice_overlay.hide_offer()
