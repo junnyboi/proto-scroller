@@ -16,17 +16,16 @@ script = ExtResource("1_script")
 
 [node name="TopRail" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 72.0
-offset_top = 48.0
-offset_right = 1208.0
-offset_bottom = 96.0
+offset_left = 56.0
+offset_top = 26.0
+offset_right = 1224.0
+offset_bottom = 70.0
 theme_override_constants/separation = 16
 
 [node name="ProtocolLabel" type="Label" parent="TopRail"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
-theme_override_font_sizes/font_size = 32
-text = "[ MGS // PROTOTYPE 01 ]"
+text = "[ MGS // EXPEDITION 01 ]"
 
 [node name="TopSpacer" type="Control" parent="TopRail"]
 custom_minimum_size = Vector2(32, 0)
@@ -37,143 +36,182 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
-theme_override_font_sizes/font_size = 32
-text = "STANDBY"
+text = "MISSION BRIEFING"
 horizontal_alignment = 2
 
 [node name="AccentRule" type="ColorRect" parent="."]
 layout_mode = 0
-offset_left = 72.0
-offset_top = 108.0
-offset_right = 77.0
-offset_bottom = 594.0
+offset_left = 56.0
+offset_top = 84.0
+offset_right = 61.0
+offset_bottom = 646.0
 mouse_filter = 2
 color = Color(0.262745, 0.956863, 0.780392, 0.72)
 
 [node name="HeroStack" type="VBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 104.0
-offset_top = 128.0
-offset_right = 815.0
-offset_bottom = 606.0
-theme_override_constants/separation = 8
+offset_left = 82.0
+offset_top = 94.0
+offset_right = 720.0
+offset_bottom = 640.0
+theme_override_constants/separation = 4
 
 [node name="Eyebrow" type="Label" parent="HeroStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.388235, 0.854902, 0.780392, 1)
-theme_override_font_sizes/font_size = 32
-text = "SIGNAL ACQUIRED  /  WORLD 000"
+text = "CITY RECOVERY ZONE  /  SIGNAL LOST"
 
 [node name="TitleLabel" type="Label" parent="HeroStack"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.894118, 0.984314, 0.964706, 1)
 theme_override_colors/font_shadow_color = Color(0.0196078, 0.380392, 0.341176, 0.5)
-theme_override_constants/shadow_offset_x = 5
-theme_override_constants/shadow_offset_y = 5
-theme_override_font_sizes/font_size = 72
-text = "PROTO\nSCROLLER"
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
+text = "PROTO SCROLLER\nFIELD BRIEFING"
 
 [node name="InstructionLabel" type="Label" parent="HeroStack"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 70)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
-theme_override_font_sizes/font_size = 32
-text = "A signal waits beyond the fold.\nInitialize the prototype runtime."
+text = "At 04:17, the city defense grid went silent.\nYour prototype is the only unit still moving."
+autowrap_mode = 3
 
-[node name="ActionSpacer" type="Control" parent="HeroStack"]
-custom_minimum_size = Vector2(0, 2)
+[node name="StorySeparator" type="HSeparator" parent="HeroStack"]
 layout_mode = 2
+modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
+
+[node name="ControlsHeading" type="Label" parent="HeroStack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.345098, 0.909804, 0.811765, 1)
+text = "PILOT CONTROLS"
+
+[node name="ControlsLabel" type="Label" parent="HeroStack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 86)
+layout_mode = 2
+text = "MOVE   A / D   •   Mobile joystick\nSMASH  SPACE   •   Mobile SMASH button\nAt speed, SMASH becomes a Jab-Cross."
+autowrap_mode = 3
+
+[node name="FieldNote" type="Label" parent="HeroStack"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
+text = "Weapons fire automatically after acquisition.\nMove. Build speed. SMASH with intent."
+autowrap_mode = 3
 
 [node name="ActionRow" type="HBoxContainer" parent="HeroStack"]
 layout_mode = 2
-theme_override_constants/separation = 22
+theme_override_constants/separation = 18
 
 [node name="InitializeButton" type="Button" parent="HeroStack/ActionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(274, 66)
+custom_minimum_size = Vector2(360, 66)
 layout_mode = 2
 focus_mode = 2
 mouse_default_cursor_shape = 2
-text = "INITIALIZE"
+text = "BEGIN EXPEDITION"
 
 [node name="HintLabel" type="Label" parent="HeroStack/ActionRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.360784, 0.545098, 0.560784, 1)
-theme_override_font_sizes/font_size = 32
-text = "ENTER  /  CLICK"
+text = "ENTER  /  TAP"
 vertical_alignment = 1
 
 [node name="TelemetryPanel" type="PanelContainer" parent="."]
 layout_mode = 0
-offset_left = 860.0
-offset_top = 152.0
-offset_right = 1208.0
-offset_bottom = 594.0
+offset_left = 752.0
+offset_top = 94.0
+offset_right = 1222.0
+offset_bottom = 640.0
 
 [node name="PanelStack" type="VBoxContainer" parent="TelemetryPanel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="PanelHeading" type="Label" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.345098, 0.909804, 0.811765, 1)
-theme_override_font_sizes/font_size = 32
-text = "RUNTIME TELEMETRY"
+text = "EXPEDITION OBJECTIVES"
 
 [node name="Separator" type="HSeparator" parent="TelemetryPanel/PanelStack"]
 layout_mode = 2
 modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
 
-[node name="SystemKey" type="Label" parent="TelemetryPanel/PanelStack"]
+[node name="PrimaryObjective" type="Label" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
+text = "PRIMARY  Survive the city response."
+
+[node name="ObjectiveOne" type="Label" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+text = "01  Destroy structures; earn EXP."
+
+[node name="ObjectiveTwo" type="Label" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+text = "02  Defeat ground and air forces."
+
+[node name="ObjectiveThree" type="Label" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+text = "03  Choose 1 of 2 upgrades."
+
+[node name="IntelSeparator" type="HSeparator" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
+
+[node name="EnemyHeading" type="Label" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.345098, 0.909804, 0.811765, 1)
+text = "ENEMY PROFILE"
+
+[node name="EnemyIntel" type="Label" parent="TelemetryPanel/PanelStack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+text = "GROUND  Soldiers + tanks\nAIR  Helicopters + rockets"
+
+[node name="ProtocolSeparator" type="HSeparator" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
+
+[node name="RunRule" type="Label" parent="TelemetryPanel/PanelStack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+text = "RUN PROTOCOL\nUpgrades reset when you Retry."
+
+[node name="MissionStateRow" type="HBoxContainer" parent="TelemetryPanel/PanelStack"]
+layout_mode = 2
+
+[node name="SystemKey" type="Label" parent="TelemetryPanel/PanelStack/MissionStateRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.345098, 0.513726, 0.529412, 1)
-theme_override_font_sizes/font_size = 32
-text = "SYSTEM"
+text = "MISSION STATE"
 
-[node name="SystemValue" type="Label" parent="TelemetryPanel/PanelStack"]
+[node name="StateSpacer" type="Control" parent="TelemetryPanel/PanelStack/MissionStateRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SystemValue" type="Label" parent="TelemetryPanel/PanelStack/MissionStateRow"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.741176, 0.823529, 0.819608, 1)
-theme_override_font_sizes/font_size = 32
-text = "WAITING"
-
-[node name="ChannelKey" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.345098, 0.513726, 0.529412, 1)
-theme_override_font_sizes/font_size = 32
-text = "CHANNEL"
-
-[node name="ChannelValue" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "SCROLLER-01"
-
-[node name="RenderKey" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.345098, 0.513726, 0.529412, 1)
-theme_override_font_sizes/font_size = 32
-text = "RENDER LANE"
-
-[node name="RenderValue" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.388235, 0.854902, 0.780392, 1)
-theme_override_font_sizes/font_size = 32
-text = "WEBGL 2"
+text = "AWAITING PILOT"
+horizontal_alignment = 2
 
 [node name="BottomRail" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 72.0
-offset_top = 664.0
-offset_right = 1208.0
-offset_bottom = 716.0
+offset_left = 56.0
+offset_top = 672.0
+offset_right = 1224.0
+offset_bottom = 712.0
 
 [node name="BuildLabel" type="Label" parent="BottomRail"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
-theme_override_font_sizes/font_size = 32
-text = "AGENT 1  //  GODOT 4.7.1  //  COMPATIBILITY"
+text = "ONE BUTTON  //  MAXIMUM COLLATERAL  //  RUN-LOCAL UPGRADES"
 
 [node name="BottomSpacer" type="Control" parent="BottomRail"]
 layout_mode = 2
@@ -182,6 +220,5 @@ size_flags_horizontal = 3
 [node name="CoordinatesLabel" type="Label" parent="BottomRail"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
-theme_override_font_sizes/font_size = 32
 text = "1280 × 720"
 horizontal_alignment = 2

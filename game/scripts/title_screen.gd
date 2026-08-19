@@ -35,12 +35,12 @@ func initialize_game() -> bool:
 	if initialized:
 		return false
 	initialized = true
-	status_label.text = "SYSTEM READY"
+	status_label.text = "EXPEDITION ACTIVE"
 	status_label.modulate = Color("72ffd6")
-	instruction_label.text = "Scroller runtime standing by."
-	system_value.text = "ONLINE"
+	instruction_label.text = "Deployment authorized. Opening the city corridor."
+	system_value.text = "DEPLOYING"
 	system_value.modulate = Color("72ffd6")
-	initialize_button.text = "READY"
+	initialize_button.text = "DEPLOYING"
 	initialize_button.disabled = true
 	return true
 
@@ -65,28 +65,30 @@ func _apply_responsive_layout() -> void:
 
 
 func _apply_landscape_layout() -> void:
-	_set_rect($TopRail, Rect2(72.0, 48.0, 1136.0, 48.0))
-	_set_rect($AccentRule, Rect2(72.0, 108.0, 5.0, 486.0))
-	_set_rect($HeroStack, Rect2(104.0, 128.0, 711.0, 478.0))
-	_set_rect($TelemetryPanel, Rect2(860.0, 152.0, 348.0, 442.0))
-	_set_rect($BottomRail, Rect2(72.0, 664.0, 1136.0, 52.0))
-	_set_title_font_sizes(32, 72)
+	_set_rect($TopRail, Rect2(56.0, 26.0, 1168.0, 44.0))
+	_set_rect($AccentRule, Rect2(56.0, 76.0, 5.0, 584.0))
+	_set_rect($HeroStack, Rect2(82.0, 82.0, 638.0, 574.0))
+	_set_rect($TelemetryPanel, Rect2(752.0, 82.0, 470.0, 574.0))
+	_set_rect($BottomRail, Rect2(56.0, 672.0, 1168.0, 40.0))
+	_set_title_font_sizes(24, 56)
+	(%TitleLabel as Label).text = "PROTO SCROLLER\nFIELD BRIEFING"
 	($BottomRail/BuildLabel as Label).text = (
-		"AGENT 1  //  GODOT 4.7.1  //  COMPATIBILITY"
+		"ONE BUTTON  //  MAXIMUM COLLATERAL  //  RUN-LOCAL UPGRADES"
 	)
 	($BottomRail/CoordinatesLabel as Label).text = "1280 × 720"
 	($BottomRail/CoordinatesLabel as Label).visible = true
 
 
 func _apply_portrait_layout(viewport_size: Vector2) -> void:
-	var content_width: float = viewport_size.x - 80.0
-	_set_rect($TopRail, Rect2(40.0, 42.0, content_width, 52.0))
-	_set_rect($AccentRule, Rect2(40.0, 118.0, 5.0, 900.0))
-	_set_rect($HeroStack, Rect2(68.0, 152.0, viewport_size.x - 108.0, 510.0))
-	_set_rect($TelemetryPanel, Rect2(68.0, 708.0, viewport_size.x - 108.0, 330.0))
-	_set_rect($BottomRail, Rect2(40.0, viewport_size.y - 92.0, content_width, 58.0))
-	_set_title_font_sizes(24, 64)
-	($BottomRail/BuildLabel as Label).text = "GODOT 4.7.1  //  WEB"
+	var content_width: float = viewport_size.x - 56.0
+	_set_rect($TopRail, Rect2(28.0, 24.0, content_width, 44.0))
+	_set_rect($AccentRule, Rect2(28.0, 76.0, 5.0, 1068.0))
+	_set_rect($HeroStack, Rect2(52.0, 82.0, viewport_size.x - 104.0, 554.0))
+	_set_rect($TelemetryPanel, Rect2(52.0, 650.0, viewport_size.x - 104.0, 488.0))
+	_set_rect($BottomRail, Rect2(28.0, viewport_size.y - 62.0, content_width, 40.0))
+	_set_title_font_sizes(24, 48)
+	(%TitleLabel as Label).text = "PROTO SCROLLER\nFIELD BRIEFING"
+	($BottomRail/BuildLabel as Label).text = "ONE BUTTON  //  RUN-LOCAL UPGRADES"
 	($BottomRail/CoordinatesLabel as Label).text = "720 × 1280"
 	($BottomRail/CoordinatesLabel as Label).visible = false
 
@@ -130,7 +132,16 @@ func _draw() -> void:
 	var orbit_center: Vector2 = Vector2(canvas_size.x * 0.78, canvas_size.y * 0.49)
 	draw_circle(orbit_center, 170.0, Color(0.02, 0.18, 0.19, 0.16), false, 2.0)
 	draw_arc(orbit_center, 118.0, -1.4, 1.85, 96, ACCENT_COLOR, 2.0, true)
-	draw_arc(orbit_center, 150.0, 1.7, 4.9, 96, Color(0.22, 0.73, 0.67, 0.28), 1.0, true)
+	draw_arc(
+		orbit_center,
+		150.0,
+		1.7,
+		4.9,
+		96,
+		Color(0.22, 0.73, 0.67, 0.28),
+		1.0,
+		true
+	)
 	draw_circle(orbit_center + Vector2(20.0, -116.0), 4.0, ACCENT_COLOR)
 
 	var scan_y: float = fmod(scan_phase * 3.0, canvas_size.y)

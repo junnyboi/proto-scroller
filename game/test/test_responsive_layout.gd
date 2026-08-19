@@ -44,7 +44,7 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	_set_viewport(LANDSCAPE_SIZE)
 	await get_tree().process_frame
 	assert_false(screen.is_portrait_layout())
-	assert_eq((screen.get_node("TelemetryPanel") as Control).position, Vector2(860.0, 152.0))
+	assert_eq((screen.get_node("TelemetryPanel") as Control).position, Vector2(752.0, 82.0))
 
 
 func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
