@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+upgrade_id = &"MACHINE_GUN"
+display_name = "MACHINE GUN +1"
+description = "Autonomous mid-range fire. Further ranks improve damage and cadence."
+category = &"weapon"
+max_rank = 5
+runtime_key = &"MACHINE_GUN"
+offer_weight = 100
+enabled = true
+tags = PackedStringArray("weapon")
+acquisition_audio_key = &"upgrade_weapon"
+sort_order = 30

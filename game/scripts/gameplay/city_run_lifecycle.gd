@@ -170,6 +170,7 @@ func _on_extract_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	if city.urban_siege.continue_cycle():
+		city.upgrade_assembler.session.continue_cycle()
 		city.gameplay_hud.hide_terminal_overlay()
 		city.gameplay_hud.set_objective(
 			"CYCLE 2 / %s" % city.urban_siege.selected_recipe.recipe_id
@@ -180,6 +181,7 @@ func _finish_run(completed: bool) -> void:
 	if city.game_over_active:
 		return
 	city.game_over_active = true
+	city.upgrade_assembler.session.stop_run()
 	var run_metrics: Dictionary = {"completed": completed}
 	if city.urban_siege != null:
 		var directive: DirectiveProfile = city.urban_siege.directives.selected_profile

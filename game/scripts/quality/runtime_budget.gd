@@ -31,6 +31,7 @@ const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
 const DISTRICT_RECIPES: int = 3
 const RUN_CONTRACTS: int = 3
 const TERMINAL_CHOICE_OVERLAYS: int = 1
+const UPGRADE_SESSIONS: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -86,6 +87,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"district_recipes": city.urban_siege.DISTRICT_DECK.recipes.size(),
 		"run_contracts": city.urban_siege.RUN_CONTRACTS.size(),
 		"terminal_choice_overlays": 1 if city.gameplay_hud.extract_button != null else 0,
+		"upgrade_sessions": (
+			1 if city.upgrade_assembler.session != null else 0
+		),
 	}
 
 
@@ -118,6 +122,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		"terminal_choice_overlays",
 		TERMINAL_CHOICE_OVERLAYS
 	)
+	_check_equal(errors, data, "upgrade_sessions", UPGRADE_SESSIONS)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]
