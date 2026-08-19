@@ -32,6 +32,20 @@ func setup(city: Node) -> PackedStringArray:
 	var siege: UrbanSiegeRuntime = city.get("urban_siege") as UrbanSiegeRuntime
 	var rampage: RampageSession = city.get("rampage_session") as RampageSession
 	var hud: GameplayHud = city.get("gameplay_hud") as GameplayHud
+	var destruction: DestructionUpgradeRuntime = (
+		runtimes[&"DESTRUCTION"] as DestructionUpgradeRuntime
+	)
+	destruction.setup_events(rampage.event_hub, city.get_instance_id())
+	var shockwave: ShockwaveUpgradeRuntime = (
+		runtimes[&"SHOCKWAVE"] as ShockwaveUpgradeRuntime
+	)
+	shockwave.setup_combat(
+		attacks,
+		rampage,
+		robot,
+		city.get("camera_rig") as CameraRig
+	)
+	siege.pause_coordinator.pause_changed.connect(_on_pause_changed)
 	var errors: PackedStringArray = session.setup(
 		siege.run_seed,
 		CATALOG,
@@ -73,10 +87,19 @@ func _create_runtime(
 			runtime = engine
 		&"KINETIC_FIELD":
 			runtime = KineticFieldRuntime.new()
+		&"DESTRUCTION":
+			runtime = DestructionUpgradeRuntime.new()
+		&"SHOCKWAVE":
+			runtime = ShockwaveUpgradeRuntime.new()
 		_:
 			runtime = UpgradeRuntime.new()
 			runtime.setup(profile.runtime_key, profile.max_rank)
 	return runtime
+
+
+func _on_pause_changed(is_paused: bool) -> void:
+	for runtime: UpgradeRuntime in runtimes.values():
+		runtime.set_paused(is_paused)
 
 
 func _on_offer_opened(offer: UpgradeOffer, hud: GameplayHud) -> void:

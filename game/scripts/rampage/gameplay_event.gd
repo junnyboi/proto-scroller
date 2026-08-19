@@ -15,6 +15,7 @@ enum Kind {
 	CATALYST_TRIGGERED,
 	CAUSAL_CHAIN,
 	BOSS_STATE,
+	GROUND_SMASH_SHOCKWAVE,
 }
 
 const PROP_BREAK: StringName = &"PROP_BREAK"
@@ -24,6 +25,7 @@ const AIR_DEBRIS_HIT: StringName = &"AIR_DEBRIS_HIT"
 const CELL_BREACH: StringName = &"CELL_BREACH"
 const CHAIN_COLLAPSE: StringName = &"CHAIN_COLLAPSE"
 const CATALYST_TRIGGER: StringName = &"CATALYST_TRIGGER"
+const SHOCKWAVE_CUE: StringName = &"GROUND_SMASH_SHOCKWAVE"
 
 var event_id: int = 0
 var dedupe_key: StringName = &""
@@ -40,6 +42,10 @@ var target_id: int = 0
 var cause: StringName = &""
 var root_attack_id: int = 0
 var causal_depth: int = 0
+var debris_units: int = 0
+var presentation_direction: Vector2 = Vector2.RIGHT
+var presentation_speed: float = 0.0
+var presentation_seed: int = 0
 
 
 func _init(
