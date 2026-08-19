@@ -17,12 +17,44 @@ func test_required_experience_uses_exponential_curve() -> void:
 func test_experience_levels_repeatedly_and_preserves_overflow() -> void:
 	var experience: RunExperience = RunExperience.new()
 	add_child_autofree(experience)
+	var emitted_levels: Array[Vector2i] = []
+	experience.level_gained.connect(
+		func(level: int, event_id: int) -> void:
+			emitted_levels.append(Vector2i(level, event_id))
+	)
 	assert_eq(experience.add_experience(1475), 2)
 	assert_eq(experience.level, 3)
 	assert_eq(experience.current_experience, 300)
 	assert_eq(experience.total_experience, 1475)
 	assert_eq(experience.experience_required(), 911)
 	assert_almost_eq(experience.progress_ratio(), 300.0 / 911.0, 0.0001)
+	assert_eq(emitted_levels, [])
+
+
+func test_accepted_event_crosses_levels_with_one_nonzero_identity() -> void:
+	var session: RampageSession = RampageSession.new()
+	add_child_autofree(session)
+	var emitted_levels: Array[Vector2i] = []
+	session.run_experience.level_gained.connect(
+		func(level: int, event_id: int) -> void:
+			emitted_levels.append(Vector2i(level, event_id))
+	)
+	var event: GameplayEvent = GameplayEvent.new(
+		&"multi-level",
+		77,
+		GameplayEvent.Kind.ENEMY_DEFEATED,
+		GameplayEvent.SOLDIER_LAUNCH,
+		1475
+	)
+	assert_true(session.publish(event))
+	assert_gt(event.event_id, 0)
+	assert_eq(
+		emitted_levels,
+		[Vector2i(2, event.event_id), Vector2i(3, event.event_id)]
+	)
+	assert_false(session.publish(event))
+	assert_eq(emitted_levels.size(), 2)
+	assert_eq(session.run_experience.total_experience, 1475)
 
 
 func test_session_grants_base_xp_once_and_reset_returns_to_level_one() -> void:
@@ -44,6 +76,46 @@ func test_session_grants_base_xp_once_and_reset_returns_to_level_one() -> void:
 	assert_eq(session.run_experience.level, 1)
 	assert_eq(session.run_experience.current_experience, 0)
 	assert_eq(session.run_experience.total_experience, 0)
+
+
+func test_adapter_copies_causal_metadata_and_keys_enemy_generation() -> void:
+	var session: RampageSession = RampageSession.new()
+	add_child_autofree(session)
+	var adapter: RampageEventAdapter = RampageEventAdapter.new(session)
+	var robot: GiantRobotController = GiantRobotController.new()
+	var enemy: EnemyActor2D = EnemyActor2D.new()
+	add_child_autofree(robot)
+	add_child_autofree(enemy)
+	enemy.activation_generation = 3
+	var published: Array[GameplayEvent] = []
+	session.event_hub.event_published.connect(
+		func(gameplay_event: GameplayEvent) -> void:
+			published.append(gameplay_event)
+	)
+	var damage: DamageEvent = DamageEvent.new(
+		91,
+		robot,
+		100.0,
+		&"machine_gun",
+		Vector2(3.0, 4.0),
+		Vector2.RIGHT,
+		40.0,
+		77,
+		2
+	)
+	assert_true(adapter.enemy_defeated(enemy, damage, 500, robot))
+	assert_eq(published.size(), 1)
+	assert_eq(published[0].dedupe_key, StringName("enemy:%d:3" % enemy.get_instance_id()))
+	assert_eq(published[0].attack_id, 91)
+	assert_eq(published[0].root_attack_id, 77)
+	assert_eq(published[0].causal_depth, 2)
+	assert_eq(published[0].source_id, robot.get_instance_id())
+	assert_eq(published[0].target_id, enemy.get_instance_id())
+	assert_eq(published[0].cause, &"machine_gun")
+	assert_false(adapter.enemy_defeated(enemy, damage, 500, robot))
+	enemy.activation_generation = 4
+	assert_true(adapter.enemy_defeated(enemy, damage, 500, robot))
+	assert_eq(published.size(), 2)
 
 
 func test_hud_shows_level_and_preserves_exp_ratio_across_orientation() -> void:
