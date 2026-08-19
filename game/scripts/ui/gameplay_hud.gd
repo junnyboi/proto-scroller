@@ -9,6 +9,9 @@ const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
 const MUTED_COLOR: Color = Color("b7c4cb")
 const COMBO_GRACE_SECONDS: float = 3.0
+const FIRST_RUN_TUTORIAL_SCRIPT: Script = preload(
+	"res://scripts/ui/first_run_combat_tutorial.gd"
+)
 
 var health_label: Label
 var status_label: Label
@@ -28,6 +31,7 @@ var directive_choice_overlay: DirectiveChoiceOverlay
 var upgrade_choice_overlay: UpgradeChoiceOverlay
 var weapon_status_strip: WeaponStatusStrip
 var dodge_cooldown_indicator: DodgeCooldownIndicator
+var first_run_tutorial: FirstRunCombatTutorial
 var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
@@ -43,6 +47,7 @@ var score_panel: ColorRect
 var score_caption: Label
 var terminal_panel: ColorRect
 var _robot: GiantRobotController
+var _contextual_attacks: ContextualAttackController
 var _pulse_age: float = 0.0
 var _overdrive_active: bool = false
 var _momentum_fill_width: float = 392.0
@@ -53,8 +58,12 @@ var _displayed_overdrive_key: String = ""
 var _displayed_overdrive_seconds: String = ""
 
 
-func setup(robot: GiantRobotController) -> void:
+func setup(
+	robot: GiantRobotController,
+	contextual_attacks: ContextualAttackController = null
+) -> void:
 	_robot = robot
+	_contextual_attacks = contextual_attacks
 
 
 func _ready() -> void:
@@ -70,6 +79,7 @@ func _ready() -> void:
 	_build_directive_choice_overlay()
 	_build_upgrade_ui()
 	_build_boss_status()
+	_build_first_run_tutorial()
 	_build_game_over_overlay()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_responsive_layout()
@@ -497,6 +507,12 @@ func _build_boss_status() -> void:
 	add_child(boss_label)
 
 
+func _build_first_run_tutorial() -> void:
+	first_run_tutorial = FIRST_RUN_TUTORIAL_SCRIPT.new() as FirstRunCombatTutorial
+	first_run_tutorial.setup(_robot, _contextual_attacks)
+	add_child(first_run_tutorial)
+
+
 func _build_game_over_overlay() -> void:
 	game_over_overlay = Control.new()
 	game_over_overlay.name = "GameOverOverlay"
@@ -580,6 +596,8 @@ func _apply_responsive_layout() -> void:
 		weapon_status_strip.apply_responsive_layout()
 	if dodge_cooldown_indicator != null:
 		dodge_cooldown_indicator.apply_responsive_layout()
+	if first_run_tutorial != null:
+		first_run_tutorial.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout() -> void:
