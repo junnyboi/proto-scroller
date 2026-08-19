@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="UpgradeProfile" format=3]
 
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://art/ui/upgrades/flamethrower.png" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -8,6 +9,7 @@ upgrade_id = &"FLAMETHROWER"
 display_name = "FLAMETHROWER"
 description = "Autonomous short-range cone burst against clustered targets."
 category = &"weapon"
+icon = ExtResource("2")
 max_rank = 5
 runtime_key = &"FLAMETHROWER"
 offer_weight = 90

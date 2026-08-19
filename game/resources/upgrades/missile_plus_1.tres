@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="UpgradeProfile" format=3]
 
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://art/ui/upgrades/upgrade_missile_plus_one.png" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -8,6 +9,7 @@ upgrade_id = &"MISSILE"
 display_name = "MISSILE +1"
 description = "Launch an autonomous mid-range blast missile per rank."
 category = &"weapon"
+icon = ExtResource("2")
 max_rank = 4
 runtime_key = &"MISSILE"
 offer_weight = 90

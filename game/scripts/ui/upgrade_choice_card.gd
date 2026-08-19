@@ -13,6 +13,7 @@ var title_label: Label
 var rank_label: Label
 var description_label: Label
 var glyph_label: Label
+var icon_rect: TextureRect
 var current_rank: int = 0
 var maximum_rank: int = 1
 
@@ -39,10 +40,12 @@ func configure(profile: UpgradeProfile, rank: int) -> void:
 	description_label.text = profile.description
 	glyph_label.text = _glyph_for(profile.category)
 	if profile.icon != null:
-		icon = profile.icon
+		icon_rect.texture = profile.icon
+		icon_rect.visible = true
 		glyph_label.visible = false
 	else:
-		icon = null
+		icon_rect.texture = null
+		icon_rect.visible = false
 		glyph_label.visible = true
 	queue_redraw()
 
@@ -82,6 +85,14 @@ func _build_style() -> void:
 
 
 func _build_content() -> void:
+	icon_rect = TextureRect.new()
+	icon_rect.position = Vector2(20.0, 16.0)
+	icon_rect.size = Vector2(68.0, 58.0)
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_rect.visible = false
+	add_child(icon_rect)
 	glyph_label = Label.new()
 	glyph_label.position = Vector2(20.0, 16.0)
 	glyph_label.size = Vector2(68.0, 58.0)

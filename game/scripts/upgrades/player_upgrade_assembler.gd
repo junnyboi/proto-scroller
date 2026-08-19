@@ -7,6 +7,7 @@ const CATALOG: UpgradeCatalog = preload(
 
 var session: UpgradeSession
 var runtimes: Dictionary[StringName, UpgradeRuntime] = {}
+var _last_upgrade_audio_msec: int = -1000
 
 
 func setup(city: Node) -> PackedStringArray:
@@ -86,6 +87,9 @@ func setup(city: Node) -> PackedStringArray:
 	session.offer_resolved.connect(_on_offer_resolved.bind(hud))
 	session.queue_drained.connect(hud.upgrade_choice_overlay.hide_offer)
 	session.rank_changed.connect(hud.weapon_status_strip.set_rank)
+	session.upgrade_acquired.connect(
+		_on_upgrade_acquired.bind(city.get("impact_feedback_pool"), robot)
+	)
 	hud.upgrade_choice_overlay.choice_selected.connect(session.select_choice)
 	session.set_presentation_blocked(false)
 	rampage.run_experience.level_gained.connect(session.queue_level)
@@ -155,3 +159,18 @@ func _on_offer_resolved(
 	hud: GameplayHud
 ) -> void:
 	hud.upgrade_choice_overlay.hide_offer()
+
+
+func _on_upgrade_acquired(
+	_profile: UpgradeProfile,
+	_rank: int,
+	_max_rank: int,
+	_grant_id: StringName,
+	feedback: ImpactFeedbackPool,
+	robot: GiantRobotController
+) -> void:
+	var now_msec: int = Time.get_ticks_msec()
+	if now_msec - _last_upgrade_audio_msec < 180:
+		return
+	_last_upgrade_audio_msec = now_msec
+	feedback.play_semantic(&"upgrade", robot.global_position, 6)
