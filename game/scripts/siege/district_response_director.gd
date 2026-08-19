@@ -11,6 +11,8 @@ const STATE_RECOVERY: int = 2
 const MAX_PENDING_RECORDS: int = 12
 const MAXIMUM_ACT_OVERRUN: float = 20.0
 const LOW_THREAT_WEIGHT: int = 2
+const ELITE_SYSTEM_SALT: int = 0x0E11E77
+const ELITE_AFFIXES: Array[StringName] = [&"BLITZ", &"BRUTAL", &"PHASED"]
 
 var district: DistrictDefinition
 var ledger: CapacityReservationLedger = CapacityReservationLedger.new()
@@ -21,6 +23,10 @@ var recovery_remaining: float = 0.0
 var elapsed: float = 0.0
 var act_elapsed: float = 0.0
 var peak_pending_records: int = 0
+var elite_assignments: Array[Dictionary] = []
+var elite_roll_count: int = 0
+var _elite_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _elite_seed: int = ELITE_SYSTEM_SALT
 var _beat_reservation_id: int = 0
 var _beat_pending: Array[Dictionary] = []
 
@@ -33,6 +39,14 @@ func setup(p_runtime: EncounterRuntime, p_waves: Array[EnemyWave]) -> void:
 func setup_district(p_runtime: EncounterRuntime, p_district: DistrictDefinition) -> void:
 	runtime = p_runtime
 	district = p_district
+	configure_elite_affixes(0, 1)
+
+
+func configure_elite_affixes(run_seed: int, cycle: int) -> void:
+	_elite_seed = run_seed ^ ELITE_SYSTEM_SALT ^ maxi(cycle, 1) * 7919
+	_elite_rng.seed = _elite_seed
+	elite_assignments.clear()
+	elite_roll_count = 0
 
 
 func start() -> void:
@@ -46,6 +60,9 @@ func start() -> void:
 	beat_index = -1
 	elapsed = 0.0
 	act_elapsed = 0.0
+	_elite_rng.seed = _elite_seed
+	elite_assignments.clear()
+	elite_roll_count = 0
 	_advance_act()
 
 
@@ -170,10 +187,16 @@ func _try_start_next_beat() -> void:
 	beat_index += 1
 	_beat_reservation_id = reservation_id
 	_beat_pending.clear()
-	for entry: EnemySpawnEntry in next_beat.spawns:
+	var elite_plan: Dictionary[int, StringName] = _roll_elite_plan(act, next_beat)
+	for entry_index: int in range(next_beat.spawns.size()):
 		if _beat_pending.size() >= MAX_PENDING_RECORDS:
 			break
-		_beat_pending.append({"entry": entry, "remaining": maxf(entry.delay, 0.0)})
+		var entry: EnemySpawnEntry = next_beat.spawns[entry_index]
+		_beat_pending.append({
+			"entry": entry,
+			"remaining": maxf(entry.delay, 0.0),
+			"trait_id": elite_plan.get(entry_index, entry.trait_id),
+		})
 	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
 	pressure_remaining = next_beat.pressure_seconds
 	recovery_remaining = next_beat.recovery_seconds
@@ -203,7 +226,7 @@ func _process_pending(delta: float) -> void:
 			kind,
 			_resolve_position(entry),
 			entry.role_id,
-			entry.trait_id
+			StringName(record.trait_id)
 		) == null:
 			continue
 		ledger.consume_actor(_beat_reservation_id, kind)
@@ -257,6 +280,35 @@ func _resolve_position(entry: EnemySpawnEntry) -> Vector2:
 	position_value += entry.offset
 	position_value.x = clampf(position_value.x, 80.0, 2480.0)
 	return position_value
+
+
+func _roll_elite_plan(act: DistrictAct, beat: DistrictBeat) -> Dictionary[int, StringName]:
+	var plan: Dictionary[int, StringName] = {}
+	if not act.elite_allowed:
+		return plan
+	var eligible: Array[int] = []
+	for entry_index: int in range(beat.spawns.size()):
+		if beat.spawns[entry_index].trait_id.is_empty():
+			eligible.append(entry_index)
+	if eligible.is_empty():
+		return plan
+	var elite_count: int = 2 if phase_index >= 5 and eligible.size() >= 4 else 1
+	for elite_index: int in range(elite_count):
+		var eligible_draw: int = _elite_rng.randi_range(0, eligible.size() - 1)
+		var entry_index: int = eligible.pop_at(eligible_draw)
+		var affix_limit: int = 2 if phase_index == 3 else ELITE_AFFIXES.size()
+		var trait_id: StringName = ELITE_AFFIXES[_elite_rng.randi_range(0, affix_limit - 1)]
+		elite_roll_count += 2
+		plan[entry_index] = trait_id
+		var entry: EnemySpawnEntry = beat.spawns[entry_index]
+		elite_assignments.append({
+			"act_index": phase_index,
+			"beat_id": beat.beat_id,
+			"entry_index": entry_index,
+			"kind": StringName(entry.kind),
+			"trait_id": trait_id,
+		})
+	return plan
 
 
 func _threat_weight() -> int:

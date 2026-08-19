@@ -201,7 +201,7 @@ func test_enemy_projectiles_damage_intact_building_cells() -> void:
 	_record_test_execution()
 
 
-func test_recovery_space_buffers_facing_dodge_with_300ms_invulnerability() -> void:
+func test_recovery_space_buffers_facing_dodge_with_240ms_invulnerability() -> void:
 	var city: CitySlice = await _city()
 	city.robot.global_position = Vector2(80.0, 460.0)
 	city.robot.facing = -1
@@ -220,7 +220,7 @@ func test_recovery_space_buffers_facing_dodge_with_300ms_invulnerability() -> vo
 	assert_true(city.robot.dodge_invulnerable)
 	assert_false(city.robot.dodge_ready)
 	assert_almost_eq(city.robot.dodge_cooldown_remaining, 1.20, 0.025)
-	assert_almost_eq(city.robot.dodge_invulnerability_remaining, 0.30, 0.025)
+	assert_almost_eq(city.robot.dodge_invulnerability_remaining, 0.24, 0.025)
 	var start_x: float = city.robot.global_position.x
 	city.robot.physics_step(0.0, 0.05)
 	assert_lt(city.robot.global_position.x, start_x)
