@@ -32,6 +32,14 @@ func _run() -> void:
 	var city: CitySlice = scene.instantiate() as CitySlice
 	root.add_child(city)
 	await process_frame
+	if OS.get_environment("PROTO_SCROLLER_PORTRAIT") == "1":
+		city.encounter_runtime.release_all()
+		var helicopter: HelicopterEnemy = city.encounter_runtime.acquire(
+			&"helicopter",
+			Vector2(city.robot.global_position.x, 180.0)
+		) as HelicopterEnemy
+		if helicopter != null:
+			helicopter.set_physics_process(false)
 	await physics_frame
 	await physics_frame
 	await RenderingServer.frame_post_draw

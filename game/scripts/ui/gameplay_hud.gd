@@ -130,7 +130,7 @@ func set_momentum(value: float, band: int) -> void:
 		momentum_fill.color = _momentum_color(band)
 	if momentum_label != null:
 		momentum_label.text = (
-			"OVERDRIVE READY / PRESS SMASH"
+			("OVERDRIVE READY" if _is_portrait_layout() else "OVERDRIVE READY / PRESS SMASH")
 			if band == MomentumMeter.Band.READY
 			else "MOMENTUM %03d%%" % roundi(clamped_value)
 		)
@@ -139,7 +139,9 @@ func set_momentum(value: float, band: int) -> void:
 func set_overdrive(active: bool, remaining: float) -> void:
 	_overdrive_active = active
 	if momentum_label != null and active:
-		momentum_label.text = "KINETIC OVERDRIVE  %.1fs" % maxf(remaining, 0.0)
+		momentum_label.text = (
+			"OVERDRIVE %.1fs" if _is_portrait_layout() else "KINETIC OVERDRIVE  %.1fs"
+		) % maxf(remaining, 0.0)
 	if momentum_fill != null and active:
 		momentum_fill.size.x = (
 			_momentum_fill_width * clampf(remaining / 4.0, 0.0, 1.0)
@@ -539,21 +541,31 @@ func _apply_landscape_layout() -> void:
 	status_panel.position = Vector2(24.0, 22.0)
 	status_panel.size = Vector2(420.0, 112.0)
 	status_label.position = Vector2(48.0, 34.0)
+	status_label.size = Vector2(380.0, 30.0)
+	status_label.add_theme_font_size_override(&"font_size", 24)
 	health_label.position = Vector2(48.0, 68.0)
+	health_label.size = Vector2(380.0, 30.0)
+	health_label.add_theme_font_size_override(&"font_size", 25)
 	objective_label.position = Vector2(48.0, 100.0)
+	objective_label.size = Vector2(380.0, 26.0)
+	objective_label.add_theme_font_size_override(&"font_size", 20)
 	momentum_panel.position = Vector2(466.0, 22.0)
 	momentum_panel.size = Vector2(500.0, 88.0)
 	momentum_label.position = Vector2(490.0, 30.0)
 	momentum_label.size = Vector2(260.0, 28.0)
+	momentum_label.add_theme_font_size_override(&"font_size", 18)
 	combo_label.position = Vector2(764.0, 28.0)
 	combo_label.size = Vector2(176.0, 32.0)
+	combo_label.add_theme_font_size_override(&"font_size", 22)
 	combo_ring.position = Vector2(712.0, 24.0)
+	combo_ring.size = Vector2(38.0, 38.0)
 	momentum_track.position = Vector2(490.0, 66.0)
 	momentum_track.size = Vector2(452.0, 18.0)
 	momentum_fill.position = Vector2(496.0, 71.0)
 	_momentum_fill_width = 392.0
 	experience_label.position = Vector2(490.0, 88.0)
 	experience_label.size = Vector2(184.0, 20.0)
+	experience_label.add_theme_font_size_override(&"font_size", 14)
 	experience_track.position = Vector2(680.0, 92.0)
 	experience_track.size = Vector2(262.0, 12.0)
 	experience_fill.position = Vector2(684.0, 95.0)
@@ -561,68 +573,98 @@ func _apply_landscape_layout() -> void:
 	_apply_experience_fill()
 	score_panel.position = Vector2(988.0, 22.0)
 	score_panel.size = Vector2(268.0, 88.0)
-	_set_score_geometry(Vector2(1012.0, 30.0), Vector2(220.0, 28.0), true)
+	_set_score_geometry(Vector2(1012.0, 30.0), Vector2(220.0, 28.0), true, false)
+	score_caption.add_theme_font_size_override(&"font_size", 18)
+	score_label.add_theme_font_size_override(&"font_size", 30)
+	pending_score_label.add_theme_font_size_override(&"font_size", 14)
 	for index: int in range(rare_labels.size()):
 		rare_labels[index].position = Vector2(1012.0, 116.0 + float(index) * 23.0)
 		rare_labels[index].size = Vector2(220.0, 22.0)
 		rare_labels[index].horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		rare_labels[index].add_theme_font_size_override(&"font_size", 16)
 	siege_progress.position = Vector2(466.0, 112.0)
 	siege_progress.size = Vector2(500.0, 32.0)
+	siege_progress.set_compact(false)
 	siege_progress.apply_width(500.0)
 	directive_card.position = Vector2(948.0, 426.0)
 	boss_label.position = Vector2(400.0, 146.0)
 	boss_label.size = Vector2(480.0, 38.0)
+	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_label.add_theme_font_size_override(&"font_size", 21)
 	_apply_landscape_terminal_layout()
 
 
 func _apply_portrait_layout(viewport_size: Vector2) -> void:
-	var content_width: float = viewport_size.x - 36.0
-	status_panel.position = Vector2(18.0, 18.0)
-	status_panel.size = Vector2(content_width, 116.0)
-	status_label.position = Vector2(34.0, 28.0)
-	health_label.position = Vector2(34.0, 62.0)
-	objective_label.position = Vector2(34.0, 96.0)
-	momentum_panel.position = Vector2(18.0, 146.0)
-	momentum_panel.size = Vector2(content_width, 112.0)
-	momentum_label.position = Vector2(34.0, 154.0)
-	momentum_label.size = Vector2(390.0, 28.0)
-	combo_label.position = Vector2(viewport_size.x - 220.0, 152.0)
-	combo_label.size = Vector2(186.0, 32.0)
-	combo_ring.position = Vector2(viewport_size.x - 264.0, 150.0)
-	momentum_track.position = Vector2(34.0, 194.0)
-	momentum_track.size = Vector2(content_width - 32.0, 18.0)
-	momentum_fill.position = Vector2(40.0, 199.0)
-	_momentum_fill_width = content_width - 44.0
-	experience_label.position = Vector2(34.0, 216.0)
-	experience_label.size = Vector2(220.0, 20.0)
-	experience_track.position = Vector2(260.0, 219.0)
-	experience_track.size = Vector2(content_width - 258.0, 12.0)
-	experience_fill.position = Vector2(264.0, 222.0)
-	_experience_fill_width = content_width - 266.0
+	var panel_width: float = minf(300.0, viewport_size.x * 0.46)
+	status_panel.position = Vector2.ZERO
+	status_panel.size = Vector2(panel_width, 48.0)
+	status_label.position = Vector2(8.0, 3.0)
+	status_label.size = Vector2(panel_width - 16.0, 16.0)
+	status_label.add_theme_font_size_override(&"font_size", 13)
+	health_label.position = Vector2(8.0, 18.0)
+	health_label.size = Vector2(panel_width - 16.0, 17.0)
+	health_label.add_theme_font_size_override(&"font_size", 15)
+	objective_label.position = Vector2(8.0, 34.0)
+	objective_label.size = Vector2(panel_width - 16.0, 14.0)
+	objective_label.add_theme_font_size_override(&"font_size", 10)
+	objective_label.clip_text = true
+	momentum_panel.position = Vector2(0.0, 54.0)
+	momentum_panel.size = Vector2(panel_width, 44.0)
+	momentum_label.position = Vector2(8.0, 57.0)
+	momentum_label.size = Vector2(panel_width - 116.0, 16.0)
+	momentum_label.add_theme_font_size_override(&"font_size", 11)
+	combo_label.position = Vector2(panel_width - 102.0, 56.0)
+	combo_label.size = Vector2(94.0, 18.0)
+	combo_label.add_theme_font_size_override(&"font_size", 12)
+	combo_ring.position = Vector2(panel_width - 122.0, 57.0)
+	combo_ring.size = Vector2(16.0, 16.0)
+	momentum_track.position = Vector2(8.0, 73.0)
+	momentum_track.size = Vector2(panel_width - 16.0, 8.0)
+	momentum_fill.position = Vector2(10.0, 75.0)
+	_momentum_fill_width = panel_width - 20.0
+	experience_label.position = Vector2(8.0, 83.0)
+	experience_label.size = Vector2(92.0, 14.0)
+	experience_label.add_theme_font_size_override(&"font_size", 9)
+	experience_track.position = Vector2(104.0, 86.0)
+	experience_track.size = Vector2(panel_width - 112.0, 8.0)
+	experience_fill.position = Vector2(108.0, 88.0)
+	_experience_fill_width = panel_width - 120.0
 	_apply_experience_fill()
-	score_panel.position = Vector2(18.0, 270.0)
-	score_panel.size = Vector2(content_width, 98.0)
-	_set_score_geometry(Vector2(viewport_size.x - 338.0, 278.0), Vector2(304.0, 28.0), true)
+	score_panel.position = Vector2(0.0, 104.0)
+	score_panel.size = Vector2(panel_width, 68.0)
+	_set_score_geometry(Vector2(8.0, 108.0), Vector2(136.0, 14.0), false, true)
+	score_caption.add_theme_font_size_override(&"font_size", 10)
+	score_label.add_theme_font_size_override(&"font_size", 20)
+	pending_score_label.add_theme_font_size_override(&"font_size", 9)
 	for index: int in range(rare_labels.size()):
-		rare_labels[index].position = Vector2(34.0, 280.0 + float(index) * 25.0)
-		rare_labels[index].size = Vector2(300.0, 22.0)
+		rare_labels[index].position = Vector2(152.0, 109.0 + float(index) * 18.0)
+		rare_labels[index].size = Vector2(panel_width - 160.0, 16.0)
 		rare_labels[index].horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	siege_progress.position = Vector2(18.0, 378.0)
-	siege_progress.size = Vector2(content_width, 32.0)
-	siege_progress.apply_width(content_width)
+		rare_labels[index].add_theme_font_size_override(&"font_size", 9)
+	siege_progress.position = Vector2(0.0, 178.0)
+	siege_progress.size = Vector2(panel_width, 24.0)
+	siege_progress.set_compact(true)
+	siege_progress.apply_width(panel_width)
 	directive_card.position = Vector2(18.0, viewport_size.y - 280.0)
-	boss_label.position = Vector2(72.0, 418.0)
-	boss_label.size = Vector2(viewport_size.x - 144.0, 38.0)
+	boss_label.position = Vector2(0.0, 226.0)
+	boss_label.size = Vector2(panel_width, 24.0)
+	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	boss_label.add_theme_font_size_override(&"font_size", 12)
 	_apply_portrait_terminal_layout(viewport_size)
 
 
-func _set_score_geometry(origin: Vector2, label_size: Vector2, align_right: bool) -> void:
+func _set_score_geometry(
+	origin: Vector2,
+	label_size: Vector2,
+	align_right: bool,
+	compact: bool
+) -> void:
 	score_caption.position = origin
 	score_caption.size = label_size
-	score_label.position = origin + Vector2(0.0, 26.0)
-	score_label.size = Vector2(label_size.x, 42.0)
-	pending_score_label.position = origin + Vector2(0.0, 61.0)
-	pending_score_label.size = Vector2(label_size.x, 20.0)
+	score_label.position = origin + Vector2(0.0, 16.0 if compact else 26.0)
+	score_label.size = Vector2(label_size.x, 26.0 if compact else 42.0)
+	pending_score_label.position = origin + Vector2(0.0, 42.0 if compact else 61.0)
+	pending_score_label.size = Vector2(label_size.x, 14.0 if compact else 20.0)
 	var alignment: HorizontalAlignment = (
 		HORIZONTAL_ALIGNMENT_RIGHT if align_right else HORIZONTAL_ALIGNMENT_LEFT
 	)
