@@ -209,9 +209,10 @@ func _check_language_selector(screen: TitleScreen) -> void:
 	var alternate_locale: String = "en" if initial_locale == "zh-CN" else "zh-CN"
 	var automatic_button: Button = screen.get_node("%AutomaticButton") as Button
 	_check(
-		"automatic_mode_selected_initially",
-		automatic_button.button_pressed,
-		"pressed=%s" % [automatic_button.button_pressed]
+		"automatic_mode_shows_resolved_locale",
+		automatic_button.button_pressed
+		and automatic_button.text == _expected_automatic_label(),
+		"pressed=%s text=%s" % [automatic_button.button_pressed, automatic_button.text]
 	)
 	var switched: bool = screen.select_language(alternate_locale)
 	_check(
@@ -230,9 +231,29 @@ func _check_language_selector(screen: TitleScreen) -> void:
 		restored
 		and L10n.current_locale() == initial_locale
 		and L10n.uses_automatic_locale(LANGUAGE_PREFERENCE_PATH)
-		and automatic_button.button_pressed,
-		"locale=%s automatic=%s"
-		% [L10n.current_locale(), L10n.uses_automatic_locale(LANGUAGE_PREFERENCE_PATH)]
+		and automatic_button.button_pressed
+		and automatic_button.text == _expected_automatic_label(),
+		"locale=%s automatic=%s text=%s"
+		% [
+			L10n.current_locale(),
+			L10n.uses_automatic_locale(LANGUAGE_PREFERENCE_PATH),
+			automatic_button.text,
+		]
+	)
+
+
+func _expected_automatic_label() -> String:
+	var resolved_key: String = (
+		"title.language_resolved_zh_cn"
+		if L10n.automatic_locale() == "zh-CN"
+		else "title.language_resolved_en"
+	)
+	return L10n.t(
+		"title.language_auto_resolved",
+		{
+			"automatic": L10n.t("title.language_auto"),
+			"resolved": L10n.t(resolved_key),
+		}
 	)
 
 

@@ -244,7 +244,7 @@ unique_name_in_owner = true
 layout_mode = 0
 offset_left = 52.0
 offset_top = 530.0
-offset_right = 500.0
+offset_right = 552.0
 offset_bottom = 578.0
 theme_override_constants/separation = 10
 
@@ -258,7 +258,7 @@ vertical_alignment = 1
 
 [node name="AutomaticButton" type="Button" parent="LanguageSelector"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(82, 44)
+custom_minimum_size = Vector2(134, 44)
 layout_mode = 2
 focus_mode = 2
 mouse_default_cursor_shape = 2

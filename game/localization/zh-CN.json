@@ -40,6 +40,9 @@
   "title.briefing_close": "关闭简报  [TAB / ESC]",
   "title.language": "语言",
   "title.language_auto": "自动",
+  "title.language_auto_resolved": "{automatic} · {resolved}",
+  "title.language_resolved_en": "EN",
+  "title.language_resolved_zh_cn": "简中",
   "title.language_en": "EN",
   "title.language_zh_cn": "简体中文",
 

@@ -193,7 +193,13 @@ func _apply_localized_text() -> void:
 		"title.briefing_close" if briefing_open else "title.briefing_available"
 	)
 	language_label.text = L10n.t("title.language")
-	automatic_button.text = L10n.t("title.language_auto")
+	automatic_button.text = L10n.t(
+		"title.language_auto_resolved",
+		{
+			"automatic": L10n.t("title.language_auto"),
+			"resolved": _resolved_language_label(L10n.automatic_locale()),
+		}
+	)
 	english_button.text = L10n.t("title.language_en")
 	chinese_button.text = L10n.t("title.language_zh_cn")
 	_sync_language_selector()
@@ -228,7 +234,7 @@ func _apply_landscape_layout() -> void:
 	_set_rect(%InstructionLabel, Rect2(52.0, 380.0, 610.0, 46.0))
 	_set_rect($StatusRail, Rect2(744.0, 36.0, 504.0, 68.0))
 	_set_rect(initialize_button, Rect2(52.0, 450.0, 360.0, 72.0))
-	_set_rect(language_selector, Rect2(52.0, 530.0, 448.0, 48.0))
+	_set_rect(language_selector, Rect2(52.0, 530.0, 500.0, 48.0))
 	_set_rect($HintLabel, Rect2(430.0, 464.0, 160.0, 46.0))
 	_set_rect($MoveChip, Rect2(52.0, 590.0, 164.0, 48.0))
 	_set_rect($SmashChip, Rect2(236.0, 590.0, 178.0, 48.0))
@@ -277,6 +283,14 @@ func _sync_language_selector() -> void:
 	automatic_button.set_pressed_no_signal(automatic_selected)
 	english_button.set_pressed_no_signal(not automatic_selected and not chinese_selected)
 	chinese_button.set_pressed_no_signal(not automatic_selected and chinese_selected)
+
+
+func _resolved_language_label(locale: String) -> String:
+	return L10n.t(
+		"title.language_resolved_zh_cn"
+		if locale == "zh-CN"
+		else "title.language_resolved_en"
+	)
 
 
 func _set_rect(control: Control, rect: Rect2) -> void:
