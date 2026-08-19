@@ -62,6 +62,8 @@
   "hud.city_response_lost": "CITY RESPONSE / LOST",
   "hud.district_response_broken": "DISTRICT RESPONSE / BROKEN",
   "hud.move_hint": "A/D MOVE   SPACE SMASH   KEEP MOVING",
+  "hud.dodge_ready": "DASH READY",
+  "hud.dodge_recharging": "DASH {seconds}s",
   "hud.rampage_score": "RAMPAGE SCORE",
   "hud.game_over": "GAME OVER",
   "hud.district_cleared": "DISTRICT CLEARED",
@@ -147,6 +149,8 @@
   "upgrade.laser.description": "Autonomous long-range beam that penetrates multiple targets.",
   "upgrade.engine.name": "ENGINE UPGRADE",
   "upgrade.engine.description": "Increase top speed, acceleration, and deceleration without momentum loss.",
+  "upgrade.dash_amplifier.name": "DASH AMPLIFIER",
+  "upgrade.dash_amplifier.description": "Extend dodge range and duration each rank. Invulnerability remains 300 ms.",
   "upgrade.destruction.name": "DESTRUCTION",
   "upgrade.destruction.description": "Every accepted debris burst gains a second visual fragment.",
 

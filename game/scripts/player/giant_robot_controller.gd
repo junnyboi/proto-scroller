@@ -41,6 +41,7 @@ enum LocomotionState {
 @export var dodge_speed: float = 520.0
 @export var dodge_duration: float = 0.18
 @export var dodge_invulnerability_seconds: float = 0.30
+@export var dodge_cooldown_seconds: float = 1.20
 
 @export_group("Impact")
 @export var stomp_radius: float = 96.0
@@ -76,6 +77,15 @@ var dodge_invulnerable: bool:
 var dodge_invulnerability_remaining: float:
 	get:
 		return _invulnerable_remaining
+var dodge_cooldown_remaining: float = 0.0
+var dodge_cooldown_ratio: float:
+	get:
+		if dodge_cooldown_seconds <= 0.0:
+			return 0.0
+		return clampf(dodge_cooldown_remaining / dodge_cooldown_seconds, 0.0, 1.0)
+var dodge_ready: bool:
+	get:
+		return is_zero_approx(dodge_cooldown_remaining)
 var _turn_elapsed: float = 0.0
 var _pending_facing: int = 1
 var _attack_id: int = 0
@@ -151,6 +161,7 @@ func _is_friendly_damage(event: DamageEvent) -> bool:
 
 func physics_step(input_axis: float, delta: float) -> void:
 	_invulnerable_remaining = maxf(_invulnerable_remaining - delta, 0.0)
+	dodge_cooldown_remaining = maxf(dodge_cooldown_remaining - delta, 0.0)
 	if locomotion_state == LocomotionState.DISABLED:
 		_apply_gravity(delta)
 		move_and_slide()
@@ -267,10 +278,16 @@ func _set_attack_locked(locked: bool) -> void:
 
 
 func _start_dodge() -> bool:
-	if not _control_enabled or locomotion_state == LocomotionState.DISABLED or _attack_locked:
+	if (
+		not _control_enabled
+		or locomotion_state == LocomotionState.DISABLED
+		or _attack_locked
+		or not dodge_ready
+	):
 		return false
 	_dodge_remaining = dodge_duration
 	_invulnerable_remaining = dodge_invulnerability_seconds
+	dodge_cooldown_remaining = dodge_cooldown_seconds
 	velocity.x = float(facing) * dodge_speed
 	_set_locomotion_state(LocomotionState.DODGE)
 	dodge_count += 1

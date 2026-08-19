@@ -121,6 +121,7 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	)
 	_assert_pcm_cue(RobotAnimationPresenter.FOOTSTEP_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.SERVO_SFX)
+	_assert_pcm_cue(RobotAnimationPresenter.DODGE_SERVO_SFX)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	var frame_callable: Callable = presenter._on_sprite_frame_changed
 	sprite.frame_changed.disconnect(frame_callable)
@@ -175,6 +176,9 @@ func test_dodge_uses_facing_lean_and_restores_clean_sprite_state() -> void:
 	robot.facing = -1
 	robot.facing_changed.emit(-1)
 	assert_true(robot._start_dodge())
+	assert_eq(presenter.dodge_servo_play_count, 1)
+	assert_eq(presenter.last_audio_cue, &"dodge_servo")
+	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	assert_true(presenter.dodging)
 	assert_gt(sprite.skew, 0.0)
 	assert_lt(sprite.modulate.a, 1.0)

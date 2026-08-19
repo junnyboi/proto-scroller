@@ -62,6 +62,8 @@
   "hud.city_response_lost": "城市反击 / 信号丢失",
   "hud.district_response_broken": "城区反击 / 已瓦解",
   "hud.move_hint": "A/D 移动   空格键重击   保持移动",
+  "hud.dodge_ready": "冲刺就绪",
+  "hud.dodge_recharging": "冲刺 {seconds}秒",
   "hud.rampage_score": "破坏得分",
   "hud.game_over": "任务失败",
   "hud.district_cleared": "城区已清除",
@@ -147,6 +149,8 @@
   "upgrade.laser.description": "自动发射可贯穿多个目标的远程光束。",
   "upgrade.engine.name": "引擎升级",
   "upgrade.engine.description": "提高最高速度、加速度与减速度，且不会损失动能。",
+  "upgrade.dash_amplifier.name": "冲刺增幅器",
+  "upgrade.dash_amplifier.description": "每阶延长闪避距离与持续时间。无敌时间仍为 300 毫秒。",
   "upgrade.destruction.name": "强化破坏",
   "upgrade.destruction.description": "每次有效的碎片爆发都会额外生成一块视觉碎片。",
 

@@ -61,6 +61,7 @@ const MISSILE_EXPLOSION_QUEUE: int = 8
 const PLAYER_STRIKE_FLASHES: int = 1
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
+const DODGE_COOLDOWN_INDICATORS: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -95,6 +96,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"audio_voices": city.impact_feedback_pool.audio_child_count(),
 		"robot_audio_voices": _robot_audio_voice_count(city),
 		"dodge_afterimage_slots": _robot_afterimage_slot_count(city),
+		"dodge_cooldown_indicators": (
+			1 if city.gameplay_hud.dodge_cooldown_indicator != null else 0
+		),
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
@@ -180,6 +184,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "audio_voices", AUDIO_VOICES)
 	_check_equal(errors, data, "robot_audio_voices", ROBOT_AUDIO_VOICES)
 	_check_equal(errors, data, "dodge_afterimage_slots", DODGE_AFTERIMAGE_SLOTS)
+	_check_equal(
+		errors,
+		data,
+		"dodge_cooldown_indicators",
+		DODGE_COOLDOWN_INDICATORS
+	)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)

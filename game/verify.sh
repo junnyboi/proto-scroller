@@ -42,9 +42,10 @@ test -z "$(find art audio -type f \( -iname '*candidate*' -o -iname '*carrier*' 
 for cue in \
   audio/sfx/rampage/overdrive_activation.wav \
   audio/sfx/rampage/combo_break.wav \
-  audio/sfx/upgrades/upgrade_confirm.wav \
-  audio/sfx/robot/robot_footstep.wav \
-  audio/sfx/robot/robot_servo.wav; do
+	  audio/sfx/upgrades/upgrade_confirm.wav \
+	  audio/sfx/robot/robot_footstep.wav \
+	  audio/sfx/robot/robot_servo.wav \
+	  audio/sfx/robot/robot_dodge_servo.wav; do
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
 done
