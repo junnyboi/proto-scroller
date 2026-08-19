@@ -465,14 +465,14 @@ spawns = Array[ExtResource("4")]([SubResource("Aegis"), SubResource("Kestrel"), 
 [sub_resource type="Resource" id="ContactAct"]
 script = ExtResource("2")
 act_id = &"CONTACT"
-display_name = "CONTACT"
+display_name = "encounter.contact"
 target_duration = 70.0
 beats = Array[ExtResource("3")]([SubResource("Contact01"), SubResource("Contact02"), SubResource("Contact03"), SubResource("Contact04")])
 
 [sub_resource type="Resource" id="ContainmentAct"]
 script = ExtResource("2")
 act_id = &"CONTAINMENT"
-display_name = "CONTAINMENT"
+display_name = "encounter.containment"
 target_duration = 70.0
 beats = Array[ExtResource("3")]([SubResource("Containment01"), SubResource("Containment02"), SubResource("Containment03"), SubResource("Containment04")])
 milestone_after = &"DIRECTIVE_CHOICE"
@@ -480,7 +480,7 @@ milestone_after = &"DIRECTIVE_CHOICE"
 [sub_resource type="Resource" id="EscalationAct"]
 script = ExtResource("2")
 act_id = &"ESCALATION"
-display_name = "ESCALATION"
+display_name = "encounter.escalation"
 target_duration = 85.0
 beats = Array[ExtResource("3")]([SubResource("Escalation01"), SubResource("Escalation02"), SubResource("Escalation03"), SubResource("Escalation04"), SubResource("Escalation05")])
 milestone_after = &"GAS_MAIN"
@@ -488,7 +488,7 @@ milestone_after = &"GAS_MAIN"
 [sub_resource type="Resource" id="CommandAct"]
 script = ExtResource("2")
 act_id = &"COMMAND_RESPONSE"
-display_name = "COMMAND RESPONSE"
+display_name = "encounter.command_response"
 target_duration = 85.0
 beats = Array[ExtResource("3")]([SubResource("Command01"), SubResource("Command02"), SubResource("Command03"), SubResource("Command04"), SubResource("Command05")])
 elite_allowed = true
@@ -496,7 +496,7 @@ elite_allowed = true
 [sub_resource type="Resource" id="RetaliationAct"]
 script = ExtResource("2")
 act_id = &"RETALIATION"
-display_name = "RETALIATION"
+display_name = "encounter.retaliation"
 target_duration = 85.0
 beats = Array[ExtResource("3")]([SubResource("Retaliation01"), SubResource("Retaliation02"), SubResource("Retaliation03"), SubResource("Retaliation04"), SubResource("Retaliation05")])
 elite_allowed = true
@@ -504,7 +504,7 @@ elite_allowed = true
 [sub_resource type="Resource" id="CommandTestAct"]
 script = ExtResource("2")
 act_id = &"COMMAND_TEST"
-display_name = "COMMAND TEST"
+display_name = "encounter.command_test"
 target_duration = 85.0
 beats = Array[ExtResource("3")]([SubResource("CommandTest01"), SubResource("CommandTest02"), SubResource("CommandTest03")])
 milestone_after = &"DISTRICT_COMPLETE"
@@ -513,5 +513,5 @@ elite_allowed = true
 [resource]
 script = ExtResource("1")
 district_id = &"URBAN_SIEGE_01"
-display_name = "URBAN SIEGE"
+display_name = "district.urban_siege"
 acts = Array[ExtResource("2")]([SubResource("ContactAct"), SubResource("ContainmentAct"), SubResource("EscalationAct"), SubResource("CommandAct"), SubResource("RetaliationAct"), SubResource("CommandTestAct")])

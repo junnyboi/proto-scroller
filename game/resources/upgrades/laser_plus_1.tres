@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 upgrade_id = &"LASER"
-display_name = "LASER +1"
-description = "Autonomous long-range beam that penetrates multiple targets."
+display_name = "upgrade.laser.name"
+description = "upgrade.laser.description"
 category = &"weapon"
 icon = ExtResource("2")
 max_rank = 5

@@ -10,7 +10,7 @@ extends Node2D
 @export var maximum_x: float = 2560.0
 @export var impact_spring_strength: float = 145.0
 @export var impact_spring_damping: float = 24.0
-@export var maximum_impact_offset: float = 24.0
+@export var maximum_impact_offset: float = 32.0
 @export var portrait_visible_world_height: float = 854.0
 
 var target: GiantRobotController

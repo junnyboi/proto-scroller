@@ -2,7 +2,7 @@ class_name DirectiveProfile
 extends Resource
 
 @export var directive_id: StringName = &""
-@export var display_name: String = "DIRECTIVE"
+@export var display_name: String = "directive.default.name"
 @export var instruction: String = ""
 @export_range(1.0, 30.0, 0.5) var duration_seconds: float = 12.0
 @export_range(1, 20, 1) var target_count: int = 1

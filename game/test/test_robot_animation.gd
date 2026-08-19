@@ -160,6 +160,25 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
+func test_dodge_uses_facing_lean_and_restores_clean_sprite_state() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	robot.facing = -1
+	robot.facing_changed.emit(-1)
+	assert_true(robot._start_dodge())
+	assert_true(presenter.dodging)
+	assert_gt(sprite.skew, 0.0)
+	assert_lt(sprite.modulate.a, 1.0)
+	robot.physics_step(0.0, robot.dodge_duration + 0.01)
+	assert_false(presenter.dodging)
+	assert_eq(sprite.skew, 0.0)
+	assert_eq(sprite.modulate, Color.WHITE)
+
+
 func _assert_attack(
 	presenter: RobotAnimationPresenter,
 	robot: GiantRobotController,

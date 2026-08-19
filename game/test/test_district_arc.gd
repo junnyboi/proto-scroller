@@ -38,12 +38,12 @@ func test_accelerated_arc_visits_every_act_and_completes() -> void:
 		guard += 1
 	assert_true(director.completed)
 	assert_eq(visited, [
-		"CONTACT",
-		"CONTAINMENT",
-		"ESCALATION",
-		"COMMAND RESPONSE",
-		"RETALIATION",
-		"COMMAND TEST",
+		"encounter.contact",
+		"encounter.containment",
+		"encounter.escalation",
+		"encounter.command_response",
+		"encounter.retaliation",
+		"encounter.command_test",
 	])
 	assert_lte(director.elapsed, 600.0)
 
@@ -52,11 +52,15 @@ func test_hud_progress_strip_has_six_fixed_segments() -> void:
 	var strip: SiegeProgressStrip = city.gameplay_hud.siege_progress
 	assert_not_null(strip)
 	assert_eq(strip.segments.size(), 6)
-	city.gameplay_hud.set_siege_progress(3, 6, "COMMAND RESPONSE", true)
+	city.gameplay_hud.set_siege_progress(3, 6, "encounter.command_response", true)
 	assert_eq(strip.current_index, 3)
 	assert_true(strip.recovery_active)
-	assert_string_contains(strip.label.text, "ACT 4 / 6")
-	assert_string_contains(strip.label.text, "RECOVERY")
+	assert_string_contains(strip.label.text, L10n.t("objective.act", {
+		"current": 4,
+		"total": 6,
+		"name": "",
+	}).strip_edges())
+	assert_string_contains(strip.label.text, L10n.t("siege.recovery"))
 
 
 func test_bounded_overrun_advances_with_surviving_low_threat() -> void:

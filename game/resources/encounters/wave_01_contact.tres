@@ -17,7 +17,7 @@ position = Vector2(1420, 542.5)
 
 [resource]
 script = ExtResource("1")
-display_name = "CONTACT"
+display_name = "encounter.contact"
 opening_delay = 2.0
 minimum_respite = 1.0
 spawns = Array[ExtResource("2")]([SubResource("SpawnA"), SubResource("SpawnB")])

@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 directive_id = &"SKYBREAKER"
-display_name = "SKYBREAKER"
-instruction = "LAND 1 AIR HIT"
+display_name = "directive.skybreaker.name"
+instruction = "directive.skybreaker.instruction"
 duration_seconds = 14.0
 target_count = 1
 structural_multiplier = 1.0

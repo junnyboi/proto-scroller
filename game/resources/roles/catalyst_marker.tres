@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 role_id = &"CATALYST_MARKER"
-display_name = "MARKER"
+display_name = "role.marker"
 health_multiplier = 1.0
 movement_multiplier = 1.0
 attack_interval_multiplier = 1.25

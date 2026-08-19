@@ -116,6 +116,48 @@ func test_accepted_events_coalesce_to_one_strongest_feedback_transaction() -> vo
 	assert_eq(city.camera_rig.impact_offset, Vector2.ZERO)
 
 
+func test_player_frame_11_dispatches_flash_shake_enemy_recoil_and_knockback() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.deactivate()
+	city.robot.global_position = Vector2(900.0, 460.0)
+	city.robot.facing = 1
+	city.robot.velocity.x = city.robot.max_speed
+	city.tank.activate(city.robot.global_position + Vector2(120.0, 60.0), city.robot)
+	city.tank.set_physics_process(false)
+	var reactions: PlayerAttackReactionRuntime = (
+		city.upgrade_assembler.get_node(^"PlayerAttackReactionRuntime")
+		as PlayerAttackReactionRuntime
+	)
+	var attack_id: int = city.robot.request_attack()
+	var spec: AttackSpec = city.contextual_attacks.current_spec
+	assert_gt(attack_id, 0)
+	assert_true(spec.is_jab_cross())
+	assert_eq(reactions.last_anticipated_attack_id, attack_id)
+	assert_eq(city.tank.last_player_reaction_attack_id, attack_id)
+	assert_eq(city.tank.player_anticipation_count, 1)
+	assert_eq(city.impact_feedback_director.player_strike_feedback_count, 0)
+	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
+	await get_tree().process_frame
+	assert_eq(city.impact_feedback_director.player_strike_feedback_count, 1)
+	assert_eq(city.impact_feedback_director.last_player_attack_id, attack_id)
+	assert_eq(
+		city.impact_feedback_director.last_player_strike_frame,
+		RobotAnimationPresenter.ATTACK_EVENT_FRAME
+	)
+	assert_true(city.impact_feedback_director.flash_rect.visible)
+	assert_gt(city.camera_rig.impact_velocity.length(), 0.0)
+	assert_eq(reactions.last_strike_attack_id, attack_id)
+	assert_eq(city.tank.player_strike_reaction_count, 1)
+	assert_eq(city.tank.last_player_knockback_attack_id, attack_id)
+	assert_lt(city.tank.current_health, city.tank.max_health)
+	assert_gt(city.tank.velocity.x, 250.0)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
 func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 	var overdrive_stream: AudioStreamWAV = (
 		ImpactFeedbackPool.OVERDRIVE_ACTIVATION_SFX as AudioStreamWAV

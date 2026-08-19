@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 role_id = &"SUPPRESSOR"
-display_name = "SUPPRESSOR"
+display_name = "role.suppressor"
 health_multiplier = 0.9
 movement_multiplier = 0.85
 attack_interval_multiplier = 0.68

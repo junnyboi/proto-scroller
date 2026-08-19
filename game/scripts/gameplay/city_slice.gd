@@ -439,7 +439,7 @@ func _on_robot_heavy_impact(
 		attack_id,
 		options
 	)
-	gameplay_hud.set_objective("IMPACT REGISTERED / PHYSICS FIELD ACTIVE")
+	gameplay_hud.set_objective("objective.impact_registered")
 
 
 func _material_for_target(
@@ -495,9 +495,9 @@ func _on_building_cell_destroyed(
 func _on_building_chain_reaction_started(kind: StringName, event: DamageEvent) -> void:
 	rampage_events.chain_started(kind, event, building, robot)
 	if kind == &"steel_support_chain":
-		gameplay_hud.set_objective("STEEL SUPPORT FAILURE / CASCADE ACTIVE")
+		gameplay_hud.set_objective("objective.steel_failure")
 	else:
-		gameplay_hud.set_objective("FLOOR LOST / CHAIN COLLAPSE ACTIVE")
+		gameplay_hud.set_objective("objective.floor_lost")
 
 
 func _on_building_chain_reaction_step(
@@ -520,9 +520,9 @@ func _on_building_chain_reaction_completed(kind: StringName) -> void:
 	if building.is_destroyed():
 		return
 	gameplay_hud.set_objective(
-		"STEEL CASCADE COMPLETE / STRUCTURE UNSTABLE"
+		"objective.steel_cascade_complete"
 		if kind == &"steel_support_chain"
-		else "FLOOR COLLAPSE COMPLETE / STRUCTURE UNSTABLE"
+		else "objective.floor_collapse_complete"
 	)
 
 

@@ -99,7 +99,7 @@ func _init(
 	_mastery_points = int(metrics.get("mastery_points", 0))
 	_strongest_metric = metrics.get("strongest", &"DISTRICT") as StringName
 	_weakest_metric = metrics.get("weakest", &"DISTRICT") as StringName
-	_retry_objective = String(metrics.get("objective", "RETRY: REACH THE NEXT ACT"))
+	_retry_objective = String(metrics.get("objective", "summary.retry.reach_next_act"))
 	_heavy_hits = int(metrics.get("heavy_hits", 0))
 	_unique_actions = int(metrics.get("unique_actions", 0))
 	_causal_depth = int(metrics.get("causal_depth", 0))

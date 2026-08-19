@@ -24,6 +24,18 @@ func setup(city: Node) -> PackedStringArray:
 	var attacks: ContextualAttackController = (
 		city.get("contextual_attacks") as ContextualAttackController
 	)
+	var feedback: ImpactFeedbackDirector = (
+		city.get("impact_feedback_director") as ImpactFeedbackDirector
+	)
+	feedback.bind_player_attacks(attacks)
+	var reactions: PlayerAttackReactionRuntime = PlayerAttackReactionRuntime.new()
+	reactions.name = "PlayerAttackReactionRuntime"
+	add_child(reactions)
+	reactions.setup(
+		attacks,
+		robot,
+		city.get("encounter_runtime") as EncounterRuntime
+	)
 	var debris_pool: DebrisPool = city.get("debris_pool") as DebrisPool
 	attacks.set_kinetic_field_runtime(kinetic)
 	debris_pool.set_kinetic_field_runtime(kinetic)
