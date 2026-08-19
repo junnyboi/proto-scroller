@@ -39,6 +39,7 @@ const WEAPON_STATUS_STRIPS: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
 const PLAYER_ARSENALS: int = 1
+const LASER_BEAM_SLOTS: int = 2
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -114,6 +115,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			if city.upgrade_assembler.get_node_or_null(^"PlayerArsenalRuntime") != null
 			else 0
 		),
+		"laser_beam_slots": PlayerLaserWeapon.BEAM_CAPACITY,
 	}
 
 
@@ -160,6 +162,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "cosmetic_debris_instances", COSMETIC_DEBRIS_INSTANCES)
 	_check_equal(errors, data, "shockwave_ring_slots", SHOCKWAVE_RING_SLOTS)
 	_check_equal(errors, data, "player_arsenals", PLAYER_ARSENALS)
+	_check_equal(errors, data, "laser_beam_slots", LASER_BEAM_SLOTS)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]
