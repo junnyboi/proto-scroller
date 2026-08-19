@@ -16,6 +16,7 @@ const SERVO_SFX: AudioStream = preload(
 var robot: GiantRobotController
 var sprite: AnimatedSprite2D
 var attacking: bool = false
+var dodging: bool = false
 var selected_attack_id: int = 0
 var audio_play_count: int = 0
 var footstep_play_count: int = 0
@@ -36,6 +37,8 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	robot.locomotion_changed.connect(_on_locomotion_changed)
 	robot.attack_mode_selected.connect(_on_attack_selected)
 	robot.attack_committed.connect(_on_attack_committed)
+	robot.dodge_started.connect(_on_dodge_started)
+	robot.dodge_finished.connect(_on_dodge_finished)
 	sprite.frame_changed.connect(_on_sprite_frame_changed)
 	_prewarm_audio()
 	_show_idle()
@@ -71,7 +74,7 @@ func _on_facing_changed(_facing: int) -> void:
 
 
 func _on_locomotion_changed(state: int) -> void:
-	if attacking:
+	if attacking or dodging:
 		return
 	if state == GiantRobotController.LocomotionState.WALK:
 		_play_walk()
@@ -105,6 +108,23 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 		completed_full_attack_count += 1
 	attacking = false
 	selected_attack_id = 0
+	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
+		_play_walk()
+	else:
+		_show_idle()
+
+
+func _on_dodge_started(p_facing: int, _duration: float) -> void:
+	dodging = true
+	_show_idle()
+	sprite.skew = -float(p_facing) * 0.10
+	sprite.modulate = Color(0.72, 0.94, 1.0, 0.82)
+
+
+func _on_dodge_finished() -> void:
+	dodging = false
+	sprite.skew = 0.0
+	sprite.modulate = Color.WHITE
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
 		_play_walk()
 	else:

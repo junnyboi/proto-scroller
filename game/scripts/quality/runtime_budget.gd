@@ -46,6 +46,8 @@ const SCORCH_VISUAL_SLOTS: int = 8
 const FLAMETHROWER_LOOP_VOICES: int = 1
 const PLAYER_MISSILES: int = 4
 const MISSILE_EXPLOSION_QUEUE: int = 8
+const PLAYER_STRIKE_FLASHES: int = 1
+const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -128,6 +130,14 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"flamethrower_loop_voices": FlamethrowerRuntime.LOOP_AUDIO_VOICES,
 		"player_missiles": MissileProjectilePool.CAPACITY,
 		"missile_explosion_queue": MissileWeapon.EXPLOSION_QUEUE_CAPACITY,
+		"player_strike_flashes": (
+			1 if city.impact_feedback_director.flash_rect != null else 0
+		),
+		"player_attack_reaction_runtimes": (
+			1
+			if city.upgrade_assembler.get_node_or_null(^"PlayerAttackReactionRuntime") != null
+			else 0
+		),
 	}
 
 
@@ -181,6 +191,13 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "flamethrower_loop_voices", FLAMETHROWER_LOOP_VOICES)
 	_check_equal(errors, data, "player_missiles", PLAYER_MISSILES)
 	_check_equal(errors, data, "missile_explosion_queue", MISSILE_EXPLOSION_QUEUE)
+	_check_equal(errors, data, "player_strike_flashes", PLAYER_STRIKE_FLASHES)
+	_check_equal(
+		errors,
+		data,
+		"player_attack_reaction_runtimes",
+		PLAYER_ATTACK_REACTION_RUNTIMES
+	)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]

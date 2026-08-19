@@ -169,6 +169,50 @@ func test_enemy_projectiles_damage_intact_building_cells() -> void:
 	_record_test_execution()
 
 
+func test_recovery_space_buffers_facing_dodge_with_300ms_invulnerability() -> void:
+	var city: CitySlice = await _city()
+	city.robot.global_position = Vector2(80.0, 460.0)
+	city.robot.facing = -1
+	_tune_short_attack(city.contextual_attacks.resolver)
+	assert_gt(city.robot.request_attack(), 0)
+	assert_eq(
+		city.robot.locomotion_state,
+		GiantRobotController.LocomotionState.ATTACK_LOCKED
+	)
+	await _wait_for_phase(city.contextual_attacks, ContextualAttackController.Phase.RECOVERY)
+	assert_eq(city.robot.request_attack(), 0)
+	assert_eq(city.contextual_attacks.buffered_dodge_count, 1)
+	await get_tree().create_timer(0.08).timeout
+	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
+	assert_eq(city.robot.dodge_count, 1)
+	assert_true(city.robot.dodge_invulnerable)
+	assert_almost_eq(city.robot.dodge_invulnerability_remaining, 0.30, 0.025)
+	var start_x: float = city.robot.global_position.x
+	city.robot.physics_step(0.0, 0.05)
+	assert_lt(city.robot.global_position.x, start_x)
+	var health_before: float = city.robot.current_health
+	assert_false(city.robot.receive_damage(DamageEvent.new(8801, null, 40.0)))
+	assert_eq(city.robot.current_health, health_before)
+	assert_eq(city.robot.invulnerable_rejection_count, 1)
+	city.robot.physics_step(0.0, 0.26)
+	assert_false(city.robot.dodge_invulnerable)
+	assert_true(city.robot.receive_damage(DamageEvent.new(8802, null, 40.0)))
+	assert_eq(city.robot.current_health, health_before - 40.0)
+
+
+func test_movement_releases_on_first_step_after_attack_recovery() -> void:
+	var city: CitySlice = await _city()
+	city.robot.global_position = Vector2(80.0, 460.0)
+	_tune_short_attack(city.contextual_attacks.resolver)
+	assert_gt(city.robot.request_attack(), 0)
+	await get_tree().create_timer(0.10).timeout
+	assert_false(city.contextual_attacks.is_busy())
+	assert_eq(city.contextual_attacks.phase, ContextualAttackController.Phase.READY)
+	city.robot.physics_step(1.0, 1.0 / 60.0)
+	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.WALK)
+	assert_gt(city.robot.velocity.x, 0.0)
+
+
 func _jab_cross_spec(attack_id: int) -> AttackSpec:
 	return AttackSpec.new(
 		AttackSpec.Mode.JAB_CROSS,
@@ -184,6 +228,20 @@ func _jab_cross_spec(attack_id: int) -> AttackSpec:
 		Vector2(190.0, 150.0),
 		Vector2(105.0, 62.0)
 	)
+
+
+func _tune_short_attack(resolver: AttackResolver) -> void:
+	resolver.ground_anticipation_seconds = 0.01
+	resolver.ground_active_seconds = 0.01
+	resolver.ground_recovery_seconds = 0.04
+
+
+func _wait_for_phase(controller: ContextualAttackController, expected: int) -> void:
+	for frame_index: int in range(20):
+		if controller.phase == expected:
+			return
+		await get_tree().process_frame
+	assert_eq(controller.phase, expected)
 
 
 func _city() -> CitySlice:

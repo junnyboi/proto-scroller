@@ -38,11 +38,14 @@ func test_launch_scene_contract() -> void:
 func test_briefing_teaches_story_controls_objectives_and_run_rules() -> void:
 	var story: String = (screen.get_node("%InstructionLabel") as Label).text
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
+	var field_note: String = (screen.get_node("HeroStack/FieldNote") as Label).text
 	var enemy_intel: String = (screen.get_node("%EnemyIntel") as Label).text
 	var run_rule: String = (screen.get_node("%RunRule") as Label).text
 	assert_true(story.contains("city defense grid went silent"))
 	for required_control: String in ["A / D", "Mobile joystick", "SPACE", "SMASH"]:
 		assert_true(controls.contains(required_control), required_control)
+	assert_true(field_note.contains("recovery"))
+	assert_true(field_note.contains("dash dodge"))
 	assert_eq(
 		(screen.get_node("TelemetryPanel/PanelStack/PrimaryObjective") as Label).text,
 		"PRIMARY  Survive the city response."

@@ -4,6 +4,14 @@ extends Node
 signal attack_started(spec: AttackSpec)
 signal attack_active(spec: AttackSpec)
 signal attack_finished(spec: AttackSpec)
+signal dodge_buffered(attack_id: int)
+
+enum Phase {
+	READY,
+	ANTICIPATION,
+	ACTIVE,
+	RECOVERY,
+}
 
 @export_range(0.70, 1.0, 0.01) var jab_cross_commit_speed_fraction: float = 0.90
 
@@ -13,12 +21,15 @@ var jab_cross_impact: JabCrossImpact
 var overdrive_session: OverdriveSession
 var directive_session: DirectiveSession
 var kinetic_field_runtime: KineticFieldRuntime
+var phase: Phase = Phase.READY
+var buffered_dodge_count: int = 0
 var _robot: GiantRobotController
 var _visual_root: Node2D
 var _rest_position: Vector2
 var _rest_scale: Vector2 = Vector2.ONE
 var _rest_rotation: float = 0.0
 var _busy: bool = false
+var _dodge_buffered: bool = false
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -60,7 +71,13 @@ func _ready() -> void:
 
 
 func request_attack() -> int:
-	if _busy or _robot == null or not _robot.can_request_attack():
+	if _busy:
+		if phase == Phase.RECOVERY and not _dodge_buffered and _robot.can_request_attack():
+			_dodge_buffered = true
+			buffered_dodge_count += 1
+			dodge_buffered.emit(current_spec.attack_id)
+		return 0
+	if _robot == null or not _robot.can_request_attack():
 		return 0
 	var attack_id: int = _robot.reserve_attack_id()
 	var overdrive_started: bool = (
@@ -91,6 +108,9 @@ func request_attack() -> int:
 	if directive_session != null:
 		current_spec = directive_session.decorate_attack(current_spec)
 	_busy = true
+	_dodge_buffered = false
+	phase = Phase.ANTICIPATION
+	_robot._set_attack_locked(true)
 	_robot.notify_attack_selected(current_spec.mode, current_spec.attack_id)
 	attack_started.emit(current_spec)
 	_run_attack(current_spec)
@@ -104,6 +124,10 @@ func is_busy() -> bool:
 func cancel_attack() -> void:
 	current_spec = null
 	_busy = false
+	_dodge_buffered = false
+	phase = Phase.READY
+	if _robot != null:
+		_robot._set_attack_locked(false)
 	_restore_pose()
 
 
@@ -113,6 +137,7 @@ func _run_attack(spec: AttackSpec) -> void:
 		await get_tree().create_timer(spec.anticipation_seconds).timeout
 	if current_spec != spec:
 		return
+	phase = Phase.ACTIVE
 	_apply_active_pose(spec)
 	if spec.is_ground_smash():
 		_robot.velocity.x *= 0.35
@@ -128,6 +153,7 @@ func _run_attack(spec: AttackSpec) -> void:
 		await get_tree().create_timer(spec.active_seconds).timeout
 	if current_spec != spec:
 		return
+	phase = Phase.RECOVERY
 	_apply_recovery_pose(spec)
 	if spec.recovery_seconds > 0.0:
 		await get_tree().create_timer(spec.recovery_seconds).timeout
@@ -136,7 +162,12 @@ func _run_attack(spec: AttackSpec) -> void:
 	_restore_pose()
 	current_spec = null
 	_busy = false
+	phase = Phase.READY
+	_robot._set_attack_locked(false)
 	attack_finished.emit(spec)
+	if _dodge_buffered:
+		_dodge_buffered = false
+		_robot._start_dodge()
 
 
 func _commit_jab_cross_velocity(spec: AttackSpec) -> void:
