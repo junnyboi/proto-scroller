@@ -90,7 +90,8 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
 	assert_eq(city.mobile_controls.smash_touch_index(), 8)
 	assert_eq(city.haptics_adapter.request_count, 0)
-	await get_tree().create_timer(0.14).timeout
+	var ground_spec: AttackSpec = city.contextual_attacks.current_spec
+	await get_tree().create_timer(ground_spec.anticipation_seconds + 0.03).timeout
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
@@ -98,17 +99,36 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(8, smash_position, false)
 	)
-	await get_tree().create_timer(0.32).timeout
+	await get_tree().create_timer(
+		ground_spec.active_seconds + ground_spec.recovery_seconds + 0.03
+	).timeout
+	await _resolve_upgrade_choices(city)
+	var haptic_count_after_upgrade: int = city.haptics_adapter.request_count
 	city.robot.velocity.x = city.robot.max_speed * 0.8
+	city.tank.activate(
+		city.robot.global_position + Vector2(120.0 * float(city.robot.facing), 60.0),
+		city.robot
+	)
+	city.tank.current_health = 1.0
+	city.tank.set_physics_process(false)
 	city.mobile_controls.process_controls(city.mobile_controls.smash_cooldown)
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(9, smash_position, true)
 	)
+	assert_not_null(city.contextual_attacks.current_spec)
+	if city.contextual_attacks.current_spec == null:
+		return
 	assert_true(city.contextual_attacks.current_spec.is_jab_cross())
 	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
 	assert_eq(city.mobile_controls.smash_touch_index(), 9)
-	await get_tree().create_timer(0.11).timeout
-	assert_eq(city.haptics_adapter.request_count, 2)
+	var jab_spec: AttackSpec = city.contextual_attacks.current_spec
+	await get_tree().create_timer(jab_spec.anticipation_seconds + 0.03).timeout
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_gt(city.contextual_attacks.jab_cross_impact.last_query_count, 0)
+	assert_gt(city.contextual_attacks.jab_cross_impact.last_accepted_targets, 0)
+	assert_lt(city.tank.current_health, city.tank.max_health)
+	assert_eq(city.haptics_adapter.request_count, haptic_count_after_upgrade + 1)
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(9, smash_position, false)
 	)
@@ -128,7 +148,7 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 		)
 	)
 	await get_tree().process_frame
-	assert_eq(city.haptics_adapter.request_count, 3)
+	assert_eq(city.haptics_adapter.request_count, haptic_count_after_upgrade + 2)
 	assert_eq(city.haptics_adapter.last_duration_ms, 52)
 	city.robot.receive_damage(DamageEvent.new(9201, null, 9999.0))
 	assert_true(city.game_over_active)
@@ -149,6 +169,17 @@ func _screen_touch(
 	event.position = position
 	event.pressed = pressed
 	return event
+
+
+func _resolve_upgrade_choices(city: CitySlice) -> void:
+	var session: UpgradeSession = city.upgrade_assembler.session
+	for choice_index: int in range(8):
+		if session.active_offer == null:
+			return
+		var sequence: int = session.active_offer.sequence
+		var selected: StringName = session.active_offer.choice_ids[0]
+		assert_true(session.select_choice(selected, sequence))
+		await get_tree().process_frame
 
 
 func _screen_drag(index: int, position: Vector2) -> InputEventScreenDrag:

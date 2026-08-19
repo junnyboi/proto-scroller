@@ -1,13 +1,30 @@
 class_name AttackResolver
 extends Node
 
+const ATTACK_FRAME_COUNT: int = 25
+const ATTACK_EVENT_FRAME: int = 11
+const ATTACK_ACTIVE_END_FRAME: int = 14
+const ATTACK_FPS: float = 12.0
+const ATTACK_END_HOLD_SECONDS: float = 0.05
+const FULL_ANTICIPATION_SECONDS: float = float(ATTACK_EVENT_FRAME) / ATTACK_FPS
+const FULL_ACTIVE_SECONDS: float = (
+	float(ATTACK_ACTIVE_END_FRAME - ATTACK_EVENT_FRAME) / ATTACK_FPS
+)
+const FULL_RECOVERY_SECONDS: float = (
+	float(ATTACK_FRAME_COUNT - ATTACK_ACTIVE_END_FRAME) / ATTACK_FPS
+	+ ATTACK_END_HOLD_SECONDS
+)
+const FULL_ATTACK_SECONDS: float = (
+	FULL_ANTICIPATION_SECONDS + FULL_ACTIVE_SECONDS + FULL_RECOVERY_SECONDS
+)
+
 @export_range(0.0, 1.0, 0.01) var jab_cross_speed_threshold: float = 0.70
-@export var ground_anticipation_seconds: float = 0.10
-@export var ground_active_seconds: float = 0.01
-@export var ground_recovery_seconds: float = 0.22
-@export var jab_cross_anticipation_seconds: float = 0.055
-@export var jab_cross_active_seconds: float = 0.10
-@export var jab_cross_recovery_seconds: float = 0.14
+@export var ground_anticipation_seconds: float = FULL_ANTICIPATION_SECONDS
+@export var ground_active_seconds: float = FULL_ACTIVE_SECONDS
+@export var ground_recovery_seconds: float = FULL_RECOVERY_SECONDS
+@export var jab_cross_anticipation_seconds: float = FULL_ANTICIPATION_SECONDS
+@export var jab_cross_active_seconds: float = FULL_ACTIVE_SECONDS
+@export var jab_cross_recovery_seconds: float = FULL_RECOVERY_SECONDS
 @export var jab_cross_actor_damage: float = 145.0
 @export var jab_cross_structural_damage: float = 125.0
 @export var jab_cross_impulse_per_mass: float = 1080.0

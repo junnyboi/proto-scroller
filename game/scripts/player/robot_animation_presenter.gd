@@ -1,7 +1,7 @@
 class_name RobotAnimationPresenter
 extends Node
 
-const ATTACK_EVENT_FRAME: int = 11
+const ATTACK_EVENT_FRAME: int = AttackResolver.ATTACK_EVENT_FRAME
 const WALK_REFERENCE_SPEED: float = 260.0
 const AUDIO_VOICE_CAPACITY: int = 4
 const WALK_SERVO_FRAMES: Array[int] = [2, 15]
@@ -23,6 +23,8 @@ var servo_play_count: int = 0
 var attack_impact_play_count: int = 0
 var audio_recycle_count: int = 0
 var last_audio_cue: StringName = &""
+var last_completed_attack_frame: int = -1
+var completed_full_attack_count: int = 0
 var _audio_players: Array[AudioStreamPlayer2D] = []
 var _audio_cursor: int = 0
 
@@ -81,7 +83,7 @@ func _on_attack_selected(mode: int, attack_id: int) -> void:
 	attacking = true
 	selected_attack_id = attack_id
 	sprite.speed_scale = 1.0
-	sprite.play(_attack_animation(mode), 1.0, true)
+	sprite.play(_attack_animation(mode), 1.0, false)
 	var pitch: float = 0.86 if mode == AttackSpec.Mode.GROUND_SMASH else 1.03
 	_play_mechanics(SERVO_SFX, &"attack_windup", 2.5, pitch)
 
@@ -89,8 +91,8 @@ func _on_attack_selected(mode: int, attack_id: int) -> void:
 func _on_attack_committed(mode: int, attack_id: int) -> void:
 	if not attacking or attack_id != selected_attack_id:
 		return
-	sprite.pause()
-	sprite.set_frame_and_progress(ATTACK_EVENT_FRAME, 0.0)
+	if sprite.frame < ATTACK_EVENT_FRAME:
+		sprite.set_frame_and_progress(ATTACK_EVENT_FRAME, 0.0)
 	var pitch: float = 0.84 if mode == AttackSpec.Mode.GROUND_SMASH else 1.0
 	_play_mechanics(FOOTSTEP_SFX, &"attack_piston", 2.0, pitch)
 
@@ -98,6 +100,9 @@ func _on_attack_committed(mode: int, attack_id: int) -> void:
 func _on_attack_finished(spec: AttackSpec) -> void:
 	if spec == null or spec.attack_id != selected_attack_id:
 		return
+	last_completed_attack_frame = sprite.frame
+	if sprite.frame == RobotSpriteFramesBuilder.FRAME_COUNT - 1:
+		completed_full_attack_count += 1
 	attacking = false
 	selected_attack_id = 0
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
