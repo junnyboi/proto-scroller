@@ -9,6 +9,11 @@ signal explosion_resolved(origin: Vector2, accepted_targets: int)
 
 var _queue: Array[Dictionary] = []
 var _blast_shape: CircleShape2D = CircleShape2D.new()
+var _blast_parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+
+
+func _init() -> void:
+	_blast_parameters.shape = _blast_shape
 
 
 func queue_explosion(
@@ -50,21 +55,20 @@ func _resolve_explosion(data: Dictionary) -> void:
 	var origin: Vector2 = data["origin"] as Vector2
 	var radius: float = data["radius"] as float
 	_blast_shape.radius = radius
-	var parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
-	parameters.shape = _blast_shape
-	parameters.transform = Transform2D(0.0, origin)
-	parameters.collision_mask = blast_mask
-	parameters.collide_with_areas = true
-	parameters.collide_with_bodies = true
+	_blast_parameters.transform = Transform2D(0.0, origin)
+	_blast_parameters.collision_mask = blast_mask
+	_blast_parameters.collide_with_areas = true
+	_blast_parameters.collide_with_bodies = true
+	_blast_parameters.exclude = []
 	if is_instance_valid(data["source"] as Node):
 		var source_object: CollisionObject2D = data["source"] as CollisionObject2D
 		if source_object != null:
-			parameters.exclude = [source_object.get_rid()]
+			_blast_parameters.exclude = [source_object.get_rid()]
 	var query_limit: int = int(data.result_limit)
 	if query_limit <= 0:
 		query_limit = max_results
 	var results: Array[Dictionary] = get_world_2d().direct_space_state.intersect_shape(
-		parameters,
+		_blast_parameters,
 		mini(query_limit, max_results)
 	)
 	var seen: Dictionary[int, bool] = {}
@@ -117,7 +121,7 @@ func _resolve_explosion(data: Dictionary) -> void:
 				int(data.effect_flags),
 				float(data.kinetic_debris_bonus)
 			)
-		var accepted: bool = _deliver_damage(target_node, event)
+		var accepted: bool = _deliver_damage(receiver, event)
 		_apply_rigid_impulse(target_node, event)
 		if accepted:
 			accepted_targets += 1
@@ -130,20 +134,14 @@ func _is_source_related(candidate: Node, source: Node) -> bool:
 	return candidate == source or source.is_ancestor_of(candidate)
 
 
-func _deliver_damage(start_node: Node, event: DamageEvent) -> bool:
-	var receiver: Node = _damage_receiver(start_node)
+func _deliver_damage(receiver: Node, event: DamageEvent) -> bool:
 	if receiver != null:
 		return bool(receiver.call("receive_damage", event))
 	return false
 
 
 func _damage_receiver(start_node: Node) -> Node:
-	var receiver: Node = start_node
-	while receiver != null:
-		if receiver.has_method("receive_damage"):
-			return receiver
-		receiver = receiver.get_parent()
-	return null
+	return DamageReceiverLookup.find(start_node)
 
 
 func _apply_rigid_impulse(start_node: Node, event: DamageEvent) -> void:

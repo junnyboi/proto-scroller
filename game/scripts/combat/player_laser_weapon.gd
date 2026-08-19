@@ -136,14 +136,15 @@ func _fire(direction: Vector2) -> void:
 		_parameters,
 		QUERY_LIMIT
 	)
-	results.sort_custom(_sort_result.bind(origin, direction))
+	if results.size() > 1:
+		results.sort_custom(_sort_result.bind(origin, direction))
 	last_query_count = results.size()
 	last_accepted_count = 0
 	var seen_receivers: Dictionary[int, bool] = {}
 	var attack_id: int = arsenal.reserve_attack_id()
 	for result: Dictionary in results:
 		var collider: Node = result.get("collider") as Node
-		var receiver: Node = _find_damage_receiver(collider)
+		var receiver: Node = DamageReceiverLookup.find(collider)
 		if receiver == null or receiver == arsenal.robot:
 			continue
 		var receiver_id: int = receiver.get_instance_id()
@@ -174,15 +175,6 @@ func _damage_for(receiver: Node) -> float:
 	if receiver is Destructible2D or receiver is StructuralBuilding2D:
 		return STRUCTURAL_DAMAGE[current_rank]
 	return ACTOR_DAMAGE[current_rank]
-
-
-func _find_damage_receiver(start_node: Node) -> Node:
-	var receiver: Node = start_node
-	while receiver != null:
-		if receiver.has_method("receive_damage"):
-			return receiver
-		receiver = receiver.get_parent()
-	return null
 
 
 func _sort_result(a: Dictionary, b: Dictionary, origin: Vector2, direction: Vector2) -> bool:

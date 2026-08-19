@@ -69,7 +69,8 @@ func _eligible_enemies(spec: AttackSpec) -> Array[EnemyActor2D]:
 			and absf(offset.y) <= JAB_VERTICAL_RANGE
 		):
 			eligible.append(enemy)
-	eligible.sort_custom(_sort_by_instance_id)
+	if eligible.size() > 1:
+		eligible.sort_custom(_sort_by_instance_id)
 	return eligible
 
 
