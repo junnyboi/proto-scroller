@@ -14,6 +14,7 @@ func before_all() -> void:
 
 
 func before_each() -> void:
+	L10n.set_locale("en")
 	screen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
 	add_child_autofree(screen)
 	await get_tree().process_frame
@@ -27,40 +28,46 @@ func test_launch_scene_contract() -> void:
 		ProjectSettings.get_setting("application/run/main_scene"),
 		"res://scenes/main/main.tscn"
 	)
-	assert_eq(title_label.text, "PROTO SCROLLER\nFIELD BRIEFING")
-	assert_eq(initialize_button.text, "BEGIN EXPEDITION")
+	assert_eq(title_label.text, L10n.t("title.command_heading"))
+	assert_true(initialize_button.text.contains(L10n.t("title.begin")))
 	assert_eq(initialize_button.focus_mode, Control.FOCUS_ALL)
-	var buttons: Array[Node] = screen.find_children("*", "Button", true, false)
-	assert_eq(buttons.size(), 1, "The briefing must expose one launch action only.")
+	var launch_actions: int = 0
+	for button_node: Node in screen.find_children("*", "Button", true, false):
+		var button: Button = button_node as Button
+		if button.text.contains(L10n.t("title.begin")):
+			launch_actions += 1
+	assert_eq(launch_actions, 1, "The Command Deck must expose one launch action only.")
 	_record_test_execution()
 
 
-func test_briefing_teaches_story_controls_objectives_and_run_rules() -> void:
-	var story: String = (screen.get_node("%InstructionLabel") as Label).text
+func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> void:
+	var hook: String = (screen.get_node("%InstructionLabel") as Label).text
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
-	var field_note: String = (screen.get_node("HeroStack/FieldNote") as Label).text
+	var field_note: String = (screen.get_node("SemanticContract/FieldNote") as Label).text
 	var enemy_intel: String = (screen.get_node("%EnemyIntel") as Label).text
 	var run_rule: String = (screen.get_node("%RunRule") as Label).text
-	assert_true(story.contains("city defense grid went silent"))
+	assert_eq(hook, L10n.t("title.command_hook"))
 	for required_control: String in ["A / D", "Mobile joystick", "SPACE", "SMASH"]:
 		assert_true(controls.contains(required_control), required_control)
 	assert_true(field_note.contains("recovery"))
 	assert_true(field_note.contains("dash dodge"))
 	assert_eq(
-		(screen.get_node("TelemetryPanel/PanelStack/PrimaryObjective") as Label).text,
+		(screen.get_node("SemanticContract/PrimaryObjective") as Label).text,
 		"PRIMARY  Survive the city response."
 	)
 	assert_true(
-		(screen.get_node("TelemetryPanel/PanelStack/ObjectiveOne") as Label)
-		.text.contains("earn EXP")
+		(screen.get_node("SemanticContract/ObjectiveOne") as Label).text.contains("earn EXP")
 	)
 	assert_true(
-		(screen.get_node("TelemetryPanel/PanelStack/ObjectiveThree") as Label)
-		.text.contains("1 of 2 upgrades")
+		(screen.get_node("SemanticContract/ObjectiveThree") as Label).text.contains("1 of 2 upgrades")
 	)
 	assert_true(enemy_intel.contains("Soldiers + tanks"))
 	assert_true(enemy_intel.contains("Helicopters + rockets"))
 	assert_true(run_rule.contains("reset when you Retry"))
+	assert_true(screen.open_briefing())
+	assert_true((screen.get_node("%BriefingLayer") as Control).visible)
+	assert_true(screen.close_briefing())
+	assert_false((screen.get_node("%BriefingLayer") as Control).visible)
 	_record_test_execution()
 
 
@@ -70,11 +77,11 @@ func test_initialize_seam_transitions_once() -> void:
 	assert_false(screen.initialized)
 	assert_true(screen.initialize_game())
 	assert_true(screen.initialized)
-	assert_eq(status_label.text, "EXPEDITION ACTIVE")
-	assert_eq(initialize_button.text, "DEPLOYING")
+	assert_eq(status_label.text, L10n.t("title.expedition_active"))
+	assert_eq(initialize_button.text, L10n.t("title.deploying"))
 	assert_true(initialize_button.disabled)
 	assert_false(screen.initialize_game(), "A second initialization must reject without mutation.")
-	assert_eq(status_label.text, "EXPEDITION ACTIVE")
+	assert_eq(status_label.text, L10n.t("title.expedition_active"))
 	_record_test_execution()
 
 
@@ -85,10 +92,13 @@ func test_all_ui_text_meets_the_32_pixel_rendered_height_pin() -> void:
 		var label: Label = label_node as Label
 		minimum_height = minf(minimum_height, _rendered_line_height(label))
 		measured_controls += 1
-	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
-	minimum_height = minf(minimum_height, _rendered_line_height(initialize_button))
-	measured_controls += 1
-	assert_true(measured_controls >= 10, "Expected at least ten visible UI text controls.")
+	for button_node: Node in screen.find_children("*", "Button", true, false):
+		var button: Button = button_node as Button
+		if button.text.is_empty():
+			continue
+		minimum_height = minf(minimum_height, _rendered_line_height(button))
+		measured_controls += 1
+	assert_true(measured_controls >= 10, "Expected at least ten live UI text controls.")
 	assert_true(
 		minimum_height >= MINIMUM_TEXT_HEIGHT,
 		"Minimum rendered line height was %.2f px; expected at least %.2f px."
@@ -97,15 +107,26 @@ func test_all_ui_text_meets_the_32_pixel_rendered_height_pin() -> void:
 	_record_test_execution()
 
 
-func test_initialize_action_does_not_overlap_the_footer() -> void:
+func test_launch_action_does_not_overlap_briefing_action() -> void:
 	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
-	var bottom_rail: HBoxContainer = screen.get_node("BottomRail") as HBoxContainer
-	var button_rect: Rect2 = initialize_button.get_global_rect()
-	var footer_rect: Rect2 = bottom_rail.get_global_rect()
+	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
 	assert_false(
-		button_rect.intersects(footer_rect),
-		"Initialize rect %s overlapped footer rect %s." % [button_rect, footer_rect]
+		initialize_button.get_global_rect().intersects(briefing_toggle.get_global_rect()),
+		"Launch and briefing actions must remain spatially distinct."
 	)
+	_record_test_execution()
+
+
+func test_generated_art_contract_replaces_procedural_rendering() -> void:
+	var background: TextureRect = screen.get_node("%BackgroundArt") as TextureRect
+	var briefing: TextureRect = screen.get_node("%BriefingArt") as TextureRect
+	assert_true(background.texture.resource_path.contains("command_deck_landscape.jpg"))
+	assert_true(briefing.texture.resource_path.contains("command_deck_briefing_landscape.jpg"))
+	var source_file: FileAccess = FileAccess.open("res://scripts/title_screen.gd", FileAccess.READ)
+	var source: String = source_file.get_as_text()
+	assert_false(source.contains("func _draw"), "Procedural title graphics are forbidden.")
+	assert_false(source.contains("draw_line"), "Procedural title graphics are forbidden.")
+	assert_false(source.contains("draw_circle"), "Procedural title graphics are forbidden.")
 	_record_test_execution()
 
 

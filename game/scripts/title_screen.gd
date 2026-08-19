@@ -3,15 +3,33 @@ extends Control
 
 signal start_requested
 
-const GRID_SIZE: float = 72.0
-const BG_TOP: Color = Color("071524")
-const BG_BOTTOM: Color = Color("01050d")
-const GRID_COLOR: Color = Color(0.18, 0.77, 0.68, 0.11)
-const ACCENT_COLOR: Color = Color(0.33, 1.0, 0.82, 0.72)
+const LANDSCAPE_ART: Texture2D = preload(
+	"res://art/ui/title_screen/command_deck_landscape.jpg"
+)
+const PORTRAIT_ART: Texture2D = preload(
+	"res://art/ui/title_screen/command_deck_portrait.jpg"
+)
+const LANDSCAPE_BRIEFING_ART: Texture2D = preload(
+	"res://art/ui/title_screen/command_deck_briefing_landscape.jpg"
+)
+const PORTRAIT_BRIEFING_ART: Texture2D = preload(
+	"res://art/ui/title_screen/command_deck_briefing_portrait.jpg"
+)
+const LANDSCAPE_BRIEFING_ART_ZH_CN: Texture2D = preload(
+	"res://art/ui/title_screen/command_deck_briefing_landscape_zh_cn.jpg"
+)
+const PORTRAIT_BRIEFING_ART_ZH_CN: Texture2D = preload(
+	"res://art/ui/title_screen/command_deck_briefing_portrait_zh_cn.jpg"
+)
 
 var initialized: bool = false
-var scan_phase: float = 0.0
+var briefing_open: bool = false
 
+@onready var background_art: TextureRect = %BackgroundArt
+@onready var briefing_art: TextureRect = %BriefingArt
+@onready var briefing_layer: Control = %BriefingLayer
+@onready var briefing_backdrop: Button = %BriefingBackdrop
+@onready var briefing_toggle: Button = %BriefingToggle
 @onready var initialize_button: Button = %InitializeButton
 @onready var status_label: Label = %StatusLabel
 @onready var instruction_label: Label = %InstructionLabel
@@ -20,23 +38,32 @@ var scan_phase: float = 0.0
 
 func _ready() -> void:
 	initialize_button.pressed.connect(_on_initialize_pressed)
+	briefing_toggle.pressed.connect(toggle_briefing)
+	briefing_backdrop.pressed.connect(close_briefing)
 	initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_localized_text()
-	_apply_responsive_layout()
 	L10n.apply_locale_font(self)
-	queue_redraw()
+	_apply_responsive_layout()
 
 
-func _process(delta: float) -> void:
-	scan_phase = fmod(scan_phase + delta * 22.0, GRID_SIZE)
-	queue_redraw()
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event: InputEventKey = event as InputEventKey
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_TAB:
+			toggle_briefing()
+			get_viewport().set_input_as_handled()
+			return
+	if briefing_open and event.is_action_pressed(&"ui_cancel"):
+		close_briefing()
+		get_viewport().set_input_as_handled()
 
 
 func initialize_game() -> bool:
 	if initialized:
 		return false
 	initialized = true
+	close_briefing(false)
 	status_label.text = L10n.t("title.expedition_active")
 	status_label.modulate = Color("72ffd6")
 	instruction_label.text = L10n.t("title.deployment_authorized")
@@ -44,7 +71,35 @@ func initialize_game() -> bool:
 	system_value.modulate = Color("72ffd6")
 	initialize_button.text = L10n.t("title.deploying")
 	initialize_button.disabled = true
+	briefing_toggle.disabled = true
 	return true
+
+
+func open_briefing() -> bool:
+	if initialized or briefing_open:
+		return false
+	briefing_open = true
+	briefing_layer.visible = true
+	briefing_toggle.text = L10n.t("title.briefing_close")
+	return true
+
+
+func close_briefing(restore_focus: bool = true) -> bool:
+	if not briefing_open:
+		return false
+	briefing_open = false
+	briefing_layer.visible = false
+	briefing_toggle.text = L10n.t("title.briefing_available")
+	if restore_focus and not initialized:
+		initialize_button.call_deferred("grab_focus")
+	return true
+
+
+func toggle_briefing() -> void:
+	if briefing_open:
+		close_briefing()
+	else:
+		open_briefing()
 
 
 func _on_initialize_pressed() -> void:
@@ -58,80 +113,104 @@ func is_portrait_layout() -> bool:
 
 
 func _apply_localized_text() -> void:
-	($TopRail/ProtocolLabel as Label).text = L10n.t("title.protocol")
+	($ProtocolLabel as Label).text = L10n.t("title.protocol")
+	(%TitleLabel as Label).text = L10n.t("title.command_heading")
+	instruction_label.text = L10n.t(
+		"title.deployment_authorized" if initialized else "title.command_hook"
+	)
+	($StatusRail/StatusItems/Objective/Key as Label).text = L10n.t(
+		"title.status_objective"
+	)
+	($StatusRail/StatusItems/Objective/Value as Label).text = L10n.t(
+		"title.status_survive"
+	)
+	($StatusRail/StatusItems/Threat/Key as Label).text = L10n.t("title.status_threat")
+	($StatusRail/StatusItems/Threat/Value as Label).text = L10n.t(
+		"title.status_ground_air"
+	)
+	($StatusRail/StatusItems/Upgrades/Key as Label).text = L10n.t(
+		"title.status_upgrades"
+	)
+	($StatusRail/StatusItems/Upgrades/Value as Label).text = L10n.t(
+		"title.status_during_run"
+	)
+	initialize_button.text = (
+		L10n.t("title.deploying")
+		if initialized
+		else ">  %s" % L10n.t("title.begin")
+	)
+	($HintLabel as Label).text = L10n.t("title.input_hint")
+	($MoveChip/Label as Label).text = L10n.t("title.move_chip")
+	($SmashChip/Label as Label).text = L10n.t("title.smash_chip")
+	briefing_toggle.text = L10n.t(
+		"title.briefing_close" if briefing_open else "title.briefing_available"
+	)
 	status_label.text = L10n.t(
 		"title.expedition_active" if initialized else "title.mission_briefing"
 	)
-	($HeroStack/Eyebrow as Label).text = L10n.t("title.recovery_zone")
-	(%TitleLabel as Label).text = L10n.t("title.heading")
-	instruction_label.text = L10n.t(
-		"title.deployment_authorized" if initialized else "title.story"
-	)
-	($HeroStack/ControlsHeading as Label).text = L10n.t("title.controls_heading")
 	(%ControlsLabel as Label).text = L10n.t("title.controls_body")
-	($HeroStack/FieldNote as Label).text = L10n.t("title.field_note")
-	initialize_button.text = L10n.t("title.deploying" if initialized else "title.begin")
-	($HeroStack/ActionRow/HintLabel as Label).text = L10n.t("title.input_hint")
-	($TelemetryPanel/PanelStack/PanelHeading as Label).text = L10n.t(
-		"title.objectives_heading"
-	)
-	($TelemetryPanel/PanelStack/PrimaryObjective as Label).text = L10n.t(
-		"title.primary_objective"
-	)
-	($TelemetryPanel/PanelStack/ObjectiveOne as Label).text = L10n.t("title.objective_one")
-	($TelemetryPanel/PanelStack/ObjectiveTwo as Label).text = L10n.t("title.objective_two")
-	($TelemetryPanel/PanelStack/ObjectiveThree as Label).text = L10n.t("title.objective_three")
-	($TelemetryPanel/PanelStack/EnemyHeading as Label).text = L10n.t("title.enemy_heading")
+	($SemanticContract/FieldNote as Label).text = L10n.t("title.field_note")
 	(%EnemyIntel as Label).text = L10n.t("title.enemy_intel")
 	(%RunRule as Label).text = L10n.t("title.run_protocol")
-	($TelemetryPanel/PanelStack/MissionStateRow/SystemKey as Label).text = L10n.t(
-		"title.mission_state"
-	)
 	system_value.text = L10n.t("title.deploying" if initialized else "title.awaiting_pilot")
+	($SemanticContract/PrimaryObjective as Label).text = L10n.t(
+		"title.primary_objective"
+	)
+	($SemanticContract/ObjectiveOne as Label).text = L10n.t("title.objective_one")
+	($SemanticContract/ObjectiveTwo as Label).text = L10n.t("title.objective_two")
+	($SemanticContract/ObjectiveThree as Label).text = L10n.t("title.objective_three")
 
 
 func _apply_responsive_layout() -> void:
-	var viewport_size: Vector2 = get_viewport_rect().size
-	if viewport_size.y > viewport_size.x:
-		_apply_portrait_layout(viewport_size)
+	if is_portrait_layout():
+		_apply_portrait_layout()
 	else:
 		_apply_landscape_layout()
-	queue_redraw()
 
 
 func _apply_landscape_layout() -> void:
-	_set_rect($TopRail, Rect2(56.0, 26.0, 1168.0, 44.0))
-	_set_rect($AccentRule, Rect2(56.0, 76.0, 5.0, 584.0))
-	_set_rect($HeroStack, Rect2(82.0, 82.0, 638.0, 574.0))
-	_set_rect($TelemetryPanel, Rect2(752.0, 82.0, 470.0, 574.0))
-	_set_rect($BottomRail, Rect2(56.0, 672.0, 1168.0, 40.0))
-	_set_title_font_sizes(24, 56)
-	(%TitleLabel as Label).text = L10n.t("title.heading")
-	($BottomRail/BuildLabel as Label).text = L10n.t("title.footer_landscape")
-	($BottomRail/CoordinatesLabel as Label).text = L10n.t("title.coordinates_landscape")
-	($BottomRail/CoordinatesLabel as Label).visible = true
+	background_art.texture = LANDSCAPE_ART
+	briefing_art.texture = _briefing_texture(false)
+	_set_rect($ProtocolLabel, Rect2(52.0, 250.0, 390.0, 38.0))
+	_set_rect(%TitleLabel, Rect2(52.0, 290.0, 650.0, 78.0))
+	_set_rect(%InstructionLabel, Rect2(52.0, 380.0, 610.0, 46.0))
+	_set_rect($StatusRail, Rect2(744.0, 36.0, 504.0, 68.0))
+	_set_rect(initialize_button, Rect2(52.0, 450.0, 360.0, 72.0))
+	_set_rect($HintLabel, Rect2(430.0, 464.0, 160.0, 46.0))
+	_set_rect($MoveChip, Rect2(52.0, 546.0, 164.0, 48.0))
+	_set_rect($SmashChip, Rect2(236.0, 546.0, 178.0, 48.0))
+	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
+	_set_font_sizes(24, 56, 24)
 
 
-func _apply_portrait_layout(viewport_size: Vector2) -> void:
-	var content_width: float = viewport_size.x - 56.0
-	_set_rect($TopRail, Rect2(28.0, 24.0, content_width, 44.0))
-	_set_rect($AccentRule, Rect2(28.0, 76.0, 5.0, 1068.0))
-	_set_rect($HeroStack, Rect2(52.0, 82.0, viewport_size.x - 104.0, 554.0))
-	_set_rect($TelemetryPanel, Rect2(52.0, 650.0, viewport_size.x - 104.0, 488.0))
-	_set_rect($BottomRail, Rect2(28.0, viewport_size.y - 62.0, content_width, 40.0))
-	_set_title_font_sizes(24, 48)
-	(%TitleLabel as Label).text = L10n.t("title.heading")
-	($BottomRail/BuildLabel as Label).text = L10n.t("title.footer_portrait")
-	($BottomRail/CoordinatesLabel as Label).text = L10n.t("title.coordinates_portrait")
-	($BottomRail/CoordinatesLabel as Label).visible = false
+func _apply_portrait_layout() -> void:
+	background_art.texture = PORTRAIT_ART
+	briefing_art.texture = _briefing_texture(true)
+	_set_rect($ProtocolLabel, Rect2(56.0, 72.0, 608.0, 42.0))
+	_set_rect(%TitleLabel, Rect2(56.0, 122.0, 608.0, 82.0))
+	_set_rect(%InstructionLabel, Rect2(56.0, 206.0, 608.0, 50.0))
+	_set_rect($StatusRail, Rect2(54.0, 268.0, 612.0, 92.0))
+	_set_rect(initialize_button, Rect2(104.0, 922.0, 512.0, 100.0))
+	_set_rect($HintLabel, Rect2(260.0, 1038.0, 200.0, 50.0))
+	_set_rect($MoveChip, Rect2(120.0, 1092.0, 214.0, 62.0))
+	_set_rect($SmashChip, Rect2(372.0, 1092.0, 228.0, 62.0))
+	_set_rect(briefing_toggle, Rect2(174.0, 1180.0, 372.0, 70.0))
+	_set_font_sizes(24, 48, 24)
 
 
-func _set_title_font_sizes(body_size: int, title_size: int) -> void:
+func _briefing_texture(portrait: bool) -> Texture2D:
+	if L10n.current_locale() == "zh-CN":
+		return PORTRAIT_BRIEFING_ART_ZH_CN if portrait else LANDSCAPE_BRIEFING_ART_ZH_CN
+	return PORTRAIT_BRIEFING_ART if portrait else LANDSCAPE_BRIEFING_ART
+
+
+func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	for label_node: Node in find_children("*", "Label", true, false):
 		var label: Label = label_node as Label
 		label.add_theme_font_size_override(&"font_size", body_size)
 	(%TitleLabel as Label).add_theme_font_size_override(&"font_size", title_size)
-	initialize_button.add_theme_font_size_override(&"font_size", body_size)
+	initialize_button.add_theme_font_size_override(&"font_size", button_size)
+	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
 
 
 func _set_rect(control: Control, rect: Rect2) -> void:
@@ -139,43 +218,3 @@ func _set_rect(control: Control, rect: Rect2) -> void:
 	control.size = rect.size
 	control.set_deferred(&"position", rect.position)
 	control.set_deferred(&"size", rect.size)
-
-
-func _draw() -> void:
-	var canvas_size: Vector2 = size
-	var band_count: int = 28
-	var band_height: float = canvas_size.y / float(band_count)
-	for band_index: int in range(band_count):
-		var blend: float = float(band_index) / float(band_count - 1)
-		var band_color: Color = BG_TOP.lerp(BG_BOTTOM, blend)
-		draw_rect(
-			Rect2(0.0, float(band_index) * band_height, canvas_size.x, band_height + 1.0),
-			band_color
-		)
-
-	var x: float = fmod(scan_phase, GRID_SIZE)
-	while x < canvas_size.x:
-		draw_line(Vector2(x, 0.0), Vector2(x, canvas_size.y), GRID_COLOR, 1.0)
-		x += GRID_SIZE
-	var y: float = fmod(scan_phase * 0.45, GRID_SIZE)
-	while y < canvas_size.y:
-		draw_line(Vector2(0.0, y), Vector2(canvas_size.x, y), GRID_COLOR, 1.0)
-		y += GRID_SIZE
-
-	var orbit_center: Vector2 = Vector2(canvas_size.x * 0.78, canvas_size.y * 0.49)
-	draw_circle(orbit_center, 170.0, Color(0.02, 0.18, 0.19, 0.16), false, 2.0)
-	draw_arc(orbit_center, 118.0, -1.4, 1.85, 96, ACCENT_COLOR, 2.0, true)
-	draw_arc(
-		orbit_center,
-		150.0,
-		1.7,
-		4.9,
-		96,
-		Color(0.22, 0.73, 0.67, 0.28),
-		1.0,
-		true
-	)
-	draw_circle(orbit_center + Vector2(20.0, -116.0), 4.0, ACCENT_COLOR)
-
-	var scan_y: float = fmod(scan_phase * 3.0, canvas_size.y)
-	draw_rect(Rect2(0.0, scan_y, canvas_size.x, 2.0), Color(0.3, 1.0, 0.82, 0.08))

@@ -5,6 +5,7 @@ const MAX_FRAMES: int = 240
 const MINIMUM_TEXT_HEIGHT: float = 32.0
 const REPORT_PATH: String = "res://artifacts/title_screen/report.json"
 const SHOT_PATH: String = "res://artifacts/title_screen/title-screen.png"
+const BRIEFING_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-briefing.png"
 
 var checks: Array[Dictionary] = []
 var completed: bool = false
@@ -52,18 +53,19 @@ func _run() -> void:
 	_check("title_visible", title_visible, "visible=%s" % [title_visible])
 	_check(
 		"title_text",
-		title_label.text == L10n.t("title.heading"),
+		title_label.text == L10n.t("title.command_heading"),
 		"text=%s" % [title_label.text]
 	)
 	_check(
 		"begin_expedition_action",
-		button.text == L10n.t("title.begin"),
+		button.text.contains(L10n.t("title.begin")),
 		"text=%s" % [button.text]
 	)
 	_check_briefing_content(screen)
 	_check("button_focused", button.has_focus(), "focused=%s" % [button.has_focus()])
 	_check_minimum_text_height(screen, button)
 	_check_layout_contract(screen, button)
+	_check_briefing_interaction(screen)
 
 	var shot_status: String = "SKIP"
 	var shot_path: String = ""
@@ -86,6 +88,18 @@ func _run() -> void:
 			image.get_size() == target_size,
 			"size=%s" % [image.get_size()]
 		)
+		screen.open_briefing()
+		await RenderingServer.frame_post_draw
+		var briefing_image: Image = root.get_texture().get_image()
+		var briefing_save_error: Error = briefing_image.save_png(
+			ProjectSettings.globalize_path(BRIEFING_SHOT_PATH)
+		)
+		_check(
+			"briefing_shot_saved",
+			briefing_save_error == OK,
+			"error=%s size=%s" % [briefing_save_error, briefing_image.get_size()]
+		)
+		screen.close_briefing()
 		shot_status = "PASS" if save_error == OK else "FAIL"
 		shot_path = SHOT_PATH
 
@@ -122,35 +136,41 @@ func _check_minimum_text_height(screen: TitleScreen, button: Button) -> void:
 
 
 func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
-	var bottom_rail: HBoxContainer = screen.get_node("BottomRail") as HBoxContainer
-	var telemetry_panel: PanelContainer = screen.get_node("TelemetryPanel") as PanelContainer
+	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
+	var status_rail: PanelContainer = screen.get_node("StatusRail") as PanelContainer
 	var button_rect: Rect2 = button.get_global_rect()
-	var footer_rect: Rect2 = bottom_rail.get_global_rect()
-	var telemetry_rect: Rect2 = telemetry_panel.get_global_rect()
+	var briefing_toggle_rect: Rect2 = briefing_toggle.get_global_rect()
+	var status_rect: Rect2 = status_rail.get_global_rect()
 	var viewport_rect: Rect2 = Rect2(Vector2.ZERO, Vector2(root.size))
 	_check(
-		"action_footer_separation",
-		not button_rect.intersects(footer_rect),
-		"button=%s footer=%s" % [button_rect, footer_rect]
+		"action_briefing_separation",
+		not button_rect.intersects(briefing_toggle_rect),
+		"button=%s briefing=%s" % [button_rect, briefing_toggle_rect]
 	)
 	_check(
-		"telemetry_inside_viewport",
-		viewport_rect.encloses(telemetry_rect),
-		"viewport=%s telemetry=%s" % [viewport_rect, telemetry_rect]
+		"status_rail_inside_viewport",
+		viewport_rect.encloses(status_rect),
+		"viewport=%s status=%s" % [viewport_rect, status_rect]
+	)
+	var background: TextureRect = screen.get_node("%BackgroundArt") as TextureRect
+	_check(
+		"generated_art_fills_viewport",
+		background.get_global_rect() == viewport_rect,
+		"background=%s viewport=%s" % [background.get_global_rect(), viewport_rect]
 	)
 
 
 func _check_briefing_content(screen: TitleScreen) -> void:
 	var story: String = (screen.get_node("%InstructionLabel") as Label).text
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
-	var field_note: String = (screen.get_node("HeroStack/FieldNote") as Label).text
-	var panel: VBoxContainer = screen.get_node("TelemetryPanel/PanelStack") as VBoxContainer
+	var field_note: String = (screen.get_node("SemanticContract/FieldNote") as Label).text
+	var panel: Control = screen.get_node("SemanticContract") as Control
 	var briefing_text: String = ""
 	for label_node: Node in panel.find_children("*", "Label", true, false):
 		briefing_text += (label_node as Label).text + "\n"
 	_check(
 		"story_present",
-		story == L10n.t("title.story"),
+		story == L10n.t("title.command_hook"),
 		"text=%s" % [story]
 	)
 	_check(
@@ -171,6 +191,28 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 		briefing_text.contains(L10n.t("title.enemy_intel"))
 		and briefing_text.contains(L10n.t("title.run_protocol")),
 		"text=%s" % [briefing_text]
+	)
+
+
+func _check_briefing_interaction(screen: TitleScreen) -> void:
+	var briefing_layer: Control = screen.get_node("%BriefingLayer") as Control
+	var briefing_art: TextureRect = screen.get_node("%BriefingArt") as TextureRect
+	var opened: bool = screen.open_briefing()
+	_check(
+		"briefing_opens",
+		opened and briefing_layer.visible,
+		"visible=%s" % [briefing_layer.visible]
+	)
+	_check(
+		"briefing_uses_generated_art",
+		briefing_art.texture.resource_path.contains("command_deck_briefing"),
+		"texture=%s" % [briefing_art.texture.resource_path]
+	)
+	var closed: bool = screen.close_briefing()
+	_check(
+		"briefing_closes",
+		closed and not briefing_layer.visible,
+		"visible=%s" % [briefing_layer.visible]
 	)
 
 

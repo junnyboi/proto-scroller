@@ -44,8 +44,17 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 	var screen: TitleScreen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
 	add_child_autofree(screen)
 	await get_tree().process_frame
-	assert_eq((screen.get_node("%TitleLabel") as Label).text, "原型卷轴战\n战地简报")
-	assert_eq((screen.get_node("%InitializeButton") as Button).text, "开始远征")
-	assert_true((screen.get_node("%InstructionLabel") as Label).text.contains("城市防御网"))
+	assert_eq((screen.get_node("%TitleLabel") as Label).text, L10n.t("title.command_heading"))
+	assert_true(
+		(screen.get_node("%InitializeButton") as Button).text.contains(L10n.t("title.begin"))
+	)
+	assert_eq(
+		(screen.get_node("%InstructionLabel") as Label).text,
+		L10n.t("title.command_hook")
+	)
+	assert_true(
+		(screen.get_node("%BriefingArt") as TextureRect)
+		.texture.resource_path.contains("briefing_landscape_zh_cn")
+	)
 	var title_font: Font = (screen.get_node("%TitleLabel") as Label).get_theme_font(&"font")
 	assert_true(title_font.has_char("中".unicode_at(0)))
