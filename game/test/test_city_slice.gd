@@ -597,6 +597,8 @@ func test_smash_launches_debris_that_physically_damages_airborne_enemy() -> void
 func test_land_visuals_share_the_asphalt_baseline() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
+	city.soldier.set_physics_process(false)
+	city.tank.set_physics_process(false)
 	await get_tree().process_frame
 	var lower_cell: Destructible2D = city.building.get_cell(0, 1)
 	var lower_visual: Sprite2D = lower_cell.get_node(^"IntactVisual") as Sprite2D

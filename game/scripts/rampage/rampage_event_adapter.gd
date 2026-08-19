@@ -231,7 +231,24 @@ func _publish_damage(
 	gameplay_event.cause = (
 		cause_override if not cause_override.is_empty() else damage_event.damage_type
 	)
+	gameplay_event.presentation_direction = damage_event.direction
+	gameplay_event.presentation_speed = damage_event.impulse_per_mass
+	gameplay_event.debris_units = _presentation_debris_units(gameplay_event.kind, target)
 	return _session.publish(gameplay_event)
+
+
+func _presentation_debris_units(kind: GameplayEvent.Kind, target: Node) -> int:
+	match kind:
+		GameplayEvent.Kind.CELL_DESTROYED:
+			var cell: Destructible2D = target as Destructible2D
+			return cell.gameplay_chunk_count if cell != null else 0
+		GameplayEvent.Kind.PROP_DESTROYED:
+			return 2
+		GameplayEvent.Kind.WRECK_SCRAPPED:
+			return 3
+		GameplayEvent.Kind.ENEMY_DEFEATED:
+			return 1 if target is TankEnemy or target is HelicopterEnemy else 0
+	return 0
 
 
 func _enemy_momentum_delta(enemy: EnemyActor2D) -> float:
