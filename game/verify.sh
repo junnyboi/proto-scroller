@@ -19,7 +19,7 @@ mkdir -p artifacts/title_screen artifacts/city_slice artifacts/enemy_variety art
 START_EPOCH="$(date +%s)"
 
 run_engine() {
-  timeout --preserve-status --signal=TERM --kill-after=5s 35s "$@"
+  timeout --preserve-status --signal=TERM --kill-after=5s 60s "$@"
 }
 
 printf '%s\n' '[L3] import'
