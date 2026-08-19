@@ -4,6 +4,18 @@ extends RefCounted
 const SOLDIERS: int = 6
 const TANKS: int = 2
 const HELICOPTERS: int = 1
+const PROCEDURAL_INFANTRY: int = 6
+const PROCEDURAL_LIGHT: int = 3
+const PROCEDURAL_HEAVY: int = 4
+const PROCEDURAL_AIR: int = 4
+const PROCEDURAL_SIEGE: int = 2
+const PROCEDURAL_ENEMIES: int = (
+	PROCEDURAL_INFANTRY
+	+ PROCEDURAL_LIGHT
+	+ PROCEDURAL_HEAVY
+	+ PROCEDURAL_AIR
+	+ PROCEDURAL_SIEGE
+)
 const BULLETS: int = 16
 const SHELLS: int = 4
 const ROCKETS: int = 4
@@ -26,7 +38,7 @@ const DIRECTIVE_SESSIONS: int = 1
 const DIRECTIVE_CARDS: int = 1
 const DIRECTIVE_OVERLAYS: int = 1
 const PAUSE_COORDINATORS: int = 1
-const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS
+const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS + PROCEDURAL_ENEMIES
 const TRAIT_RUNTIMES: int = 1
 const BOSS_SESSIONS: int = 1
 const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
@@ -134,7 +146,12 @@ static func snapshot(city: CitySlice) -> Dictionary:
 static func validation_errors(city: CitySlice) -> PackedStringArray:
 	var data: Dictionary = snapshot(city)
 	var errors: PackedStringArray = []
-	_check_equal(errors, data, "enemy_total", SOLDIERS + TANKS + HELICOPTERS)
+	_check_equal(
+		errors,
+		data,
+		"enemy_total",
+		SOLDIERS + TANKS + HELICOPTERS + PROCEDURAL_ENEMIES
+	)
 	_check_equal(
 		errors,
 		data,

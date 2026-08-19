@@ -1,8 +1,6 @@
 class_name CapacityReservationLedger
 extends RefCounted
 
-const VALID_KINDS: Array[StringName] = [&"soldier", &"tank", &"helicopter"]
-
 var denial_count: int = 0
 var peak_pending: int = 0
 var _reservations: Dictionary[int, Dictionary] = {}
@@ -24,10 +22,11 @@ func reserve_beat(beat: DistrictBeat, runtime: EncounterRuntime) -> int:
 func consume_actor(reservation_id: int, kind: StringName) -> bool:
 	if not _reservations.has(reservation_id):
 		return false
+	var key: StringName = EnemyArchetypeCatalog.reservation_key(kind)
 	var counts: Dictionary = _reservations[reservation_id]
-	if int(counts.get(kind, 0)) <= 0:
+	if int(counts.get(key, 0)) <= 0:
 		return false
-	counts[kind] = int(counts[kind]) - 1
+	counts[key] = int(counts[key]) - 1
 	if _dictionary_total(counts) <= 0:
 		_reservations.erase(reservation_id)
 	return true
@@ -43,8 +42,9 @@ func cancel_all() -> void:
 
 func pending_count(kind: StringName = &"") -> int:
 	var total: int = 0
+	var key: StringName = EnemyArchetypeCatalog.reservation_key(kind) if not kind.is_empty() else &""
 	for counts: Dictionary in _reservations.values():
-		total += _dictionary_total(counts) if kind.is_empty() else int(counts.get(kind, 0))
+		total += _dictionary_total(counts) if key.is_empty() else int(counts.get(key, 0))
 	return total
 
 
@@ -56,9 +56,11 @@ func can_commit(beat: DistrictBeat, runtime: EncounterRuntime) -> bool:
 	if beat == null or runtime == null:
 		return false
 	var counts: Dictionary[StringName, int] = _counts_for_beat(beat)
-	for kind: StringName in VALID_KINDS:
-		var requested: int = int(counts.get(kind, 0))
-		var unreserved: int = runtime.available_count(kind) - pending_count(kind)
+	if counts.is_empty() and not beat.spawns.is_empty():
+		return false
+	for key: StringName in counts:
+		var requested: int = int(counts.get(key, 0))
+		var unreserved: int = runtime.available_reservation_capacity(key) - _pending_for_key(key)
 		if requested > unreserved:
 			return false
 	return true
@@ -68,9 +70,18 @@ func _counts_for_beat(beat: DistrictBeat) -> Dictionary[StringName, int]:
 	var counts: Dictionary[StringName, int] = {}
 	for entry: EnemySpawnEntry in beat.spawns:
 		var kind: StringName = StringName(entry.kind)
-		if kind in VALID_KINDS:
-			counts[kind] = int(counts.get(kind, 0)) + 1
+		if not EnemyArchetypeCatalog.is_valid_kind(kind):
+			continue
+		var key: StringName = EnemyArchetypeCatalog.reservation_key(kind)
+		counts[key] = int(counts.get(key, 0)) + 1
 	return counts
+
+
+func _pending_for_key(key: StringName) -> int:
+	var total: int = 0
+	for counts: Dictionary in _reservations.values():
+		total += int(counts.get(key, 0))
+	return total
 
 
 func _dictionary_total(counts: Dictionary) -> int:

@@ -534,13 +534,10 @@ func _on_prop_destroyed(prop: DestructibleProp2D, event: DamageEvent, points: in
 	rampage_events.prop_destroyed(prop, event, points, robot, prop == car)
 
 
-func _on_enemy_died(
-	enemy: EnemyActor2D,
-	event: DamageEvent,
-	points: int
-) -> void:
+func _on_enemy_died(enemy: EnemyActor2D, event: DamageEvent, points: int) -> void:
 	rampage_events.enemy_defeated(enemy, event, points, robot)
-	if enemy is SoldierEnemy:
+	var procedural: ProceduralEnemy = enemy as ProceduralEnemy
+	if enemy is SoldierEnemy or (procedural != null and procedural.remains_family == &"infantry"):
 		_spawn_soldier_defeat_body(enemy, event)
 		encounter_runtime.release_deferred(enemy)
 		return
@@ -552,14 +549,16 @@ func _on_enemy_died(
 	encounter_runtime.release_deferred(enemy)
 
 
-func _spawn_soldier_defeat_body(
-	enemy: EnemyActor2D,
-	event: DamageEvent
-) -> void:
+func _spawn_soldier_defeat_body(enemy: EnemyActor2D, event: DamageEvent) -> void:
+	var display_size: Vector2 = Vector2(68.0, 108.0)
+	if enemy is ProceduralEnemy:
+		display_size = (enemy as ProceduralEnemy).profile.get("display", display_size) as Vector2
 	soldier_defeat_body = soldier_defeat_pool.acquire(
 		enemy.global_position,
 		enemy.facing,
-		event
+		event,
+		enemy.visual.texture,
+		display_size
 	)
 
 

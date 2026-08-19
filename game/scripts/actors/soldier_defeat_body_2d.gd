@@ -31,7 +31,9 @@ func _ready() -> void:
 func activate(
 	world_position: Vector2,
 	facing: int,
-	impact_event: DamageEvent
+	impact_event: DamageEvent,
+	texture: Texture2D = SOLDIER_TEXTURE,
+	display_size: Vector2 = Vector2(68.0, 108.0)
 ) -> void:
 	freeze = true
 	global_position = world_position
@@ -40,6 +42,10 @@ func activate(
 	angular_velocity = 0.0
 	collision_layer = REMAINS_LAYER
 	collision_mask = REMAINS_GROUND_LAYER
+	visual.texture = texture
+	var texture_size: Vector2 = texture.get_size()
+	var fit: float = minf(display_size.x / texture_size.x, display_size.y / texture_size.y)
+	visual.scale = Vector2.ONE * fit
 	visual.flip_h = facing > 0
 	visual.modulate = Color.WHITE
 	_age = 0.0

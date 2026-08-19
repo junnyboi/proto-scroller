@@ -52,7 +52,22 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 	var wreck: EnemyWreck2D = _free_wrecks.pop_back()
 	_active_wrecks.append(wreck)
 	peak_active_count = maxi(peak_active_count, _active_wrecks.size())
-	if enemy is TankEnemy:
+	if enemy is ProceduralEnemy:
+		var procedural: ProceduralEnemy = enemy as ProceduralEnemy
+		var display_size: Vector2 = procedural.profile.get("display", Vector2(235.0, 100.0)) as Vector2
+		var collision_size: Vector2 = procedural.profile.get("collision", Vector2(210.0, 78.0)) as Vector2
+		wreck.activate(
+			procedural.archetype_id,
+			procedural.visual.texture,
+			display_size,
+			collision_size,
+			clampf(procedural.threat_cost * 34.0, 48.0, 260.0),
+			clampf(procedural.max_health * 0.32, 38.0, 240.0),
+			enemy.global_position,
+			event,
+			procedural.airborne
+		)
+	elif enemy is TankEnemy:
 		wreck.activate(
 			&"tank",
 			_tank_texture,
@@ -90,7 +105,7 @@ func total_count() -> int:
 
 func _on_wreck_scrapped(wreck: EnemyWreck2D, event: DamageEvent) -> void:
 	spawn_scrap(wreck, event)
-	var points: int = 400 if wreck.wreck_kind == &"tank" else 300
+	var points: int = 300 if wreck.airborne_crash else 400
 	wreck_scrapped.emit(wreck, event, points)
 	_release_wreck(wreck, true)
 

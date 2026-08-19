@@ -1,0 +1,144 @@
+extends SceneTree
+
+const MAX_FRAMES: int = 720
+const REPORT_PATH: String = "res://artifacts/enemy_variety/report.json"
+const SHOT_PATH: String = "res://artifacts/enemy_variety/enemy-variety.png"
+
+var checks: Array[Dictionary] = []
+var completed: bool = false
+var elapsed_frames: int = 0
+
+
+func _initialize() -> void:
+	process_frame.connect(_on_process_frame)
+	call_deferred("_run")
+
+
+func _on_process_frame() -> void:
+	if completed:
+		return
+	elapsed_frames += 1
+	if elapsed_frames > MAX_FRAMES:
+		_check("frame_watchdog", false, "frames=%d" % elapsed_frames)
+		_finish("SKIP", "")
+
+
+func _run() -> void:
+	root.get_window().content_scale_size = Vector2i(1280, 720)
+	root.size = Vector2i(1280, 720)
+	var scene: PackedScene = load("res://scenes/gameplay/city_slice.tscn") as PackedScene
+	_check("city_scene_loads", scene != null, "loaded=%s" % [scene != null])
+	if scene == null:
+		_finish("SKIP", "")
+		return
+	var city: CitySlice = scene.instantiate() as CitySlice
+	root.add_child(city)
+	await process_frame
+	city.urban_siege.stop_run()
+	city.encounter_runtime.release_all()
+	var exercised: int = 0
+	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var actor: ProceduralEnemy = city.encounter_runtime.acquire(
+			archetype_id,
+			Vector2(1320.0, float(profile.spawn_y))
+		) as ProceduralEnemy
+		var acquired: bool = actor != null
+		_check("%s_acquires" % archetype_id, acquired, "family=%s" % profile.family)
+		if not acquired:
+			continue
+		actor.set_physics_process(false)
+		var before_position: Vector2 = actor.visual.position
+		var before_scale: Vector2 = actor.visual.scale
+		actor.velocity = Vector2(actor.move_speed, 0.0)
+		actor._begin_attack()
+		actor._animate_visual(0.17)
+		var animated: bool = (
+			actor.visual.position != before_position
+			or actor.visual.scale != before_scale
+			or not is_zero_approx(actor.visual.rotation)
+		)
+		_check("%s_animates" % archetype_id, animated, "style=%s" % actor.movement_style)
+		_check(
+			"%s_telegraphs" % archetype_id,
+			actor.is_telegraphing(),
+			"attack=%s" % actor.attack_style
+		)
+		actor.cancel_telegraph()
+		city.encounter_runtime.release(actor)
+		exercised += 1
+	_check("all_twenty_exercised", exercised == 20, "count=%d" % exercised)
+	_check(
+		"reservations_clean",
+		city.projectile_root.reservation_count() == 0
+		and city.telegraph_presenter.active_count() == 0,
+		"projectiles=%d telegraphs=%d"
+		% [
+			city.projectile_root.reservation_count(),
+			city.telegraph_presenter.active_count(),
+		]
+	)
+	city.robot.global_position.x = 820.0
+	var showcase: Array[Dictionary] = [
+		{"id": &"longbow", "position": Vector2(420.0, 544.0)},
+		{"id": &"bulwark", "position": Vector2(650.0, 540.0)},
+		{"id": &"hound", "position": Vector2(1030.0, 230.0)},
+		{"id": &"nemesis", "position": Vector2(1160.0, 482.5)},
+	]
+	for item: Dictionary in showcase:
+		var actor: ProceduralEnemy = city.encounter_runtime.acquire(
+			item.id,
+			item.position
+		) as ProceduralEnemy
+		if actor != null:
+			actor.set_physics_process(false)
+	await process_frame
+	await physics_frame
+	var shot_status: String = "SKIP"
+	var shot_path: String = ""
+	if DisplayServer.get_name() == "headless":
+		print("[SHOT-SKIPPED] headless lane cannot render")
+	else:
+		await RenderingServer.frame_post_draw
+		var image: Image = root.get_texture().get_image()
+		DirAccess.make_dir_recursive_absolute(
+			ProjectSettings.globalize_path("res://artifacts/enemy_variety")
+		)
+		var error: Error = image.save_png(ProjectSettings.globalize_path(SHOT_PATH))
+		_check("shot_saved", error == OK, "error=%s" % error)
+		_check("shot_geometry", image.get_size() == Vector2i(1280, 720), "size=%s" % image.get_size())
+		shot_status = "PASS" if error == OK else "FAIL"
+		shot_path = SHOT_PATH
+	var cap_errors: PackedStringArray = RuntimeBudget.validation_errors(city)
+	_check("runtime_caps_hold", cap_errors.is_empty(), "errors=%s" % cap_errors)
+	_check("frame_budget", elapsed_frames <= MAX_FRAMES, "frames=%d" % elapsed_frames)
+	_finish(shot_status, shot_path)
+
+
+func _check(check_name: String, passed: bool, detail: String) -> void:
+	checks.append({"name": check_name, "passed": passed, "detail": detail})
+	print("[CHECK] %s %s — %s" % ["PASS" if passed else "FAIL", check_name, detail])
+
+
+func _finish(shot_status: String, shot_path: String) -> void:
+	completed = true
+	var all_passed: bool = true
+	for item: Dictionary in checks:
+		if not bool(item.passed):
+			all_passed = false
+	var report: Dictionary = {
+		"scenario": "enemy_variety",
+		"result": "PASS" if all_passed else "FAIL",
+		"done": completed,
+		"headless": DisplayServer.get_name() == "headless",
+		"elapsed_frames": elapsed_frames,
+		"checks": checks,
+		"shot": {"status": shot_status, "path": shot_path},
+	}
+	DirAccess.make_dir_recursive_absolute(
+		ProjectSettings.globalize_path("res://artifacts/enemy_variety")
+	)
+	var report_file: FileAccess = FileAccess.open(REPORT_PATH, FileAccess.WRITE)
+	report_file.store_string(JSON.stringify(report, "\t"))
+	print("[ENEMY-VARIETY-DONE] result=%s" % report.result)
+	quit(0 if all_passed else 1)
