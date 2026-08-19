@@ -83,6 +83,9 @@ func decorate_attack(spec: AttackSpec) -> AttackSpec:
 		and spec.is_jab_cross()
 	):
 		structure_multiplier = effect_profile.structural_multiplier
+	var structural_damage: float = spec.structural_damage * structure_multiplier
+	if spec.is_jab_cross():
+		structural_damage = minf(structural_damage, 125.0 * 2.25)
 	return AttackSpec.new(
 		spec.mode,
 		spec.attack_id,
@@ -92,12 +95,13 @@ func decorate_attack(spec: AttackSpec) -> AttackSpec:
 		spec.active_seconds,
 		spec.recovery_seconds,
 		spec.actor_damage,
-		spec.structural_damage * structure_multiplier,
+		structural_damage,
 		spec.impulse_per_mass,
 		spec.hit_size,
 		spec.hit_offset,
 		spec.opening_compression,
-		effect_profile.effect_flag
+		spec.effect_flags | effect_profile.effect_flag,
+		spec.kinetic_debris_bonus
 	)
 
 

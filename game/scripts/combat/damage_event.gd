@@ -1,5 +1,6 @@
 class_name DamageEvent
 extends RefCounted
+# gdlint: disable=function-arguments-number
 
 const FLAG_NONE: int = 0
 const FLAG_CATALYST: int = 1 << 0
@@ -7,6 +8,7 @@ const FLAG_DIRECTIVE_BREACH: int = 1 << 1
 const FLAG_DIRECTIVE_AFTERSHOCK: int = 1 << 2
 const FLAG_DIRECTIVE_SKYBREAKER: int = 1 << 3
 const FLAG_VOLATILE: int = 1 << 4
+const FLAG_KINETIC_FIELD: int = 1 << 5
 const MAX_CAUSAL_DEPTH: int = 3
 
 var attack_id: int
@@ -19,6 +21,7 @@ var impulse_per_mass: float
 var root_attack_id: int
 var causal_depth: int
 var effect_flags: int
+var kinetic_debris_bonus: float
 
 
 func _init(
@@ -31,7 +34,8 @@ func _init(
 	p_impulse_per_mass: float = 0.0,
 	p_root_attack_id: int = 0,
 	p_causal_depth: int = 0,
-	p_effect_flags: int = FLAG_NONE
+	p_effect_flags: int = FLAG_NONE,
+	p_kinetic_debris_bonus: float = 0.0
 ) -> void:
 	attack_id = p_attack_id
 	source = p_source
@@ -43,6 +47,7 @@ func _init(
 	root_attack_id = p_root_attack_id if p_root_attack_id != 0 else p_attack_id
 	causal_depth = maxi(p_causal_depth, 0)
 	effect_flags = p_effect_flags
+	kinetic_debris_bonus = maxf(p_kinetic_debris_bonus, 0.0)
 
 
 func scaled(factor: float) -> DamageEvent:
@@ -56,5 +61,6 @@ func scaled(factor: float) -> DamageEvent:
 		impulse_per_mass * factor,
 		root_attack_id,
 		causal_depth,
-		effect_flags
+		effect_flags,
+		kinetic_debris_bonus
 	)

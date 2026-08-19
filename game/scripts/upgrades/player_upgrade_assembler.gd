@@ -11,12 +11,21 @@ var runtimes: Dictionary[StringName, UpgradeRuntime] = {}
 
 func setup(city: Node) -> PackedStringArray:
 	name = "PlayerUpgradeAssembler"
+	var robot: GiantRobotController = city.get("robot") as GiantRobotController
 	for profile: UpgradeProfile in CATALOG.profiles:
-		var runtime: UpgradeRuntime = UpgradeRuntime.new()
+		var runtime: UpgradeRuntime = _create_runtime(profile, robot)
 		runtime.name = "%sRuntime" % String(profile.runtime_key).to_pascal_case()
-		runtime.setup(profile.runtime_key, profile.max_rank)
 		add_child(runtime)
 		runtimes[profile.runtime_key] = runtime
+	var kinetic: KineticFieldRuntime = (
+		runtimes[&"KINETIC_FIELD"] as KineticFieldRuntime
+	)
+	var attacks: ContextualAttackController = (
+		city.get("contextual_attacks") as ContextualAttackController
+	)
+	var debris_pool: DebrisPool = city.get("debris_pool") as DebrisPool
+	attacks.set_kinetic_field_runtime(kinetic)
+	debris_pool.set_kinetic_field_runtime(kinetic)
 	session = UpgradeSession.new()
 	session.name = "UpgradeSession"
 	add_child(session)
@@ -38,6 +47,36 @@ func setup(city: Node) -> PackedStringArray:
 	session.set_presentation_blocked(false)
 	rampage.run_experience.level_gained.connect(session.queue_level)
 	return errors
+
+
+func decorate_damage_options(options: DamageQueryOptions, spec: AttackSpec) -> void:
+	var runtime: KineticFieldRuntime = (
+		runtimes.get(&"KINETIC_FIELD") as KineticFieldRuntime
+	)
+	if runtime != null:
+		runtime.decorate_query_options(options, spec)
+
+
+func _create_runtime(
+	profile: UpgradeProfile,
+	robot: GiantRobotController
+) -> UpgradeRuntime:
+	var runtime: UpgradeRuntime
+	match profile.runtime_key:
+		&"ARMOR_PLATING":
+			var armor: ArmorPlatingRuntime = ArmorPlatingRuntime.new()
+			armor.setup_robot(robot)
+			runtime = armor
+		&"ENGINE":
+			var engine: EngineUpgradeRuntime = EngineUpgradeRuntime.new()
+			engine.setup_robot(robot)
+			runtime = engine
+		&"KINETIC_FIELD":
+			runtime = KineticFieldRuntime.new()
+		_:
+			runtime = UpgradeRuntime.new()
+			runtime.setup(profile.runtime_key, profile.max_rank)
+	return runtime
 
 
 func _on_offer_opened(offer: UpgradeOffer, hud: GameplayHud) -> void:

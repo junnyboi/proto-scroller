@@ -53,6 +53,11 @@ var current_health: float
 var virtual_move_axis: float = 0.0
 var acceleration_multiplier: float = 1.0
 var attack_controller: ContextualAttackController
+var base_max_health: float = 0.0
+var base_max_speed: float = 0.0
+var base_ground_acceleration: float = 0.0
+var base_air_acceleration: float = 0.0
+var base_ground_deceleration: float = 0.0
 var _turn_elapsed: float = 0.0
 var _pending_facing: int = 1
 var _attack_id: int = 0
@@ -73,6 +78,11 @@ func _ready() -> void:
 	floor_stop_on_slope = true
 	floor_snap_length = 6.0
 	_pending_facing = facing
+	base_max_health = max_health
+	base_max_speed = max_speed
+	base_ground_acceleration = ground_acceleration
+	base_air_acceleration = air_acceleration
+	base_ground_deceleration = ground_deceleration
 	current_health = max_health
 	_apply_visual_facing()
 
@@ -145,6 +155,49 @@ func set_virtual_move_axis(axis: float) -> void:
 
 func set_acceleration_multiplier(multiplier: float) -> void:
 	acceleration_multiplier = clampf(multiplier, 1.0, 1.5)
+
+
+func set_durability_bonus(total_bonus: float) -> bool:
+	var next_maximum: float = base_max_health + maxf(total_bonus, 0.0)
+	if is_equal_approx(next_maximum, max_health):
+		return false
+	var missing_health: float = maxf(max_health - current_health, 0.0)
+	var was_defeated: bool = current_health <= 0.0
+	max_health = next_maximum
+	current_health = 0.0 if was_defeated else maxf(max_health - missing_health, 0.0)
+	current_health = minf(current_health, max_health)
+	health_changed.emit(current_health, max_health)
+	return true
+
+
+func set_engine_multipliers(
+	speed_multiplier: float,
+	acceleration_scale: float,
+	deceleration_scale: float
+) -> bool:
+	var next_speed: float = base_max_speed * maxf(speed_multiplier, 1.0)
+	var next_ground_accel: float = base_ground_acceleration * maxf(acceleration_scale, 1.0)
+	var next_air_accel: float = base_air_acceleration * maxf(acceleration_scale, 1.0)
+	var next_deceleration: float = (
+		base_ground_deceleration * maxf(deceleration_scale, 1.0)
+	)
+	if (
+		is_equal_approx(max_speed, next_speed)
+		and is_equal_approx(ground_acceleration, next_ground_accel)
+		and is_equal_approx(air_acceleration, next_air_accel)
+		and is_equal_approx(ground_deceleration, next_deceleration)
+	):
+		return false
+	var previous_speed: float = maxf(max_speed, 1.0)
+	var preserve_overspeed: bool = absf(velocity.x) > previous_speed
+	var signed_ratio: float = velocity.x / previous_speed
+	max_speed = next_speed
+	ground_acceleration = next_ground_accel
+	air_acceleration = next_air_accel
+	ground_deceleration = next_deceleration
+	if not preserve_overspeed:
+		velocity.x = signed_ratio * max_speed
+	return true
 
 
 func set_attack_controller(controller: ContextualAttackController) -> void:

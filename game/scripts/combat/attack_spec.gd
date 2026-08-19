@@ -50,6 +50,9 @@ var opening_compression: bool:
 var effect_flags: int:
 	get:
 		return _effect_flags
+var kinetic_debris_bonus: float:
+	get:
+		return _kinetic_debris_bonus
 
 var _mode: Mode
 var _attack_id: int
@@ -65,6 +68,7 @@ var _hit_size: Vector2
 var _hit_offset: Vector2
 var _opening_compression: bool
 var _effect_flags: int
+var _kinetic_debris_bonus: float
 
 
 func _init(
@@ -81,7 +85,8 @@ func _init(
 	p_hit_size: Vector2,
 	p_hit_offset: Vector2,
 	p_opening_compression: bool = false,
-	p_effect_flags: int = DamageEvent.FLAG_NONE
+	p_effect_flags: int = DamageEvent.FLAG_NONE,
+	p_kinetic_debris_bonus: float = 0.0
 ) -> void:
 	_mode = p_mode
 	_attack_id = p_attack_id
@@ -97,6 +102,7 @@ func _init(
 	_hit_offset = p_hit_offset
 	_opening_compression = p_opening_compression
 	_effect_flags = p_effect_flags
+	_kinetic_debris_bonus = maxf(p_kinetic_debris_bonus, 0.0)
 
 
 func is_ground_smash() -> bool:

@@ -148,7 +148,7 @@ func _release_chunks(event: DamageEvent) -> void:
 			0.0,
 			spawn_position
 		)
-		_debris_pool.acquire(
+		var debris: DebrisBody2D = _debris_pool.acquire(
 			spawn_transform,
 			direction * speed_delta * body_mass,
 			lerpf(-4.0, 4.0, weight) * body_mass,
@@ -158,6 +158,7 @@ func _release_chunks(event: DamageEvent) -> void:
 			primary_color,
 			facet_color
 		)
+		_debris_pool.arm_kinetic_debris(debris, event)
 
 
 func get_material_profile() -> StructuralMaterialProfile:
