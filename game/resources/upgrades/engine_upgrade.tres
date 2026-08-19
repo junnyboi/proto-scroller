@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 upgrade_id = &"ENGINE"
-display_name = "ENGINE UPGRADE"
-description = "Increase top speed, acceleration, and deceleration without momentum loss."
+display_name = "upgrade.engine.name"
+description = "upgrade.engine.description"
 category = &"mobility"
 icon = ExtResource("2")
 max_rank = 3

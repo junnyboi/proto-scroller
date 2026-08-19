@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 role_id = &"ANCHOR_TANK"
-display_name = "ANCHOR"
+display_name = "role.anchor"
 health_multiplier = 1.35
 movement_multiplier = 0.72
 attack_interval_multiplier = 1.1

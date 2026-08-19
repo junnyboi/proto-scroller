@@ -31,13 +31,13 @@ func configure(profile: UpgradeProfile, rank: int) -> void:
 	upgrade_id = profile.upgrade_id
 	current_rank = clampi(rank, 0, profile.max_rank)
 	maximum_rank = profile.max_rank
-	title_label.text = profile.display_name
-	rank_label.text = "RANK %d  →  %d / %d" % [
-		current_rank,
-		mini(current_rank + 1, maximum_rank),
-		maximum_rank,
-	]
-	description_label.text = profile.description
+	title_label.text = L10n.t(profile.display_name)
+	rank_label.text = L10n.t("upgrade.rank", {
+		"current": current_rank,
+		"next": mini(current_rank + 1, maximum_rank),
+		"maximum": maximum_rank,
+	})
+	description_label.text = L10n.t(profile.description)
 	glyph_label.text = _glyph_for(profile.category)
 	if profile.icon != null:
 		icon_rect.texture = profile.icon

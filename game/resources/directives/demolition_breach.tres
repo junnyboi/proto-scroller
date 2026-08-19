@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 directive_id = &"DEMOLITION_BREACH"
-display_name = "DEMOLITION BREACH"
-instruction = "BREACH 3 CELLS"
+display_name = "directive.demolition_breach.name"
+instruction = "directive.demolition_breach.instruction"
 duration_seconds = 14.0
 target_count = 3
 structural_multiplier = 1.5

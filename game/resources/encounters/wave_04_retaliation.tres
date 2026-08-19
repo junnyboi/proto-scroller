@@ -51,7 +51,7 @@ position = Vector2(2580, 542.5)
 
 [resource]
 script = ExtResource("1")
-display_name = "RETALIATION"
+display_name = "encounter.retaliation"
 opening_delay = 1.0
 minimum_respite = 1.2
 spawns = Array[ExtResource("2")]([SubResource("TankA"), SubResource("Helicopter"), SubResource("TankB"), SubResource("S0"), SubResource("S1"), SubResource("S2"), SubResource("S3"), SubResource("S4"), SubResource("S5")])

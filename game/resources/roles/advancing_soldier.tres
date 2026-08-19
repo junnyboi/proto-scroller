@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 role_id = &"ADVANCING_SOLDIER"
-display_name = "ADVANCING"
+display_name = "role.advancing"
 health_multiplier = 1.1
 movement_multiplier = 1.3
 attack_interval_multiplier = 1.0

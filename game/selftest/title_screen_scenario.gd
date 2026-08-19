@@ -52,12 +52,12 @@ func _run() -> void:
 	_check("title_visible", title_visible, "visible=%s" % [title_visible])
 	_check(
 		"title_text",
-		title_label.text == "PROTO SCROLLER\nFIELD BRIEFING",
+		title_label.text == L10n.t("title.heading"),
 		"text=%s" % [title_label.text]
 	)
 	_check(
 		"begin_expedition_action",
-		button.text == "BEGIN EXPEDITION",
+		button.text == L10n.t("title.begin"),
 		"text=%s" % [button.text]
 	)
 	_check_briefing_content(screen)
@@ -97,7 +97,7 @@ func _run() -> void:
 	_check("input_initializes", screen.initialized, "initialized=%s" % [screen.initialized])
 	_check(
 		"ready_status",
-		status_label.text == "EXPEDITION ACTIVE",
+		status_label.text == L10n.t("title.expedition_active"),
 		"status=%s" % [status_label.text]
 	)
 	_check("frame_budget", elapsed_frames <= MAX_FRAMES, _frame_budget_detail())
@@ -150,28 +150,26 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 		briefing_text += (label_node as Label).text + "\n"
 	_check(
 		"story_present",
-		story.contains("city defense grid went silent"),
+		story == L10n.t("title.story"),
 		"text=%s" % [story]
 	)
 	_check(
 		"tutorial_present",
-		controls.contains("A / D") and controls.contains("SPACE")
-		and controls.contains("Mobile joystick") and controls.contains("SMASH")
-		and field_note.contains("recovery") and field_note.contains("dash dodge"),
+		controls == L10n.t("title.controls_body")
+		and field_note == L10n.t("title.field_note"),
 		"controls=%s note=%s" % [controls, field_note]
 	)
 	_check(
 		"objectives_present",
-		briefing_text.contains("Survive the city response")
-		and briefing_text.contains("earn EXP")
-		and briefing_text.contains("1 of 2 upgrades"),
+		briefing_text.contains(L10n.t("title.primary_objective"))
+		and briefing_text.contains(L10n.t("title.objective_one"))
+		and briefing_text.contains(L10n.t("title.objective_three")),
 		"text=%s" % [briefing_text]
 	)
 	_check(
 		"enemy_and_retry_intel_present",
-		briefing_text.contains("Soldiers + tanks")
-		and briefing_text.contains("Helicopters + rockets")
-		and briefing_text.contains("reset when you Retry"),
+		briefing_text.contains(L10n.t("title.enemy_intel"))
+		and briefing_text.contains(L10n.t("title.run_protocol")),
 		"text=%s" % [briefing_text]
 	)
 

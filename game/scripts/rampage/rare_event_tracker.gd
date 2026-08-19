@@ -27,7 +27,8 @@ func register_event(event: GameplayEvent) -> bool:
 func visible_text() -> PackedStringArray:
 	var text: PackedStringArray = []
 	for tag: StringName in _visible_tags:
-		text.append("%s  x%d" % [String(tag), counts.get(tag, 0)])
+		var key: String = "rare.%s" % String(tag).to_lower().replace(" ", "_")
+		text.append(L10n.t(key, {"count": counts.get(tag, 0)}))
 	return text
 
 

@@ -63,7 +63,7 @@ func test_wave_progression_waits_for_active_enemies_then_advances() -> void:
 	city.encounter_runtime.release_all()
 	director._process(1.1)
 	assert_eq(director.phase_index, 1)
-	assert_eq(director.current_phase_name(), "ARMOR RESPONSE")
+	assert_eq(director.current_phase_name(), "encounter.armor_response")
 
 
 func test_tank_warning_fires_exact_snapshot_from_reserved_slot() -> void:

@@ -8,10 +8,10 @@ const ORDER: Array[StringName] = [
 	&"FLAMETHROWER",
 ]
 const LABELS: Dictionary[StringName, String] = {
-	&"MACHINE_GUN": "MG",
-	&"MISSILE": "MSL",
-	&"LASER": "LAS",
-	&"FLAMETHROWER": "FLM",
+	&"MACHINE_GUN": "weapon.machine_gun",
+	&"MISSILE": "weapon.missile",
+	&"LASER": "weapon.laser",
+	&"FLAMETHROWER": "weapon.flamethrower",
 }
 
 var label: Label
@@ -61,5 +61,8 @@ func apply_responsive_layout() -> void:
 func _refresh() -> void:
 	var entries: PackedStringArray = []
 	for upgrade_id: StringName in ORDER:
-		entries.append("%s %d" % [LABELS[upgrade_id], ranks[upgrade_id]])
-	label.text = "  ·  ".join(entries)
+		entries.append(L10n.t("weapon.entry", {
+			"label": L10n.t(LABELS[upgrade_id]),
+			"rank": ranks[upgrade_id],
+		}))
+	label.text = L10n.t("weapon.separator").join(entries)

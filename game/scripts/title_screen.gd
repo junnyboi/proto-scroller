@@ -22,7 +22,9 @@ func _ready() -> void:
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
+	_apply_localized_text()
 	_apply_responsive_layout()
+	L10n.apply_locale_font(self)
 	queue_redraw()
 
 
@@ -35,12 +37,12 @@ func initialize_game() -> bool:
 	if initialized:
 		return false
 	initialized = true
-	status_label.text = "EXPEDITION ACTIVE"
+	status_label.text = L10n.t("title.expedition_active")
 	status_label.modulate = Color("72ffd6")
-	instruction_label.text = "Deployment authorized. Opening the city corridor."
-	system_value.text = "DEPLOYING"
+	instruction_label.text = L10n.t("title.deployment_authorized")
+	system_value.text = L10n.t("title.deploying")
 	system_value.modulate = Color("72ffd6")
-	initialize_button.text = "DEPLOYING"
+	initialize_button.text = L10n.t("title.deploying")
 	initialize_button.disabled = true
 	return true
 
@@ -53,6 +55,39 @@ func _on_initialize_pressed() -> void:
 func is_portrait_layout() -> bool:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	return viewport_size.y > viewport_size.x
+
+
+func _apply_localized_text() -> void:
+	($TopRail/ProtocolLabel as Label).text = L10n.t("title.protocol")
+	status_label.text = L10n.t(
+		"title.expedition_active" if initialized else "title.mission_briefing"
+	)
+	($HeroStack/Eyebrow as Label).text = L10n.t("title.recovery_zone")
+	(%TitleLabel as Label).text = L10n.t("title.heading")
+	instruction_label.text = L10n.t(
+		"title.deployment_authorized" if initialized else "title.story"
+	)
+	($HeroStack/ControlsHeading as Label).text = L10n.t("title.controls_heading")
+	(%ControlsLabel as Label).text = L10n.t("title.controls_body")
+	($HeroStack/FieldNote as Label).text = L10n.t("title.field_note")
+	initialize_button.text = L10n.t("title.deploying" if initialized else "title.begin")
+	($HeroStack/ActionRow/HintLabel as Label).text = L10n.t("title.input_hint")
+	($TelemetryPanel/PanelStack/PanelHeading as Label).text = L10n.t(
+		"title.objectives_heading"
+	)
+	($TelemetryPanel/PanelStack/PrimaryObjective as Label).text = L10n.t(
+		"title.primary_objective"
+	)
+	($TelemetryPanel/PanelStack/ObjectiveOne as Label).text = L10n.t("title.objective_one")
+	($TelemetryPanel/PanelStack/ObjectiveTwo as Label).text = L10n.t("title.objective_two")
+	($TelemetryPanel/PanelStack/ObjectiveThree as Label).text = L10n.t("title.objective_three")
+	($TelemetryPanel/PanelStack/EnemyHeading as Label).text = L10n.t("title.enemy_heading")
+	(%EnemyIntel as Label).text = L10n.t("title.enemy_intel")
+	(%RunRule as Label).text = L10n.t("title.run_protocol")
+	($TelemetryPanel/PanelStack/MissionStateRow/SystemKey as Label).text = L10n.t(
+		"title.mission_state"
+	)
+	system_value.text = L10n.t("title.deploying" if initialized else "title.awaiting_pilot")
 
 
 func _apply_responsive_layout() -> void:
@@ -71,11 +106,9 @@ func _apply_landscape_layout() -> void:
 	_set_rect($TelemetryPanel, Rect2(752.0, 82.0, 470.0, 574.0))
 	_set_rect($BottomRail, Rect2(56.0, 672.0, 1168.0, 40.0))
 	_set_title_font_sizes(24, 56)
-	(%TitleLabel as Label).text = "PROTO SCROLLER\nFIELD BRIEFING"
-	($BottomRail/BuildLabel as Label).text = (
-		"ONE BUTTON  //  MAXIMUM COLLATERAL  //  RUN-LOCAL UPGRADES"
-	)
-	($BottomRail/CoordinatesLabel as Label).text = "1280 × 720"
+	(%TitleLabel as Label).text = L10n.t("title.heading")
+	($BottomRail/BuildLabel as Label).text = L10n.t("title.footer_landscape")
+	($BottomRail/CoordinatesLabel as Label).text = L10n.t("title.coordinates_landscape")
 	($BottomRail/CoordinatesLabel as Label).visible = true
 
 
@@ -87,9 +120,9 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	_set_rect($TelemetryPanel, Rect2(52.0, 650.0, viewport_size.x - 104.0, 488.0))
 	_set_rect($BottomRail, Rect2(28.0, viewport_size.y - 62.0, content_width, 40.0))
 	_set_title_font_sizes(24, 48)
-	(%TitleLabel as Label).text = "PROTO SCROLLER\nFIELD BRIEFING"
-	($BottomRail/BuildLabel as Label).text = "ONE BUTTON  //  RUN-LOCAL UPGRADES"
-	($BottomRail/CoordinatesLabel as Label).text = "720 × 1280"
+	(%TitleLabel as Label).text = L10n.t("title.heading")
+	($BottomRail/BuildLabel as Label).text = L10n.t("title.footer_portrait")
+	($BottomRail/CoordinatesLabel as Label).text = L10n.t("title.coordinates_portrait")
 	($BottomRail/CoordinatesLabel as Label).visible = false
 
 

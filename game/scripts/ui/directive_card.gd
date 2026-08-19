@@ -54,24 +54,34 @@ func show_directive(profile: DirectiveProfile, current: int, target: int, bank: 
 		return
 	visible = true
 	icon.texture = profile.icon
-	title_label.text = profile.display_name
-	detail_label.text = "%s  %d/%d" % [profile.instruction, current, target]
-	bank_label.text = "PENDING +%d" % bank
+	title_label.text = L10n.t(profile.display_name)
+	detail_label.text = L10n.t("directive.progress", {
+		"instruction": L10n.t(profile.instruction),
+		"current": current,
+		"target": target,
+	})
+	bank_label.text = L10n.t("directive.pending", {"value": bank})
 	title_label.modulate = ACCENT_COLOR
 
 
 func set_progress(profile: DirectiveProfile, current: int, target: int) -> void:
 	if profile != null:
-		detail_label.text = "%s  %d/%d" % [profile.instruction, current, target]
+		detail_label.text = L10n.t("directive.progress", {
+			"instruction": L10n.t(profile.instruction),
+			"current": current,
+			"target": target,
+		})
 
 
 func set_bank(value: int) -> void:
-	bank_label.text = "PENDING +%d" % maxi(value, 0)
+	bank_label.text = L10n.t("directive.pending", {"value": maxi(value, 0)})
 
 
 func show_result(text: String, success: bool) -> void:
 	visible = true
 	title_label.text = text
 	title_label.modulate = COMPLETE_COLOR if success else FAILURE_COLOR
-	detail_label.text = "SCORE SECURED" if success else "PENDING SCORE PENALTY"
+	detail_label.text = L10n.t(
+		"directive.score_secured" if success else "directive.score_penalty"
+	)
 	bank_label.text = ""
