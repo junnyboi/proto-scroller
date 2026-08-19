@@ -98,7 +98,7 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
-text = "Weapons fire automatically after acquisition.\nMove. Build speed. SMASH with intent."
+text = "Weapons fire automatically after acquisition.\nDuring recovery, SMASH buffers a dash dodge."
 autowrap_mode = 3
 
 [node name="ActionRow" type="HBoxContainer" parent="HeroStack"]

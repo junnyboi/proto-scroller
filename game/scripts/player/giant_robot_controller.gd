@@ -9,6 +9,8 @@ signal damage_received(event: DamageEvent, accepted_damage: float)
 signal defeated
 signal attack_mode_selected(mode: int, attack_id: int)
 signal attack_committed(mode: int, attack_id: int)
+signal dodge_started(facing: int, duration: float)
+signal dodge_finished
 signal heavy_impact_requested(
 	origin: Vector2,
 	radius: float,
@@ -22,6 +24,7 @@ enum LocomotionState {
 	WALK,
 	TURN,
 	ATTACK_LOCKED,
+	DODGE,
 	DISABLED,
 }
 
@@ -33,6 +36,11 @@ enum LocomotionState {
 @export var gravity: float = 1400.0
 @export var max_fall_speed: float = 1000.0
 @export_range(0.04, 0.25, 0.01) var turn_duration: float = 0.10
+
+@export_group("Dodge")
+@export var dodge_speed: float = 520.0
+@export var dodge_duration: float = 0.18
+@export var dodge_invulnerability_seconds: float = 0.30
 
 @export_group("Impact")
 @export var stomp_radius: float = 96.0
@@ -58,12 +66,23 @@ var base_max_speed: float = 0.0
 var base_ground_acceleration: float = 0.0
 var base_air_acceleration: float = 0.0
 var base_ground_deceleration: float = 0.0
+var dodge_count: int = 0
+var invulnerable_rejection_count: int = 0
+var dodge_invulnerable: bool:
+	get:
+		return _invulnerable_remaining > 0.0
+var dodge_invulnerability_remaining: float:
+	get:
+		return _invulnerable_remaining
 var _turn_elapsed: float = 0.0
 var _pending_facing: int = 1
 var _attack_id: int = 0
 var _was_on_floor: bool = false
 var _pre_move_vertical_speed: float = 0.0
 var _control_enabled: bool = true
+var _attack_locked: bool = false
+var _dodge_remaining: float = 0.0
+var _invulnerable_remaining: float = 0.0
 var _seen_attacks: Dictionary[int, bool] = {}
 
 @onready var _visual_root: Node2D = get_node_or_null(visual_root_path) as Node2D
@@ -99,6 +118,9 @@ func _physics_process(delta: float) -> void:
 func receive_damage(event: DamageEvent) -> bool:
 	if event == null or event.amount <= 0.0 or locomotion_state == LocomotionState.DISABLED:
 		return false
+	if _invulnerable_remaining > 0.0:
+		invulnerable_rejection_count += 1
+		return false
 	if _is_friendly_damage(event):
 		return false
 	if event.attack_id != 0 and _seen_attacks.has(event.attack_id):
@@ -124,6 +146,7 @@ func _is_friendly_damage(event: DamageEvent) -> bool:
 
 
 func physics_step(input_axis: float, delta: float) -> void:
+	_invulnerable_remaining = maxf(_invulnerable_remaining - delta, 0.0)
 	if locomotion_state == LocomotionState.DISABLED:
 		_apply_gravity(delta)
 		move_and_slide()
@@ -131,6 +154,15 @@ func physics_step(input_axis: float, delta: float) -> void:
 	_was_on_floor = is_on_floor()
 	_pre_move_vertical_speed = velocity.y
 	_apply_gravity(delta)
+	if locomotion_state == LocomotionState.DODGE:
+		velocity.x = float(facing) * dodge_speed
+		move_and_slide()
+		_dodge_remaining = maxf(_dodge_remaining - delta, 0.0)
+		if is_zero_approx(_dodge_remaining):
+			_set_locomotion_state(LocomotionState.IDLE)
+			dodge_finished.emit()
+		_resolve_landing_impact()
+		return
 	if _control_enabled and locomotion_state != LocomotionState.ATTACK_LOCKED:
 		_update_locomotion(clampf(input_axis, -1.0, 1.0), delta)
 	else:
@@ -145,7 +177,7 @@ func set_control_enabled(enabled: bool) -> void:
 		virtual_move_axis = 0.0
 	if not enabled and locomotion_state != LocomotionState.DISABLED:
 		_set_locomotion_state(LocomotionState.ATTACK_LOCKED)
-	elif enabled and locomotion_state == LocomotionState.ATTACK_LOCKED:
+	elif enabled and locomotion_state == LocomotionState.ATTACK_LOCKED and not _attack_locked:
 		_set_locomotion_state(LocomotionState.IDLE)
 
 
@@ -204,6 +236,29 @@ func set_attack_controller(controller: ContextualAttackController) -> void:
 	attack_controller = controller
 
 
+func _set_attack_locked(locked: bool) -> void:
+	_attack_locked = locked
+	if locomotion_state == LocomotionState.DISABLED or locomotion_state == LocomotionState.DODGE:
+		return
+	_set_locomotion_state(
+		LocomotionState.ATTACK_LOCKED
+		if locked
+		else LocomotionState.IDLE
+	)
+
+
+func _start_dodge() -> bool:
+	if not _control_enabled or locomotion_state == LocomotionState.DISABLED or _attack_locked:
+		return false
+	_dodge_remaining = dodge_duration
+	_invulnerable_remaining = dodge_invulnerability_seconds
+	velocity.x = float(facing) * dodge_speed
+	_set_locomotion_state(LocomotionState.DODGE)
+	dodge_count += 1
+	dodge_started.emit(facing, dodge_duration)
+	return true
+
+
 func set_disabled(disabled: bool) -> void:
 	_control_enabled = not disabled
 	_set_locomotion_state(
@@ -229,7 +284,11 @@ func reserve_attack_id() -> int:
 
 
 func can_request_attack() -> bool:
-	return _control_enabled and locomotion_state != LocomotionState.DISABLED
+	return (
+		_control_enabled
+		and locomotion_state != LocomotionState.DISABLED
+		and locomotion_state != LocomotionState.DODGE
+	)
 
 
 func execute_ground_smash(attack_id: int) -> void:

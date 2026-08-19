@@ -46,6 +46,10 @@ var catalyst_target: Catalyst2D
 var boss_mode: bool = false
 var boss_armor: float = 0.0
 var boss_max_armor: float = 0.0
+var player_anticipation_count: int = 0
+var player_strike_reaction_count: int = 0
+var last_player_reaction_attack_id: int = 0
+var last_player_knockback_attack_id: int = 0
 var _base_max_health: float = 0.0
 var _shield_available: bool = false
 var _shield_damage_ratio: float = 1.0
@@ -61,6 +65,7 @@ var _telegraph_kind: StringName = &""
 var _telegraph_origin: Vector2 = Vector2.ZERO
 var _telegraph_target: Vector2 = Vector2.ZERO
 var _projectile_reservation_id: int = 0
+var _player_reaction_tween: Tween
 
 @onready var visual: Sprite2D = get_node_or_null(^"Visual") as Sprite2D
 
@@ -133,7 +138,14 @@ func receive_damage(event: DamageEvent) -> bool:
 		_shield_available = false
 		accepted_event = event.scaled(_shield_damage_ratio)
 	current_health = maxf(current_health - accepted_event.amount, 0.0)
-	velocity += accepted_event.direction * accepted_event.impulse_per_mass * 0.18
+	var knockback_scale: float = (
+		0.28
+		if accepted_event.damage_type in [&"jab_cross", &"ground_smash"]
+		else 0.18
+	)
+	velocity += accepted_event.direction * accepted_event.impulse_per_mass * knockback_scale
+	if accepted_event.damage_type in [&"jab_cross", &"ground_smash"]:
+		last_player_knockback_attack_id = accepted_event.attack_id
 	if visual != null:
 		visual.modulate = Color("ffd0a6")
 		var tween: Tween = create_tween()
@@ -153,6 +165,63 @@ func request_projectile(
 	if not attack_gate_enabled:
 		return
 	projectile_requested.emit(origin, direction, speed, damage, kind, self)
+
+
+func begin_player_attack_reaction(
+	attack_id: int,
+	attacker_position: Vector2,
+	duration: float
+) -> void:
+	if not active or dead or visual == null:
+		return
+	_cancel_player_reaction_tween()
+	last_player_reaction_attack_id = attack_id
+	player_anticipation_count += 1
+	var away: float = signf(global_position.x - attacker_position.x)
+	if is_zero_approx(away):
+		away = float(-facing)
+	visual.skew = 0.0
+	visual.modulate = Color("fff0c7")
+	var brace_seconds: float = minf(duration * 0.35, 0.18)
+	_player_reaction_tween = create_tween()
+	_player_reaction_tween.tween_property(
+		visual,
+		"skew",
+		-away * 0.16,
+		brace_seconds
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_player_reaction_tween.tween_property(
+		visual,
+		"skew",
+		-away * 0.06,
+		maxf(duration - brace_seconds, 0.01)
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func commit_player_attack_reaction(attack_id: int, attacker_position: Vector2) -> void:
+	if (
+		not active
+		or dead
+		or visual == null
+		or last_player_reaction_attack_id != attack_id
+	):
+		return
+	_cancel_player_reaction_tween()
+	player_strike_reaction_count += 1
+	var away: float = signf(global_position.x - attacker_position.x)
+	if is_zero_approx(away):
+		away = float(-facing)
+	visual.skew = away * 0.24
+	visual.modulate = Color("fff7df")
+	_player_reaction_tween = create_tween()
+	_player_reaction_tween.set_parallel(true)
+	_player_reaction_tween.tween_property(
+		visual,
+		"skew",
+		0.0,
+		0.22
+	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_player_reaction_tween.tween_property(visual, "modulate", Color.WHITE, 0.16)
 
 
 func set_attack_gate(enabled: bool) -> void:
@@ -213,6 +282,7 @@ func configure_boss(armor: float, exposed_health: float) -> void:
 
 
 func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
+	_cancel_player_reaction_tween()
 	clear_profiles()
 	activation_generation += 1
 	active = true
@@ -233,10 +303,12 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 		visual.position = _visual_rest_position
 		visual.scale = _visual_rest_scale
 		visual.rotation = 0.0
+		visual.skew = 0.0
 	_reset_archetype_state()
 
 
 func deactivate() -> void:
+	_cancel_player_reaction_tween()
 	cancel_telegraph()
 	clear_profiles()
 	boss_mode = false
@@ -340,6 +412,12 @@ func is_telegraphing() -> bool:
 
 func _reset_archetype_state() -> void:
 	pass
+
+
+func _cancel_player_reaction_tween() -> void:
+	if _player_reaction_tween != null and _player_reaction_tween.is_valid():
+		_player_reaction_tween.kill()
+	_player_reaction_tween = null
 
 
 func _update_facing() -> void:

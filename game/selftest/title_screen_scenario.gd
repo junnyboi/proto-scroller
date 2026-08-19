@@ -143,6 +143,7 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 func _check_briefing_content(screen: TitleScreen) -> void:
 	var story: String = (screen.get_node("%InstructionLabel") as Label).text
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
+	var field_note: String = (screen.get_node("HeroStack/FieldNote") as Label).text
 	var panel: VBoxContainer = screen.get_node("TelemetryPanel/PanelStack") as VBoxContainer
 	var briefing_text: String = ""
 	for label_node: Node in panel.find_children("*", "Label", true, false):
@@ -155,8 +156,9 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 	_check(
 		"tutorial_present",
 		controls.contains("A / D") and controls.contains("SPACE")
-		and controls.contains("Mobile joystick") and controls.contains("SMASH"),
-		"text=%s" % [controls]
+		and controls.contains("Mobile joystick") and controls.contains("SMASH")
+		and field_note.contains("recovery") and field_note.contains("dash dodge"),
+		"controls=%s note=%s" % [controls, field_note]
 	)
 	_check(
 		"objectives_present",
