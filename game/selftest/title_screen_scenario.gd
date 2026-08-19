@@ -207,6 +207,12 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 func _check_language_selector(screen: TitleScreen) -> void:
 	var initial_locale: String = L10n.current_locale()
 	var alternate_locale: String = "en" if initial_locale == "zh-CN" else "zh-CN"
+	var automatic_button: Button = screen.get_node("%AutomaticButton") as Button
+	_check(
+		"automatic_mode_selected_initially",
+		automatic_button.button_pressed,
+		"pressed=%s" % [automatic_button.button_pressed]
+	)
 	var switched: bool = screen.select_language(alternate_locale)
 	_check(
 		"language_switches_live",
@@ -218,11 +224,15 @@ func _check_language_selector(screen: TitleScreen) -> void:
 		L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH) == alternate_locale,
 		"persisted=%s" % [L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH)]
 	)
-	var restored: bool = screen.select_language(initial_locale)
+	var restored: bool = screen.select_automatic_language()
 	_check(
-		"language_restores_requested_locale",
-		restored and L10n.current_locale() == initial_locale,
-		"locale=%s" % [L10n.current_locale()]
+		"automatic_mode_restores_detected_locale",
+		restored
+		and L10n.current_locale() == initial_locale
+		and L10n.uses_automatic_locale(LANGUAGE_PREFERENCE_PATH)
+		and automatic_button.button_pressed,
+		"locale=%s automatic=%s"
+		% [L10n.current_locale(), L10n.uses_automatic_locale(LANGUAGE_PREFERENCE_PATH)]
 	)
 
 

@@ -35,7 +35,7 @@ Destroyed cars, wrecks, defeated soldiers, rubble, and scrap are on nonblocking 
 
 ## Localization
 
-The game ships with English (`en`) and Simplified Chinese (`zh-CN`) JSON catalogs in `game/localization/`. The landing-page selector below **Begin Expedition** switches all live title copy and briefing art immediately, then stores the pilot's choice in `user://localization.cfg` for future launches. Until the player chooses a language, the runtime selects ZH-CN for Simplified Chinese operating-system or browser locales and falls back to English for every other locale. A deterministic test override is available through `PROTO_SCROLLER_LOCALE=en` or `PROTO_SCROLLER_LOCALE=zh-CN` before launch.
+The game ships with English (`en`) and Simplified Chinese (`zh-CN`) JSON catalogs in `game/localization/`. The landing-page selector below **Begin Expedition** switches all live title copy and briefing art immediately, then stores a manual EN or ZH-CN choice in `user://localization.cfg` for future launches. Selecting **Auto** clears that manual preference and immediately returns control to Simplified Chinese OS/browser detection, with English as the fallback for every other locale. A deterministic test override is available through `PROTO_SCROLLER_LOCALE=en` or `PROTO_SCROLLER_LOCALE=zh-CN` before launch.
 
 All player-facing copy must be stored as a catalog key and rendered through named placeholders: `L10n.t("hud.health", {"current": "080", "maximum": "100"})`. Resource-authored names, descriptions, and instructions store localization keys rather than English values. Both catalogs must retain identical key sets.
 

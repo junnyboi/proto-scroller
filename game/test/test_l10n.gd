@@ -42,8 +42,12 @@ func test_unsupported_locale_is_rejected_without_mutation() -> void:
 	assert_eq(L10n.current_locale(), "zh-CN")
 	assert_true(L10n.set_locale("zh-CN", true, TEST_PREFERENCE_PATH))
 	assert_eq(L10n.preferred_locale(TEST_PREFERENCE_PATH), "zh-CN")
+	assert_false(L10n.uses_automatic_locale(TEST_PREFERENCE_PATH))
 	assert_true(FileAccess.file_exists(TEST_PREFERENCE_PATH))
-	assert_true(L10n.clear_locale_preference(TEST_PREFERENCE_PATH))
+	var detected_locale: String = L10n.automatic_locale()
+	assert_true(L10n.use_automatic_locale(TEST_PREFERENCE_PATH))
+	assert_eq(L10n.current_locale(), detected_locale)
+	assert_true(L10n.uses_automatic_locale(TEST_PREFERENCE_PATH))
 	assert_eq(L10n.preferred_locale(TEST_PREFERENCE_PATH), "")
 	assert_false(FileAccess.file_exists(TEST_PREFERENCE_PATH))
 

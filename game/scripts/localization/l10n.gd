@@ -55,6 +55,22 @@ static func available_locales() -> PackedStringArray:
 	return SUPPORTED_LOCALES.duplicate()
 
 
+static func automatic_locale() -> String:
+	return _detect_automatic_locale()
+
+
+static func use_automatic_locale(preference_path: String = PREFERENCE_PATH) -> bool:
+	_ensure_loaded()
+	if not clear_locale_preference(preference_path):
+		return false
+	_locale = _detect_automatic_locale()
+	return true
+
+
+static func uses_automatic_locale(preference_path: String = PREFERENCE_PATH) -> bool:
+	return preferred_locale(preference_path).is_empty()
+
+
 static func preferred_locale(preference_path: String = PREFERENCE_PATH) -> String:
 	var config: ConfigFile = ConfigFile.new()
 	if config.load(preference_path) != OK:
@@ -131,6 +147,15 @@ static func _detect_locale() -> String:
 	var persisted: String = preferred_locale()
 	if not persisted.is_empty():
 		return persisted
+	return _detect_automatic_locale()
+
+
+static func _detect_automatic_locale() -> String:
+	var override: String = OS.get_environment(LOCALE_OVERRIDE_ENV)
+	if not override.is_empty():
+		var normalized_override: String = _normalize_locale(override)
+		if SUPPORTED_LOCALES.has(normalized_override):
+			return normalized_override
 	var detected: String = _normalize_locale(OS.get_locale())
 	return detected if SUPPORTED_LOCALES.has(detected) else DEFAULT_LOCALE
 
