@@ -4,6 +4,18 @@ extends RefCounted
 const SOLDIERS: int = 6
 const TANKS: int = 2
 const HELICOPTERS: int = 1
+const PROCEDURAL_INFANTRY: int = 6
+const PROCEDURAL_LIGHT: int = 3
+const PROCEDURAL_HEAVY: int = 4
+const PROCEDURAL_AIR: int = 4
+const PROCEDURAL_SIEGE: int = 2
+const PROCEDURAL_ENEMIES: int = (
+	PROCEDURAL_INFANTRY
+	+ PROCEDURAL_LIGHT
+	+ PROCEDURAL_HEAVY
+	+ PROCEDURAL_AIR
+	+ PROCEDURAL_SIEGE
+)
 const BULLETS: int = 16
 const SHELLS: int = 4
 const ROCKETS: int = 4
@@ -26,7 +38,7 @@ const DIRECTIVE_SESSIONS: int = 1
 const DIRECTIVE_CARDS: int = 1
 const DIRECTIVE_OVERLAYS: int = 1
 const PAUSE_COORDINATORS: int = 1
-const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS
+const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS + PROCEDURAL_ENEMIES
 const TRAIT_RUNTIMES: int = 1
 const BOSS_SESSIONS: int = 1
 const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
@@ -48,6 +60,7 @@ const PLAYER_MISSILES: int = 4
 const MISSILE_EXPLOSION_QUEUE: int = 8
 const PLAYER_STRIKE_FLASHES: int = 1
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
+const DODGE_AFTERIMAGE_SLOTS: int = 8
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -81,6 +94,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"particle_slots": city.impact_feedback_pool.particle_child_count(),
 		"audio_voices": city.impact_feedback_pool.audio_child_count(),
 		"robot_audio_voices": _robot_audio_voice_count(city),
+		"dodge_afterimage_slots": _robot_afterimage_slot_count(city),
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
@@ -144,7 +158,12 @@ static func snapshot(city: CitySlice) -> Dictionary:
 static func validation_errors(city: CitySlice) -> PackedStringArray:
 	var data: Dictionary = snapshot(city)
 	var errors: PackedStringArray = []
-	_check_equal(errors, data, "enemy_total", SOLDIERS + TANKS + HELICOPTERS)
+	_check_equal(
+		errors,
+		data,
+		"enemy_total",
+		SOLDIERS + TANKS + HELICOPTERS + PROCEDURAL_ENEMIES
+	)
 	_check_equal(
 		errors,
 		data,
@@ -160,6 +179,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "particle_slots", PARTICLE_SLOTS)
 	_check_equal(errors, data, "audio_voices", AUDIO_VOICES)
 	_check_equal(errors, data, "robot_audio_voices", ROBOT_AUDIO_VOICES)
+	_check_equal(errors, data, "dodge_afterimage_slots", DODGE_AFTERIMAGE_SLOTS)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)
@@ -242,3 +262,10 @@ static func _robot_audio_voice_count(city: CitySlice) -> int:
 		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
 	return presenter.audio_voice_count() if presenter != null else 0
+
+
+static func _robot_afterimage_slot_count(city: CitySlice) -> int:
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	return presenter.afterimage_slot_count() if presenter != null else 0

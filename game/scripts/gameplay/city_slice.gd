@@ -439,7 +439,7 @@ func _on_robot_heavy_impact(
 		attack_id,
 		options
 	)
-	gameplay_hud.set_objective("IMPACT REGISTERED / PHYSICS FIELD ACTIVE")
+	gameplay_hud.set_objective("objective.impact_registered")
 
 
 func _material_for_target(
@@ -495,9 +495,9 @@ func _on_building_cell_destroyed(
 func _on_building_chain_reaction_started(kind: StringName, event: DamageEvent) -> void:
 	rampage_events.chain_started(kind, event, building, robot)
 	if kind == &"steel_support_chain":
-		gameplay_hud.set_objective("STEEL SUPPORT FAILURE / CASCADE ACTIVE")
+		gameplay_hud.set_objective("objective.steel_failure")
 	else:
-		gameplay_hud.set_objective("FLOOR LOST / CHAIN COLLAPSE ACTIVE")
+		gameplay_hud.set_objective("objective.floor_lost")
 
 
 func _on_building_chain_reaction_step(
@@ -520,9 +520,9 @@ func _on_building_chain_reaction_completed(kind: StringName) -> void:
 	if building.is_destroyed():
 		return
 	gameplay_hud.set_objective(
-		"STEEL CASCADE COMPLETE / STRUCTURE UNSTABLE"
+		"objective.steel_cascade_complete"
 		if kind == &"steel_support_chain"
-		else "FLOOR COLLAPSE COMPLETE / STRUCTURE UNSTABLE"
+		else "objective.floor_collapse_complete"
 	)
 
 
@@ -534,13 +534,10 @@ func _on_prop_destroyed(prop: DestructibleProp2D, event: DamageEvent, points: in
 	rampage_events.prop_destroyed(prop, event, points, robot, prop == car)
 
 
-func _on_enemy_died(
-	enemy: EnemyActor2D,
-	event: DamageEvent,
-	points: int
-) -> void:
+func _on_enemy_died(enemy: EnemyActor2D, event: DamageEvent, points: int) -> void:
 	rampage_events.enemy_defeated(enemy, event, points, robot)
-	if enemy is SoldierEnemy:
+	var procedural: ProceduralEnemy = enemy as ProceduralEnemy
+	if enemy is SoldierEnemy or (procedural != null and procedural.remains_family == &"infantry"):
 		_spawn_soldier_defeat_body(enemy, event)
 		encounter_runtime.release_deferred(enemy)
 		return
@@ -552,14 +549,16 @@ func _on_enemy_died(
 	encounter_runtime.release_deferred(enemy)
 
 
-func _spawn_soldier_defeat_body(
-	enemy: EnemyActor2D,
-	event: DamageEvent
-) -> void:
+func _spawn_soldier_defeat_body(enemy: EnemyActor2D, event: DamageEvent) -> void:
+	var display_size: Vector2 = Vector2(68.0, 108.0)
+	if enemy is ProceduralEnemy:
+		display_size = (enemy as ProceduralEnemy).profile.get("display", display_size) as Vector2
 	soldier_defeat_body = soldier_defeat_pool.acquire(
 		enemy.global_position,
 		enemy.facing,
-		event
+		event,
+		enemy.visual.texture,
+		display_size
 	)
 
 

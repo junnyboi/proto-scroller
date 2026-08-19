@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 catalyst_id = &"TRANSFORMER"
-display_name = "TRANSFORMER"
+display_name = "catalyst.transformer"
 max_health = 90.0
 delay_seconds = 0.45
 pulse_radius = 230.0

@@ -30,7 +30,7 @@ func _ready() -> void:
 	title = Label.new()
 	title.position = Vector2(180.0, 174.0)
 	title.size = Vector2(920.0, 46.0)
-	title.text = "SELECT DEMOLITION DIRECTIVE"
+	title.text = L10n.t("directive.select")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override(&"font_size", 30)
 	title.modulate = ACCENT_COLOR
@@ -49,7 +49,10 @@ func show_choices(options: Array[DirectiveProfile]) -> void:
 		buttons[index].visible = profile != null
 		if profile == null:
 			continue
-		buttons[index].text = "%s\n\n%s" % [profile.display_name, profile.instruction]
+		buttons[index].text = L10n.t("directive.choice", {
+			"name": L10n.t(profile.display_name),
+			"instruction": L10n.t(profile.instruction),
+		})
 		buttons[index].icon = profile.icon
 	visible = true
 	if not buttons.is_empty():

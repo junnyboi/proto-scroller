@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 upgrade_id = &"FLAMETHROWER"
-display_name = "FLAMETHROWER"
-description = "Autonomous short-range cone burst against clustered targets."
+display_name = "upgrade.flamethrower.name"
+description = "upgrade.flamethrower.description"
 category = &"weapon"
 icon = ExtResource("2")
 max_rank = 5

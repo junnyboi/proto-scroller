@@ -436,6 +436,24 @@
       "encoded_bytes": 20370,
       "shipping_sha256": "0eac66ce2c9046069196cff36cb395c00d79f4524af0332ae243b44cf3a10c8f",
       "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "dash_amplifier_icon",
+      "subject": "Dash Amplifier icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "task-specific Dash Amplifier icon prompt",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/dash-amplifier/v1/dash_amplifier_b.png",
+      "master_sha256": "cc7a47234b12d1c6e063a43a89106fe170b7e5cc86e073c483cba659c0ed9157",
+      "shipping_path": "res://art/ui/upgrades/dash_amplifier.png",
+      "dimensions": [
+        384,
+        384
+      ],
+      "derivative": "magenta-carrier removal; sRGB RGBA source; alpha-bounds contain; LANCZOS resize; deterministic 256-entry RGBA palette; PNG level 9",
+      "encoded_bytes": 34898,
+      "shipping_sha256": "1b7cdf0bf6783b07d11c32aec6978413f2a9a022a1d882e2cb81b73de0f8cef2",
+      "reviewer": "agent-visual-review-pass"
     }
   ],
   "optional_assets_omitted": [

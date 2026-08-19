@@ -13,8 +13,6 @@ enum Phase {
 	RECOVERY,
 }
 
-@export_range(0.70, 1.0, 0.01) var jab_cross_commit_speed_fraction: float = 0.90
-
 var current_spec: AttackSpec
 var resolver: AttackResolver
 var jab_cross_impact: JabCrossImpact
@@ -140,10 +138,10 @@ func _run_attack(spec: AttackSpec) -> void:
 	phase = Phase.ACTIVE
 	_apply_active_pose(spec)
 	if spec.is_ground_smash():
-		_robot.velocity.x *= 0.35
+		_robot.velocity.x = 0.0
 		_robot.execute_ground_smash(spec.attack_id)
 	else:
-		_commit_jab_cross_velocity(spec)
+		_robot.velocity.x = 0.0
 		jab_cross_impact.resolve(spec, _robot)
 	if directive_session != null:
 		directive_session.attack_active(spec)
@@ -168,14 +166,6 @@ func _run_attack(spec: AttackSpec) -> void:
 	if _dodge_buffered:
 		_dodge_buffered = false
 		_robot._start_dodge()
-
-
-func _commit_jab_cross_velocity(spec: AttackSpec) -> void:
-	var forward_speed: float = _robot.velocity.x * float(spec.facing)
-	var captured_speed: float = _robot.max_speed * spec.speed_ratio
-	var minimum_speed: float = captured_speed * jab_cross_commit_speed_fraction
-	_robot.velocity.x = maxf(forward_speed, minimum_speed) * float(spec.facing)
-
 
 func _apply_windup_pose(spec: AttackSpec) -> void:
 	if _visual_root == null:

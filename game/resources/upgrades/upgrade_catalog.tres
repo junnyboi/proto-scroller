@@ -11,7 +11,8 @@
 [ext_resource type="Resource" path="res://resources/upgrades/engine_upgrade.tres" id="8"]
 [ext_resource type="Resource" path="res://resources/upgrades/kinetic_field.tres" id="9"]
 [ext_resource type="Resource" path="res://resources/upgrades/shockwave_plus_1.tres" id="10"]
+[ext_resource type="Resource" path="res://resources/upgrades/dash_amplifier.tres" id="12"]
 
 [resource]
 script = ExtResource("1")
-profiles = Array[ExtResource("11")]([ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("9"), ExtResource("10")])
+profiles = Array[ExtResource("11")]([ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("9"), ExtResource("10"), ExtResource("12")])

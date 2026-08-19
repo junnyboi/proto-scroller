@@ -2,7 +2,7 @@ class_name StructuralMaterialProfile
 extends Resource
 
 @export var material_id: StringName = &"concrete"
-@export var display_name: String = "Concrete"
+@export var display_name: String = "material.concrete"
 @export var max_health: float = 95.0
 @export_range(1, 8, 1) var chunk_count: int = 3
 @export var chunk_mass_min: float = 2.0
@@ -33,7 +33,7 @@ static func concrete() -> StructuralMaterialProfile:
 static func glass() -> StructuralMaterialProfile:
 	var profile: StructuralMaterialProfile = StructuralMaterialProfile.new()
 	profile.material_id = &"glass"
-	profile.display_name = "Glass"
+	profile.display_name = "material.glass"
 	profile.max_health = 45.0
 	profile.chunk_count = 5
 	profile.chunk_mass_min = 0.25
@@ -60,7 +60,7 @@ static func glass() -> StructuralMaterialProfile:
 static func steel() -> StructuralMaterialProfile:
 	var profile: StructuralMaterialProfile = StructuralMaterialProfile.new()
 	profile.material_id = &"steel"
-	profile.display_name = "Steel"
+	profile.display_name = "material.steel"
 	profile.max_health = 155.0
 	profile.chunk_count = 2
 	profile.chunk_mass_min = 9.0

@@ -7,11 +7,11 @@ func test_catalog_resource_is_valid_and_contains_all_profiles() -> void:
 	) as UpgradeCatalog
 	assert_not_null(catalog)
 	assert_eq(catalog.rebuild(), PackedStringArray())
-	assert_eq(catalog.size(), 9)
+	assert_eq(catalog.size(), 10)
 	var total_ranks: int = 0
 	for profile: UpgradeProfile in catalog.sorted_profiles():
 		total_ranks += profile.max_rank
-	assert_eq(total_ranks, 34)
+	assert_eq(total_ranks, 37)
 
 
 func test_same_seed_and_selections_replay_identical_distinct_offers() -> void:

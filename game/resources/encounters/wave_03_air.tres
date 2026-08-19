@@ -41,7 +41,7 @@ position = Vector2(2380, 542.5)
 
 [resource]
 script = ExtResource("1")
-display_name = "AIR RESPONSE"
+display_name = "encounter.air_response"
 opening_delay = 1.0
 minimum_respite = 1.2
 spawns = Array[ExtResource("2")]([SubResource("Helicopter"), SubResource("Tank"), SubResource("SoldierA"), SubResource("SoldierB"), SubResource("SoldierC"), SubResource("SoldierD")])

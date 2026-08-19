@@ -1,7 +1,111 @@
-[gd_scene format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/title_screen.gd" id="1_script"]
 [ext_resource type="Theme" path="res://resources/title_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://art/ui/title_screen/command_deck_landscape.jpg" id="3_landscape"]
+[ext_resource type="Texture2D" path="res://art/ui/title_screen/command_deck_briefing_landscape.jpg" id="4_briefing"]
+
+[sub_resource type="StyleBoxFlat" id="StyleStatusPanel"]
+bg_color = Color(0.00392157, 0.027451, 0.0509804, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.254902, 0.705882, 0.658824, 0.45)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleChipPanel"]
+bg_color = Color(0.00392157, 0.027451, 0.0509804, 0.76)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.254902, 0.705882, 0.658824, 0.38)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleToggleEmpty"]
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleToggleFocus"]
+bg_color = Color(0.0117647, 0.0509804, 0.0862745, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.27451, 0.956863, 0.780392, 0.72)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleLanguageNormal"]
+bg_color = Color(0.00392157, 0.027451, 0.0509804, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.254902, 0.705882, 0.658824, 0.34)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleLanguageHover"]
+bg_color = Color(0.0117647, 0.0705882, 0.105882, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.27451, 0.956863, 0.780392, 0.72)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleLanguagePressed"]
+bg_color = Color(0.0705882, 0.286275, 0.270588, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.352941, 1, 0.827451, 0.92)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
 
 [node name="TitleScreen" type="Control"]
 layout_mode = 3
@@ -14,211 +118,351 @@ mouse_filter = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
-[node name="TopRail" type="HBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 56.0
-offset_top = 26.0
-offset_right = 1224.0
-offset_bottom = 70.0
-theme_override_constants/separation = 16
-
-[node name="ProtocolLabel" type="Label" parent="TopRail"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
-text = "[ MGS // EXPEDITION 01 ]"
-
-[node name="TopSpacer" type="Control" parent="TopRail"]
-custom_minimum_size = Vector2(32, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="StatusLabel" type="Label" parent="TopRail"]
+[node name="BackgroundArt" type="TextureRect" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
-text = "MISSION BRIEFING"
-horizontal_alignment = 2
-
-[node name="AccentRule" type="ColorRect" parent="."]
-layout_mode = 0
-offset_left = 56.0
-offset_top = 84.0
-offset_right = 61.0
-offset_bottom = 646.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-color = Color(0.262745, 0.956863, 0.780392, 0.72)
+texture_filter = 2
+texture = ExtResource("3_landscape")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="HeroStack" type="VBoxContainer" parent="."]
+[node name="ProtocolLabel" type="Label" parent="."]
 layout_mode = 0
-offset_left = 82.0
-offset_top = 94.0
-offset_right = 720.0
-offset_bottom = 640.0
-theme_override_constants/separation = 4
+offset_left = 52.0
+offset_top = 250.0
+offset_right = 430.0
+offset_bottom = 286.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
+text = ""
 
-[node name="Eyebrow" type="Label" parent="HeroStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.388235, 0.854902, 0.780392, 1)
-text = "CITY RECOVERY ZONE  /  SIGNAL LOST"
-
-[node name="TitleLabel" type="Label" parent="HeroStack"]
+[node name="TitleLabel" type="Label" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 0
+offset_left = 52.0
+offset_top = 292.0
+offset_right = 700.0
+offset_bottom = 368.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.894118, 0.984314, 0.964706, 1)
 theme_override_colors/font_shadow_color = Color(0.0196078, 0.380392, 0.341176, 0.5)
-theme_override_constants/shadow_offset_x = 4
-theme_override_constants/shadow_offset_y = 4
-text = "PROTO SCROLLER\nFIELD BRIEFING"
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+text = ""
+vertical_alignment = 1
 
-[node name="InstructionLabel" type="Label" parent="HeroStack"]
+[node name="InstructionLabel" type="Label" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 58)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
-text = "At 04:17, the city defense grid went silent.\nYour prototype is the only unit still moving."
-autowrap_mode = 3
+layout_mode = 0
+offset_left = 52.0
+offset_top = 382.0
+offset_right = 660.0
+offset_bottom = 426.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
+text = ""
+vertical_alignment = 1
 
-[node name="StorySeparator" type="HSeparator" parent="HeroStack"]
-layout_mode = 2
-modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
+[node name="StatusRail" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 744.0
+offset_top = 36.0
+offset_right = 1248.0
+offset_bottom = 104.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleStatusPanel")
 
-[node name="ControlsHeading" type="Label" parent="HeroStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.345098, 0.909804, 0.811765, 1)
-text = "PILOT CONTROLS"
-
-[node name="ControlsLabel" type="Label" parent="HeroStack"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 86)
-layout_mode = 2
-text = "MOVE   A / D   •   Mobile joystick\nSMASH  SPACE   •   Mobile SMASH button\nAt speed, SMASH becomes a Jab-Cross."
-autowrap_mode = 3
-
-[node name="FieldNote" type="Label" parent="HeroStack"]
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
-text = "Weapons fire automatically after acquisition.\nDuring recovery, SMASH buffers a dash dodge."
-autowrap_mode = 3
-
-[node name="ActionRow" type="HBoxContainer" parent="HeroStack"]
+[node name="StatusItems" type="HBoxContainer" parent="StatusRail"]
 layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="InitializeButton" type="Button" parent="HeroStack/ActionRow"]
+[node name="Objective" type="VBoxContainer" parent="StatusRail/StatusItems"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Key" type="Label" parent="StatusRail/StatusItems/Objective"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
+text = ""
+
+[node name="Value" type="Label" parent="StatusRail/StatusItems/Objective"]
+layout_mode = 2
+text = ""
+
+[node name="Threat" type="VBoxContainer" parent="StatusRail/StatusItems"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Key" type="Label" parent="StatusRail/StatusItems/Threat"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
+text = ""
+
+[node name="Value" type="Label" parent="StatusRail/StatusItems/Threat"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
+text = ""
+
+[node name="Upgrades" type="VBoxContainer" parent="StatusRail/StatusItems"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Key" type="Label" parent="StatusRail/StatusItems/Upgrades"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
+text = ""
+
+[node name="Value" type="Label" parent="StatusRail/StatusItems/Upgrades"]
+layout_mode = 2
+text = ""
+
+[node name="InitializeButton" type="Button" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 66)
+layout_mode = 0
+offset_left = 52.0
+offset_top = 450.0
+offset_right = 380.0
+offset_bottom = 520.0
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+text = ""
+
+[node name="LanguageSelector" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 52.0
+offset_top = 530.0
+offset_right = 412.0
+offset_bottom = 578.0
+theme_override_constants/separation = 10
+
+[node name="LanguageLabel" type="Label" parent="LanguageSelector"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(106, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
+text = ""
+vertical_alignment = 1
+
+[node name="EnglishButton" type="Button" parent="LanguageSelector"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 44)
 layout_mode = 2
 focus_mode = 2
 mouse_default_cursor_shape = 2
-text = "BEGIN EXPEDITION"
+toggle_mode = true
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_pressed_color = Color(0.894118, 1, 0.964706, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
 
-[node name="HintLabel" type="Label" parent="HeroStack/ActionRow"]
+[node name="ChineseButton" type="Button" parent="LanguageSelector"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(126, 44)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.360784, 0.545098, 0.560784, 1)
-text = "ENTER  /  TAP"
+focus_mode = 2
+mouse_default_cursor_shape = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_pressed_color = Color(0.894118, 1, 0.964706, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="HintLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 400.0
+offset_top = 466.0
+offset_right = 560.0
+offset_bottom = 510.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
+text = ""
 vertical_alignment = 1
 
-[node name="TelemetryPanel" type="PanelContainer" parent="."]
+[node name="MoveChip" type="PanelContainer" parent="."]
 layout_mode = 0
-offset_left = 752.0
-offset_top = 94.0
-offset_right = 1222.0
-offset_bottom = 640.0
+offset_left = 52.0
+offset_top = 546.0
+offset_right = 200.0
+offset_bottom = 590.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleChipPanel")
 
-[node name="PanelStack" type="VBoxContainer" parent="TelemetryPanel"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="PanelHeading" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.345098, 0.909804, 0.811765, 1)
-text = "EXPEDITION OBJECTIVES"
-
-[node name="Separator" type="HSeparator" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
-
-[node name="PrimaryObjective" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
-text = "PRIMARY  Survive the city response."
-
-[node name="ObjectiveOne" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-text = "01  Destroy structures; earn EXP."
-
-[node name="ObjectiveTwo" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-text = "02  Defeat ground and air forces."
-
-[node name="ObjectiveThree" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-text = "03  Choose 1 of 2 upgrades."
-
-[node name="IntelSeparator" type="HSeparator" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
-
-[node name="EnemyHeading" type="Label" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.345098, 0.909804, 0.811765, 1)
-text = "ENEMY PROFILE"
-
-[node name="EnemyIntel" type="Label" parent="TelemetryPanel/PanelStack"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 58)
-layout_mode = 2
-text = "GROUND  Soldiers + tanks\nAIR  Helicopters + rockets"
-
-[node name="ProtocolSeparator" type="HSeparator" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-modulate = Color(0.282353, 0.752941, 0.682353, 0.35)
-
-[node name="RunRule" type="Label" parent="TelemetryPanel/PanelStack"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 52)
+[node name="Label" type="Label" parent="MoveChip"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
-text = "RUN PROTOCOL\nUpgrades reset when you Retry."
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="MissionStateRow" type="HBoxContainer" parent="TelemetryPanel/PanelStack"]
-layout_mode = 2
-
-[node name="SystemKey" type="Label" parent="TelemetryPanel/PanelStack/MissionStateRow"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.345098, 0.513726, 0.529412, 1)
-text = "MISSION STATE"
-
-[node name="StateSpacer" type="Control" parent="TelemetryPanel/PanelStack/MissionStateRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="SystemValue" type="Label" parent="TelemetryPanel/PanelStack/MissionStateRow"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.741176, 0.823529, 0.819608, 1)
-text = "AWAITING PILOT"
-horizontal_alignment = 2
-
-[node name="BottomRail" type="HBoxContainer" parent="."]
+[node name="SmashChip" type="PanelContainer" parent="."]
 layout_mode = 0
-offset_left = 56.0
-offset_top = 672.0
-offset_right = 1224.0
-offset_bottom = 712.0
+offset_left = 218.0
+offset_top = 546.0
+offset_right = 382.0
+offset_bottom = 590.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleChipPanel")
 
-[node name="BuildLabel" type="Label" parent="BottomRail"]
+[node name="Label" type="Label" parent="SmashChip"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BriefingToggle" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 948.0
+offset_top = 650.0
+offset_right = 1248.0
+offset_bottom = 706.0
+focus_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
-text = "ONE BUTTON  //  MAXIMUM COLLATERAL  //  RUN-LOCAL UPGRADES"
+theme_override_colors/font_hover_color = Color(0.345098, 0.909804, 0.811765, 1)
+theme_override_colors/font_focus_color = Color(0.345098, 0.909804, 0.811765, 1)
+theme_override_styles/normal = SubResource("StyleToggleEmpty")
+theme_override_styles/hover = SubResource("StyleToggleEmpty")
+theme_override_styles/pressed = SubResource("StyleToggleEmpty")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
 
-[node name="BottomSpacer" type="Control" parent="BottomRail"]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="BriefingLayer" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
 
-[node name="CoordinatesLabel" type="Label" parent="BottomRail"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
-text = "1280 × 720"
-horizontal_alignment = 2
+[node name="BriefingArt" type="TextureRect" parent="BriefingLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture_filter = 2
+texture = ExtResource("4_briefing")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="BriefingBackdrop" type="Button" parent="BriefingLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="SemanticContract" type="Control" parent="."]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 0
+offset_right = 1.0
+offset_bottom = 1.0
+mouse_filter = 2
+
+[node name="StatusLabel" type="Label" parent="SemanticContract"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 40.0
+text = ""
+
+[node name="ControlsLabel" type="Label" parent="SemanticContract"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 40.0
+offset_right = 700.0
+offset_bottom = 120.0
+text = ""
+
+[node name="FieldNote" type="Label" parent="SemanticContract"]
+layout_mode = 0
+offset_top = 120.0
+offset_right = 700.0
+offset_bottom = 190.0
+text = ""
+
+[node name="EnemyIntel" type="Label" parent="SemanticContract"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 190.0
+offset_right = 500.0
+offset_bottom = 260.0
+text = ""
+
+[node name="RunRule" type="Label" parent="SemanticContract"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 260.0
+offset_right = 500.0
+offset_bottom = 320.0
+text = ""
+
+[node name="SystemValue" type="Label" parent="SemanticContract"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 320.0
+offset_right = 300.0
+offset_bottom = 360.0
+text = ""
+
+[node name="PrimaryObjective" type="Label" parent="SemanticContract"]
+layout_mode = 0
+offset_top = 360.0
+offset_right = 500.0
+offset_bottom = 400.0
+text = ""
+
+[node name="ObjectiveOne" type="Label" parent="SemanticContract"]
+layout_mode = 0
+offset_top = 400.0
+offset_right = 500.0
+offset_bottom = 440.0
+text = ""
+
+[node name="ObjectiveTwo" type="Label" parent="SemanticContract"]
+layout_mode = 0
+offset_top = 440.0
+offset_right = 500.0
+offset_bottom = 480.0
+text = ""
+
+[node name="ObjectiveThree" type="Label" parent="SemanticContract"]
+layout_mode = 0
+offset_top = 480.0
+offset_right = 500.0
+offset_bottom = 520.0
+text = ""

@@ -8,7 +8,13 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	var city: CitySlice = await _spawn_city()
 	var snapshot: Dictionary = RuntimeBudget.snapshot(city)
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
-	assert_eq(snapshot.enemy_total, 9)
+	assert_eq(
+		snapshot.enemy_total,
+		RuntimeBudget.SOLDIERS
+		+ RuntimeBudget.TANKS
+		+ RuntimeBudget.HELICOPTERS
+		+ RuntimeBudget.PROCEDURAL_ENEMIES
+	)
 	assert_eq(snapshot.projectile_total, 32)
 	assert_eq(snapshot.hostile_projectile_total, 24)
 	assert_eq(snapshot.player_bullet_total, 8)
@@ -19,6 +25,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.particle_slots, 8)
 	assert_eq(snapshot.audio_voices, 8)
 	assert_eq(snapshot.robot_audio_voices, 4)
+	assert_eq(snapshot.dodge_afterimage_slots, 8)
 	assert_eq(snapshot.rare_rows, 3)
 	assert_eq(snapshot.upgrade_sessions, 1)
 	assert_eq(snapshot.upgrade_overlays, 1)

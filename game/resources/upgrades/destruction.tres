@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 upgrade_id = &"DESTRUCTION"
-display_name = "DESTRUCTION"
-description = "Every accepted debris burst gains a second visual fragment."
+display_name = "upgrade.destruction.name"
+description = "upgrade.destruction.description"
 category = &"presentation"
 icon = ExtResource("2")
 max_rank = 1

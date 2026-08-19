@@ -41,6 +41,7 @@ func _ready() -> void:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
 		smash_pressed.connect(robot.request_attack)
 	_build_smash_button()
+	L10n.apply_locale_font(self)
 	_sync_to_viewport()
 	visible = mobile_device_detected
 	set_process(mobile_device_detected)
@@ -166,7 +167,7 @@ func _sync_to_viewport() -> void:
 func _build_smash_button() -> void:
 	smash_button = Button.new()
 	smash_button.name = "SmashButton"
-	smash_button.text = "SMASH"
+	smash_button.text = L10n.t("mobile.smash")
 	smash_button.focus_mode = Control.FOCUS_NONE
 	smash_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	smash_button.anchor_left = 1.0

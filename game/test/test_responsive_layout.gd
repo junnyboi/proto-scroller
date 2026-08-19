@@ -33,18 +33,26 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_true(screen.is_portrait_layout())
-	assert_true(_inside_viewport(screen.get_node("HeroStack") as Control, PORTRAIT_SIZE))
-	assert_true(_inside_viewport(screen.get_node("TelemetryPanel") as Control, PORTRAIT_SIZE))
-	assert_true(_inside_viewport(screen.get_node("BottomRail") as Control, PORTRAIT_SIZE))
+	var background: TextureRect = screen.get_node("%BackgroundArt") as TextureRect
+	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
+	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
+	assert_eq(background.texture.resource_path, "res://art/ui/title_screen/command_deck_portrait.jpg")
+	assert_true(_inside_viewport(background, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(screen.get_node("%TitleLabel") as Control, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(screen.get_node("StatusRail") as Control, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(initialize_button, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(screen.get_node("MoveChip") as Control, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(screen.get_node("SmashChip") as Control, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(briefing_toggle, PORTRAIT_SIZE))
 	assert_false(
-		(screen.get_node("HeroStack/ActionRow/InitializeButton") as Button)
-		.get_global_rect()
-		.intersects((screen.get_node("BottomRail") as Control).get_global_rect())
+		initialize_button.get_global_rect().intersects(briefing_toggle.get_global_rect())
 	)
 	_set_viewport(LANDSCAPE_SIZE)
 	await get_tree().process_frame
 	assert_false(screen.is_portrait_layout())
-	assert_eq((screen.get_node("TelemetryPanel") as Control).position, Vector2(752.0, 82.0))
+	assert_eq((screen.get_node("StatusRail") as Control).position, Vector2(744.0, 36.0))
+	assert_eq(background.texture.resource_path, "res://art/ui/title_screen/command_deck_landscape.jpg")
+	assert_true(_inside_viewport(briefing_toggle, LANDSCAPE_SIZE))
 
 
 func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:

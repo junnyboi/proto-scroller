@@ -58,11 +58,11 @@ func _on_overdrive_activated(_attack_id: int) -> void:
 	_apply_movement_modifier()
 	city.impact_feedback_pool.play_semantic(
 		&"overdrive",
-		city.robot.global_position,
-		7
-	)
+			city.robot.global_position,
+			7
+		)
 	city.gameplay_hud.set_overdrive(true, city.overdrive_session.remaining)
-	city.gameplay_hud.set_objective("KINETIC OVERDRIVE / FOUR SECOND BREAKTHROUGH")
+	city.gameplay_hud.set_objective("objective.overdrive_breakthrough")
 
 
 func _on_overdrive_time_changed(remaining: float) -> void:
@@ -98,7 +98,11 @@ func _on_combo_broken() -> void:
 
 
 func _on_encounter_phase_changed(index: int, display_name: String) -> void:
-	city.gameplay_hud.set_objective("ACT %d / 6  %s" % [index + 1, display_name])
+	city.gameplay_hud.set_objective("objective.act", {
+		"current": index + 1,
+		"total": 6,
+		"name": L10n.t(display_name),
+	})
 	city.gameplay_hud.set_siege_progress(index, 6, display_name, false)
 
 
@@ -134,7 +138,9 @@ func _on_boss_state_changed(state: StringName) -> void:
 	var boss: CommandBossSession = city.urban_siege.boss_session
 	var armor: float = boss.boss.boss_armor if boss.boss != null else 0.0
 	city.gameplay_hud.set_boss_status(state, armor, CommandBossSession.ARMOR)
-	city.gameplay_hud.set_objective("COMMAND UNIT / %s" % String(state).replace("_", " "))
+	city.gameplay_hud.set_objective("objective.command_unit", {
+		"state": L10n.t("boss.state.%s" % String(state).to_lower()),
+	})
 
 
 func _on_boss_armor_changed(current: float, maximum: float) -> void:
@@ -150,11 +156,15 @@ func _on_directive_progress(current: int, target: int) -> void:
 
 
 func _on_directive_completed(profile: DirectiveProfile, _banked_score: int) -> void:
-	city.gameplay_hud.show_directive_result("%s COMPLETE" % profile.display_name, true)
+	city.gameplay_hud.show_directive_result(L10n.t("directive.complete", {
+		"name": L10n.t(profile.display_name),
+	}), true)
 
 
 func _on_directive_failed(profile: DirectiveProfile, _penalty: int) -> void:
-	city.gameplay_hud.show_directive_result("%s FAILED" % profile.display_name, false)
+	city.gameplay_hud.show_directive_result(L10n.t("directive.failed", {
+		"name": L10n.t(profile.display_name),
+	}), false)
 
 
 func _on_district_completed() -> void:
@@ -174,9 +184,13 @@ func _on_continue_pressed() -> void:
 	if city.urban_siege.continue_cycle():
 		city.upgrade_assembler.session.continue_cycle()
 		city.gameplay_hud.hide_terminal_overlay()
-		city.gameplay_hud.set_objective(
-			"CYCLE 2 / %s" % city.urban_siege.selected_recipe.recipe_id
+		var recipe_key: String = (
+			"siege.recipe.%s" % String(city.urban_siege.selected_recipe.recipe_id).to_lower()
 		)
+		city.gameplay_hud.set_objective("objective.cycle", {
+			"cycle": 2,
+			"recipe": L10n.t(recipe_key),
+		})
 
 
 func _finish_run(completed: bool) -> void:

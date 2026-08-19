@@ -260,8 +260,16 @@ func _resolve_position(entry: EnemySpawnEntry) -> Vector2:
 
 
 func _threat_weight() -> int:
-	return (
-		runtime.active_count(&"soldier")
-		+ runtime.active_count(&"tank") * 3
-		+ runtime.active_count(&"helicopter") * 2
-	)
+	var weight: int = 0
+	for actor: EnemyActor2D in runtime.all_actors():
+		if not actor.active or actor.dead:
+			continue
+		var kind: StringName = &"soldier"
+		if actor is ProceduralEnemy:
+			kind = (actor as ProceduralEnemy).archetype_id
+		elif actor is TankEnemy:
+			kind = &"tank"
+		elif actor is HelicopterEnemy:
+			kind = &"helicopter"
+		weight += EnemyArchetypeCatalog.threat_cost(kind)
+	return weight

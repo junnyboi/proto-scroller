@@ -21,9 +21,14 @@ const LAND_BASELINE_Y: float = 655.0
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
 const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
+const PROCEDURAL_SCRIPT: Script = preload("res://scripts/actors/procedural_enemy.gd")
 const SOLDIER_TEXTURE: Texture2D = preload("res://art/city/enemies/soldier.png")
 const TANK_TEXTURE: Texture2D = preload("res://art/city/enemies/tank.png")
 const HELICOPTER_TEXTURE: Texture2D = preload("res://art/city/enemies/helicopter.png")
+const MARK_DAMAGE_MULTIPLIER: float = 1.15
+const STATIC_INTERVAL_MULTIPLIER: float = 0.82
+const AEGIS_DAMAGE_MULTIPLIER: float = 0.65
+const AEGIS_RADIUS: float = 560.0
 
 var robot: GiantRobotController
 var telegraphs: TelegraphPresenter2D
@@ -31,11 +36,13 @@ var projectile_pool: ProjectilePool
 var soldiers: Array[SoldierEnemy] = []
 var tanks: Array[TankEnemy] = []
 var helicopters: Array[HelicopterEnemy] = []
+var procedural_pools: Dictionary[StringName, Array] = {}
 var post_warm_creation_count: int = 0
 var attack_gate_enabled: bool = true
 var structural_target: StructuralBuilding2D
 var role_profiles: Dictionary[StringName, EnemyRoleProfile] = {}
 var trait_profiles: Dictionary[StringName, EnemyTraitProfile] = {}
+var target_mark_remaining: float = 0.0
 
 
 func setup(
@@ -69,6 +76,32 @@ func _ready() -> void:
 		tanks.append(_create_enemy(&"tank", index) as TankEnemy)
 	for index: int in range(RuntimeBudget.HELICOPTERS):
 		helicopters.append(_create_enemy(&"helicopter", index) as HelicopterEnemy)
+	_prewarm_procedural_family(&"infantry", RuntimeBudget.PROCEDURAL_INFANTRY)
+	_prewarm_procedural_family(&"light", RuntimeBudget.PROCEDURAL_LIGHT)
+	_prewarm_procedural_family(&"heavy", RuntimeBudget.PROCEDURAL_HEAVY)
+	_prewarm_procedural_family(&"air", RuntimeBudget.PROCEDURAL_AIR)
+	_prewarm_procedural_family(&"siege", RuntimeBudget.PROCEDURAL_SIEGE)
+
+
+func _process(delta: float) -> void:
+	target_mark_remaining = maxf(target_mark_remaining - delta, 0.0)
+	var actors: Array[EnemyActor2D] = all_actors()
+	for actor: EnemyActor2D in actors:
+		actor.aura_attack_interval_multiplier = 1.0
+		actor.aura_damage_multiplier = 1.0
+		actor.incoming_damage_multiplier = 1.0
+	for actor: EnemyActor2D in actors:
+		if not actor.active or actor.dead or not actor is ProceduralEnemy:
+			continue
+		var procedural: ProceduralEnemy = actor as ProceduralEnemy
+		if procedural.archetype_id == &"static":
+			_apply_static_aura(procedural, actors)
+		elif procedural.archetype_id == &"aegis":
+			_apply_aegis_aura(procedural, actors)
+	if target_mark_remaining > 0.0:
+		for actor: EnemyActor2D in actors:
+			if actor.active and not actor.dead:
+				actor.aura_damage_multiplier = MARK_DAMAGE_MULTIPLIER
 
 
 func acquire(
@@ -77,20 +110,25 @@ func acquire(
 	role_id: StringName = &"",
 	trait_id: StringName = &""
 ) -> EnemyActor2D:
-	for enemy: EnemyActor2D in _actors_for_kind(kind):
-		if not enemy.active:
-			enemy.activate(spawn_position, robot)
-			var accepted_trait: StringName = trait_id
-			if trait_id == &"COMMAND" and _has_active_command():
-				accepted_trait = &""
-			enemy.apply_profiles(
-				role_profiles.get(role_id) as EnemyRoleProfile,
-				trait_profiles.get(accepted_trait) as EnemyTraitProfile
-			)
-			enemy.structural_target = structural_target
-			enemy.set_attack_gate(attack_gate_enabled)
-			enemy_acquired.emit(enemy)
-			return enemy
+	if not EnemyArchetypeCatalog.is_valid_kind(kind):
+		return null
+	for enemy: EnemyActor2D in _pool_for_kind(kind):
+		if enemy.active:
+			continue
+		if enemy is ProceduralEnemy:
+			_configure_procedural_shell(enemy as ProceduralEnemy, kind)
+		enemy.activate(spawn_position, robot)
+		var accepted_trait: StringName = trait_id
+		if trait_id == &"COMMAND" and _has_active_command():
+			accepted_trait = &""
+		enemy.apply_profiles(
+			role_profiles.get(role_id) as EnemyRoleProfile,
+			trait_profiles.get(accepted_trait) as EnemyTraitProfile
+		)
+		enemy.structural_target = structural_target
+		enemy.set_attack_gate(attack_gate_enabled)
+		enemy_acquired.emit(enemy)
+		return enemy
 	return null
 
 
@@ -106,6 +144,7 @@ func release_deferred(enemy: EnemyActor2D) -> void:
 func release_all() -> void:
 	for enemy: EnemyActor2D in all_actors():
 		release(enemy)
+	target_mark_remaining = 0.0
 
 
 func set_attack_gate(enabled: bool) -> void:
@@ -119,29 +158,92 @@ func all_actors() -> Array[EnemyActor2D]:
 	actors.append_array(soldiers)
 	actors.append_array(tanks)
 	actors.append_array(helicopters)
+	for pool: Array in procedural_pools.values():
+		for value: Variant in pool:
+			actors.append(value as EnemyActor2D)
 	return actors
 
 
 func active_count(kind: StringName = &"") -> int:
 	var count: int = 0
-	var actors: Array[EnemyActor2D] = all_actors() if kind.is_empty() else _actors_for_kind(kind)
-	for enemy: EnemyActor2D in actors:
-		if enemy.active and not enemy.dead:
-			count += 1
+	if kind.is_empty():
+		for enemy: EnemyActor2D in all_actors():
+			count += 1 if enemy.active and not enemy.dead else 0
+		return count
+	for enemy: EnemyActor2D in _pool_for_kind(kind):
+		if not enemy.active or enemy.dead:
+			continue
+		if enemy is ProceduralEnemy and (enemy as ProceduralEnemy).archetype_id != kind:
+			continue
+		count += 1
+	return count
+
+
+func active_family_count(family: StringName) -> int:
+	var count: int = 0
+	for enemy: EnemyActor2D in _pool_for_family(family):
+		count += 1 if enemy.active and not enemy.dead else 0
 	return count
 
 
 func available_count(kind: StringName) -> int:
-	return _actors_for_kind(kind).size() - active_count(kind)
+	var family: StringName = EnemyArchetypeCatalog.family_for(kind)
+	if kind in EnemyArchetypeCatalog.BASE_KINDS:
+		return _pool_for_kind(kind).size() - active_count(kind)
+	return _pool_for_family(family).size() - active_family_count(family)
+
+
+func available_family_count(family: StringName) -> int:
+	return _pool_for_family(family).size() - active_family_count(family)
+
+
+func available_reservation_capacity(key: StringName) -> int:
+	if key in EnemyArchetypeCatalog.BASE_KINDS:
+		return available_count(key)
+	var prefix: String = "procedural_"
+	var key_string: String = String(key)
+	if key_string.begins_with(prefix):
+		return available_family_count(StringName(key_string.trim_prefix(prefix)))
+	return 0
 
 
 func total_count(kind: StringName = &"") -> int:
-	return all_actors().size() if kind.is_empty() else _actors_for_kind(kind).size()
+	if kind.is_empty():
+		return all_actors().size()
+	return _pool_for_kind(kind).size()
+
+
+func family_capacity(family: StringName) -> int:
+	return _pool_for_family(family).size()
+
+
+func apply_target_mark(duration: float) -> void:
+	target_mark_remaining = maxf(target_mark_remaining, maxf(duration, 0.0))
 
 
 func set_catalyst_target(catalyst: Catalyst2D) -> void:
 	for enemy: EnemyActor2D in all_actors():
 		enemy.catalyst_target = catalyst
+
+
+func _apply_static_aura(source: ProceduralEnemy, actors: Array[EnemyActor2D]) -> void:
+	for actor: EnemyActor2D in actors:
+		if actor != source and actor.active and not actor.dead:
+			actor.aura_attack_interval_multiplier = minf(
+				actor.aura_attack_interval_multiplier,
+				STATIC_INTERVAL_MULTIPLIER
+			)
+
+
+func _apply_aegis_aura(source: ProceduralEnemy, actors: Array[EnemyActor2D]) -> void:
+	for actor: EnemyActor2D in actors:
+		if actor == source or not actor.active or actor.dead:
+			continue
+		if source.global_position.distance_to(actor.global_position) <= AEGIS_RADIUS:
+			actor.incoming_damage_multiplier = minf(
+				actor.incoming_damage_multiplier,
+				AEGIS_DAMAGE_MULTIPLIER
+			)
 
 
 func _has_active_command() -> bool:
@@ -173,14 +275,82 @@ func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
 		texture = HELICOPTER_TEXTURE
 		display_size = Vector2(235.0, 72.0)
 		collision_size = Vector2(210.0, 58.0)
+	_configure_actor_nodes(enemy, kind, texture, display_size, collision_size, authored_y)
 	enemy.name = "%sPool%02d" % [kind.capitalize(), index]
+	add_child(enemy)
+	enemy.deactivate()
+	return enemy
+
+
+func _prewarm_procedural_family(family: StringName, count: int) -> void:
+	var pool: Array[ProceduralEnemy] = []
+	for index: int in range(count):
+		var enemy: ProceduralEnemy = PROCEDURAL_SCRIPT.new() as ProceduralEnemy
+		enemy.name = "%sArchetypePool%02d" % [String(family).capitalize(), index]
+		enemy.encounter_runtime = self
+		var visual: Sprite2D = Sprite2D.new()
+		visual.name = "Visual"
+		enemy.add_child(visual)
+		var collision: CollisionShape2D = CollisionShape2D.new()
+		collision.name = "CollisionShape2D"
+		collision.shape = RectangleShape2D.new()
+		enemy.add_child(collision)
+		var hurtbox: Area2D = Area2D.new()
+		hurtbox.name = "Hurtbox"
+		hurtbox.collision_layer = HURTBOX_LAYER
+		var hurt_shape: CollisionShape2D = CollisionShape2D.new()
+		hurt_shape.name = "CollisionShape2D"
+		hurt_shape.shape = RectangleShape2D.new()
+		hurtbox.add_child(hurt_shape)
+		enemy.add_child(hurtbox)
+		_configure_actor_contract(enemy)
+		add_child(enemy)
+		enemy.deactivate()
+		pool.append(enemy)
+	procedural_pools[family] = pool
+
+
+func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> void:
+	var profile: Dictionary = EnemyArchetypeCatalog.profile(kind)
+	enemy.configure_archetype(kind, profile)
+	var texture: Texture2D = load(String(profile.texture)) as Texture2D
+	var display_size: Vector2 = profile.display as Vector2
+	var collision_size: Vector2 = profile.collision as Vector2
+	var authored_y: float = float(profile.spawn_y)
+	var visual: Sprite2D = enemy.get_node(^"Visual") as Sprite2D
+	visual.texture = texture
+	visual.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var texture_size: Vector2 = texture.get_size()
+	var fit: float = minf(display_size.x / texture_size.x, display_size.y / texture_size.y)
+	visual.scale = Vector2.ONE * fit
+	visual.position = Vector2.ZERO
+	if not enemy.airborne:
+		var rendered_height: float = texture_size.y * fit
+		visual.position.y = LAND_BASELINE_Y - authored_y - rendered_height * 0.5
+	enemy._visual_rest_position = visual.position
+	enemy._visual_rest_scale = visual.scale
 	enemy.collision_layer = ENEMY_LAYER
+	enemy.collision_mask = 0 if enemy.airborne else WORLD_LAYER
+	var collision: CollisionShape2D = enemy.get_node(^"CollisionShape2D") as CollisionShape2D
+	(collision.shape as RectangleShape2D).size = collision_size
+	var hurt_shape: CollisionShape2D = enemy.get_node(^"Hurtbox/CollisionShape2D") as CollisionShape2D
+	(hurt_shape.shape as RectangleShape2D).size = collision_size * 1.12
+	if enemy.role_badge != null:
+		enemy.role_badge.position = Vector2(0.0, -display_size.y * 0.62)
+	enemy.set_meta(&"enemy_archetype", kind)
+	enemy.set_meta(&"enemy_family", enemy.family)
+
+
+func _configure_actor_nodes(
+	enemy: EnemyActor2D,
+	kind: StringName,
+	texture: Texture2D,
+	display_size: Vector2,
+	collision_size: Vector2,
+	authored_y: float
+) -> void:
+	_configure_actor_contract(enemy)
 	enemy.collision_mask = 0 if kind == &"helicopter" else WORLD_LAYER
-	enemy.z_index = 30
-	enemy.set_meta(&"combat_team", &"enemy")
-	enemy.telegraph_presenter = telegraphs
-	enemy.projectile_pool = projectile_pool
-	enemy.projectile_target_mask = ROBOT_LAYER | BUILDING_LAYER | (1 << 7)
 	var visual: Sprite2D = CityWorldBuilder.fit_sprite(texture, display_size)
 	visual.name = "Visual"
 	if kind != &"helicopter":
@@ -199,26 +369,35 @@ func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
 			enemy.bounce_speed_reference = 62.0
 	enemy.add_child(visual)
 	var collision: CollisionShape2D = CollisionShape2D.new()
+	collision.name = "CollisionShape2D"
 	var rectangle: RectangleShape2D = RectangleShape2D.new()
 	rectangle.size = collision_size
 	collision.shape = rectangle
 	enemy.add_child(collision)
 	var hurtbox: Area2D = Area2D.new()
+	hurtbox.name = "Hurtbox"
 	hurtbox.collision_layer = HURTBOX_LAYER
 	var hurt_shape: CollisionShape2D = CollisionShape2D.new()
+	hurt_shape.name = "CollisionShape2D"
 	var hurt_rectangle: RectangleShape2D = RectangleShape2D.new()
 	hurt_rectangle.size = collision_size * 1.12
 	hurt_shape.shape = hurt_rectangle
 	hurtbox.add_child(hurt_shape)
 	enemy.add_child(hurtbox)
+
+
+func _configure_actor_contract(enemy: EnemyActor2D) -> void:
+	enemy.collision_layer = ENEMY_LAYER
+	enemy.z_index = 30
+	enemy.set_meta(&"combat_team", &"enemy")
+	enemy.telegraph_presenter = telegraphs
+	enemy.projectile_pool = projectile_pool
+	enemy.projectile_target_mask = ROBOT_LAYER | BUILDING_LAYER | (1 << 7)
 	enemy.projectile_requested.connect(_on_projectile_requested)
 	enemy.died.connect(_on_enemy_died)
-	add_child(enemy)
-	enemy.deactivate()
-	return enemy
 
 
-func _actors_for_kind(kind: StringName) -> Array[EnemyActor2D]:
+func _pool_for_kind(kind: StringName) -> Array[EnemyActor2D]:
 	var actors: Array[EnemyActor2D] = []
 	if kind == &"soldier":
 		actors.assign(soldiers)
@@ -226,6 +405,16 @@ func _actors_for_kind(kind: StringName) -> Array[EnemyActor2D]:
 		actors.assign(tanks)
 	elif kind == &"helicopter":
 		actors.assign(helicopters)
+	else:
+		actors = _pool_for_family(EnemyArchetypeCatalog.family_for(kind))
+	return actors
+
+
+func _pool_for_family(family: StringName) -> Array[EnemyActor2D]:
+	var actors: Array[EnemyActor2D] = []
+	var pool: Array = procedural_pools.get(family, []) as Array
+	for value: Variant in pool:
+		actors.append(value as EnemyActor2D)
 	return actors
 
 
@@ -241,9 +430,11 @@ func _on_projectile_requested(
 
 
 func _on_enemy_died(enemy: EnemyActor2D, event: DamageEvent) -> void:
-	var points: int = 500
-	if enemy is TankEnemy:
-		points = 1500
+	var kind: StringName = &"soldier"
+	if enemy is ProceduralEnemy:
+		kind = (enemy as ProceduralEnemy).archetype_id
+	elif enemy is TankEnemy:
+		kind = &"tank"
 	elif enemy is HelicopterEnemy:
-		points = 1200
-	enemy_died.emit(enemy, event, points)
+		kind = &"helicopter"
+	enemy_died.emit(enemy, event, EnemyArchetypeCatalog.xp_value(kind))

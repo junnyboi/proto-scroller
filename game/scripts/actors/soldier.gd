@@ -80,14 +80,10 @@ func _begin_fire() -> void:
 
 
 func _fire_snapshot() -> void:
-	request_projectile(
-		telegraph_origin(),
-		telegraph_direction(),
+	fire_telegraphed_projectile(
 		projectile_speed,
-		projectile_damage * projectile_damage_multiplier,
-		&"bullet"
+		projectile_damage * projectile_damage_multiplier
 	)
-	finish_telegraph()
 
 
 func _reset_archetype_state() -> void:

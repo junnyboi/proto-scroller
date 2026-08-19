@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 catalyst_id = &"GAS_MAIN"
-display_name = "GAS MAIN"
+display_name = "catalyst.gas_main"
 max_health = 70.0
 delay_seconds = 0.42
 pulse_radius = 285.0

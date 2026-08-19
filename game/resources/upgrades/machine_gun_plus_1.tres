@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 upgrade_id = &"MACHINE_GUN"
-display_name = "MACHINE GUN +1"
-description = "Autonomous mid-range fire. Further ranks improve damage and cadence."
+display_name = "upgrade.machine_gun.name"
+description = "upgrade.machine_gun.description"
 category = &"weapon"
 icon = ExtResource("2")
 max_rank = 5

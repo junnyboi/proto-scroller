@@ -21,7 +21,9 @@ func _ready() -> void:
 func acquire(
 	world_position: Vector2,
 	facing: int,
-	impact_event: DamageEvent
+	impact_event: DamageEvent,
+	texture: Texture2D = SoldierDefeatBody2D.SOLDIER_TEXTURE,
+	display_size: Vector2 = Vector2(68.0, 108.0)
 ) -> SoldierDefeatBody2D:
 	if _free.is_empty():
 		release(_active.front())
@@ -29,7 +31,7 @@ func acquire(
 	var body: SoldierDefeatBody2D = _free.pop_back()
 	_active.append(body)
 	peak_active_count = maxi(peak_active_count, _active.size())
-	body.activate(world_position, facing, impact_event)
+	body.activate(world_position, facing, impact_event, texture, display_size)
 	return body
 
 

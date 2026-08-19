@@ -68,6 +68,7 @@ func _ready() -> void:
 	_build_game_over_overlay()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_responsive_layout()
+	L10n.apply_locale_font(self)
 	if _robot != null:
 		_robot.attack_mode_selected.connect(_on_attack_mode_selected)
 		_robot.attack_committed.connect(_on_attack_committed)
@@ -87,7 +88,10 @@ func _process(delta: float) -> void:
 func set_health(current: float, maximum: float) -> void:
 	if health_label == null:
 		return
-	health_label.text = "CHASSIS %03d / %03d" % [roundi(current), roundi(maximum)]
+	health_label.text = L10n.t("hud.health", {
+		"current": "%03d" % roundi(current),
+		"maximum": "%03d" % roundi(maximum),
+	})
 
 
 func set_score(value: int) -> void:
@@ -96,7 +100,11 @@ func set_score(value: int) -> void:
 
 
 func set_pending_score(value: int) -> void:
-	pending_score_label.text = "+%05d AT RISK" % maxi(value, 0) if value > 0 else "SAFE"
+	pending_score_label.text = (
+		L10n.t("hud.pending_score", {"value": "%05d" % maxi(value, 0)})
+		if value > 0
+		else L10n.t("hud.safe")
+	)
 	pending_score_label.modulate = Color("ff9a61") if value > 0 else MUTED_COLOR
 
 
@@ -105,16 +113,18 @@ func _set_experience(level: int, current: int, required: int) -> void:
 		clampf(float(current) / float(required), 0.0, 1.0) if required > 0 else 1.0
 	)
 	if experience_label != null:
-		experience_label.text = (
-			"LEVEL %02d  EXP %d / %d" % [maxi(level, 1), maxi(current, 0), maxi(required, 0)]
-		)
+		experience_label.text = L10n.t("hud.experience", {
+			"level": "%02d" % maxi(level, 1),
+			"current": maxi(current, 0),
+			"required": maxi(required, 0),
+		})
 	_apply_experience_fill()
 
 
 func set_combo(multiplier: int, grace_remaining: float) -> void:
 	if combo_label == null:
 		return
-	combo_label.text = "x%d COMBO" % clampi(multiplier, 1, 5)
+	combo_label.text = L10n.t("hud.combo", {"multiplier": clampi(multiplier, 1, 5)})
 	combo_label.visible = multiplier > 1
 	combo_label.modulate.a = clampf(grace_remaining / 0.55, 0.55, 1.0)
 	if combo_ring != null:
@@ -130,18 +140,23 @@ func set_momentum(value: float, band: int) -> void:
 		momentum_fill.color = _momentum_color(band)
 	if momentum_label != null:
 		momentum_label.text = (
-			("OVERDRIVE READY" if _is_portrait_layout() else "OVERDRIVE READY / PRESS SMASH")
+			(
+				L10n.t("hud.overdrive_ready_portrait")
+				if _is_portrait_layout()
+				else L10n.t("hud.overdrive_ready_landscape")
+			)
 			if band == MomentumMeter.Band.READY
-			else "MOMENTUM %03d%%" % roundi(clamped_value)
+			else L10n.t("hud.momentum", {"percent": "%03d" % roundi(clamped_value)})
 		)
 
 
 func set_overdrive(active: bool, remaining: float) -> void:
 	_overdrive_active = active
 	if momentum_label != null and active:
-		momentum_label.text = (
-			"OVERDRIVE %.1fs" if _is_portrait_layout() else "KINETIC OVERDRIVE  %.1fs"
-		) % maxf(remaining, 0.0)
+		var key: String = (
+			"hud.overdrive_portrait" if _is_portrait_layout() else "hud.overdrive_landscape"
+		)
+		momentum_label.text = L10n.t(key, {"seconds": "%.1f" % maxf(remaining, 0.0)})
 	if momentum_fill != null and active:
 		momentum_fill.size.x = (
 			_momentum_fill_width * clampf(remaining / 4.0, 0.0, 1.0)
@@ -155,14 +170,14 @@ func set_rare_tags(tags: PackedStringArray) -> void:
 		rare_labels[index].visible = index < tags.size()
 
 
-func set_status(text: String) -> void:
+func set_status(key: String, placeholders: Dictionary = {}) -> void:
 	if status_label != null:
-		status_label.text = text
+		status_label.text = L10n.t(key, placeholders)
 
 
-func set_objective(text: String) -> void:
+func set_objective(key: String, placeholders: Dictionary = {}) -> void:
 	if objective_label != null:
-		objective_label.text = text
+		objective_label.text = L10n.t(key, placeholders)
 
 
 func set_siege_progress(
@@ -198,7 +213,11 @@ func set_boss_status(state: StringName, current: float = 0.0, maximum: float = 1
 		return
 	boss_label.visible = true
 	var ratio: int = roundi(clampf(current / maxf(maximum, 1.0), 0.0, 1.0) * 100.0)
-	boss_label.text = "COMMAND UNIT  %s  %03d%%" % [String(state).replace("_", " "), ratio]
+	var state_key: String = "boss.state.%s" % String(state).to_lower()
+	boss_label.text = L10n.t("hud.command_status", {
+		"state": L10n.t(state_key),
+		"ratio": "%03d" % ratio,
+	})
 
 
 func show_directive_result(text: String, success: bool) -> void:
@@ -207,51 +226,46 @@ func show_directive_result(text: String, success: bool) -> void:
 
 func show_game_over(summary: RunSummarySnapshot = null) -> void:
 	_hide_terminal_choices()
-	set_status("CITY RESPONSE / LOST")
-	set_objective("CHASSIS SIGNAL TERMINATED")
+	set_status("hud.city_response_lost")
+	set_objective("hud.chassis_signal_terminated")
 	_show_summary(summary, false)
 
 
 func show_district_complete(summary: RunSummarySnapshot) -> void:
 	_hide_terminal_choices()
-	set_status("DISTRICT RESPONSE / BROKEN")
-	set_objective("RETALIATION EXHAUSTED / EXTRACTION OPEN")
+	set_status("hud.district_response_broken")
+	set_objective("hud.extraction_open")
 	_show_summary(summary, true)
 
 
 func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
-	overlay_title.text = "DISTRICT CLEARED" if completed else "GAME OVER"
+	overlay_title.text = L10n.t("hud.district_cleared" if completed else "hud.game_over")
 	if summary != null:
-		var summary_format: String = (
-			"GRADE %s  /  %03d PTS    SCORE %08d\n"
-				+ "ACTS %d/6   HITS %d   VARIETY %d   DEPTH %d\n"
-				+ "STRONGEST %s   WEAKEST %s\n%s"
-		)
-		overlay_summary.text = (
-			summary_format % [
-				summary.grade,
-				summary.mastery_points,
-				summary.score,
-				summary.waves_cleared,
-				summary.heavy_hits,
-				summary.unique_actions,
-				summary.causal_depth,
-				summary.strongest_metric,
-				summary.weakest_metric,
-				summary.retry_objective,
-			]
-		)
+		overlay_summary.text = L10n.t("hud.summary", {
+			"grade": summary.grade,
+			"points": "%03d" % summary.mastery_points,
+			"score": "%08d" % summary.score,
+			"acts": summary.waves_cleared,
+			"hits": summary.heavy_hits,
+			"variety": summary.unique_actions,
+			"depth": summary.causal_depth,
+			"strongest": L10n.t(
+				"summary.metric.%s" % String(summary.strongest_metric).to_lower()
+			),
+			"weakest": L10n.t(
+				"summary.metric.%s" % String(summary.weakest_metric).to_lower()
+			),
+			"objective": L10n.t(summary.retry_objective),
+		})
 	else:
-		overlay_summary.text = "CHASSIS SIGNAL LOST"
+		overlay_summary.text = L10n.t("hud.chassis_signal_lost")
 	game_over_overlay.visible = true
 	retry_button.grab_focus()
 
 
 func show_cycle_choice(cycle: int, can_continue: bool) -> void:
-	overlay_title.text = "DISTRICT SECURED"
-	overlay_summary.text = (
-		"CYCLE %d COMPLETE\nEXTRACT THE RESULT OR ESCALATE THE SAME CITY" % cycle
-	)
+	overlay_title.text = L10n.t("hud.district_secured")
+	overlay_summary.text = L10n.t("hud.cycle_complete", {"cycle": cycle})
 	retry_button.visible = false
 	extract_button.visible = true
 	continue_button.visible = can_continue
@@ -269,15 +283,15 @@ func hide_terminal_overlay() -> void:
 
 func _on_attack_mode_selected(mode: int, _attack_id: int) -> void:
 	set_objective(
-		"JAB-CROSS LOCKED / FORWARD IMPACT"
+		"hud.jab_cross_locked"
 		if mode == AttackSpec.Mode.JAB_CROSS
-		else "GROUND LOCKED / RADIAL IMPACT"
+		else "hud.ground_locked"
 	)
 
 
 func _on_attack_committed(mode: int, _attack_id: int) -> void:
 	if mode == AttackSpec.Mode.JAB_CROSS:
-		set_objective("JAB-CROSS PUNCH / MOMENTUM TRANSFERRED")
+		set_objective("hud.jab_cross_committed")
 
 
 func _build_status_panel() -> void:
@@ -289,7 +303,7 @@ func _build_status_panel() -> void:
 	status_label = Label.new()
 	status_label.name = "StatusLabel"
 	status_label.position = Vector2(48.0, 34.0)
-	status_label.text = "CITY RESPONSE / ACTIVE"
+	status_label.text = L10n.t("hud.city_response_active")
 	status_label.add_theme_font_size_override(&"font_size", 24)
 	status_label.modulate = ACCENT_COLOR
 	add_child(status_label)
@@ -301,7 +315,7 @@ func _build_status_panel() -> void:
 	objective_label = Label.new()
 	objective_label.name = "ObjectiveLabel"
 	objective_label.position = Vector2(48.0, 100.0)
-	objective_label.text = "A/D MOVE   SPACE SMASH   KEEP MOVING"
+	objective_label.text = L10n.t("hud.move_hint")
 	objective_label.add_theme_font_size_override(&"font_size", 20)
 	objective_label.modulate = MUTED_COLOR
 	add_child(objective_label)
@@ -379,7 +393,7 @@ func _build_score_panel() -> void:
 	score_caption = Label.new()
 	score_caption.position = Vector2(1012.0, 30.0)
 	score_caption.size = Vector2(220.0, 28.0)
-	score_caption.text = "RAMPAGE SCORE"
+	score_caption.text = L10n.t("hud.rampage_score")
 	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	score_caption.add_theme_font_size_override(&"font_size", 18)
 	score_caption.modulate = ACCENT_COLOR
@@ -397,7 +411,7 @@ func _build_score_panel() -> void:
 	pending_score_label.size = Vector2(220.0, 20.0)
 	pending_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	pending_score_label.add_theme_font_size_override(&"font_size", 14)
-	pending_score_label.text = "SAFE"
+	pending_score_label.text = L10n.t("hud.safe")
 	pending_score_label.modulate = MUTED_COLOR
 	add_child(pending_score_label)
 	for index: int in range(RuntimeBudget.RARE_TAG_ROWS):
@@ -475,7 +489,7 @@ func _build_game_over_overlay() -> void:
 	overlay_title = Label.new()
 	overlay_title.position = Vector2(405.0, 218.0)
 	overlay_title.size = Vector2(470.0, 72.0)
-	overlay_title.text = "GAME OVER"
+	overlay_title.text = L10n.t("hud.game_over")
 	overlay_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	overlay_title.add_theme_font_size_override(&"font_size", 48)
 	overlay_title.modulate = ACCENT_COLOR
@@ -483,7 +497,7 @@ func _build_game_over_overlay() -> void:
 	overlay_summary = Label.new()
 	overlay_summary.position = Vector2(405.0, 296.0)
 	overlay_summary.size = Vector2(470.0, 128.0)
-	overlay_summary.text = "CHASSIS SIGNAL LOST"
+	overlay_summary.text = L10n.t("hud.chassis_signal_lost")
 	overlay_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	overlay_summary.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	overlay_summary.add_theme_font_size_override(&"font_size", 20)
@@ -493,7 +507,7 @@ func _build_game_over_overlay() -> void:
 	retry_button.name = "RetryButton"
 	retry_button.position = Vector2(490.0, 430.0)
 	retry_button.size = Vector2(300.0, 78.0)
-	retry_button.text = "RETRY"
+	retry_button.text = L10n.t("hud.retry")
 	retry_button.focus_mode = Control.FOCUS_ALL
 	retry_button.add_theme_font_size_override(&"font_size", 30)
 	retry_button.pressed.connect(retry_pressed.emit)
@@ -502,7 +516,7 @@ func _build_game_over_overlay() -> void:
 	extract_button.name = "ExtractButton"
 	extract_button.position = Vector2(445.0, 430.0)
 	extract_button.size = Vector2(185.0, 78.0)
-	extract_button.text = "EXTRACT"
+	extract_button.text = L10n.t("hud.extract")
 	extract_button.add_theme_font_size_override(&"font_size", 25)
 	extract_button.pressed.connect(extract_pressed.emit)
 	extract_button.visible = false
@@ -511,7 +525,7 @@ func _build_game_over_overlay() -> void:
 	continue_button.name = "ContinueButton"
 	continue_button.position = Vector2(650.0, 430.0)
 	continue_button.size = Vector2(185.0, 78.0)
-	continue_button.text = "CONTINUE"
+	continue_button.text = L10n.t("hud.continue")
 	continue_button.add_theme_font_size_override(&"font_size", 25)
 	continue_button.pressed.connect(continue_pressed.emit)
 	continue_button.visible = false

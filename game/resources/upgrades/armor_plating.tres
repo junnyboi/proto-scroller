@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 upgrade_id = &"ARMOR_PLATING"
-display_name = "ARMOR PLATING"
-description = "+80 maximum chassis integrity. Missing damage is preserved."
+display_name = "upgrade.armor.name"
+description = "upgrade.armor.description"
 category = &"defense"
 icon = ExtResource("2")
 max_rank = 5

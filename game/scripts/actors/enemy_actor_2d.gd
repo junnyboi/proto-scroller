@@ -40,6 +40,9 @@ var movement_multiplier: float = 1.0
 var attack_interval_multiplier: float = 1.0
 var projectile_damage_multiplier: float = 1.0
 var external_attack_interval_multiplier: float = 1.0
+var aura_attack_interval_multiplier: float = 1.0
+var aura_damage_multiplier: float = 1.0
+var incoming_damage_multiplier: float = 1.0
 var role_badge: EnemyRoleBadge
 var structural_target: StructuralBuilding2D
 var catalyst_target: Catalyst2D
@@ -137,6 +140,8 @@ func receive_damage(event: DamageEvent) -> bool:
 	if _shield_available:
 		_shield_available = false
 		accepted_event = event.scaled(_shield_damage_ratio)
+	if not is_equal_approx(incoming_damage_multiplier, 1.0):
+		accepted_event = accepted_event.scaled(incoming_damage_multiplier)
 	current_health = maxf(current_health - accepted_event.amount, 0.0)
 	var knockback_scale: float = (
 		0.28
@@ -265,6 +270,9 @@ func clear_profiles() -> void:
 	attack_interval_multiplier = 1.0
 	projectile_damage_multiplier = 1.0
 	external_attack_interval_multiplier = 1.0
+	aura_attack_interval_multiplier = 1.0
+	aura_damage_multiplier = 1.0
+	incoming_damage_multiplier = 1.0
 	max_health = _base_max_health
 	_shield_available = false
 	_shield_damage_ratio = 1.0
@@ -333,7 +341,7 @@ func begin_telegraph(
 ) -> bool:
 	if not attack_gate_enabled or telegraph_presenter == null or _telegraph_id != 0:
 		return false
-	if kind in [&"shell", &"rocket"] and projectile_pool != null:
+	if kind != &"support" and projectile_pool != null:
 		_projectile_reservation_id = projectile_pool.reserve(kind)
 		if _projectile_reservation_id == 0:
 			return false

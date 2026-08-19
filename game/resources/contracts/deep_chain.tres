@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 contract_id = &"DEEP_CHAIN"
-display_name = "CAUSAL DEPTH 2"
+display_name = "contract.causal_depth_two"
 metric = &"causal_depth"
 maximum_value = -2

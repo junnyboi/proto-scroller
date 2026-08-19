@@ -39,10 +39,12 @@ func set_progress(index: int, total: int, display_name: String, recovery: bool) 
 	total_acts = clampi(total, 1, 6)
 	recovery_active = recovery
 	if label != null:
-		label.text = (
-			"ACT %d / %d  %s  %s"
-			% [current_index + 1, total_acts, display_name, "RECOVERY" if recovery else "PRESSURE"]
-		)
+		label.text = L10n.t("siege.progress", {
+			"current": current_index + 1,
+			"total": total_acts,
+			"name": L10n.t(display_name),
+			"mode": L10n.t("siege.recovery" if recovery else "siege.pressure"),
+		})
 	_refresh()
 
 

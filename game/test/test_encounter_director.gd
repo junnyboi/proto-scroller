@@ -12,7 +12,18 @@ func test_runtime_prewarms_exact_enemy_caps_without_post_warm_creation() -> void
 	assert_eq(city.encounter_runtime.total_count(&"soldier"), 6)
 	assert_eq(city.encounter_runtime.total_count(&"tank"), 2)
 	assert_eq(city.encounter_runtime.total_count(&"helicopter"), 1)
-	assert_eq(city.encounter_runtime.total_count(), 9)
+	assert_eq(city.encounter_runtime.family_capacity(&"infantry"), 6)
+	assert_eq(city.encounter_runtime.family_capacity(&"light"), 3)
+	assert_eq(city.encounter_runtime.family_capacity(&"heavy"), 4)
+	assert_eq(city.encounter_runtime.family_capacity(&"air"), 4)
+	assert_eq(city.encounter_runtime.family_capacity(&"siege"), 2)
+	assert_eq(
+		city.encounter_runtime.total_count(),
+		RuntimeBudget.SOLDIERS
+		+ RuntimeBudget.TANKS
+		+ RuntimeBudget.HELICOPTERS
+		+ RuntimeBudget.PROCEDURAL_ENEMIES
+	)
 	assert_eq(city.encounter_runtime.post_warm_creation_count, 0)
 
 
@@ -63,7 +74,7 @@ func test_wave_progression_waits_for_active_enemies_then_advances() -> void:
 	city.encounter_runtime.release_all()
 	director._process(1.1)
 	assert_eq(director.phase_index, 1)
-	assert_eq(director.current_phase_name(), "ARMOR RESPONSE")
+	assert_eq(director.current_phase_name(), "encounter.armor_response")
 
 
 func test_tank_warning_fires_exact_snapshot_from_reserved_slot() -> void:

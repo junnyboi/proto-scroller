@@ -59,16 +59,16 @@ static func grade_for(points: int, completed: bool) -> StringName:
 static func _objective_for(weakest: StringName) -> String:
 	match weakest:
 		&"DISTRICT":
-			return "RETRY: RESOLVE THE COMMAND WRECK"
+			return "summary.retry.resolve_command_wreck"
 		&"ACTS":
-			return "RETRY: REACH THE NEXT ACT"
+			return "summary.retry.reach_next_act"
 		&"DEFENSE":
-			return "RETRY: TAKE FEWER HEAVY HITS"
+			return "summary.retry.take_fewer_heavy_hits"
 		&"VARIETY":
-			return "RETRY: MIX JAB-CROSS, SMASH, AND CATALYSTS"
+			return "summary.retry.mix_actions"
 		&"CAUSALITY":
-			return "RETRY: BUILD A DEEPER DESTRUCTION CHAIN"
+			return "summary.retry.deeper_chain"
 		&"OVERDRIVE":
-			return "RETRY: CONVERT MOMENTUM INTO OVERDRIVE"
+			return "summary.retry.use_overdrive"
 		_:
-			return "RETRY: COMPLETE THE RUN CONTRACT"
+			return "summary.retry.complete_contract"

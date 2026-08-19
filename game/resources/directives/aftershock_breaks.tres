@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 directive_id = &"AFTERSHOCK_BREAKS"
-display_name = "AFTERSHOCK BREAKS"
-instruction = "CHAIN 2 AFTERSHOCKS"
+display_name = "directive.aftershock_breaks.name"
+instruction = "directive.aftershock_breaks.instruction"
 duration_seconds = 12.0
 target_count = 2
 structural_multiplier = 1.0

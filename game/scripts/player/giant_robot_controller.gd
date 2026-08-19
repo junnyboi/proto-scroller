@@ -66,6 +66,8 @@ var base_max_speed: float = 0.0
 var base_ground_acceleration: float = 0.0
 var base_air_acceleration: float = 0.0
 var base_ground_deceleration: float = 0.0
+var base_dodge_speed: float = 0.0
+var base_dodge_duration: float = 0.0
 var dodge_count: int = 0
 var invulnerable_rejection_count: int = 0
 var dodge_invulnerable: bool:
@@ -102,6 +104,8 @@ func _ready() -> void:
 	base_ground_acceleration = ground_acceleration
 	base_air_acceleration = air_acceleration
 	base_ground_deceleration = ground_deceleration
+	base_dodge_speed = dodge_speed
+	base_dodge_duration = dodge_duration
 	current_health = max_health
 	_apply_visual_facing()
 
@@ -166,7 +170,7 @@ func physics_step(input_axis: float, delta: float) -> void:
 	if _control_enabled and locomotion_state != LocomotionState.ATTACK_LOCKED:
 		_update_locomotion(clampf(input_axis, -1.0, 1.0), delta)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, ground_deceleration * delta)
+		velocity.x = 0.0
 	move_and_slide()
 	_resolve_landing_impact()
 
@@ -232,6 +236,19 @@ func set_engine_multipliers(
 	return true
 
 
+func _set_dodge_multipliers(speed_multiplier: float, duration_multiplier: float) -> bool:
+	var next_speed: float = base_dodge_speed * maxf(speed_multiplier, 1.0)
+	var next_duration: float = base_dodge_duration * maxf(duration_multiplier, 1.0)
+	if is_equal_approx(dodge_speed, next_speed) and is_equal_approx(
+		dodge_duration,
+		next_duration
+	):
+		return false
+	dodge_speed = next_speed
+	dodge_duration = next_duration
+	return true
+
+
 func set_attack_controller(controller: ContextualAttackController) -> void:
 	attack_controller = controller
 
@@ -240,6 +257,8 @@ func _set_attack_locked(locked: bool) -> void:
 	_attack_locked = locked
 	if locomotion_state == LocomotionState.DISABLED or locomotion_state == LocomotionState.DODGE:
 		return
+	if locked:
+		velocity.x = 0.0
 	_set_locomotion_state(
 		LocomotionState.ATTACK_LOCKED
 		if locked
@@ -262,7 +281,13 @@ func _start_dodge() -> bool:
 func set_disabled(disabled: bool) -> void:
 	_control_enabled = not disabled
 	_set_locomotion_state(
-		LocomotionState.DISABLED if disabled else LocomotionState.IDLE
+		LocomotionState.DISABLED
+		if disabled
+		else (
+			LocomotionState.ATTACK_LOCKED
+			if _attack_locked
+			else LocomotionState.IDLE
+		)
 	)
 
 

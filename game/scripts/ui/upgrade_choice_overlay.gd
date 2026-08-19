@@ -35,10 +35,11 @@ func show_offer(
 	for index: int in range(2):
 		var profile: UpgradeProfile = catalog.get_profile(offer.choice_ids[index])
 		cards[index].configure(profile, int(ranks.get(profile.upgrade_id, 0)))
-	batch_label.text = "LEVEL %02d UPGRADE" % offer.entitlement.level
-	queue_label.text = (
-		"CHOICE %d OF %d" % [offer.sequence, maxi(queue_total, offer.sequence)]
-	)
+	batch_label.text = L10n.t("upgrade.level", {"level": "%02d" % offer.entitlement.level})
+	queue_label.text = L10n.t("upgrade.choice", {
+		"current": offer.sequence,
+		"total": maxi(queue_total, offer.sequence),
+	})
 	active = true
 	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -77,7 +78,7 @@ func _build_fixed_controls() -> void:
 	shade.color = Color(0.005, 0.015, 0.025, 0.88)
 	add_child(shade)
 	title_label = Label.new()
-	title_label.text = "SELECT RUN UPGRADE"
+	title_label.text = L10n.t("upgrade.select")
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override(&"font_size", 38)
 	title_label.modulate = Color("f1b36f")

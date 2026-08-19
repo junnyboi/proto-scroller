@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 contract_id = &"NO_HEAVY_HITS"
-display_name = "NO HEAVY HITS"
+display_name = "contract.no_heavy_hits"
 metric = &"heavy_hits"
 maximum_value = 0
