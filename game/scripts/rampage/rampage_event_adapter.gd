@@ -14,20 +14,17 @@ func building_damage(
 	building: StructuralBuilding2D,
 	robot: GiantRobotController
 ) -> bool:
-	return _session.publish(GameplayEvent.new(
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		&"",
-		event.attack_id,
+		0,
 		GameplayEvent.Kind.DAMAGE_APPLIED,
 		&"",
 		roundi(amount * 10.0),
 		0.0,
 		false,
-		event.hit_position,
-		&"",
-		robot.get_instance_id(),
-		building.get_instance_id(),
-		event.damage_type
-	))
+		event.hit_position
+	)
+	return _publish_damage(gameplay_event, event, building, robot)
 
 
 func cell_destroyed(
@@ -39,20 +36,18 @@ func cell_destroyed(
 ) -> bool:
 	var cell: Destructible2D = building.get_cell(column, row)
 	var profile: StructuralMaterialProfile = building.get_material_profile(column, row)
-	return _session.publish(GameplayEvent.new(
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		StringName("cell:%d:%d" % [column, row]),
-		event.attack_id,
+		0,
 		GameplayEvent.Kind.CELL_DESTROYED,
 		GameplayEvent.CELL_BREACH,
 		300,
 		12.0,
 		true,
 		cell.global_position,
-		profile.material_id,
-		robot.get_instance_id(),
-		cell.get_instance_id(),
-		event.damage_type
-	))
+		profile.material_id
+	)
+	return _publish_damage(gameplay_event, event, cell, robot)
 
 
 func chain_started(
@@ -61,20 +56,17 @@ func chain_started(
 	building: StructuralBuilding2D,
 	robot: GiantRobotController
 ) -> bool:
-	return _session.publish(GameplayEvent.new(
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		StringName("chain:%d" % building.chain_reaction_count),
-		event.attack_id,
+		0,
 		GameplayEvent.Kind.CHAIN_COLLAPSE,
 		GameplayEvent.CHAIN_COLLAPSE,
 		600,
 		24.0,
 		true,
-		building.global_position,
-		&"",
-		robot.get_instance_id(),
-		building.get_instance_id(),
-		kind
-	))
+		building.global_position
+	)
+	return _publish_damage(gameplay_event, event, building, robot, kind)
 
 
 func building_destroyed(
@@ -82,20 +74,17 @@ func building_destroyed(
 	building: StructuralBuilding2D,
 	robot: GiantRobotController
 ) -> bool:
-	return _session.publish(GameplayEvent.new(
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		&"building_destroyed",
-		event.attack_id,
+		0,
 		GameplayEvent.Kind.DAMAGE_APPLIED,
 		&"",
 		1000,
 		0.0,
 		false,
-		building.global_position,
-		&"",
-		robot.get_instance_id(),
-		building.get_instance_id(),
-		event.damage_type
-	))
+		building.global_position
+	)
+	return _publish_damage(gameplay_event, event, building, robot)
 
 
 func prop_destroyed(
@@ -105,20 +94,17 @@ func prop_destroyed(
 	robot: GiantRobotController,
 	_is_car: bool
 ) -> bool:
-	return _session.publish(GameplayEvent.new(
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		StringName("prop:%d" % prop.get_instance_id()),
-		event.attack_id,
+		0,
 		GameplayEvent.Kind.PROP_DESTROYED,
 		GameplayEvent.PROP_BREAK,
 		points,
 		6.0,
 		true,
-		prop.global_position,
-		&"",
-		robot.get_instance_id(),
-		prop.get_instance_id(),
-		event.damage_type
-	))
+		prop.global_position
+	)
+	return _publish_damage(gameplay_event, event, prop, robot)
 
 
 func enemy_defeated(
@@ -128,20 +114,19 @@ func enemy_defeated(
 	robot: GiantRobotController
 ) -> bool:
 	var is_soldier: bool = enemy is SoldierEnemy
-	return _session.publish(GameplayEvent.new(
-		StringName("enemy:%d" % enemy.get_instance_id()),
-		event.attack_id,
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
+		StringName(
+			"enemy:%d:%d" % [enemy.get_instance_id(), enemy.activation_generation]
+		),
+		0,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH if is_soldier else &"",
 		points,
 		_enemy_momentum_delta(enemy),
 		is_soldier,
-		enemy.global_position,
-		&"",
-		robot.get_instance_id(),
-		enemy.get_instance_id(),
-		event.damage_type
-	))
+		enemy.global_position
+	)
+	return _publish_damage(gameplay_event, event, enemy, robot)
 
 
 func wreck_scrapped(
@@ -151,20 +136,18 @@ func wreck_scrapped(
 	robot: GiantRobotController
 ) -> bool:
 	var is_tank: bool = wreck.wreck_kind == &"tank"
-	return _session.publish(GameplayEvent.new(
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		StringName("wreck:%d:%d" % [wreck.get_instance_id(), event.attack_id]),
-		event.attack_id,
+		0,
 		GameplayEvent.Kind.WRECK_SCRAPPED,
 		GameplayEvent.TANK_SCRAP if is_tank else &"",
 		points,
 		0.0,
 		is_tank,
 		wreck.global_position,
-		&"steel",
-		robot.get_instance_id(),
-		wreck.get_instance_id(),
-		event.damage_type
-	))
+		&"steel"
+	)
+	return _publish_damage(gameplay_event, event, wreck, robot)
 
 
 func aerial_hit(
@@ -173,20 +156,24 @@ func aerial_hit(
 	target: EnemyActor2D,
 	robot: GiantRobotController
 ) -> bool:
-	return _session.publish(GameplayEvent.new(
-		StringName("air:%d:%d" % [event.attack_id, target.get_instance_id()]),
-		event.attack_id,
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
+		StringName(
+			"air:%d:%d:%d" % [
+				event.root_attack_id,
+				target.get_instance_id(),
+				target.activation_generation,
+			]
+		),
+		0,
 		GameplayEvent.Kind.AIRBORNE_DEBRIS_HIT,
 		GameplayEvent.AIR_DEBRIS_HIT,
 		250,
 		20.0,
 		true,
 		event.hit_position,
-		body.material_id(),
-		robot.get_instance_id(),
-		target.get_instance_id(),
-		event.damage_type
-	))
+		body.material_id()
+	)
+	return _publish_damage(gameplay_event, event, target, robot)
 
 
 func player_heavy_hit(
@@ -201,20 +188,17 @@ func player_heavy_hit(
 		if event.attack_id != 0
 		else &""
 	)
-	return _session.publish(GameplayEvent.new(
+	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		dedupe_key,
-		event.attack_id,
+		0,
 		GameplayEvent.Kind.PLAYER_HEAVY_HIT,
 		&"",
 		0,
 		-12.0,
 		false,
-		event.hit_position,
-		&"",
-		event.source.get_instance_id() if event.source != null else 0,
-		robot.get_instance_id(),
-		event.damage_type
-	))
+		event.hit_position
+	)
+	return _publish_damage(gameplay_event, event, robot)
 
 
 func legacy_score(points: int) -> bool:
@@ -227,6 +211,27 @@ func legacy_score(points: int) -> bool:
 		&"",
 		points
 	))
+
+
+func _publish_damage(
+	gameplay_event: GameplayEvent,
+	damage_event: DamageEvent,
+	target: Node = null,
+	source_fallback: Node = null,
+	cause_override: StringName = &""
+) -> bool:
+	if gameplay_event == null or damage_event == null:
+		return false
+	gameplay_event.attack_id = damage_event.attack_id
+	gameplay_event.root_attack_id = damage_event.root_attack_id
+	gameplay_event.causal_depth = damage_event.causal_depth
+	var source: Node = damage_event.source if damage_event.source != null else source_fallback
+	gameplay_event.source_id = source.get_instance_id() if source != null else 0
+	gameplay_event.target_id = target.get_instance_id() if target != null else 0
+	gameplay_event.cause = (
+		cause_override if not cause_override.is_empty() else damage_event.damage_type
+	)
+	return _session.publish(gameplay_event)
 
 
 func _enemy_momentum_delta(enemy: EnemyActor2D) -> float:

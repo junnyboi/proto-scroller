@@ -2,7 +2,7 @@ class_name RunExperience
 extends Node
 
 signal experience_changed(level: int, current: int, required: int)
-signal level_gained(level: int)
+signal level_gained(level: int, accepted_event_id: int)
 
 const BASE_REQUIREMENT: int = 500
 const GROWTH_FACTOR: float = 1.35
@@ -23,12 +23,12 @@ static func required_for_level(source_level: int) -> int:
 
 
 func apply_event(event: GameplayEvent) -> int:
-	if event == null:
+	if event == null or event.event_id <= 0:
 		return 0
-	return add_experience(event.base_points)
+	return add_experience(event.base_points, event.event_id)
 
 
-func add_experience(amount: int) -> int:
+func add_experience(amount: int, accepted_event_id: int = 0) -> int:
 	var accepted: int = mini(maxi(amount, 0), MAX_EXPERIENCE - total_experience)
 	if accepted <= 0 or level >= MAX_LEVEL:
 		return 0
@@ -39,7 +39,8 @@ func add_experience(amount: int) -> int:
 		current_experience -= required_for_level(level)
 		level += 1
 		levels_gained += 1
-		level_gained.emit(level)
+		if accepted_event_id > 0:
+			level_gained.emit(level, accepted_event_id)
 	if level >= MAX_LEVEL:
 		current_experience = 0
 	experience_changed.emit(level, current_experience, experience_required())
