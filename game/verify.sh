@@ -15,7 +15,7 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 rm -rf artifacts
-mkdir -p artifacts/title_screen artifacts/city_slice
+mkdir -p artifacts/title_screen artifacts/city_slice artifacts/upgrades
 START_EPOCH="$(date +%s)"
 
 run_engine() {
@@ -123,10 +123,26 @@ if [[ "$MODE" == "full" ]]; then
   grep -Fq '720 x 1280' <<< "$PORTRAIT_CITY_DIMENSIONS"
   mv artifacts/city_slice/city-slice-initial.png \
     artifacts/city_slice/city-slice-initial-portrait.png
-  cp artifacts/city_slice/city-slice-initial-landscape.png \
-    artifacts/city_slice/city-slice-initial.png
+	  cp artifacts/city_slice/city-slice-initial-landscape.png \
+	    artifacts/city_slice/city-slice-initial.png
 
-  printf '%s\n' '[WEB] cache-bypassed release export'
+	  printf '%s\n' '[L5] landscape upgrade overlay visual scenario'
+	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	    -s selftest/upgrade_overlay_visual_scenario.gd
+	  test -s artifacts/upgrades/upgrade-choice.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/upgrades/upgrade-choice.png)"
+	  mv artifacts/upgrades/upgrade-choice.png \
+	    artifacts/upgrades/upgrade-choice-landscape.png
+
+	  printf '%s\n' '[L5] portrait upgrade overlay visual scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	    --resolution 720x1280 -s selftest/upgrade_overlay_visual_scenario.gd
+	  test -s artifacts/upgrades/upgrade-choice.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/upgrades/upgrade-choice.png)"
+	  mv artifacts/upgrades/upgrade-choice.png \
+	    artifacts/upgrades/upgrade-choice-portrait.png
+
+	  printf '%s\n' '[WEB] cache-bypassed release export'
   rm -rf ../client/public/game
   mkdir -p ../client/public/game
   run_engine "$GODOT" --headless --path . --export-release Web \

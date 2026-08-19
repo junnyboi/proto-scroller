@@ -78,6 +78,7 @@ func _run() -> void:
 		city.building.destroyed_cell_count() == 1,
 		"cells=%d" % city.building.destroyed_cell_count()
 	)
+	await _resolve_upgrade_choices(city)
 	var jab_cross_columns: Array[int] = [1, 2, 2]
 	for jab_cross_index: int in range(jab_cross_columns.size()):
 		for settle_frame: int in range(45):
@@ -96,6 +97,7 @@ func _run() -> void:
 			"attack_id=%d" % attack_id
 		)
 		await create_timer(spec.anticipation_seconds + 0.03).timeout
+		await _resolve_upgrade_choices(city)
 	for wait_frame: int in range(90):
 		if city.building.is_destroyed():
 			break
@@ -113,6 +115,7 @@ func _run() -> void:
 		city.debris_pool.active_count() > 0,
 		"active=%s" % city.debris_pool.active_count()
 	)
+	await _resolve_upgrade_choices(city)
 	city.overdrive_session.end_overdrive()
 	city.rampage_session.momentum_meter.reset_run()
 	for pressure_tick: int in range(900):
@@ -219,6 +222,19 @@ func _run() -> void:
 		"frames=%s max=%s" % [elapsed_frames, MAX_FRAMES]
 	)
 	_finish(shot_status, shot_path)
+
+
+func _resolve_upgrade_choices(city: CitySlice) -> void:
+	await process_frame
+	var session: UpgradeSession = city.upgrade_assembler.session
+	for choice_index: int in range(64):
+		if session.active_offer == null:
+			return
+		var sequence: int = session.active_offer.sequence
+		var selected: StringName = session.active_offer.choice_ids[0]
+		if not session.select_choice(selected, sequence):
+			return
+		await process_frame
 
 
 func _check(check_name: String, passed: bool, detail: String) -> void:

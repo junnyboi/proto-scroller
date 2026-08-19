@@ -18,6 +18,9 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.audio_voices, 8)
 	assert_eq(snapshot.rare_rows, 3)
 	assert_eq(snapshot.upgrade_sessions, 1)
+	assert_eq(snapshot.upgrade_overlays, 1)
+	assert_eq(snapshot.upgrade_cards, 2)
+	assert_eq(snapshot.weapon_status_strips, 1)
 
 
 func test_pool_saturation_recycles_without_node_or_capacity_growth() -> void:

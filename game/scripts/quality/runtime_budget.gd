@@ -32,6 +32,9 @@ const DISTRICT_RECIPES: int = 3
 const RUN_CONTRACTS: int = 3
 const TERMINAL_CHOICE_OVERLAYS: int = 1
 const UPGRADE_SESSIONS: int = 1
+const UPGRADE_OVERLAYS: int = 1
+const UPGRADE_CARDS: int = 2
+const WEAPON_STATUS_STRIPS: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -90,6 +93,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"upgrade_sessions": (
 			1 if city.upgrade_assembler.session != null else 0
 		),
+		"upgrade_overlays": 1 if city.gameplay_hud.upgrade_choice_overlay != null else 0,
+		"upgrade_cards": city.gameplay_hud.upgrade_choice_overlay.cards.size(),
+		"weapon_status_strips": 1 if city.gameplay_hud.weapon_status_strip != null else 0,
 	}
 
 
@@ -123,6 +129,9 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		TERMINAL_CHOICE_OVERLAYS
 	)
 	_check_equal(errors, data, "upgrade_sessions", UPGRADE_SESSIONS)
+	_check_equal(errors, data, "upgrade_overlays", UPGRADE_OVERLAYS)
+	_check_equal(errors, data, "upgrade_cards", UPGRADE_CARDS)
+	_check_equal(errors, data, "weapon_status_strips", WEAPON_STATUS_STRIPS)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]

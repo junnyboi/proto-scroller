@@ -25,6 +25,8 @@ var experience_fill: ColorRect
 var siege_progress: SiegeProgressStrip
 var directive_card: DirectiveCard
 var directive_choice_overlay: DirectiveChoiceOverlay
+var upgrade_choice_overlay: UpgradeChoiceOverlay
+var weapon_status_strip: WeaponStatusStrip
 var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
@@ -61,6 +63,7 @@ func _ready() -> void:
 	_build_siege_progress()
 	_build_directive_card()
 	_build_directive_choice_overlay()
+	_build_upgrade_ui()
 	_build_boss_status()
 	_build_game_over_overlay()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
@@ -430,6 +433,13 @@ func _build_directive_choice_overlay() -> void:
 	add_child(directive_choice_overlay)
 
 
+func _build_upgrade_ui() -> void:
+	weapon_status_strip = WeaponStatusStrip.new()
+	add_child(weapon_status_strip)
+	upgrade_choice_overlay = UpgradeChoiceOverlay.new()
+	add_child(upgrade_choice_overlay)
+
+
 func _build_boss_status() -> void:
 	boss_label = Label.new()
 	boss_label.name = "BossStatus"
@@ -519,6 +529,10 @@ func _apply_responsive_layout() -> void:
 		_apply_landscape_layout()
 	if directive_choice_overlay != null:
 		directive_choice_overlay.apply_responsive_layout(viewport_size)
+	if upgrade_choice_overlay != null:
+		upgrade_choice_overlay.apply_responsive_layout()
+	if weapon_status_strip != null:
+		weapon_status_strip.apply_responsive_layout()
 
 
 func _apply_landscape_layout() -> void:
