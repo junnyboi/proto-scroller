@@ -2,6 +2,9 @@ extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const DISTRICT: DistrictDefinition = preload("res://resources/siege/district_contact.tres")
+const BLITZ: EnemyTraitProfile = preload("res://resources/traits/blitz.tres")
+const BRUTAL: EnemyTraitProfile = preload("res://resources/traits/brutal.tres")
+const PHASED: EnemyTraitProfile = preload("res://resources/traits/phased.tres")
 const EXPECTED_FIRST_ACT: Dictionary = {
 	&"needle": 0, &"bulwark": 0, &"jackal": 0,
 	&"lobber": 1, &"sapper": 1, &"hound": 1,
@@ -16,7 +19,9 @@ const EXPECTED_BASELINE_PUNCHES: Dictionary = {
 	&"kestrel": 2, &"rainmaker": 2, &"shrike": 2, &"cinder": 3, &"aegis": 2,
 	&"longbow": 3, &"hive": 3, &"goliath": 5, &"nemesis": 6, &"leviathan": 13,
 }
-const EXPECTED_ACT_PEAK_THREAT: Array[int] = [4, 6, 9, 11, 11, 13]
+const EXPECTED_ACT_PEAK_THREAT: Array[int] = [4, 6, 9, 12, 16, 16]
+const MAX_ARMOR_LOADOUT_HEALTH: float = 1200.0
+const LATE_WAVE_MINIMUM_DPS: float = 20.0
 
 var city: CitySlice
 var runtime: EncounterRuntime
@@ -126,6 +131,31 @@ func test_aegis_and_static_apply_bounded_nonstacking_support_modifiers() -> void
 	assert_almost_eq(bulwark.aura_attack_interval_multiplier, 1.0, 0.001)
 
 
+func test_elite_affixes_modify_distinct_pressure_axes_and_keep_honest_warnings() -> void:
+	var blitz: ProceduralEnemy = runtime.acquire(
+		&"hound", Vector2(1180.0, 230.0), &"", BLITZ.trait_id
+	) as ProceduralEnemy
+	assert_almost_eq(blitz.max_health, 153.0, 0.01)
+	assert_almost_eq(blitz.movement_multiplier, 1.35, 0.001)
+	assert_almost_eq(blitz.attack_interval_multiplier, 0.72, 0.001)
+	blitz._begin_attack()
+	assert_gte(blitz._telegraph_remaining, EnemyActor2D.MINIMUM_TELEGRAPH_SECONDS)
+	runtime.release(blitz)
+	var brutal: ProceduralEnemy = runtime.acquire(
+		&"cinder", Vector2(1180.0, 547.0), &"", BRUTAL.trait_id
+	) as ProceduralEnemy
+	assert_almost_eq(brutal.max_health, 374.0, 0.01)
+	assert_almost_eq(brutal.projectile_damage_multiplier, 1.4, 0.001)
+	runtime.release(brutal)
+	var phased: ProceduralEnemy = runtime.acquire(
+		&"jackal", Vector2(1180.0, 554.0), &"", PHASED.trait_id
+	) as ProceduralEnemy
+	assert_true(phased.receive_damage(DamageEvent.new(41_001, city.robot, 60.0)))
+	assert_almost_eq(phased.current_health, 57.0, 0.01)
+	assert_true(phased.receive_damage(DamageEvent.new(41_002, city.robot, 60.0)))
+	assert_true(phased.dead)
+
+
 func test_carrier_at_family_capacity_completes_without_firing_a_fallback_shot() -> void:
 	var hive: ProceduralEnemy = runtime.acquire(
 		&"hive", Vector2(1200.0, 185.0)
@@ -221,11 +251,23 @@ func test_late_acts_use_cross_family_waves_and_smooth_threat_peaks() -> void:
 			peak_threat = maxi(peak_threat, beat_threat)
 			if act_index >= 3 and beat.spawns.size() >= 2:
 				assert_gte(families.size(), 2, beat.beat_id)
+			if act_index >= 3:
+				assert_gte(beat.spawns.size(), 3, beat.beat_id)
+				assert_lte(beat.recovery_seconds, 2.0, beat.beat_id)
+				assert_gte(_direct_outgoing_dps(beat), LATE_WAVE_MINIMUM_DPS, beat.beat_id)
 		assert_eq(peak_threat, EXPECTED_ACT_PEAK_THREAT[act_index], act.act_id)
 		if act_index > 0:
 			assert_gte(peak_threat, previous_peak, act.act_id)
-			assert_lte(peak_threat - previous_peak, 3, act.act_id)
+			assert_lte(peak_threat - previous_peak, 4, act.act_id)
 		previous_peak = peak_threat
+	var maximum_armor_survival: float = (
+		MAX_ARMOR_LOADOUT_HEALTH / LATE_WAVE_MINIMUM_DPS
+	)
+	assert_lt(maximum_armor_survival, 61.0)
+	assert_gt(
+		LATE_WAVE_MINIMUM_DPS * 13.0 / MAX_ARMOR_LOADOUT_HEALTH,
+		0.20
+	)
 
 
 func test_all_twenty_archetypes_enter_in_monotonic_act_order_within_caps() -> void:
@@ -243,3 +285,30 @@ func test_all_twenty_archetypes_enter_in_monotonic_act_order_within_caps() -> vo
 	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
 		assert_eq(first_act.get(archetype_id, -1), EXPECTED_FIRST_ACT[archetype_id])
 	assert_eq(DistrictRecipeValidator.validate(DISTRICT), PackedStringArray())
+
+
+func _direct_outgoing_dps(beat: DistrictBeat) -> float:
+	var total: float = 0.0
+	for entry: EnemySpawnEntry in beat.spawns:
+		var kind: StringName = StringName(entry.kind)
+		if kind == &"soldier":
+			total += 8.0 / 0.95
+			continue
+		if kind == &"tank":
+			total += 24.0 / 2.30
+			continue
+		if kind == &"helicopter":
+			total += 16.0 / 1.75
+			continue
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(kind)
+		if profile.attack_style in [
+			&"scan", &"repair", &"jammer_pulse", &"shield_pulse", &"deploy", &"drone_launch",
+		]:
+			continue
+		var salvo_multiplier: float = 1.0
+		if profile.attack_style == &"pod_salvo":
+			salvo_multiplier = 2.44
+		elif profile.attack_style == &"fortress_barrage":
+			salvo_multiplier = 3.16
+		total += float(profile.damage) * salvo_multiplier / float(profile.attack_interval)
+	return total

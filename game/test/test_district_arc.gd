@@ -73,3 +73,40 @@ func test_bounded_overrun_advances_with_surviving_low_threat() -> void:
 	director.advance(0.1)
 	assert_eq(director.phase_index, 1)
 	assert_eq(city.encounter_runtime.active_count(&"soldier"), 1)
+
+
+func test_late_elite_affixes_are_seeded_replayable_and_never_mutate_authored_entries() -> void:
+	var first_trace: Array[Dictionary] = _elite_trace(73)
+	var replay_trace: Array[Dictionary] = _elite_trace(73)
+	var alternate_trace: Array[Dictionary] = _elite_trace(74)
+	assert_eq(first_trace, replay_trace)
+	assert_ne(first_trace, alternate_trace)
+	assert_eq(first_trace.size(), 14)
+	for assignment: Dictionary in first_trace:
+		assert_gte(int(assignment.act_index), 3)
+		assert_true(
+			StringName(assignment.trait_id) in DistrictResponseDirector.ELITE_AFFIXES
+		)
+		if int(assignment.act_index) == 3:
+			assert_ne(StringName(assignment.trait_id), &"PHASED")
+	var authored_elites: int = 0
+	for act: DistrictAct in DISTRICT.acts:
+		for beat: DistrictBeat in act.beats:
+			for entry: EnemySpawnEntry in beat.spawns:
+				authored_elites += 1 if not entry.trait_id.is_empty() else 0
+	assert_eq(authored_elites, 3)
+
+
+func _elite_trace(p_seed: int) -> Array[Dictionary]:
+	var director: DistrictResponseDirector = city.urban_siege.director
+	director.stop()
+	city.encounter_runtime.release_all()
+	director.configure_elite_affixes(p_seed, 1)
+	director.start()
+	var guard: int = 0
+	while not director.completed and guard < 600:
+		director.advance(1.0)
+		city.encounter_runtime.release_all()
+		guard += 1
+	assert_true(director.completed)
+	return director.elite_assignments.duplicate(true)

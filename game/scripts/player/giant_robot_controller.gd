@@ -40,7 +40,8 @@ enum LocomotionState {
 @export_group("Dodge")
 @export var dodge_speed: float = 520.0
 @export var dodge_duration: float = 0.18
-@export var dodge_invulnerability_seconds: float = 0.30
+@export var dodge_invulnerability_seconds: float = 0.24
+@export var dodge_recovery_seconds: float = 0.12
 
 @export_group("Impact")
 @export var stomp_radius: float = 96.0
@@ -76,6 +77,9 @@ var dodge_invulnerable: bool:
 var dodge_invulnerability_remaining: float:
 	get:
 		return _invulnerable_remaining
+var dodge_recovery_remaining: float:
+	get:
+		return _dodge_recovery_remaining
 var _turn_elapsed: float = 0.0
 var _pending_facing: int = 1
 var _attack_id: int = 0
@@ -85,6 +89,7 @@ var _control_enabled: bool = true
 var _attack_locked: bool = false
 var _dodge_remaining: float = 0.0
 var _invulnerable_remaining: float = 0.0
+var _dodge_recovery_remaining: float = 0.0
 var _seen_attacks: Dictionary[int, bool] = {}
 
 @onready var _visual_root: Node2D = get_node_or_null(visual_root_path) as Node2D
@@ -163,8 +168,16 @@ func physics_step(input_axis: float, delta: float) -> void:
 		move_and_slide()
 		_dodge_remaining = maxf(_dodge_remaining - delta, 0.0)
 		if is_zero_approx(_dodge_remaining):
+			velocity.x = 0.0
+			_dodge_recovery_remaining = dodge_recovery_seconds
 			_set_locomotion_state(LocomotionState.IDLE)
 			dodge_finished.emit()
+		_resolve_landing_impact()
+		return
+	if _dodge_recovery_remaining > 0.0:
+		_dodge_recovery_remaining = maxf(_dodge_recovery_remaining - delta, 0.0)
+		velocity.x = 0.0
+		move_and_slide()
 		_resolve_landing_impact()
 		return
 	if _control_enabled and locomotion_state != LocomotionState.ATTACK_LOCKED:
@@ -267,7 +280,12 @@ func _set_attack_locked(locked: bool) -> void:
 
 
 func _start_dodge() -> bool:
-	if not _control_enabled or locomotion_state == LocomotionState.DISABLED or _attack_locked:
+	if (
+		not _control_enabled
+		or locomotion_state == LocomotionState.DISABLED
+		or _attack_locked
+		or _dodge_recovery_remaining > 0.0
+	):
 		return false
 	_dodge_remaining = dodge_duration
 	_invulnerable_remaining = dodge_invulnerability_seconds
@@ -313,6 +331,7 @@ func can_request_attack() -> bool:
 		_control_enabled
 		and locomotion_state != LocomotionState.DISABLED
 		and locomotion_state != LocomotionState.DODGE
+		and _dodge_recovery_remaining <= 0.0
 	)
 
 
