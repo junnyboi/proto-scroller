@@ -404,14 +404,14 @@ script = ExtResource("3")
 beat_id = &"COMMAND_BREAK"
 pressure_seconds = 14.0
 recovery_seconds = 3.0
-spawns = Array[ExtResource("4")]([SubResource("Kestrel"), SubResource("Rainmaker"), SubResource("Shrike")])
+spawns = Array[ExtResource("4")]([SubResource("Static"), SubResource("Shrike"), SubResource("Lancer")])
 
 [sub_resource type="Resource" id="Retaliation01"]
 script = ExtResource("3")
 beat_id = &"RETALIATION_FRONT"
 pressure_seconds = 12.0
 recovery_seconds = 2.5
-spawns = Array[ExtResource("4")]([SubResource("ShieldedAegis"), SubResource("Cinder")])
+spawns = Array[ExtResource("4")]([SubResource("ShieldedAegis"), SubResource("Cinder"), SubResource("Needle")])
 
 [sub_resource type="Resource" id="Retaliation02"]
 script = ExtResource("3")
@@ -425,35 +425,36 @@ script = ExtResource("3")
 beat_id = &"RETALIATION_AIR"
 pressure_seconds = 13.0
 recovery_seconds = 2.5
-spawns = Array[ExtResource("4")]([SubResource("Hive"), SubResource("Hound")])
+spawns = Array[ExtResource("4")]([SubResource("Hive"), SubResource("Static")])
 
 [sub_resource type="Resource" id="Retaliation04"]
 script = ExtResource("3")
 beat_id = &"RETALIATION_SQUEEZE"
 pressure_seconds = 14.0
 recovery_seconds = 2.5
-spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("TankBehind")])
+spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("Shrike")])
 
 [sub_resource type="Resource" id="Retaliation05"]
 script = ExtResource("3")
 beat_id = &"RETALIATION_PEAK"
 pressure_seconds = 15.0
 recovery_seconds = 2.5
-spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("Needle")])
+spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("Hound")])
 
 [sub_resource type="Resource" id="CommandTest01"]
 script = ExtResource("3")
 beat_id = &"SIEGE_TEST"
 pressure_seconds = 12.0
 recovery_seconds = 3.0
-spawns = Array[ExtResource("4")]([SubResource("Nemesis")])
+spawns = Array[ExtResource("4")]([SubResource("Nemesis"), SubResource("Needle")])
 
 [sub_resource type="Resource" id="CommandTest02"]
 script = ExtResource("3")
 beat_id = &"ARMOR_TEST"
 pressure_seconds = 13.0
 recovery_seconds = 3.0
-spawns = Array[ExtResource("4")]([SubResource("Leviathan")])
+maximum_threat = 13
+spawns = Array[ExtResource("4")]([SubResource("Leviathan"), SubResource("Needle")])
 
 [sub_resource type="Resource" id="CommandTest03"]
 script = ExtResource("3")

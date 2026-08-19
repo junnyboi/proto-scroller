@@ -77,13 +77,13 @@ func _run() -> void:
 			city.projectile_root.reservation_count(),
 			city.telegraph_presenter.active_count(),
 		]
-	)
+		)
+	await _run_balanced_mixed_wave(city)
 	city.robot.global_position.x = 820.0
 	var showcase: Array[Dictionary] = [
-		{"id": &"longbow", "position": Vector2(420.0, 544.0)},
-		{"id": &"bulwark", "position": Vector2(650.0, 540.0)},
-		{"id": &"hound", "position": Vector2(1030.0, 230.0)},
-		{"id": &"nemesis", "position": Vector2(1160.0, 482.5)},
+		{"id": &"lancer", "position": Vector2(470.0, 547.5)},
+		{"id": &"shrike", "position": Vector2(1040.0, 195.0)},
+		{"id": &"static", "position": Vector2(1140.0, 547.0)},
 	]
 	for item: Dictionary in showcase:
 		var actor: ProceduralEnemy = city.encounter_runtime.acquire(
@@ -113,6 +113,57 @@ func _run() -> void:
 	_check("runtime_caps_hold", cap_errors.is_empty(), "errors=%s" % cap_errors)
 	_check("frame_budget", elapsed_frames <= MAX_FRAMES, "frames=%d" % elapsed_frames)
 	_finish(shot_status, shot_path)
+
+
+func _run_balanced_mixed_wave(city: CitySlice) -> void:
+	city.encounter_runtime.release_all()
+	city.robot.global_position.x = 820.0
+	city.robot.max_health = 400.0
+	city.robot.current_health = 400.0
+	var wave: Array[Dictionary] = [
+		{"id": &"static", "position": Vector2(1320.0, 547.0)},
+		{"id": &"shrike", "position": Vector2(1250.0, 195.0)},
+		{"id": &"lancer", "position": Vector2(450.0, 547.5)},
+	]
+	var actors: Array[ProceduralEnemy] = []
+	var families: Dictionary[StringName, bool] = {}
+	for item: Dictionary in wave:
+		var actor: ProceduralEnemy = city.encounter_runtime.acquire(
+			item.id,
+			item.position
+		) as ProceduralEnemy
+		if actor != null:
+			actors.append(actor)
+			families[actor.family] = true
+	_check("mixed_wave_acquires", actors.size() == 3, "count=%d" % actors.size())
+	_check("mixed_wave_has_three_families", families.size() == 3, "count=%d" % families.size())
+	for frame_index: int in range(240):
+		await physics_frame
+	var completed_attacks: int = 0
+	for actor: ProceduralEnemy in actors:
+		completed_attacks += 1 if actor._attack_sequence > 0 else 0
+	_check(
+		"mixed_wave_all_attack",
+		completed_attacks == actors.size(),
+		"completed=%d count=%d" % [completed_attacks, actors.size()]
+	)
+	_check(
+		"mixed_wave_damages_without_burst_defeat",
+		city.robot.current_health > 0.0 and city.robot.current_health < 400.0,
+		"health=%.1f" % city.robot.current_health
+	)
+	city.encounter_runtime.release_all()
+	city.projectile_root.release_all()
+	_check(
+		"mixed_wave_releases_cleanly",
+		city.projectile_root.reservation_count() == 0
+		and city.telegraph_presenter.active_count() == 0,
+		"projectiles=%d telegraphs=%d"
+		% [
+			city.projectile_root.reservation_count(),
+			city.telegraph_presenter.active_count(),
+		]
+	)
 
 
 func _check(check_name: String, passed: bool, detail: String) -> void:

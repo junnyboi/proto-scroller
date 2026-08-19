@@ -15,6 +15,7 @@ var scales: Array[float] = []
 var recycle_count: int = 0
 var peak_active_count: int = 0
 var paused: bool = false
+var _active_total: int = 0
 
 
 func _ready() -> void:
@@ -22,13 +23,12 @@ func _ready() -> void:
 	z_index = 65
 	_build_multimesh()
 	_resize_state()
-	set_process(true)
+	_sync_process_state()
 
 
 func _process(delta: float) -> void:
 	if paused:
 		return
-	var active_total: int = 0
 	for index: int in range(CAPACITY):
 		if not active[index]:
 			continue
@@ -50,8 +50,7 @@ func _process(delta: float) -> void:
 		var color: Color = multimesh.get_instance_color(index)
 		color.a = minf(fade * 2.5, 1.0)
 		multimesh.set_instance_color(index, color)
-		active_total += 1
-	peak_active_count = maxi(peak_active_count, active_total)
+	peak_active_count = maxi(peak_active_count, _active_total)
 
 
 func spawn_counterparts(event: GameplayEvent) -> int:
@@ -60,6 +59,7 @@ func spawn_counterparts(event: GameplayEvent) -> int:
 	var count: int = mini(event.debris_units, CAPACITY)
 	for unit_index: int in range(count):
 		var slot: int = _acquire_slot(_priority(event.material_id))
+		var slot_was_active: bool = active[slot]
 		var seed_value: int = event.event_id * 1103515245 + unit_index * 12345
 		var jitter: float = _noise(seed_value) * 2.0 - 1.0
 		var angle: float = deg_to_rad(jitter * 14.0)
@@ -75,16 +75,16 @@ func spawn_counterparts(event: GameplayEvent) -> int:
 		priorities[slot] = _priority(event.material_id)
 		scales[slot] = lerpf(0.55, 0.80, _noise(seed_value + 61))
 		active[slot] = true
+		if not slot_was_active:
+			_active_total += 1
 		multimesh.set_instance_color(slot, _color(event.material_id))
+	peak_active_count = maxi(peak_active_count, _active_total)
+	_sync_process_state()
 	return count
 
 
 func active_count() -> int:
-	var total: int = 0
-	for is_active: bool in active:
-		if is_active:
-			total += 1
-	return total
+	return _active_total
 
 
 func reset_field() -> void:
@@ -93,6 +93,12 @@ func reset_field() -> void:
 	recycle_count = 0
 	peak_active_count = 0
 	paused = false
+	_sync_process_state()
+
+
+func set_paused(value: bool) -> void:
+	paused = value
+	_sync_process_state()
 
 
 func _build_multimesh() -> void:
@@ -155,9 +161,18 @@ func _acquire_slot(incoming_priority: int) -> int:
 
 
 func _deactivate(index: int) -> void:
+	if not active[index]:
+		return
 	active[index] = false
+	_active_total = maxi(_active_total - 1, 0)
 	multimesh.set_instance_transform_2d(index, Transform2D(0.0, Vector2.ZERO, 0.0,
 		Vector2(-10000.0, -10000.0)))
+	if _active_total == 0:
+		_sync_process_state()
+
+
+func _sync_process_state() -> void:
+	set_process(not paused and _active_total > 0)
 
 
 func _priority(material_id: StringName) -> int:

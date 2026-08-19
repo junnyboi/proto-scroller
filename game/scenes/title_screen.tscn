@@ -244,7 +244,7 @@ unique_name_in_owner = true
 layout_mode = 0
 offset_left = 52.0
 offset_top = 530.0
-offset_right = 412.0
+offset_right = 552.0
 offset_bottom = 578.0
 theme_override_constants/separation = 10
 
@@ -255,6 +255,22 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
 text = ""
 vertical_alignment = 1
+
+[node name="AutomaticButton" type="Button" parent="LanguageSelector"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(134, 44)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_pressed_color = Color(0.894118, 1, 0.964706, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
 
 [node name="EnglishButton" type="Button" parent="LanguageSelector"]
 unique_name_in_owner = true

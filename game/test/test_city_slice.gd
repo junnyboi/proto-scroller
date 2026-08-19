@@ -35,6 +35,33 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	assert_true(city.tank is TankEnemy)
 	assert_true(city.helicopter is HelicopterEnemy)
 	assert_eq(city.debris_pool.available_count(), 24)
+	for child: Node in city.debris_pool.get_children():
+		var inactive_debris: DebrisBody2D = child as DebrisBody2D
+		assert_not_null(inactive_debris)
+		assert_eq(inactive_debris.collision_layer, 0)
+		assert_eq(inactive_debris.collision_mask, 0)
+		assert_false(inactive_debris.contact_monitor)
+		assert_eq(inactive_debris.max_contacts_reported, 0)
+		var inactive_shape: CollisionShape2D = inactive_debris.get_child(0) as CollisionShape2D
+		assert_true(inactive_shape.disabled)
+	var reused_debris: DebrisBody2D = city.debris_pool.acquire(
+		Transform2D(0.0, Vector2(840.0, 420.0)),
+		Vector2(180.0, -320.0)
+	)
+	assert_eq(reused_debris.collision_layer, DebrisBody2D.ACTIVE_COLLISION_LAYER)
+	assert_eq(reused_debris.collision_mask, DebrisBody2D.ACTIVE_COLLISION_MASK)
+	assert_true(reused_debris.contact_monitor)
+	assert_eq(reused_debris.max_contacts_reported, DebrisBody2D.ACTIVE_CONTACT_LIMIT)
+	var reused_shape: CollisionShape2D = reused_debris.get_child(0) as CollisionShape2D
+	assert_false(reused_shape.disabled)
+	city.debris_pool.release(reused_debris)
+	assert_eq(reused_debris.collision_layer, 0)
+	assert_eq(reused_debris.collision_mask, 0)
+	assert_false(reused_debris.contact_monitor)
+	assert_eq(reused_debris.max_contacts_reported, 0)
+	assert_true(reused_shape.disabled)
+	assert_eq(city.debris_pool.available_count(), 24)
+	assert_eq(city.debris_pool.active_count(), 0)
 	assert_eq(city.enemy_scrap_pool.available_count(), 32)
 	assert_eq(city.soldier_defeat_pool.available_count(), 8)
 	assert_eq(city.soldier_defeat_pool.total_count(), 8)

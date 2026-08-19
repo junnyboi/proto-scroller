@@ -13,6 +13,7 @@ const QUERY_LIMIT: int = 12
 const ACCEPTED_LIMIT: int = 6
 const STRUCTURAL_LIMIT: int = 2
 const EXPLOSION_QUEUE_CAPACITY: int = 8
+const EXPLOSIONS_PER_FRAME: int = 2
 const TARGET_MASK: int = (1 << 2) | (1 << 3) | (1 << 6) | (1 << 7)
 
 var arsenal: PlayerArsenalRuntime
@@ -145,7 +146,8 @@ func ordered_targets() -> Array[EnemyActor2D]:
 		if distance < MIN_RANGE or distance > MAX_RANGE:
 			continue
 		candidates.append(enemy)
-	candidates.sort_custom(_target_precedes)
+	if candidates.size() > 1:
+		candidates.sort_custom(_target_precedes)
 	return candidates
 
 
@@ -190,7 +192,8 @@ func _launch_next_missile() -> void:
 
 
 func _flush_explosions() -> void:
-	while not _explosion_queue.is_empty():
+	var count: int = mini(EXPLOSIONS_PER_FRAME, _explosion_queue.size())
+	for _explosion_index: int in range(count):
 		var record: Dictionary = _explosion_queue.pop_front()
 		_resolve_blast(
 			record.position,
@@ -207,7 +210,8 @@ func _resolve_blast(origin: Vector2, attack_id: int, root_attack_id: int) -> voi
 			QUERY_LIMIT
 		)
 	)
-	results.sort_custom(_blast_result_precedes.bind(origin))
+	if results.size() > 1:
+		results.sort_custom(_blast_result_precedes.bind(origin))
 	var seen: Dictionary[int, bool] = {}
 	last_blast_accepted = 0
 	last_blast_structural = 0
@@ -215,7 +219,7 @@ func _resolve_blast(origin: Vector2, attack_id: int, root_attack_id: int) -> voi
 		var collider: Node2D = result.get("collider") as Node2D
 		if collider == null:
 			continue
-		var receiver: Node = _find_damage_receiver(collider)
+		var receiver: Node = DamageReceiverLookup.find(collider)
 		if receiver == null or receiver == arsenal.robot:
 			continue
 		var receiver_id: int = receiver.get_instance_id()
@@ -274,12 +278,3 @@ func _blast_result_precedes(a: Dictionary, b: Dictionary, origin: Vector2) -> bo
 	if not is_equal_approx(a_distance, b_distance):
 		return a_distance < b_distance
 	return a_node.get_instance_id() < b_node.get_instance_id()
-
-
-func _find_damage_receiver(start_node: Node) -> Node:
-	var receiver: Node = start_node
-	while receiver != null:
-		if receiver.has_method("receive_damage"):
-			return receiver
-		receiver = receiver.get_parent()
-	return null

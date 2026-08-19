@@ -10,6 +10,13 @@ const EXPECTED_FIRST_ACT: Dictionary = {
 	&"aegis": 4, &"longbow": 4, &"hive": 4, &"goliath": 4,
 	&"nemesis": 5, &"leviathan": 5,
 }
+const EXPECTED_BASELINE_PUNCHES: Dictionary = {
+	&"needle": 1, &"bulwark": 3, &"jackal": 1, &"lobber": 1, &"sapper": 1,
+	&"hound": 2, &"mule": 2, &"basilisk": 2, &"lancer": 2, &"static": 2,
+	&"kestrel": 2, &"rainmaker": 2, &"shrike": 2, &"cinder": 3, &"aegis": 2,
+	&"longbow": 3, &"hive": 3, &"goliath": 5, &"nemesis": 6, &"leviathan": 13,
+}
+const EXPECTED_ACT_PEAK_THREAT: Array[int] = [4, 6, 9, 11, 11, 13]
 
 var city: CitySlice
 var runtime: EncounterRuntime
@@ -87,7 +94,7 @@ func test_family_pool_reconfigures_one_shell_without_post_warm_creation() -> voi
 	assert_eq(hive.get_instance_id(), shell_identity)
 	assert_eq(hive.archetype_id, &"hive")
 	assert_ne(hive.visual.texture, needle_texture)
-	assert_almost_eq(hive.max_health, 360.0, 0.01)
+	assert_almost_eq(hive.max_health, 400.0, 0.01)
 	assert_eq(runtime.post_warm_creation_count, 0)
 
 
@@ -163,6 +170,62 @@ func test_every_salvo_projectile_is_reserved_or_the_attack_is_denied() -> void:
 	leviathan._begin_attack()
 	assert_false(leviathan.is_telegraphing())
 	assert_eq(city.projectile_root.reservation_count(&"rocket"), 0)
+
+
+func test_baseline_melee_ttk_matches_role_bands_without_apex_damage_sponges() -> void:
+	var resolver: AttackResolver = AttackResolver.new()
+	add_child_autofree(resolver)
+	var punch_damage: float = resolver.jab_cross_actor_damage
+	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var actor: ProceduralEnemy = runtime.acquire(
+			archetype_id,
+			Vector2(1080.0, float(profile.spawn_y))
+		) as ProceduralEnemy
+		assert_not_null(actor, archetype_id)
+		actor.facing = -1
+		var expected_hits: int = EXPECTED_BASELINE_PUNCHES[archetype_id]
+		for hit_index: int in range(expected_hits):
+			var accepted: bool = actor.receive_damage(DamageEvent.new(
+				20_000 + hit_index,
+				city.robot,
+				punch_damage,
+				&"jab_cross",
+				actor.global_position,
+				Vector2.RIGHT,
+				0.0
+			))
+			assert_true(accepted, "%s hit %d" % [archetype_id, hit_index + 1])
+			assert_eq(actor.dead, hit_index == expected_hits - 1, archetype_id)
+		runtime.release(actor)
+	var leviathan_seconds: float = (
+		AttackResolver.FULL_ANTICIPATION_SECONDS
+		+ float(EXPECTED_BASELINE_PUNCHES[&"leviathan"] - 1)
+		* AttackResolver.FULL_ATTACK_SECONDS
+	)
+	assert_lt(leviathan_seconds, 27.0)
+
+
+func test_late_acts_use_cross_family_waves_and_smooth_threat_peaks() -> void:
+	var previous_peak: int = 0
+	for act_index: int in range(DISTRICT.acts.size()):
+		var act: DistrictAct = DISTRICT.acts[act_index]
+		var peak_threat: int = 0
+		for beat: DistrictBeat in act.beats:
+			var beat_threat: int = 0
+			var families: Dictionary[StringName, bool] = {}
+			for entry: EnemySpawnEntry in beat.spawns:
+				var kind: StringName = StringName(entry.kind)
+				beat_threat += EnemyArchetypeCatalog.threat_cost(kind)
+				families[EnemyArchetypeCatalog.family_for(kind)] = true
+			peak_threat = maxi(peak_threat, beat_threat)
+			if act_index >= 3 and beat.spawns.size() >= 2:
+				assert_gte(families.size(), 2, beat.beat_id)
+		assert_eq(peak_threat, EXPECTED_ACT_PEAK_THREAT[act_index], act.act_id)
+		if act_index > 0:
+			assert_gte(peak_threat, previous_peak, act.act_id)
+			assert_lte(peak_threat - previous_peak, 3, act.act_id)
+		previous_peak = peak_threat
 
 
 func test_all_twenty_archetypes_enter_in_monotonic_act_order_within_caps() -> void:

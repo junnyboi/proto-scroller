@@ -386,7 +386,7 @@ func _build_urban_siege() -> void:
 		urban_siege.start_run()
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
-	gameplay_hud.setup(robot)
+	gameplay_hud.setup(robot, contextual_attacks)
 	gameplay_hud.retry_pressed.connect(_on_retry_pressed)
 	add_child(gameplay_hud)
 	var experience: RunExperience = rampage_session.run_experience

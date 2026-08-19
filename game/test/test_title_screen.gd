@@ -45,15 +45,22 @@ func test_launch_scene_contract() -> void:
 		if button.text.contains(L10n.t("title.begin")):
 			launch_actions += 1
 	assert_eq(launch_actions, 1, "The Command Deck must expose one launch action only.")
+	var automatic_button: Button = screen.get_node("%AutomaticButton") as Button
 	var english_button: Button = screen.get_node("%EnglishButton") as Button
 	var chinese_button: Button = screen.get_node("%ChineseButton") as Button
-	assert_true(english_button.button_pressed)
+	assert_eq(automatic_button.text, _expected_automatic_label())
+	assert_eq(automatic_button.tooltip_text, L10n.t("title.language_auto_tooltip"))
+	assert_true(automatic_button.button_pressed)
+	assert_false(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
 	assert_true(chinese_button.get_theme_font(&"font").has_char("中".unicode_at(0)))
 	assert_true(screen.select_language("zh-CN"))
 	assert_eq(L10n.current_locale(), "zh-CN")
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "zh-CN")
 	assert_eq(title_label.text, L10n.t("title.command_heading"))
+	assert_eq(automatic_button.text, _expected_automatic_label())
+	assert_eq(automatic_button.tooltip_text, L10n.t("title.language_auto_tooltip"))
+	assert_false(automatic_button.button_pressed)
 	assert_true(chinese_button.button_pressed)
 	assert_false(english_button.button_pressed)
 	assert_true(
@@ -62,7 +69,16 @@ func test_launch_scene_contract() -> void:
 	)
 	assert_true(screen.select_language("en"))
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "en")
+	assert_false(automatic_button.button_pressed)
 	assert_true(english_button.button_pressed)
+	assert_false(chinese_button.button_pressed)
+	var detected_locale: String = L10n.automatic_locale()
+	assert_true(screen.select_automatic_language())
+	assert_eq(L10n.current_locale(), detected_locale)
+	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "")
+	assert_eq(automatic_button.text, _expected_automatic_label())
+	assert_true(automatic_button.button_pressed)
+	assert_false(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
 	_record_test_execution()
 
@@ -107,6 +123,7 @@ func test_initialize_seam_transitions_once() -> void:
 	assert_eq(status_label.text, L10n.t("title.expedition_active"))
 	assert_eq(initialize_button.text, L10n.t("title.deploying"))
 	assert_true(initialize_button.disabled)
+	assert_true((screen.get_node("%AutomaticButton") as Button).disabled)
 	assert_true((screen.get_node("%EnglishButton") as Button).disabled)
 	assert_true((screen.get_node("%ChineseButton") as Button).disabled)
 	assert_false(screen.initialize_game(), "A second initialization must reject without mutation.")
@@ -169,6 +186,21 @@ func _rendered_line_height(control: Control) -> float:
 	var font: Font = control.get_theme_font(&"font")
 	var font_size: int = control.get_theme_font_size(&"font_size")
 	return font.get_height(font_size)
+
+
+func _expected_automatic_label() -> String:
+	var resolved_key: String = (
+		"title.language_resolved_zh_cn"
+		if L10n.automatic_locale() == "zh-CN"
+		else "title.language_resolved_en"
+	)
+	return L10n.t(
+		"title.language_auto_resolved",
+		{
+			"automatic": L10n.t("title.language_auto"),
+			"resolved": L10n.t(resolved_key),
+		}
+	)
 
 
 func _record_test_execution() -> void:
