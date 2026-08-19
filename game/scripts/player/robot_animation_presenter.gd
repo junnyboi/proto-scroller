@@ -16,6 +16,9 @@ const FOOTSTEP_SFX: AudioStream = preload(
 const SERVO_SFX: AudioStream = preload(
 	"res://audio/sfx/robot/robot_servo.wav"
 )
+const DODGE_SERVO_SFX: AudioStream = preload(
+	"res://audio/sfx/robot/robot_dodge_servo.wav"
+)
 
 var robot: GiantRobotController
 var sprite: AnimatedSprite2D
@@ -25,6 +28,7 @@ var selected_attack_id: int = 0
 var audio_play_count: int = 0
 var footstep_play_count: int = 0
 var servo_play_count: int = 0
+var dodge_servo_play_count: int = 0
 var attack_impact_play_count: int = 0
 var audio_recycle_count: int = 0
 var last_audio_cue: StringName = &""
@@ -144,6 +148,7 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 
 func _on_dodge_started(p_facing: int, _duration: float) -> void:
 	dodging = true
+	_play_mechanics(DODGE_SERVO_SFX, &"dodge_servo", 1.5, 1.0)
 	_show_idle()
 	sprite.skew = -float(p_facing) * 0.10
 	sprite.modulate = Color(0.72, 0.94, 1.0, 0.82)
@@ -293,6 +298,8 @@ func _play_mechanics(
 		attack_impact_play_count += 1
 	else:
 		servo_play_count += 1
+		if cue == &"dodge_servo":
+			dodge_servo_play_count += 1
 
 
 func _acquire_audio_voice() -> AudioStreamPlayer2D:

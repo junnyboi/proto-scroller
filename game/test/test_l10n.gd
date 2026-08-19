@@ -19,6 +19,13 @@ func test_catalogs_have_identical_keys() -> void:
 	var chinese_keys: PackedStringArray = L10n.keys_for_locale("zh-CN")
 	assert_gt(english_keys.size(), 100)
 	assert_eq(chinese_keys, english_keys)
+	var english_placeholders: Dictionary[String, PackedStringArray] = {}
+	L10n.set_locale("en")
+	for key: String in english_keys:
+		english_placeholders[key] = _placeholders(L10n.t(key))
+	L10n.set_locale("zh-CN")
+	for key: String in chinese_keys:
+		assert_eq(_placeholders(L10n.t(key)), english_placeholders[key], key)
 
 
 func test_named_placeholders_are_substituted() -> void:
@@ -31,6 +38,13 @@ func test_named_placeholders_are_substituted() -> void:
 		L10n.t("hud.health", {"current": "080", "maximum": "100"}),
 		"机体 080 / 100"
 	)
+	var dash_profile: UpgradeProfile = load(
+		"res://resources/upgrades/dash_amplifier.tres"
+	) as UpgradeProfile
+	assert_eq(dash_profile.display_name, "upgrade.dash_amplifier.name")
+	assert_eq(dash_profile.description, "upgrade.dash_amplifier.description")
+	assert_eq(L10n.t(dash_profile.display_name), "冲刺增幅器")
+	assert_true(L10n.t(dash_profile.description).contains("300 毫秒"))
 
 
 func test_unsupported_locale_is_rejected_without_mutation() -> void:
@@ -72,3 +86,13 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 	)
 	var title_font: Font = (screen.get_node("%TitleLabel") as Label).get_theme_font(&"font")
 	assert_true(title_font.has_char("中".unicode_at(0)))
+
+
+func _placeholders(value: String) -> PackedStringArray:
+	var matcher: RegEx = RegEx.new()
+	matcher.compile("\\{([a-zA-Z0-9_]+)\\}")
+	var names: PackedStringArray = []
+	for result: RegExMatch in matcher.search_all(value):
+		names.append(result.get_string(1))
+	names.sort()
+	return names

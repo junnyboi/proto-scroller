@@ -27,6 +27,7 @@ var directive_card: DirectiveCard
 var directive_choice_overlay: DirectiveChoiceOverlay
 var upgrade_choice_overlay: UpgradeChoiceOverlay
 var weapon_status_strip: WeaponStatusStrip
+var dodge_cooldown_indicator: DodgeCooldownIndicator
 var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
@@ -62,6 +63,7 @@ func _ready() -> void:
 	_build_status_panel()
 	_build_momentum_panel()
 	_build_experience_bar()
+	_build_dodge_cooldown_indicator()
 	_build_score_panel()
 	_build_siege_progress()
 	_build_directive_card()
@@ -405,6 +407,12 @@ func _build_experience_bar() -> void:
 	add_child(experience_fill)
 
 
+func _build_dodge_cooldown_indicator() -> void:
+	dodge_cooldown_indicator = DodgeCooldownIndicator.new()
+	dodge_cooldown_indicator.setup(_robot)
+	add_child(dodge_cooldown_indicator)
+
+
 func _build_score_panel() -> void:
 	score_panel = ColorRect.new()
 	score_panel.position = Vector2(988.0, 22.0)
@@ -570,6 +578,8 @@ func _apply_responsive_layout() -> void:
 		upgrade_choice_overlay.apply_responsive_layout()
 	if weapon_status_strip != null:
 		weapon_status_strip.apply_responsive_layout()
+	if dodge_cooldown_indicator != null:
+		dodge_cooldown_indicator.apply_responsive_layout()
 
 
 func _apply_landscape_layout() -> void:

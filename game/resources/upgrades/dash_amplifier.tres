@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1")
 upgrade_id = &"DASH_AMPLIFIER"
-display_name = "DASH AMPLIFIER"
-description = "Extend dodge range and duration each rank. Invulnerability remains 300 ms."
+display_name = "upgrade.dash_amplifier.name"
+description = "upgrade.dash_amplifier.description"
 category = &"mobility"
 icon = ExtResource("2")
 max_rank = 3

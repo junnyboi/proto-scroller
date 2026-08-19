@@ -29,6 +29,11 @@ var last_accepted_targets: int = 0
 var last_velocity_retention: float = 1.0
 var last_opening_compression: bool = false
 var _shape: RectangleShape2D = RectangleShape2D.new()
+var _parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+
+
+func _init() -> void:
+	_parameters.shape = _shape
 
 
 func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
@@ -40,24 +45,23 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 		if spec.opening_compression
 		else spec.hit_size
 	)
-	var parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
-	parameters.shape = _shape
-	parameters.transform = Transform2D(
+	_parameters.transform = Transform2D(
 		0.0,
 		robot.global_position + Vector2(
 			spec.hit_offset.x * float(spec.facing),
 			spec.hit_offset.y
 		)
 	)
-	parameters.collision_mask = target_mask
-	parameters.collide_with_areas = true
-	parameters.collide_with_bodies = true
-	parameters.exclude = [robot.get_rid()]
+	_parameters.collision_mask = target_mask
+	_parameters.collide_with_areas = true
+	_parameters.collide_with_bodies = true
+	_parameters.exclude = [robot.get_rid()]
 	var results: Array[Dictionary] = get_world_2d().direct_space_state.intersect_shape(
-		parameters,
+		_parameters,
 		max_results
 	)
-	results.sort_custom(_sort_by_forward_distance.bind(robot.global_position, spec.facing))
+	if results.size() > 1:
+		results.sort_custom(_sort_by_forward_distance.bind(robot.global_position, spec.facing))
 	last_query_count = results.size()
 	last_accepted_targets = 0
 	last_velocity_retention = 1.0
@@ -70,7 +74,7 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 			continue
 		if (collider.global_position.x - robot.global_position.x) * float(spec.facing) <= 0.0:
 			continue
-		var receiver: Node = _find_damage_receiver(collider)
+		var receiver: Node = DamageReceiverLookup.find(collider)
 		var target: Node = receiver if receiver != null else collider
 		var target_id: int = target.get_instance_id()
 		if seen_targets.has(target_id):
@@ -147,15 +151,6 @@ func _apply_rigid_impulse(target: Node, collider: Node, event: DamageEvent) -> b
 		body.sleeping = false
 	body.apply_central_impulse(event.direction * event.impulse_per_mass * body.mass)
 	return true
-
-
-func _find_damage_receiver(start_node: Node) -> Node:
-	var receiver: Node = start_node
-	while receiver != null:
-		if receiver.has_method("receive_damage"):
-			return receiver
-		receiver = receiver.get_parent()
-	return null
 
 
 func _is_intact_steel(receiver: Node) -> bool:

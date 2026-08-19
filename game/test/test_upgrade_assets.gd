@@ -26,8 +26,14 @@ func test_every_upgrade_profile_has_a_generated_icon() -> void:
 	var catalog: UpgradeCatalog = load(
 		"res://resources/upgrades/upgrade_catalog.tres"
 	) as UpgradeCatalog
+	var english_keys: PackedStringArray = L10n.keys_for_locale("en")
+	var chinese_keys: PackedStringArray = L10n.keys_for_locale("zh-CN")
 	assert_eq(catalog.profiles.size(), 10)
 	for profile: UpgradeProfile in catalog.profiles:
+		assert_has(english_keys, profile.display_name, "%s English name" % profile.upgrade_id)
+		assert_has(chinese_keys, profile.display_name, "%s Chinese name" % profile.upgrade_id)
+		assert_has(english_keys, profile.description, "%s English copy" % profile.upgrade_id)
+		assert_has(chinese_keys, profile.description, "%s Chinese copy" % profile.upgrade_id)
 		assert_not_null(profile.icon, "%s icon" % profile.upgrade_id)
 		assert_gte(profile.icon.get_width(), 256)
 		assert_gte(profile.icon.get_height(), 256)

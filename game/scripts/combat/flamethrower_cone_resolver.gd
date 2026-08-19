@@ -38,7 +38,8 @@ func resolve_tick(
 			RAW_RESULT_LIMIT
 		)
 	)
-	results.sort_custom(_sort_result.bind(origin))
+	if results.size() > 1:
+		results.sort_custom(_sort_result.bind(origin))
 	last_query_count = results.size()
 	last_accepted_count = 0
 	accepted_positions.clear()
@@ -51,7 +52,7 @@ func resolve_tick(
 		var offset: Vector2 = collider.global_position - origin
 		if offset.is_zero_approx() or offset.normalized().dot(direction) < cosine_limit:
 			continue
-		var receiver: Node = _find_damage_receiver(collider)
+		var receiver: Node = DamageReceiverLookup.find(collider)
 		if receiver == null or receiver == robot:
 			continue
 		var receiver_id: int = receiver.get_instance_id()
@@ -93,15 +94,6 @@ func has_actor_target(
 		if not offset.is_zero_approx() and offset.normalized().dot(direction) >= cosine_limit:
 			return true
 	return false
-
-
-func _find_damage_receiver(start_node: Node) -> Node:
-	var receiver: Node = start_node
-	while receiver != null:
-		if receiver.has_method("receive_damage"):
-			return receiver
-		receiver = receiver.get_parent()
-	return null
 
 
 func _sort_result(a: Dictionary, b: Dictionary, origin: Vector2) -> bool:

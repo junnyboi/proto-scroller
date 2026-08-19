@@ -123,10 +123,62 @@ func test_missile_queue_and_blast_acceptance_caps_are_bounded() -> void:
 	assert_eq(missile_weapon.pending_explosion_count(), 8)
 	assert_eq(missile_weapon.explosion_denial_count, 1)
 	missile_weapon.flush_explosions()
+	assert_eq(missile_weapon.blast_count, 2)
+	assert_eq(missile_weapon.pending_explosion_count(), 6)
+	missile_weapon.flush_explosions()
+	assert_eq(missile_weapon.blast_count, 4)
+	assert_eq(missile_weapon.pending_explosion_count(), 4)
+	missile_weapon.flush_explosions()
+	assert_eq(missile_weapon.blast_count, 6)
+	assert_eq(missile_weapon.pending_explosion_count(), 2)
+	missile_weapon.flush_explosions()
 	assert_eq(missile_weapon.blast_count, 8)
+	assert_eq(missile_weapon.pending_explosion_count(), 0)
 	assert_lte(missile_weapon.last_blast_accepted, 6)
 	assert_lte(missile_weapon.last_blast_structural, 2)
 	assert_false(InputMap.has_action(&"missile"))
+
+
+func test_missile_flush_resolves_two_fifo_blasts_per_frame() -> void:
+	var city: CitySlice = await _spawn_isolated_city()
+	var missile_weapon: MissileWeapon = _missiles(city)
+	missile_weapon.set_process(false)
+	missile_weapon.apply_rank(1)
+	var targets: Array[EnemyActor2D] = []
+	for index: int in range(3):
+		var target: EnemyActor2D = city.encounter_runtime.acquire(
+			&"soldier",
+			city.robot.global_position + Vector2(280.0 + float(index) * 340.0, -20.0)
+		)
+		target.set_physics_process(false)
+		targets.append(target)
+	await get_tree().physics_frame
+	for index: int in range(targets.size()):
+		assert_true(missile_weapon.enqueue_explosion(
+			targets[index].global_position,
+			7000 + index,
+			6999
+		))
+	missile_weapon.flush_explosions()
+	assert_lt(targets[0].current_health, targets[0].max_health)
+	assert_lt(targets[1].current_health, targets[1].max_health)
+	assert_eq(targets[2].current_health, targets[2].max_health)
+	assert_eq(missile_weapon.pending_explosion_count(), 1)
+	missile_weapon.flush_explosions()
+	assert_lt(targets[2].current_health, targets[2].max_health)
+	assert_eq(missile_weapon.pending_explosion_count(), 0)
+
+
+func test_damage_receiver_cache_revalidates_reparented_colliders() -> void:
+	var city: CitySlice = await _spawn_isolated_city()
+	var cell: Destructible2D = city.building.get_cell(0, 1)
+	var hurtbox: Node = cell.get_node(^"Hurtbox")
+	assert_same(DamageReceiverLookup.find(hurtbox), cell)
+	assert_same(DamageReceiverLookup.find(hurtbox), cell)
+	var detached_parent: Node2D = Node2D.new()
+	city.add_child(detached_parent)
+	hurtbox.reparent(detached_parent)
+	assert_null(DamageReceiverLookup.find(hurtbox))
 
 
 func _spawn_isolated_city() -> CitySlice:
