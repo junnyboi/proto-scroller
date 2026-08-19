@@ -81,14 +81,18 @@ func _run() -> void:
 	await _run_balanced_mixed_wave(city)
 	city.robot.global_position.x = 820.0
 	var showcase: Array[Dictionary] = [
-		{"id": &"lancer", "position": Vector2(470.0, 547.5)},
-		{"id": &"shrike", "position": Vector2(1040.0, 195.0)},
-		{"id": &"static", "position": Vector2(1140.0, 547.0)},
+		{"id": &"lancer", "trait": &"PHASED", "position": Vector2(650.0, 547.5)},
+		{"id": &"hound", "trait": &"BLITZ", "position": Vector2(760.0, 260.0)},
+		{"id": &"kestrel", "trait": &"BRUTAL", "position": Vector2(1220.0, 250.0)},
+		{"id": &"aegis", "trait": &"PHASED", "position": Vector2(1120.0, 544.0)},
+		{"id": &"jackal", "trait": &"BLITZ", "position": Vector2(1420.0, 554.0)},
 	]
 	for item: Dictionary in showcase:
 		var actor: ProceduralEnemy = city.encounter_runtime.acquire(
 			item.id,
-			item.position
+			item.position,
+			&"",
+			item.trait
 		) as ProceduralEnemy
 		if actor != null:
 			actor.set_physics_process(false)
@@ -118,26 +122,36 @@ func _run() -> void:
 func _run_balanced_mixed_wave(city: CitySlice) -> void:
 	city.encounter_runtime.release_all()
 	city.robot.global_position.x = 820.0
-	city.robot.max_health = 400.0
-	city.robot.current_health = 400.0
+	city.robot.set_durability_bonus(400.0)
+	city.robot.current_health = city.robot.max_health
+	var dash: DashAmplifierRuntime = (
+		city.upgrade_assembler.runtimes[&"DASH_AMPLIFIER"] as DashAmplifierRuntime
+	)
+	dash.apply_rank(3)
+	var loadout_health: float = city.robot.max_health
 	var wave: Array[Dictionary] = [
-		{"id": &"static", "position": Vector2(1320.0, 547.0)},
-		{"id": &"shrike", "position": Vector2(1250.0, 195.0)},
-		{"id": &"lancer", "position": Vector2(450.0, 547.5)},
+		{"id": &"static", "trait": &"BLITZ", "position": Vector2(1320.0, 547.0)},
+		{"id": &"shrike", "trait": &"BRUTAL", "position": Vector2(1250.0, 195.0)},
+		{"id": &"lancer", "trait": &"PHASED", "position": Vector2(450.0, 547.5)},
 	]
 	var actors: Array[ProceduralEnemy] = []
 	var families: Dictionary[StringName, bool] = {}
 	for item: Dictionary in wave:
 		var actor: ProceduralEnemy = city.encounter_runtime.acquire(
 			item.id,
-			item.position
+			item.position,
+			&"",
+			item.trait
 		) as ProceduralEnemy
 		if actor != null:
 			actors.append(actor)
 			families[actor.family] = true
 	_check("mixed_wave_acquires", actors.size() == 3, "count=%d" % actors.size())
 	_check("mixed_wave_has_three_families", families.size() == 3, "count=%d" % families.size())
-	for frame_index: int in range(240):
+	_check("late_loadout_has_max_armor", loadout_health == 1200.0, "health=%.1f" % loadout_health)
+	for frame_index: int in range(360):
+		if frame_index == 24:
+			_check("late_loadout_dodge_starts", city.robot._start_dodge(), "frame=%d" % frame_index)
 		await physics_frame
 	var completed_attacks: int = 0
 	for actor: ProceduralEnemy in actors:
@@ -148,9 +162,12 @@ func _run_balanced_mixed_wave(city: CitySlice) -> void:
 		"completed=%d count=%d" % [completed_attacks, actors.size()]
 	)
 	_check(
-		"mixed_wave_damages_without_burst_defeat",
-		city.robot.current_health > 0.0 and city.robot.current_health < 400.0,
-		"health=%.1f" % city.robot.current_health
+		"mixed_wave_pressures_max_loadout_without_burst_defeat",
+		city.robot.current_health > 0.0 and city.robot.current_health <= loadout_health - 100.0,
+		"health=%.1f lost=%.1f" % [
+			city.robot.current_health,
+			loadout_health - city.robot.current_health,
+		]
 	)
 	city.encounter_runtime.release_all()
 	city.projectile_root.release_all()

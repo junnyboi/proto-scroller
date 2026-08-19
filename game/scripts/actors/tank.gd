@@ -8,14 +8,14 @@ enum State {
 	REVERSE,
 }
 
-@export var move_speed: float = 62.0
+@export var move_speed: float = 70.0
 @export var acceleration: float = 260.0
 @export var preferred_range: float = 610.0
 @export var minimum_range: float = 390.0
-@export var fire_interval: float = 2.75
+@export var fire_interval: float = 2.30
 @export var shell_speed: float = 560.0
-@export var shell_damage: float = 20.0
-@export var anticipation_duration: float = 0.75
+@export var shell_damage: float = 24.0
+@export var anticipation_duration: float = 0.68
 @export var gravity: float = 1400.0
 
 var state: State = State.ADVANCE
@@ -36,7 +36,7 @@ func _physics_process(delta: float) -> void:
 			_fire_snapshot()
 			state = State.AIM
 			_cooldown = fire_interval * attack_interval_multiplier \
-				* external_attack_interval_multiplier
+				* external_attack_interval_multiplier * aura_attack_interval_multiplier
 		move_and_slide()
 		update_movement_bounce(delta)
 		return
@@ -83,7 +83,7 @@ func _begin_shell() -> void:
 func _fire_snapshot() -> void:
 	fire_telegraphed_projectile(
 		shell_speed,
-		shell_damage * projectile_damage_multiplier
+		shell_damage * projectile_damage_multiplier * aura_damage_multiplier
 	)
 
 

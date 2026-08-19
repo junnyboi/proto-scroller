@@ -33,6 +33,9 @@ const TRAIT_PROFILES: Array[EnemyTraitProfile] = [
 	preload("res://resources/traits/command.tres"),
 	preload("res://resources/traits/volatile.tres"),
 	preload("res://resources/traits/shielded.tres"),
+	preload("res://resources/traits/blitz.tres"),
+	preload("res://resources/traits/brutal.tres"),
+	preload("res://resources/traits/phased.tres"),
 ]
 const DISTRICT_DECK: DistrictDeck = preload("res://resources/siege/district_deck.tres")
 const RUN_CONTRACTS: Array[RunContract] = [
@@ -223,6 +226,7 @@ func _on_boss_completed(_elapsed_seconds: float) -> void:
 
 func _prepare_cycle() -> void:
 	_select_configuration(true)
+	director.configure_elite_affixes(run_seed, cycle_count)
 	catalysts.deactivate_all()
 	var transformer: Catalyst2D = catalysts.activate(
 		0,

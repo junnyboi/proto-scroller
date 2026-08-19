@@ -14,6 +14,8 @@ signal profile_changed(actor: EnemyActor2D)
 signal boss_armor_changed(current: float, maximum: float)
 signal boss_armor_broken()
 
+const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
+
 @export var max_health: float = 60.0
 
 @export_group("Movement Bounce")
@@ -39,6 +41,7 @@ var trait_id: StringName = &""
 var movement_multiplier: float = 1.0
 var attack_interval_multiplier: float = 1.0
 var projectile_damage_multiplier: float = 1.0
+var telegraph_multiplier: float = 1.0
 var external_attack_interval_multiplier: float = 1.0
 var aura_attack_interval_multiplier: float = 1.0
 var aura_damage_multiplier: float = 1.0
@@ -253,9 +256,13 @@ func apply_profiles(
 	)
 	if trait_profile != null:
 		health_multiplier *= trait_profile.health_multiplier
+		movement_multiplier *= trait_profile.movement_multiplier
+		attack_interval_multiplier *= trait_profile.attack_interval_multiplier
+		projectile_damage_multiplier *= trait_profile.projectile_damage_multiplier
+		telegraph_multiplier = trait_profile.telegraph_multiplier
 	max_health = _base_max_health * health_multiplier
 	current_health = max_health
-	_shield_available = trait_profile != null and trait_profile.trait_id == &"SHIELDED"
+	_shield_available = trait_profile != null and trait_profile.first_hit_damage_ratio < 1.0
 	_shield_damage_ratio = (
 		trait_profile.first_hit_damage_ratio if trait_profile != null else 1.0
 	)
@@ -269,6 +276,7 @@ func clear_profiles() -> void:
 	movement_multiplier = 1.0
 	attack_interval_multiplier = 1.0
 	projectile_damage_multiplier = 1.0
+	telegraph_multiplier = 1.0
 	external_attack_interval_multiplier = 1.0
 	aura_attack_interval_multiplier = 1.0
 	aura_damage_multiplier = 1.0
@@ -345,14 +353,24 @@ func begin_telegraph(
 		_projectile_reservation_id = projectile_pool.reserve(kind)
 		if _projectile_reservation_id == 0:
 			return false
-	_telegraph_id = telegraph_presenter.reserve(self, kind, origin, target_point, duration)
+	var adjusted_duration: float = maxf(
+		duration * telegraph_multiplier,
+		MINIMUM_TELEGRAPH_SECONDS
+	)
+	_telegraph_id = telegraph_presenter.reserve(
+		self,
+		kind,
+		origin,
+		target_point,
+		adjusted_duration
+	)
 	if _telegraph_id == 0:
 		if projectile_pool != null and _projectile_reservation_id != 0:
 			projectile_pool.cancel_reservation(_projectile_reservation_id)
 			_projectile_reservation_id = 0
 		return false
 	_telegraph_kind = kind
-	_telegraph_remaining = duration
+	_telegraph_remaining = adjusted_duration
 	_telegraph_origin = origin
 	_telegraph_target = target_point
 	return true

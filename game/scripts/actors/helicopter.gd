@@ -8,15 +8,15 @@ enum State {
 	BREAK,
 }
 
-@export var maximum_speed: float = 180.0
+@export var maximum_speed: float = 205.0
 @export var acceleration: float = 320.0
 @export var standoff_x: float = 520.0
 @export var portrait_standoff_x: float = 280.0
 @export var lane_y: float = 180.0
-@export var fire_interval: float = 2.1
+@export var fire_interval: float = 1.75
 @export var rocket_speed: float = 440.0
-@export var rocket_damage: float = 14.0
-@export var anticipation_duration: float = 0.90
+@export var rocket_damage: float = 16.0
+@export var anticipation_duration: float = 0.78
 
 var state: State = State.APPROACH
 var _cooldown: float = 1.0
@@ -40,7 +40,7 @@ func _physics_process(delta: float) -> void:
 			_fire_snapshot()
 			state = State.STRAFE
 			_cooldown = fire_interval * attack_interval_multiplier \
-				* external_attack_interval_multiplier
+				* external_attack_interval_multiplier * aura_attack_interval_multiplier
 		move_and_slide()
 		return
 	_update_facing()
@@ -94,7 +94,7 @@ func effective_standoff_x() -> float:
 func _fire_snapshot() -> void:
 	fire_telegraphed_projectile(
 		rocket_speed,
-		rocket_damage * projectile_damage_multiplier
+		rocket_damage * projectile_damage_multiplier * aura_damage_multiplier
 	)
 
 
