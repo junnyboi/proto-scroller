@@ -335,7 +335,10 @@ func _sign_to_facing(value: float) -> int:
 
 func _apply_visual_facing() -> void:
 	if _visual_root != null:
-		_visual_root.scale.x = absf(_visual_root.scale.x) * float(facing)
+		var baked_facing: bool = bool(_visual_root.get_meta(&"baked_directional_art", false))
+		_visual_root.scale.x = (
+			absf(_visual_root.scale.x) * (1.0 if baked_facing else float(facing))
+		)
 
 
 func _set_locomotion_state(next_state: LocomotionState) -> void:
