@@ -40,6 +40,9 @@ const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
 const PLAYER_ARSENALS: int = 1
 const LASER_BEAM_SLOTS: int = 2
+const FLAME_VISUAL_SLOTS: int = 6
+const SCORCH_VISUAL_SLOTS: int = 8
+const FLAMETHROWER_LOOP_VOICES: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -116,6 +119,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			else 0
 		),
 		"laser_beam_slots": PlayerLaserWeapon.BEAM_CAPACITY,
+		"flame_visual_slots": FlamethrowerRuntime.FLAME_CAPACITY,
+		"scorch_visual_slots": FlamethrowerRuntime.SCORCH_CAPACITY,
+		"flamethrower_loop_voices": FlamethrowerRuntime.LOOP_AUDIO_VOICES,
 	}
 
 
@@ -163,6 +169,9 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "shockwave_ring_slots", SHOCKWAVE_RING_SLOTS)
 	_check_equal(errors, data, "player_arsenals", PLAYER_ARSENALS)
 	_check_equal(errors, data, "laser_beam_slots", LASER_BEAM_SLOTS)
+	_check_equal(errors, data, "flame_visual_slots", FLAME_VISUAL_SLOTS)
+	_check_equal(errors, data, "scorch_visual_slots", SCORCH_VISUAL_SLOTS)
+	_check_equal(errors, data, "flamethrower_loop_voices", FLAMETHROWER_LOOP_VOICES)
 	if int(data.causal_records) > CAUSAL_RECORDS:
 		errors.append(
 			"causal_records=%d cap=%d" % [data.causal_records, CAUSAL_RECORDS]

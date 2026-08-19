@@ -27,6 +27,9 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.shockwave_ring_slots, 10)
 	assert_eq(snapshot.player_arsenals, 1)
 	assert_eq(snapshot.laser_beam_slots, 2)
+	assert_eq(snapshot.flame_visual_slots, 6)
+	assert_eq(snapshot.scorch_visual_slots, 8)
+	assert_eq(snapshot.flamethrower_loop_voices, 1)
 
 
 func test_pool_saturation_recycles_without_node_or_capacity_growth() -> void:
