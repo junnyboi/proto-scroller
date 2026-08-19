@@ -15,9 +15,29 @@ func test_resolver_locks_ground_at_699_and_jab_cross_at_700() -> void:
 	assert_true(jab_cross.is_jab_cross())
 	assert_eq(jab_cross.facing, -1)
 	assert_almost_eq(jab_cross.speed_ratio, 0.700, 0.0001)
-	assert_almost_eq(jab_cross.anticipation_seconds, 0.055, 0.0001)
-	assert_almost_eq(jab_cross.active_seconds, 0.10, 0.0001)
-	assert_almost_eq(jab_cross.recovery_seconds, 0.14, 0.0001)
+	assert_almost_eq(
+		jab_cross.anticipation_seconds,
+		AttackResolver.FULL_ANTICIPATION_SECONDS,
+		0.0001
+	)
+	assert_almost_eq(jab_cross.active_seconds, AttackResolver.FULL_ACTIVE_SECONDS, 0.0001)
+	assert_almost_eq(
+		jab_cross.recovery_seconds,
+		AttackResolver.FULL_RECOVERY_SECONDS,
+		0.0001
+	)
+	assert_almost_eq(
+		ground.anticipation_seconds + ground.active_seconds + ground.recovery_seconds,
+		AttackResolver.FULL_ATTACK_SECONDS,
+		0.0001
+	)
+	assert_almost_eq(
+		jab_cross.anticipation_seconds
+		+ jab_cross.active_seconds
+		+ jab_cross.recovery_seconds,
+		AttackResolver.FULL_ATTACK_SECONDS,
+		0.0001
+	)
 	assert_almost_eq(jab_cross.actor_damage, 145.0, 0.001)
 	assert_almost_eq(jab_cross.structural_damage, 125.0, 0.001)
 	assert_almost_eq(jab_cross.impulse_per_mass, 1080.0, 0.001)

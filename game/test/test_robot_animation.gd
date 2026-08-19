@@ -11,9 +11,17 @@ const EXPECTED_ANIMATIONS: Array[StringName] = [
 	&"walk_e",
 	&"walk_w",
 ]
+const FORBIDDEN_SCROLLER_ANIMATIONS: Array[StringName] = [
+	&"walk_n",
+	&"walk_ne",
+	&"walk_nw",
+	&"attack_n",
+	&"attack_ne",
+	&"attack_nw",
+]
 
 
-func test_horizontal_sprite_library_contains_only_required_baked_directions() -> void:
+func test_library_excludes_all_northward_walk_and_attack_directions() -> void:
 	var city: CitySlice = await _spawn_city()
 	var sprite: AnimatedSprite2D = _sprite(city)
 	var names: PackedStringArray = sprite.sprite_frames.get_animation_names()
@@ -22,6 +30,8 @@ func test_horizontal_sprite_library_contains_only_required_baked_directions() ->
 	for animation: StringName in EXPECTED_ANIMATIONS:
 		var expected_frames: int = 1 if animation == &"idle_n" or animation == &"idle_s" else 25
 		assert_eq(sprite.sprite_frames.get_frame_count(animation), expected_frames)
+	for forbidden_animation: StringName in FORBIDDEN_SCROLLER_ANIMATIONS:
+		assert_false(sprite.sprite_frames.has_animation(forbidden_animation))
 	assert_false(sprite.flip_h)
 	assert_almost_eq(sprite.scale.x, 1.246, 0.001)
 	assert_almost_eq(sprite.position.y, 72.0, 0.001)
@@ -69,20 +79,36 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var sprite: AnimatedSprite2D = _sprite(city)
+	robot.global_position = Vector2(80.0, 460.0)
+	robot.stomp_damage = 0.0
+	robot.stomp_radius = 1.0
 	assert_gt(robot.request_attack(), 0)
-	assert_true(city.contextual_attacks.current_spec.is_ground_smash())
+	var ground_spec: AttackSpec = city.contextual_attacks.current_spec
+	assert_true(ground_spec.is_ground_smash())
 	assert_eq(sprite.animation, &"attack_se")
-	await get_tree().create_timer(0.12).timeout
-	assert_eq(sprite.frame, 11)
+	await get_tree().create_timer(ground_spec.anticipation_seconds + 0.04).timeout
+	assert_gte(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
+	assert_true(sprite.is_playing())
 	await _wait_for_attack(city.contextual_attacks)
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	assert_eq(presenter.last_completed_attack_frame, 24)
 	assert_eq(sprite.animation, &"idle_s")
 	robot.velocity.x = robot.max_speed
 	assert_gt(robot.request_attack(), 0)
-	assert_true(city.contextual_attacks.current_spec.is_jab_cross())
+	var jab_spec: AttackSpec = city.contextual_attacks.current_spec
+	assert_not_null(jab_spec)
+	if jab_spec == null:
+		return
+	assert_true(jab_spec.is_jab_cross())
 	assert_eq(sprite.animation, &"attack_e")
-	await get_tree().create_timer(0.07).timeout
-	assert_eq(sprite.frame, 11)
+	await get_tree().create_timer(jab_spec.anticipation_seconds + 0.04).timeout
+	assert_gte(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
+	assert_true(sprite.is_playing())
 	await _wait_for_attack(city.contextual_attacks)
+	assert_eq(presenter.last_completed_attack_frame, 24)
+	assert_eq(presenter.completed_full_attack_count, 2)
 	assert_eq(sprite.animation, &"idle_s")
 
 
@@ -150,7 +176,9 @@ func _assert_attack(
 	assert_true(sprite.is_playing())
 	presenter._on_attack_committed(mode, attack_id)
 	assert_eq(sprite.frame, 11)
-	assert_false(sprite.is_playing())
+	assert_true(sprite.is_playing())
+	sprite.pause()
+	sprite.set_frame_and_progress(24, 0.0)
 	var spec: AttackSpec = AttackSpec.new(
 		mode,
 		attack_id,
@@ -166,6 +194,7 @@ func _assert_attack(
 		Vector2.ZERO
 	)
 	presenter._on_attack_finished(spec)
+	assert_eq(presenter.last_completed_attack_frame, 24)
 	assert_eq(sprite.animation, &"idle_s" if facing > 0 else &"idle_n")
 
 
@@ -180,10 +209,14 @@ func _spawn_city() -> CitySlice:
 
 
 func _wait_for_attack(controller: ContextualAttackController) -> void:
-	for frame_index: int in range(60):
-		if not controller.is_busy():
-			return
-		await get_tree().process_frame
+	var spec: AttackSpec = controller.current_spec
+	if spec != null:
+		await get_tree().create_timer(
+			spec.anticipation_seconds
+			+ spec.active_seconds
+			+ spec.recovery_seconds
+			+ 0.10
+		).timeout
 	assert_false(controller.is_busy())
 
 

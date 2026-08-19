@@ -1,6 +1,6 @@
 extends SceneTree
 
-const MAX_FRAMES: int = 420
+const MAX_FRAMES: int = 3000
 const REPORT_PATH: String = "res://artifacts/city_slice/report.json"
 const SHOT_PATH: String = "res://artifacts/city_slice/city-slice.png"
 
@@ -79,12 +79,10 @@ func _run() -> void:
 		"cells=%d" % city.building.destroyed_cell_count()
 	)
 	await _resolve_upgrade_choices(city)
-	var jab_cross_columns: Array[int] = [1, 2, 2]
+	var jab_cross_columns: Array[int] = [1, 1, 2, 2]
 	for jab_cross_index: int in range(jab_cross_columns.size()):
-		for settle_frame: int in range(45):
-			if not city.contextual_attacks.is_busy():
-				break
-			await process_frame
+		await _wait_for_contextual_attack(city)
+		await _resolve_upgrade_choices(city)
 		var column: int = jab_cross_columns[jab_cross_index]
 		city.robot.position = Vector2(1100.0 + float(column) * 167.0, 460.0)
 		city.robot.facing = 1
@@ -96,8 +94,11 @@ func _run() -> void:
 			attack_id > 0 and spec != null and spec.is_jab_cross(),
 			"attack_id=%d" % attack_id
 		)
+		if spec == null:
+			continue
 		await create_timer(spec.anticipation_seconds + 0.03).timeout
 		await _resolve_upgrade_choices(city)
+		await create_timer(spec.active_seconds + spec.recovery_seconds + 0.10).timeout
 	for wait_frame: int in range(90):
 		if city.building.is_destroyed():
 			break
@@ -125,10 +126,7 @@ func _run() -> void:
 		city.rampage_session.momentum_meter.is_ready(),
 		"momentum=%.1f" % city.rampage_session.momentum_value()
 	)
-	for settle_frame: int in range(45):
-		if not city.contextual_attacks.is_busy():
-			break
-		await process_frame
+	await _wait_for_contextual_attack(city)
 	city.robot.velocity.x = 0.0
 	var overdrive_attack: int = city.robot.request_attack()
 	_check(
@@ -144,6 +142,9 @@ func _run() -> void:
 		"active=%s acceleration=%.2f"
 		% [city.overdrive_session.active, city.robot.acceleration_multiplier]
 	)
+	await _wait_for_contextual_attack(city)
+	city.tank.activate(Vector2(1780.0, 600.0), city.robot)
+	city.tank.set_physics_process(false)
 	var warned: bool = city.tank.begin_telegraph(
 		&"shell",
 		0.75,
@@ -222,6 +223,20 @@ func _run() -> void:
 		"frames=%s max=%s" % [elapsed_frames, MAX_FRAMES]
 	)
 	_finish(shot_status, shot_path)
+
+
+func _wait_for_contextual_attack(city: CitySlice) -> void:
+	if not city.contextual_attacks.is_busy():
+		return
+	var spec: AttackSpec = city.contextual_attacks.current_spec
+	if spec == null:
+		return
+	await create_timer(
+		spec.anticipation_seconds
+		+ spec.active_seconds
+		+ spec.recovery_seconds
+		+ 0.10
+	).timeout
 
 
 func _resolve_upgrade_choices(city: CitySlice) -> void:
