@@ -14,6 +14,7 @@ const SOLDIER_DEFEATS: int = 8
 const WRECKS: int = 4
 const PARTICLE_SLOTS: int = 8
 const AUDIO_VOICES: int = 8
+const ROBOT_AUDIO_VOICES: int = 4
 const RARE_TAG_ROWS: int = 3
 const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
@@ -77,6 +78,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"wreck_peak": city.enemy_remains_factory.peak_active_count,
 		"particle_slots": city.impact_feedback_pool.particle_child_count(),
 		"audio_voices": city.impact_feedback_pool.audio_child_count(),
+		"robot_audio_voices": _robot_audio_voice_count(city),
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
@@ -147,6 +149,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "wreck_total", WRECKS)
 	_check_equal(errors, data, "particle_slots", PARTICLE_SLOTS)
 	_check_equal(errors, data, "audio_voices", AUDIO_VOICES)
+	_check_equal(errors, data, "robot_audio_voices", ROBOT_AUDIO_VOICES)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)
@@ -215,3 +218,10 @@ static func _count_nodes(root: Node) -> int:
 	for child: Node in root.get_children():
 		count += _count_nodes(child)
 	return count
+
+
+static func _robot_audio_voice_count(city: CitySlice) -> int:
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	return presenter.audio_voice_count() if presenter != null else 0
