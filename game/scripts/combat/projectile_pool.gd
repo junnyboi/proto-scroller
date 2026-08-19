@@ -7,6 +7,7 @@ const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd
 @export_range(1, 32, 1) var bullet_capacity: int = RuntimeBudget.BULLETS
 @export_range(1, 8, 1) var shell_capacity: int = RuntimeBudget.SHELLS
 @export_range(1, 8, 1) var rocket_capacity: int = RuntimeBudget.ROCKETS
+@export_range(1, 16, 1) var player_bullet_capacity: int = RuntimeBudget.PLAYER_BULLETS
 
 var recycle_count: int = 0
 var denial_count: int = 0
@@ -18,10 +19,11 @@ var _next_reservation_id: int = 1
 
 
 func _ready() -> void:
-	capacity = bullet_capacity + shell_capacity + rocket_capacity
+	capacity = bullet_capacity + shell_capacity + rocket_capacity + player_bullet_capacity
 	_prewarm_partition(&"bullet", bullet_capacity)
 	_prewarm_partition(&"shell", shell_capacity)
 	_prewarm_partition(&"rocket", rocket_capacity)
+	_prewarm_partition(&"player_bullet", player_bullet_capacity)
 
 
 func acquire(
@@ -115,6 +117,14 @@ func release_all() -> void:
 	_reservations.clear()
 
 
+func release_partition(kind: StringName) -> void:
+	var partition: StringName = _partition_for_kind(kind)
+	var active_copy: Array[Projectile2D] = _active_order.duplicate()
+	for projectile: Projectile2D in active_copy:
+		if projectile.get_meta(&"partition", &"bullet") == partition:
+			release(projectile)
+
+
 func active_count(kind: StringName = &"") -> int:
 	if kind.is_empty():
 		return _active_order.size()
@@ -138,6 +148,8 @@ func partition_capacity(kind: StringName) -> int:
 			return shell_capacity
 		&"rocket":
 			return rocket_capacity
+		&"player_bullet":
+			return player_bullet_capacity
 		_:
 			return bullet_capacity
 
@@ -187,6 +199,8 @@ func _partition_for_kind(kind: StringName) -> StringName:
 		return &"shell"
 	if kind == &"rocket":
 		return &"rocket"
+	if kind == &"machine_gun" or kind == &"player_bullet":
+		return &"player_bullet"
 	return &"bullet"
 
 

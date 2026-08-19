@@ -22,7 +22,8 @@ func test_projectile_pool_is_partitioned_16_4_4_and_reservations_are_strict() ->
 	assert_eq(pool.partition_capacity(&"bullet"), 16)
 	assert_eq(pool.partition_capacity(&"shell"), 4)
 	assert_eq(pool.partition_capacity(&"rocket"), 4)
-	assert_eq(pool.total_count(), 24)
+	assert_eq(pool.partition_capacity(&"player_bullet"), 8)
+	assert_eq(pool.total_count(), 32)
 	var reservation: int = pool.reserve(&"shell")
 	assert_gt(reservation, 0)
 	for shell_index: int in range(3):

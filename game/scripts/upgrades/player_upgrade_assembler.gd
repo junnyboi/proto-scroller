@@ -26,6 +26,18 @@ func setup(city: Node) -> PackedStringArray:
 	var debris_pool: DebrisPool = city.get("debris_pool") as DebrisPool
 	attacks.set_kinetic_field_runtime(kinetic)
 	debris_pool.set_kinetic_field_runtime(kinetic)
+	var arsenal: PlayerArsenalRuntime = PlayerArsenalRuntime.new()
+	arsenal.name = "PlayerArsenalRuntime"
+	add_child(arsenal)
+	arsenal.setup(
+		robot,
+		city.get("projectile_root") as ProjectilePool,
+		city.get("encounter_runtime") as EncounterRuntime
+	)
+	var machine_gun: MachineGunRuntime = (
+		runtimes[&"MACHINE_GUN"] as MachineGunRuntime
+	)
+	machine_gun.setup_arsenal(arsenal)
 	session = UpgradeSession.new()
 	session.name = "UpgradeSession"
 	add_child(session)
@@ -91,6 +103,8 @@ func _create_runtime(
 			runtime = DestructionUpgradeRuntime.new()
 		&"SHOCKWAVE":
 			runtime = ShockwaveUpgradeRuntime.new()
+		&"MACHINE_GUN":
+			runtime = MachineGunRuntime.new()
 		_:
 			runtime = UpgradeRuntime.new()
 			runtime.setup(profile.runtime_key, profile.max_rank)
