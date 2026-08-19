@@ -166,7 +166,7 @@ func physics_step(input_axis: float, delta: float) -> void:
 	if _control_enabled and locomotion_state != LocomotionState.ATTACK_LOCKED:
 		_update_locomotion(clampf(input_axis, -1.0, 1.0), delta)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, ground_deceleration * delta)
+		velocity.x = 0.0
 	move_and_slide()
 	_resolve_landing_impact()
 
@@ -240,6 +240,8 @@ func _set_attack_locked(locked: bool) -> void:
 	_attack_locked = locked
 	if locomotion_state == LocomotionState.DISABLED or locomotion_state == LocomotionState.DODGE:
 		return
+	if locked:
+		velocity.x = 0.0
 	_set_locomotion_state(
 		LocomotionState.ATTACK_LOCKED
 		if locked
@@ -262,7 +264,13 @@ func _start_dodge() -> bool:
 func set_disabled(disabled: bool) -> void:
 	_control_enabled = not disabled
 	_set_locomotion_state(
-		LocomotionState.DISABLED if disabled else LocomotionState.IDLE
+		LocomotionState.DISABLED
+		if disabled
+		else (
+			LocomotionState.ATTACK_LOCKED
+			if _attack_locked
+			else LocomotionState.IDLE
+		)
 	)
 
 
