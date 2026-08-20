@@ -7,6 +7,12 @@ signal aerial_impact_accepted(
 	event: DamageEvent,
 	target: EnemyActor2D
 )
+signal ground_impact_accepted(
+	body: DebrisBody2D,
+	event: DamageEvent,
+	target: EnemyActor2D,
+	impact_speed: float
+)
 
 const ACTIVE_COLLISION_LAYER: int = 1 << 8
 const ACTIVE_COLLISION_MASK: int = (1 << 0) | (1 << 2)
@@ -210,7 +216,11 @@ func _on_body_entered(body: Node) -> void:
 	if receiver == null or receiver == _kinetic_source:
 		return
 	_kinetic_armed = false
-	var direction: Vector2 = linear_velocity.normalized()
+	var target_velocity: Vector2 = (
+		(receiver as EnemyActor2D).velocity if receiver is EnemyActor2D else Vector2.ZERO
+	)
+	var impact_velocity: Vector2 = _impact_relative_velocity(target_velocity)
+	var direction: Vector2 = impact_velocity.normalized()
 	var event: DamageEvent = DamageEvent.new(
 		_kinetic_delivery_id,
 		_kinetic_source,
@@ -218,12 +228,20 @@ func _on_body_entered(body: Node) -> void:
 		&"debris_impact",
 		global_position,
 		direction,
-		linear_velocity.length(),
+		impact_velocity.length(),
 		_kinetic_root_attack_id,
 		1,
 		_kinetic_effect_flags
 	)
-	receiver.call("receive_damage", event)
+	var accepted: bool = bool(receiver.call("receive_damage", event))
+	var enemy: EnemyActor2D = receiver as EnemyActor2D
+	if (
+		accepted
+		and enemy != null
+		and not enemy.is_in_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+	):
+		ground_hit_count += 1
+		ground_impact_accepted.emit(self, event, enemy, impact_velocity.length())
 
 
 func _resolve_ground_enemy_impact(body: Node) -> void:
@@ -235,13 +253,7 @@ func _resolve_ground_enemy_impact(body: Node) -> void:
 		or target.is_in_group(AerialDebrisLauncher.AIRBORNE_GROUP)
 	):
 		return
-	var relative_velocity: Vector2 = linear_velocity - target.velocity
-	var previous_relative: Vector2 = _last_motion_velocity - target.velocity
-	if (
-		_last_motion_age <= 0.12
-		and previous_relative.length_squared() > relative_velocity.length_squared()
-	):
-		relative_velocity = previous_relative
+	var relative_velocity: Vector2 = _impact_relative_velocity(target.velocity)
 	var impact_speed: float = relative_velocity.length()
 	if impact_speed < MIN_GROUND_IMPACT_SPEED:
 		return
@@ -272,6 +284,18 @@ func _resolve_ground_enemy_impact(body: Node) -> void:
 	if target.receive_damage(event):
 		_ground_hit_generations[target_id] = target.activation_generation
 		ground_hit_count += 1
+		ground_impact_accepted.emit(self, event, target, impact_speed)
+
+
+func _impact_relative_velocity(target_velocity: Vector2) -> Vector2:
+	var relative_velocity: Vector2 = linear_velocity - target_velocity
+	var previous_relative: Vector2 = _last_motion_velocity - target_velocity
+	if (
+		_last_motion_age <= 0.12
+		and previous_relative.length_squared() > relative_velocity.length_squared()
+	):
+		return previous_relative
+	return relative_velocity
 
 
 func _resolve_aerial_impact() -> void:

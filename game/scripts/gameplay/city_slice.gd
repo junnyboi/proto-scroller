@@ -170,6 +170,7 @@ func _build_services() -> void:
 		_on_pending_score_changed,
 		_on_combo_changed,
 		_on_aerial_impact_accepted,
+		_on_ground_debris_impact_accepted,
 		_on_enemy_wreck_scrapped
 	)
 	rampage_session = runtime_services.rampage_session
@@ -528,6 +529,20 @@ func _on_aerial_impact_accepted(
 	target: EnemyActor2D
 ) -> void:
 	rampage_events.aerial_hit(body, event, target, robot)
+
+
+func _on_ground_debris_impact_accepted(
+	body: DebrisBody2D,
+	event: DamageEvent,
+	_target: EnemyActor2D,
+	impact_speed: float
+) -> void:
+	impact_feedback_pool.play_debris_enemy_impact(
+		event.hit_position,
+		event.direction,
+		impact_speed,
+		body.mass
+	)
 
 
 func _on_robot_damage_received(event: DamageEvent, accepted_damage: float) -> void:

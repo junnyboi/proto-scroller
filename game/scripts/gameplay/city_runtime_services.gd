@@ -30,12 +30,13 @@ func build(
 	pending_score_changed: Callable,
 	combo_changed: Callable,
 	aerial_impact_accepted: Callable,
+	ground_impact_accepted: Callable,
 	wreck_scrapped: Callable
 ) -> void:
 	_build_rampage(root, score_changed, pending_score_changed, combo_changed)
 	_build_projectiles(root)
 	_build_feedback(root)
-	_build_destruction(root, aerial_impact_accepted)
+	_build_destruction(root, aerial_impact_accepted, ground_impact_accepted)
 	_build_remains(root, wreck_scrapped)
 	music_duck_controller = MusicDuckController.new()
 	root.add_child(music_duck_controller)
@@ -80,7 +81,11 @@ func _build_feedback(root: Node2D) -> void:
 	root.add_child(hit_stop)
 
 
-func _build_destruction(root: Node2D, aerial_impact_accepted: Callable) -> void:
+func _build_destruction(
+	root: Node2D,
+	aerial_impact_accepted: Callable,
+	ground_impact_accepted: Callable
+) -> void:
 	destruction_director = DestructionDirector.new()
 	destruction_director.name = "DestructionDirector"
 	destruction_director.max_results = 64
@@ -93,11 +98,13 @@ func _build_destruction(root: Node2D, aerial_impact_accepted: Callable) -> void:
 	debris_pool.capacity = RuntimeBudget.STRUCTURAL_DEBRIS
 	debris_pool.z_index = 30
 	debris_pool.aerial_impact_accepted.connect(aerial_impact_accepted)
+	debris_pool.ground_impact_accepted.connect(ground_impact_accepted)
 	root.add_child(debris_pool)
 	enemy_scrap_pool = DebrisPool.new()
 	enemy_scrap_pool.name = "EnemyScrapPool"
 	enemy_scrap_pool.capacity = RuntimeBudget.ENEMY_SCRAP
 	enemy_scrap_pool.z_index = 31
+	enemy_scrap_pool.ground_impact_accepted.connect(ground_impact_accepted)
 	root.add_child(enemy_scrap_pool)
 
 

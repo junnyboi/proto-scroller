@@ -35,11 +35,67 @@ func test_fast_unarmed_debris_damages_ground_enemy_once_via_physics() -> void:
 	var damage_dealt: float = health_before - target.current_health
 	assert_between(damage_dealt, 5.0, DebrisBody2D.MAX_GROUND_IMPACT_DAMAGE)
 	assert_eq(debris.ground_hit_count, 1)
+	assert_eq(city.impact_feedback_pool.debris_audio_play_count, 1)
+	assert_eq(city.impact_feedback_pool.debris_spark_play_count, 1)
+	assert_almost_eq(city.impact_feedback_pool.last_debris_mass, 4.0, 0.001)
+	assert_between(city.impact_feedback_pool.last_debris_pitch, 0.90, 1.10)
 	var health_after_first_hit: float = target.current_health
 	debris.linear_velocity = Vector2(900.0, 0.0)
 	debris._on_body_entered(target)
 	assert_eq(target.current_health, health_after_first_hit)
 	assert_eq(debris.ground_hit_count, 1)
+	assert_eq(city.impact_feedback_pool.debris_audio_play_count, 1)
+	assert_eq(city.impact_feedback_pool.debris_spark_play_count, 1)
+
+
+func test_debris_thud_is_pcm_and_scales_with_weight_inside_fixed_pool() -> void:
+	var stream: AudioStreamWAV = (
+		ImpactFeedbackPool.DEBRIS_ENEMY_THUD_SFX as AudioStreamWAV
+	)
+	assert_not_null(stream)
+	assert_eq(stream.mix_rate, 48000)
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_false(stream.stereo)
+	assert_between(stream.get_length(), 0.75, 0.90)
+	var root: Node2D = Node2D.new()
+	add_child_autofree(root)
+	var audio_root: Node2D = Node2D.new()
+	root.add_child(audio_root)
+	var pool: ImpactFeedbackPool = ImpactFeedbackPool.new()
+	pool.setup(root, audio_root)
+	root.add_child(pool)
+	await get_tree().process_frame
+	var light: AudioStreamPlayer2D = pool.play_debris_enemy_impact(
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		700.0,
+		1.0
+	)
+	assert_not_null(light)
+	var light_pitch: float = light.pitch_scale
+	var light_volume_db: float = light.volume_db
+	var heavy: AudioStreamPlayer2D = pool.play_debris_enemy_impact(
+		Vector2(20.0, 0.0),
+		Vector2.RIGHT,
+		700.0,
+		24.0
+	)
+	assert_not_null(heavy)
+	assert_same(light.stream, stream)
+	assert_same(heavy.stream, stream)
+	assert_same(heavy, light)
+	assert_lt(heavy.pitch_scale, light_pitch)
+	assert_gt(heavy.volume_db, light_volume_db)
+	assert_null(pool.play_debris_enemy_impact(
+		Vector2(40.0, 0.0),
+		Vector2.RIGHT,
+		700.0,
+		1.0
+	))
+	assert_eq(pool.debris_audio_play_count, 2)
+	assert_eq(pool.debris_spark_play_count, 3)
+	assert_eq(pool.audio_child_count(), RuntimeBudget.AUDIO_VOICES)
+	assert_eq(pool.particle_child_count(), RuntimeBudget.PARTICLE_SLOTS)
 
 
 func test_slow_debris_and_airborne_enemies_are_excluded() -> void:

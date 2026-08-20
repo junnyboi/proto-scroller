@@ -6,6 +6,12 @@ signal aerial_impact_accepted(
 	event: DamageEvent,
 	target: EnemyActor2D
 )
+signal ground_impact_accepted(
+	body: DebrisBody2D,
+	event: DamageEvent,
+	target: EnemyActor2D,
+	impact_speed: float
+)
 
 @export var debris_scene: PackedScene
 @export_range(1, 128, 1) var capacity: int = 48
@@ -30,6 +36,7 @@ func _ready() -> void:
 		body.name = "Debris_%03d" % index
 		body.recycle_requested.connect(_on_recycle_requested)
 		body.aerial_impact_accepted.connect(_on_aerial_impact_accepted)
+		body.ground_impact_accepted.connect(_on_ground_impact_accepted)
 		add_child(body)
 		body.deactivate()
 		_free.append(body)
@@ -104,3 +111,12 @@ func _on_aerial_impact_accepted(
 	target: EnemyActor2D
 ) -> void:
 	aerial_impact_accepted.emit(body, event, target)
+
+
+func _on_ground_impact_accepted(
+	body: DebrisBody2D,
+	event: DamageEvent,
+	target: EnemyActor2D,
+	impact_speed: float
+) -> void:
+	ground_impact_accepted.emit(body, event, target, impact_speed)
