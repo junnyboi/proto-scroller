@@ -3,11 +3,11 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
-func test_required_experience_uses_exponential_curve() -> void:
-	assert_eq(RunExperience.required_for_level(1), 500)
-	assert_eq(RunExperience.required_for_level(2), 675)
-	assert_eq(RunExperience.required_for_level(3), 911)
-	assert_eq(RunExperience.required_for_level(4), 1230)
+func test_required_experience_triples_the_exponential_curve() -> void:
+	assert_eq(RunExperience.required_for_level(1), 1500)
+	assert_eq(RunExperience.required_for_level(2), 2025)
+	assert_eq(RunExperience.required_for_level(3), 2733)
+	assert_eq(RunExperience.required_for_level(4), 3690)
 	assert_gt(
 		RunExperience.required_for_level(12),
 		RunExperience.required_for_level(11)
@@ -22,12 +22,12 @@ func test_experience_levels_repeatedly_and_preserves_overflow() -> void:
 		func(level: int, event_id: int) -> void:
 			emitted_levels.append(Vector2i(level, event_id))
 	)
-	assert_eq(experience.add_experience(1475), 2)
+	assert_eq(experience.add_experience(4425), 2)
 	assert_eq(experience.level, 3)
-	assert_eq(experience.current_experience, 300)
-	assert_eq(experience.total_experience, 1475)
-	assert_eq(experience.experience_required(), 911)
-	assert_almost_eq(experience.progress_ratio(), 300.0 / 911.0, 0.0001)
+	assert_eq(experience.current_experience, 900)
+	assert_eq(experience.total_experience, 4425)
+	assert_eq(experience.experience_required(), 2733)
+	assert_almost_eq(experience.progress_ratio(), 900.0 / 2733.0, 0.0001)
 	assert_eq(emitted_levels, [])
 
 
@@ -44,7 +44,7 @@ func test_accepted_event_crosses_levels_with_one_nonzero_identity() -> void:
 		77,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH,
-		1475
+		4425
 	)
 	assert_true(session.publish(event))
 	assert_gt(event.event_id, 0)
@@ -54,7 +54,7 @@ func test_accepted_event_crosses_levels_with_one_nonzero_identity() -> void:
 	)
 	assert_false(session.publish(event))
 	assert_eq(emitted_levels.size(), 2)
-	assert_eq(session.run_experience.total_experience, 1475)
+	assert_eq(session.run_experience.total_experience, 4425)
 
 
 func test_session_grants_base_xp_once_and_reset_returns_to_level_one() -> void:
@@ -65,13 +65,13 @@ func test_session_grants_base_xp_once_and_reset_returns_to_level_one() -> void:
 		1,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH,
-		500
+		1500
 	)
 	assert_true(session.publish(event))
 	assert_eq(session.run_experience.level, 2)
 	assert_eq(session.run_experience.current_experience, 0)
 	assert_false(session.publish(event))
-	assert_eq(session.run_experience.total_experience, 500)
+	assert_eq(session.run_experience.total_experience, 1500)
 	session.reset_run()
 	assert_eq(session.run_experience.level, 1)
 	assert_eq(session.run_experience.current_experience, 0)
@@ -123,9 +123,9 @@ func test_hud_shows_level_and_preserves_exp_ratio_across_orientation() -> void:
 	city.mobile_detection_override = 1
 	add_child_autofree(city)
 	await get_tree().process_frame
-	assert_eq(city.gameplay_hud.experience_label.text, "LEVEL 01  EXP 0 / 500")
-	city.rampage_session.run_experience.add_experience(250)
-	assert_eq(city.gameplay_hud.experience_label.text, "LEVEL 01  EXP 250 / 500")
+	assert_eq(city.gameplay_hud.experience_label.text, "LEVEL 01  EXP 0 / 1500")
+	city.rampage_session.run_experience.add_experience(750)
+	assert_eq(city.gameplay_hud.experience_label.text, "LEVEL 01  EXP 750 / 1500")
 	assert_almost_eq(city.gameplay_hud.experience_fill.size.x, 127.0, 0.01)
 	get_window().content_scale_size = Vector2i(720, 1280)
 	get_tree().root.size = Vector2i(720, 1280)
