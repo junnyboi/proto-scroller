@@ -164,7 +164,10 @@ func _ready() -> void:
 	add_child(run_lifecycle)
 	upgrade_assembler = PlayerUpgradeAssembler.new()
 	add_child(upgrade_assembler)
-	assert(upgrade_assembler.setup(self).is_empty())
+	var upgrade_errors: PackedStringArray = upgrade_assembler.setup(self)
+	if not upgrade_errors.is_empty():
+		push_error("Upgrade setup failed: %s" % [upgrade_errors])
+	assert(upgrade_errors.is_empty())
 
 
 func _process(delta: float) -> void:

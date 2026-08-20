@@ -3,6 +3,47 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
+func after_each() -> void:
+	Input.action_release(&"stomp")
+
+
+func test_upgrade_setup_executes_outside_release_stripped_assertions() -> void:
+	var source: String = FileAccess.get_file_as_string(
+		"res://scripts/gameplay/city_slice.gd"
+	)
+	assert_true(source.contains("upgrade_assembler.setup(self)"))
+	assert_false(source.contains("assert(upgrade_assembler.setup(self)"))
+
+
+func test_level_offer_waits_for_triggering_smash_release_before_accepting_input() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var overlay: UpgradeChoiceOverlay = city.gameplay_hud.upgrade_choice_overlay
+	var session: UpgradeSession = city.upgrade_assembler.session
+	Input.action_press(&"stomp")
+	var reward: GameplayEvent = GameplayEvent.new(
+		&"held-smash-upgrade",
+		1,
+		GameplayEvent.Kind.ENEMY_DEFEATED,
+		GameplayEvent.SOLDIER_LAUNCH,
+		500
+	)
+	assert_true(city.rampage_session.publish(reward))
+	await get_tree().process_frame
+	assert_true(overlay.visible)
+	assert_not_null(session.active_offer)
+	assert_true(city.urban_siege.pause_coordinator.is_paused())
+	assert_true(overlay.cards[0].disabled)
+	assert_true(overlay.cards[1].disabled)
+	Input.action_release(&"stomp")
+	await get_tree().process_frame
+	assert_true(overlay.visible)
+	assert_not_null(session.active_offer)
+	assert_false(overlay.cards[0].disabled)
+	assert_false(overlay.cards[1].disabled)
+
+
 func test_level_offer_uses_two_fixed_cards_and_preserves_mobile_touches() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	city.mobile_detection_override = 1
