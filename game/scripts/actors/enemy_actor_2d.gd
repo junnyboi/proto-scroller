@@ -308,6 +308,7 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 	velocity = Vector2.ZERO
 	current_health = max_health
 	target = p_target
+	_update_facing()
 	collision_layer = _base_collision_layer
 	collision_mask = _base_collision_mask
 	_seen_attacks.clear()

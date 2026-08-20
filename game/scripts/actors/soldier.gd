@@ -25,6 +25,7 @@ var _cooldown: float = 0.35
 func _physics_process(delta: float) -> void:
 	if dead or not active:
 		return
+	_update_facing()
 	if state == State.ANTICIPATE:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		if advance_telegraph(delta):
@@ -41,7 +42,6 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		update_movement_bounce(delta)
 		return
-	_update_facing()
 	var distance_x: float = absf(target.global_position.x - global_position.x)
 	if distance_x > preferred_range + 45.0:
 		state = State.APPROACH
