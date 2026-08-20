@@ -147,6 +147,45 @@ body {
   text-align: right;
 }
 
+.loader-telemetry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.8rem 0 0;
+}
+
+.loader-telemetry-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(93, 201, 194, 0.16);
+  background: rgba(93, 201, 194, 0.04);
+}
+
+.loader-telemetry dt,
+.loader-telemetry dd {
+  margin: 0;
+}
+
+.loader-telemetry dt {
+  color: rgba(183, 196, 203, 0.52);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.loader-telemetry dd {
+  overflow: hidden;
+  color: rgba(215, 228, 230, 0.9);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .loader-detail {
   min-height: 1.4em;
   margin-top: 0.85rem;
@@ -192,5 +231,9 @@ body {
 
   .loader-percent {
     min-width: 4.7rem;
+  }
+
+  .loader-telemetry {
+    grid-template-columns: 1fr;
   }
 }

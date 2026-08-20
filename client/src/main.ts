@@ -2,6 +2,9 @@ import "./index.css";
 import {
   calculateLoadingPercent,
   createGodotFileSizes,
+  DownloadTelemetryTracker,
+  formatDownloadSpeed,
+  formatEta,
   loadingStage,
 } from "./lib/godotLoaderState";
 import {
@@ -44,7 +47,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "017b4901-bgm";
+const GAME_PACK_VERSION = "017b4901-bgm-telemetry";
 const REMOTE_ENGINE_PATH = "/manus-storage/game_7fa06ff5";
 const REMOTE_PACK_PATH = `/manus-storage/game_6520d403.pck?v=${GAME_PACK_VERSION}`;
 const ENGINE_WASM_BYTES = 39_513_091;
@@ -71,6 +74,16 @@ root.innerHTML = `
           <progress id="loader-progress" class="loader-progress" max="100"></progress>
           <span id="loader-percent" class="loader-percent">CONNECTING</span>
         </div>
+        <dl class="loader-telemetry" aria-label="Download telemetry">
+          <div class="loader-telemetry-item">
+            <dt>SPEED</dt>
+            <dd id="loader-speed">MEASURING</dd>
+          </div>
+          <div class="loader-telemetry-item">
+            <dt>ETA</dt>
+            <dd id="loader-eta">CALCULATING</dd>
+          </div>
+        </dl>
         <p id="loader-detail" class="loader-detail">Loading the Web runtime…</p>
         <button id="loader-retry" class="loader-retry" type="button" hidden>RETRY DOWNLOAD</button>
       </div>
@@ -89,6 +102,8 @@ const runtimeState = requireElement<HTMLElement>("runtime-state");
 const loaderStage = requireElement<HTMLElement>("loader-stage");
 const loaderProgress = requireElement<HTMLProgressElement>("loader-progress");
 const loaderPercent = requireElement<HTMLElement>("loader-percent");
+const loaderSpeed = requireElement<HTMLElement>("loader-speed");
+const loaderEta = requireElement<HTMLElement>("loader-eta");
 const loaderDetail = requireElement<HTMLElement>("loader-detail");
 const loaderRetry = requireElement<HTMLButtonElement>("loader-retry");
 const renderTier = selectWebRenderTier(
@@ -98,6 +113,7 @@ const renderTier = selectWebRenderTier(
 let resizeFrame = 0;
 let loadingComplete = false;
 let latestPercent: number | null = null;
+const downloadTelemetry = new DownloadTelemetryTracker();
 
 loaderRetry.addEventListener("click", () => window.location.reload());
 
@@ -128,15 +144,20 @@ function formatMebibytes(bytes: number): string {
 
 function showDownloadProgress(current: number, total: number): void {
   const percent = calculateLoadingPercent(current, total);
+  const telemetry = downloadTelemetry.sample(current, total, performance.now());
   latestPercent = percent;
   if (percent === null) {
     loaderProgress.removeAttribute("value");
     loaderPercent.textContent = "CONNECTING";
+    loaderSpeed.textContent = "MEASURING";
+    loaderEta.textContent = "CALCULATING";
     return;
   }
 
   loaderProgress.value = percent;
   loaderPercent.textContent = `${percent}%`;
+  loaderSpeed.textContent = formatDownloadSpeed(telemetry.bytesPerSecond);
+  loaderEta.textContent = formatEta(telemetry.etaSeconds);
   loaderStage.textContent = loadingStage(percent);
   loaderDetail.textContent = `${formatMebibytes(current)} / ${formatMebibytes(total)}`;
 }
@@ -146,6 +167,8 @@ function showError(message: string): void {
   runtimeState.classList.add("is-error");
   loaderStage.textContent = "LOAD FAILED";
   loaderPercent.textContent = "OFFLINE";
+  loaderSpeed.textContent = "—";
+  loaderEta.textContent = "RETRY";
   loaderDetail.textContent = message;
   loaderProgress.hidden = true;
   loaderRetry.hidden = false;
@@ -162,7 +185,7 @@ const slowLoadTimer = window.setTimeout(() => {
   if (loadingComplete) return;
   loaderDetail.textContent = latestPercent === null
     ? "Connecting to game storage. This can take longer on a cold deployment…"
-    : `${loaderPercent.textContent} received. Initializing the 47.5 MiB runtime…`;
+    : `${loaderPercent.textContent} received. Initializing the ${formatMebibytes(ENGINE_WASM_BYTES + GAME_PACK_BYTES)} runtime…`;
 }, SLOW_LOAD_NOTICE_MS);
 
 const retryTimer = window.setTimeout(() => {
@@ -215,6 +238,8 @@ async function startEngine(): Promise<void> {
     window.clearTimeout(retryTimer);
     loaderStage.textContent = "STARTING GAME";
     loaderPercent.textContent = "100%";
+    loaderSpeed.textContent = "COMPLETE";
+    loaderEta.textContent = "READY";
     loaderProgress.value = 100;
     loaderDetail.textContent = "Runtime ready.";
     canvas.classList.add("is-ready");
