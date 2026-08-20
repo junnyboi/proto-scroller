@@ -10,6 +10,9 @@ var shade: ColorRect
 var cards: Array[UpgradeChoiceCard] = []
 var offer_sequence: int = 0
 var active: bool = false
+var _input_arm_pending: bool = false
+var _input_arm_sequence: int = 0
+var _input_arm_frame: int = 0
 
 
 func _ready() -> void:
@@ -21,6 +24,22 @@ func _ready() -> void:
 	visible = false
 	get_viewport().size_changed.connect(apply_responsive_layout)
 	apply_responsive_layout()
+
+
+func _process(_delta: float) -> void:
+	if not _input_arm_pending:
+		return
+	if not active or offer_sequence != _input_arm_sequence:
+		_input_arm_pending = false
+		return
+	if Engine.get_process_frames() < _input_arm_frame:
+		return
+	if Input.is_action_pressed(&"stomp"):
+		return
+	_input_arm_pending = false
+	for card: UpgradeChoiceCard in cards:
+		card.disabled = false
+	cards[0].grab_focus()
 
 
 func show_offer(
@@ -48,11 +67,14 @@ func show_offer(
 		card.disabled = true
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 	apply_responsive_layout()
-	_arm_choice_input(offer_sequence)
+	_input_arm_pending = true
+	_input_arm_sequence = offer_sequence
+	_input_arm_frame = Engine.get_process_frames() + 1
 
 
 func hide_offer() -> void:
 	active = false
+	_input_arm_pending = false
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -60,18 +82,6 @@ func hide_offer() -> void:
 		card.disabled = true
 		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	release_focus()
-
-
-func _arm_choice_input(sequence: int) -> void:
-	await get_tree().process_frame
-	while active and offer_sequence == sequence and Input.is_action_pressed(&"stomp"):
-		await get_tree().process_frame
-	if not active or offer_sequence != sequence:
-		return
-	for card: UpgradeChoiceCard in cards:
-		card.disabled = false
-	cards[0].grab_focus()
-
 
 func apply_responsive_layout() -> void:
 	if title_label == null:

@@ -39,7 +39,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "154d5ce3";
+const GAME_PACK_VERSION = "47b5b908";
 const searchParameters = new URLSearchParams(window.location.search);
 const root = document.getElementById("root");
 
@@ -123,7 +123,7 @@ async function startEngine(): Promise<void> {
     godotPoolSize: 4,
     mainPack: useLocalGameFiles
       ? "/game/game.pck"
-      : `/manus-storage/game_2cb0eaeb.pck?v=${GAME_PACK_VERSION}`,
+      : `/manus-storage/game_3c7986ee.pck?v=${GAME_PACK_VERSION}`,
   });
 
   try {
