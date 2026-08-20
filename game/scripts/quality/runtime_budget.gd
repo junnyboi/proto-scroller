@@ -21,6 +21,7 @@ const SHELLS: int = 4
 const ROCKETS: int = 4
 const PLAYER_BULLETS: int = 8
 const STRUCTURAL_DEBRIS: int = 24
+const BUILDING_DAMAGE_PATTERNS: int = StructuralBuilding2D.CELL_COUNT
 const ENEMY_SCRAP: int = 32
 const SOLDIER_DEFEATS: int = 8
 const WRECKS: int = 4
@@ -94,6 +95,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			city.debris_pool.active_count() + city.debris_pool.available_count()
 		),
 		"structural_debris_peak": city.debris_pool.peak_active_count,
+		"building_damage_patterns": _building_damage_pattern_count(city),
 		"enemy_scrap_total": (
 			city.enemy_scrap_pool.active_count() + city.enemy_scrap_pool.available_count()
 		),
@@ -198,6 +200,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "hostile_projectile_total", BULLETS + SHELLS + ROCKETS)
 	_check_equal(errors, data, "player_bullet_total", PLAYER_BULLETS)
 	_check_equal(errors, data, "structural_debris_total", STRUCTURAL_DEBRIS)
+	_check_equal(errors, data, "building_damage_patterns", BUILDING_DAMAGE_PATTERNS)
 	_check_equal(errors, data, "enemy_scrap_total", ENEMY_SCRAP)
 	_check_equal(errors, data, "soldier_defeat_total", SOLDIER_DEFEATS)
 	_check_equal(errors, data, "wreck_total", WRECKS)
@@ -310,6 +313,16 @@ static func _count_nodes(root: Node) -> int:
 	var count: int = 1
 	for child: Node in root.get_children():
 		count += _count_nodes(child)
+	return count
+
+
+static func _building_damage_pattern_count(city: CitySlice) -> int:
+	var count: int = 0
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			var cell: Destructible2D = city.building.get_cell(column, row)
+			if cell.get_node_or_null(^"DamagedVisual") is BuildingDamagePattern2D:
+				count += 1
 	return count
 
 

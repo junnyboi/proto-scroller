@@ -17,6 +17,7 @@ const ENEMY_LAYER: int = 1 << 2
 const ROBOT_LAYER: int = 1 << 1
 const BUILDING_LAYER: int = 1 << 3
 const HURTBOX_LAYER: int = 1 << 6
+const DEBRIS_LAYER: int = 1 << 8
 const LAND_BASELINE_Y: float = 655.0
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
@@ -350,7 +351,9 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	enemy._visual_rest_position = visual.position
 	enemy._visual_rest_scale = visual.scale
 	enemy.collision_layer = ENEMY_LAYER
-	enemy.collision_mask = 0 if enemy.airborne else WORLD_LAYER
+	enemy.collision_mask = 0 if enemy.airborne else WORLD_LAYER | DEBRIS_LAYER
+	enemy._base_collision_layer = enemy.collision_layer
+	enemy._base_collision_mask = enemy.collision_mask
 	var collision: CollisionShape2D = enemy.get_node(^"CollisionShape2D") as CollisionShape2D
 	(collision.shape as RectangleShape2D).size = collision_size
 	var hurt_shape: CollisionShape2D = enemy.get_node(^"Hurtbox/CollisionShape2D") as CollisionShape2D
@@ -370,7 +373,7 @@ func _configure_actor_nodes(
 	authored_y: float
 ) -> void:
 	_configure_actor_contract(enemy)
-	enemy.collision_mask = 0 if kind == &"helicopter" else WORLD_LAYER
+	enemy.collision_mask = 0 if kind == &"helicopter" else WORLD_LAYER | DEBRIS_LAYER
 	var visual: Sprite2D = CityWorldBuilder.fit_sprite(texture, display_size)
 	visual.name = "Visual"
 	if kind != &"helicopter":

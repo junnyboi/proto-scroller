@@ -129,7 +129,7 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 		_create_cell_sprite("IntactVisual", intact_texture, column, row, profile)
 	)
 	cell.add_child(
-		_create_cell_sprite("DamagedVisual", damaged_texture, column, row, profile)
+		_create_damage_pattern(column, row, profile)
 	)
 	cell.add_child(_create_rubble_sprite(column, row, profile))
 	cell.add_child(_create_intact_body(row))
@@ -189,6 +189,32 @@ func _create_rubble_sprite(
 	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
 	sprite.modulate = profile.visual_tint
 	return sprite
+
+
+func _create_damage_pattern(
+	column: int,
+	row: int,
+	profile: StructuralMaterialProfile
+) -> BuildingDamagePattern2D:
+	var pattern: BuildingDamagePattern2D = BuildingDamagePattern2D.new()
+	pattern.name = "DamagedVisual"
+	var source_size: Vector2 = damaged_texture.get_size()
+	var source_cell_size: Vector2 = Vector2(
+		source_size.x / float(COLUMNS),
+		source_size.y / float(ROWS)
+	)
+	pattern.configure(
+		damaged_texture,
+		Rect2(
+			Vector2(source_cell_size.x * float(column), source_cell_size.y * float(row)),
+			source_cell_size
+		),
+		_cell_size(),
+		1 + row * COLUMNS + column,
+		profile.material_id,
+		profile.visual_tint
+	)
+	return pattern
 
 
 func _material_for_cell(column: int, row: int) -> StructuralMaterialProfile:

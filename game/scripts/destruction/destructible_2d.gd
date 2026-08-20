@@ -53,6 +53,11 @@ func receive_damage(event: DamageEvent) -> bool:
 	var accepted_damage: float = previous_health - current_health
 	damaged.emit(current_health, max_health)
 	damage_applied.emit(accepted_damage, event)
+	var damage_pattern: BuildingDamagePattern2D = (
+		_damaged_visual as BuildingDamagePattern2D
+	)
+	if damage_pattern != null and current_health > 0.0:
+		damage_pattern.record_damage(event, current_health / maxf(max_health, 1.0))
 	if current_health <= 0.0:
 		_break(event)
 	else:
@@ -75,7 +80,7 @@ func _break(event: DamageEvent) -> void:
 
 func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
 	if _intact_visual != null:
-		_intact_visual.visible = not show_damaged and not show_rubble
+		_intact_visual.visible = not show_rubble
 	if _damaged_visual != null:
 		_damaged_visual.visible = show_damaged and not show_rubble
 	if _rubble_visual != null:

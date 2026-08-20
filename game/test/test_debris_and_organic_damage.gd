@@ -1,0 +1,131 @@
+extends GutTest
+
+const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+
+
+func test_fast_unarmed_debris_damages_ground_enemy_once_via_physics() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.encounter_runtime.release_all()
+	var target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"soldier",
+		Vector2(900.0, 605.0)
+	)
+	assert_not_null(target)
+	target.set_physics_process(false)
+	target.velocity = Vector2.ZERO
+	var health_before: float = target.current_health
+	var debris: DebrisBody2D = city.debris_pool.acquire(
+		Transform2D(0.0, target.global_position + Vector2(-230.0, 0.0)),
+		Vector2(4200.0, 0.0),
+		0.0,
+		4.0,
+		Vector2(34.0, 24.0),
+		&"concrete"
+	)
+	debris.gravity_scale = 0.0
+	var hit_registered: bool = false
+	for physics_tick: int in range(60):
+		await get_tree().physics_frame
+		if target.current_health < health_before:
+			hit_registered = true
+			break
+	assert_true(hit_registered)
+	var damage_dealt: float = health_before - target.current_health
+	assert_between(damage_dealt, 5.0, DebrisBody2D.MAX_GROUND_IMPACT_DAMAGE)
+	assert_eq(debris.ground_hit_count, 1)
+	var health_after_first_hit: float = target.current_health
+	debris.linear_velocity = Vector2(900.0, 0.0)
+	debris._on_body_entered(target)
+	assert_eq(target.current_health, health_after_first_hit)
+	assert_eq(debris.ground_hit_count, 1)
+
+
+func test_slow_debris_and_airborne_enemies_are_excluded() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.encounter_runtime.release_all()
+	var ground_target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"soldier",
+		Vector2(880.0, 605.0)
+	)
+	var air_target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"helicopter",
+		Vector2(880.0, 260.0)
+	)
+	var procedural_ground: EnemyActor2D = city.encounter_runtime.acquire(
+		&"jackal",
+		Vector2(1050.0, 605.0)
+	)
+	assert_ne(ground_target.collision_mask & EncounterRuntime.DEBRIS_LAYER, 0)
+	assert_ne(procedural_ground.collision_mask & EncounterRuntime.DEBRIS_LAYER, 0)
+	assert_eq(air_target.collision_mask & EncounterRuntime.DEBRIS_LAYER, 0)
+	assert_false(procedural_ground.is_in_group(AerialDebrisLauncher.AIRBORNE_GROUP))
+	var debris: DebrisBody2D = city.debris_pool.acquire(
+		Transform2D(0.0, Vector2(780.0, 500.0)),
+		Vector2.ZERO
+	)
+	var ground_health: float = ground_target.current_health
+	debris.linear_velocity = Vector2(120.0, 0.0)
+	debris._on_body_entered(ground_target)
+	assert_eq(ground_target.current_health, ground_health)
+	var air_health: float = air_target.current_health
+	debris.linear_velocity = Vector2(900.0, 0.0)
+	debris._on_body_entered(air_target)
+	assert_eq(air_target.current_health, air_health)
+	assert_eq(debris.ground_hit_count, 0)
+
+
+func test_damaged_cells_use_seeded_hit_centered_organic_patterns() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var cells: Array[Destructible2D] = [
+		city.building.get_cell(0, 0),
+		city.building.get_cell(1, 0),
+		city.building.get_cell(0, 1),
+	]
+	var expected_cracks: Array[int] = [5, 4, 7]
+	var signatures: Dictionary[String, bool] = {}
+	for index: int in range(cells.size()):
+		var cell: Destructible2D = cells[index]
+		var offset: Vector2 = Vector2(26.0 - 12.0 * float(index), -18.0 + 9.0 * float(index))
+		var event: DamageEvent = DamageEvent.new(
+			9100 + index,
+			city.robot,
+			cell.max_health * 0.45,
+			&"jab_cross",
+			cell.global_position + offset,
+			Vector2.RIGHT,
+			420.0
+		)
+		assert_true(cell.receive_damage(event))
+		var pattern: BuildingDamagePattern2D = cell.get_node(
+			^"DamagedVisual"
+		) as BuildingDamagePattern2D
+		assert_not_null(pattern)
+		assert_true(pattern.visible)
+		assert_true((cell.get_node(^"IntactVisual") as Sprite2D).visible)
+		assert_eq(pattern.contour().size(), BuildingDamagePattern2D.CONTOUR_POINTS)
+		assert_eq(pattern.crack_count(), expected_cracks[index])
+		var local_hit: Vector2 = pattern.to_local(event.hit_position)
+		var contour_center: Vector2 = Vector2.ZERO
+		var minimum: Vector2 = Vector2(INF, INF)
+		var maximum: Vector2 = Vector2(-INF, -INF)
+		for point: Vector2 in pattern.contour():
+			contour_center += point
+			minimum.x = minf(minimum.x, point.x)
+			minimum.y = minf(minimum.y, point.y)
+			maximum.x = maxf(maximum.x, point.x)
+			maximum.y = maxf(maximum.y, point.y)
+		contour_center /= float(pattern.contour().size())
+		assert_lt(contour_center.distance_to(local_hit), 24.0)
+		assert_gt(maximum.x - minimum.x, 50.0)
+		assert_gt(maximum.y - minimum.y, 40.0)
+		var signature: String = pattern.pattern_signature()
+		assert_false(signatures.has(signature))
+		signatures[signature] = true
+		pattern.record_damage(event, cell.current_health / cell.max_health)
+		assert_eq(pattern.pattern_signature(), signature)

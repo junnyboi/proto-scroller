@@ -74,6 +74,9 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	if airborne:
 		motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 		add_to_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+	else:
+		motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED
+		remove_from_group(AerialDebrisLauncher.AIRBORNE_GROUP)
 
 
 func _ready() -> void:

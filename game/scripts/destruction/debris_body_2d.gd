@@ -11,6 +11,9 @@ signal aerial_impact_accepted(
 const ACTIVE_COLLISION_LAYER: int = 1 << 8
 const ACTIVE_COLLISION_MASK: int = (1 << 0) | (1 << 2)
 const ACTIVE_CONTACT_LIMIT: int = 4
+const MIN_GROUND_IMPACT_SPEED: float = 240.0
+const MAX_GROUND_IMPACT_DAMAGE: float = 42.0
+const GROUND_IMPACT_DAMAGE_SCALE: float = 0.035
 
 @export_range(0.5, 30.0, 0.5) var hard_lifetime: float = 10.0
 @export_range(0.0, 5.0, 0.1) var sleeping_recycle_delay: float = 1.5
@@ -19,6 +22,7 @@ const ACTIVE_CONTACT_LIMIT: int = 4
 
 var aerial_impact_armed: bool = false
 var aerial_hit_count: int = 0
+var ground_hit_count: int = 0
 var _age: float = 0.0
 var _sleeping_age: float = 0.0
 var _active: bool = false
@@ -37,11 +41,15 @@ var _kinetic_root_attack_id: int = 0
 var _kinetic_delivery_id: int = 0
 var _kinetic_bonus_damage: float = 0.0
 var _kinetic_effect_flags: int = DamageEvent.FLAG_NONE
+var _ground_hit_generations: Dictionary[int, int] = {}
+var _last_motion_velocity: Vector2 = Vector2.ZERO
+var _last_motion_age: float = INF
 
 
 func _ready() -> void:
 	can_sleep = true
 	gravity_scale = 1.0
+	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
 	body_entered.connect(_on_body_entered)
 	_ensure_fallback_shape()
 	_set_collision_participation(false)
@@ -68,6 +76,8 @@ func activate(
 	_set_collision_participation(true)
 	global_transform = spawn_transform
 	linear_velocity = Vector2.ZERO
+	_last_motion_velocity = Vector2.ZERO
+	_last_motion_age = INF
 	angular_velocity = 0.0
 	constant_force = Vector2.ZERO
 	constant_torque = 0.0
@@ -75,6 +85,8 @@ func activate(
 	sleeping = false
 	_age = 0.0
 	_sleeping_age = 0.0
+	ground_hit_count = 0
+	_ground_hit_generations.clear()
 	_active = true
 	visible = true
 	process_mode = Node.PROCESS_MODE_INHERIT
@@ -149,6 +161,8 @@ func deactivate() -> void:
 	_active = false
 	set_physics_process(false)
 	linear_velocity = Vector2.ZERO
+	_last_motion_velocity = Vector2.ZERO
+	_last_motion_age = INF
 	angular_velocity = 0.0
 	constant_force = Vector2.ZERO
 	constant_torque = 0.0
@@ -162,6 +176,12 @@ func _physics_process(delta: float) -> void:
 	if not _active:
 		return
 	_age += delta
+	_last_motion_age += delta
+	if linear_velocity.length() >= MIN_GROUND_IMPACT_SPEED:
+		_last_motion_velocity = linear_velocity
+		_last_motion_age = 0.0
+	elif _last_motion_age > 0.12:
+		_last_motion_velocity = Vector2.ZERO
 	_sleeping_age = _sleeping_age + delta if sleeping else 0.0
 	if _age >= hard_lifetime or _sleeping_age >= sleeping_recycle_delay:
 		recycle_requested.emit(self)
@@ -184,6 +204,7 @@ func _on_body_entered(body: Node) -> void:
 		_resolve_aerial_impact()
 		return
 	if not _kinetic_armed:
+		_resolve_ground_enemy_impact(body)
 		return
 	var receiver: Node = _find_damage_receiver(body)
 	if receiver == null or receiver == _kinetic_source:
@@ -203,6 +224,54 @@ func _on_body_entered(body: Node) -> void:
 		_kinetic_effect_flags
 	)
 	receiver.call("receive_damage", event)
+
+
+func _resolve_ground_enemy_impact(body: Node) -> void:
+	var target: EnemyActor2D = _find_damage_receiver(body) as EnemyActor2D
+	if (
+		target == null
+		or not target.active
+		or target.dead
+		or target.is_in_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+	):
+		return
+	var relative_velocity: Vector2 = linear_velocity - target.velocity
+	var previous_relative: Vector2 = _last_motion_velocity - target.velocity
+	if (
+		_last_motion_age <= 0.12
+		and previous_relative.length_squared() > relative_velocity.length_squared()
+	):
+		relative_velocity = previous_relative
+	var impact_speed: float = relative_velocity.length()
+	if impact_speed < MIN_GROUND_IMPACT_SPEED:
+		return
+	var target_id: int = target.get_instance_id()
+	if _ground_hit_generations.get(target_id, -1) == target.activation_generation:
+		return
+	var mass_scale: float = clampf(sqrt(mass / 4.0), 0.65, 2.2)
+	var impact_energy: float = impact_speed * mass_scale
+	var damage: float = clampf(
+		5.0
+		+ maxf(impact_energy - MIN_GROUND_IMPACT_SPEED, 0.0)
+		* GROUND_IMPACT_DAMAGE_SCALE,
+		5.0,
+		MAX_GROUND_IMPACT_DAMAGE
+	)
+	var direction: Vector2 = relative_velocity.normalized()
+	if direction.is_zero_approx():
+		direction = Vector2.UP
+	var event: DamageEvent = DamageEvent.new(
+		0,
+		self,
+		damage,
+		&"debris_impact",
+		global_position,
+		direction,
+		impact_speed * 0.45
+	)
+	if target.receive_damage(event):
+		_ground_hit_generations[target_id] = target.activation_generation
+		ground_hit_count += 1
 
 
 func _resolve_aerial_impact() -> void:
