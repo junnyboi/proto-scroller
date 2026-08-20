@@ -5,6 +5,7 @@ const DISTRICT: DistrictDefinition = preload("res://resources/siege/district_con
 const BLITZ: EnemyTraitProfile = preload("res://resources/traits/blitz.tres")
 const BRUTAL: EnemyTraitProfile = preload("res://resources/traits/brutal.tres")
 const PHASED: EnemyTraitProfile = preload("res://resources/traits/phased.tres")
+const SHIELDED: EnemyTraitProfile = preload("res://resources/traits/shielded.tres")
 const EXPECTED_FIRST_ACT: Dictionary = {
 	&"needle": 0, &"bulwark": 0, &"jackal": 0,
 	&"lobber": 1, &"sapper": 1, &"hound": 1,
@@ -177,6 +178,24 @@ func test_specialist_humans_match_108_pixel_height_through_attack_animation() ->
 			archetype_id
 		)
 		runtime.release(actor)
+
+
+func test_shielded_bulwark_faces_player_from_both_sides() -> void:
+	city.robot.global_position.x = 1300.0
+	var bulwark: ProceduralEnemy = runtime.acquire(
+		&"bulwark",
+		Vector2(1000.0, 540.0),
+		&"",
+		SHIELDED.trait_id
+	) as ProceduralEnemy
+	assert_not_null(bulwark)
+	assert_true(bulwark.visual_faces_right_by_default)
+	assert_eq(bulwark.facing, 1)
+	assert_false(bulwark.visual.flip_h)
+	city.robot.global_position.x = 700.0
+	bulwark._update_facing()
+	assert_eq(bulwark.facing, -1)
+	assert_true(bulwark.visual.flip_h)
 
 
 func test_random_affix_spawns_play_bounded_colored_impact_effects() -> void:

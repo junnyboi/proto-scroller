@@ -29,6 +29,7 @@ const PROFILES: Dictionary = {
 	&"bulwark": {
 		"display_name": "BULWARK RIOT TROOPER", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/02-bulwark-riot-trooper.png",
+		"faces_right": true,
 		"display": Vector2(116.85, 108.0), "collision": Vector2(48.0, 100.0),
 		"spawn_y": 540.0, "health": 110.0, "speed": 64.0, "acceleration": 430.0,
 		"preferred_range": 230.0, "minimum_range": 120.0, "attack_interval": 1.45,

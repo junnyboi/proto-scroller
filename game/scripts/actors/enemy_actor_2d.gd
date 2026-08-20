@@ -29,6 +29,7 @@ var current_health: float
 var target: GiantRobotController
 var dead: bool = false
 var active: bool = true
+var visual_faces_right_by_default: bool = false
 var activation_generation: int = 0
 var telegraph_presenter: TelegraphPresenter2D
 var projectile_pool: ProjectilePool
@@ -479,7 +480,7 @@ func _update_facing() -> void:
 		return
 	facing = -1 if target.global_position.x < global_position.x else 1
 	if visual != null:
-		visual.flip_h = facing > 0
+		visual.flip_h = (facing > 0) != visual_faces_right_by_default
 
 
 func _die(event: DamageEvent) -> void:

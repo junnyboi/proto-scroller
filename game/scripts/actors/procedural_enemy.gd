@@ -52,6 +52,7 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	display_name = String(profile.get("display_name", String(archetype_id).to_upper()))
 	family = StringName(profile.get("family", &""))
 	airborne = bool(profile.get("airborne", false))
+	visual_faces_right_by_default = bool(profile.get("faces_right", false))
 	max_health = float(profile.get("health", 60.0))
 	_base_max_health = max_health
 	move_speed = float(profile.get("speed", 90.0))
