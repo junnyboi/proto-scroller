@@ -4,3 +4,9 @@
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
+
+[node name="BackgroundMusicPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+bus = &"Music"
+autoplay = true
