@@ -2,11 +2,15 @@ class_name DestructibleProp2D
 extends RigidBody2D
 
 signal destroyed(prop: DestructibleProp2D, event: DamageEvent)
+signal fully_destroyed(prop: DestructibleProp2D, event: DamageEvent)
 
 const REMAINS_LAYER: int = 1 << 9
 const WORLD_LAYER: int = 1 << 0
 
 @export var max_health: float = 60.0
+@export var wreck_health: float = 45.0
+@export_range(1, 8, 1) var gameplay_chunk_count: int = 4
+@export var debris_pool_path: NodePath
 @export var intact_texture: Texture2D
 @export var destroyed_texture: Texture2D
 @export var intact_display_size: Vector2 = Vector2(150.0, 80.0)
@@ -16,10 +20,12 @@ const WORLD_LAYER: int = 1 << 0
 
 var current_health: float
 var is_broken: bool = false
+var is_fully_destroyed: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
 
 @onready var visual: Sprite2D = get_node(^"Visual") as Sprite2D
 @onready var collision_shape: CollisionShape2D = get_node(^"CollisionShape2D") as CollisionShape2D
+@onready var _debris_pool: DebrisPool = get_node_or_null(debris_pool_path) as DebrisPool
 
 
 func _ready() -> void:
@@ -32,20 +38,29 @@ func _ready() -> void:
 
 
 func receive_damage(event: DamageEvent) -> bool:
-	if is_broken or event == null or event.amount <= 0.0:
+	if is_fully_destroyed or event == null or event.amount <= 0.0:
 		return false
 	if event.attack_id != 0 and _seen_attacks.has(event.attack_id):
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
 	current_health = maxf(current_health - event.amount, 0.0)
-	if current_health <= 0.0:
+	if current_health > 0.0:
+		return true
+	if is_broken:
+		_fully_destroy_prop(event)
+	else:
 		_break_prop(event)
 	return true
 
 
+func is_destroyed() -> bool:
+	return is_fully_destroyed
+
+
 func _break_prop(event: DamageEvent) -> void:
 	is_broken = true
+	current_health = maxf(wreck_health, 1.0)
 	visual.texture = destroyed_texture
 	_fit_visual(destroyed_display_size)
 	collision_layer = REMAINS_LAYER
@@ -57,7 +72,61 @@ func _break_prop(event: DamageEvent) -> void:
 	destroyed.emit(self, event)
 
 
+func _fully_destroy_prop(event: DamageEvent) -> void:
+	is_fully_destroyed = true
+	current_health = 0.0
+	_release_fragments(event)
+	visual.visible = false
+	collision_layer = 0
+	collision_mask = 0
+	collision_shape.set_deferred("disabled", true)
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	freeze = true
+	sleeping = true
+	fully_destroyed.emit(self, event)
+
+
+func _release_fragments(event: DamageEvent) -> void:
+	if _debris_pool == null or gameplay_chunk_count <= 0:
+		return
+	var count: int = mini(gameplay_chunk_count, _debris_pool.available_count())
+	if count <= 0:
+		return
+	var fragment_origin: Vector2 = visual.to_global(Vector2.ZERO)
+	var base_direction: Vector2 = event.direction
+	if base_direction.is_zero_approx():
+		base_direction = (fragment_origin - event.hit_position).normalized()
+	if base_direction.is_zero_approx():
+		base_direction = Vector2.UP
+	var impulse_per_mass: float = maxf(event.impulse_per_mass, 220.0)
+	for fragment_index: int in range(count):
+		var weight: float = (float(fragment_index) + 0.5) / float(count)
+		var angle: float = deg_to_rad(lerpf(-42.0, 42.0, weight))
+		var direction: Vector2 = base_direction.rotated(angle)
+		direction.y -= 0.45
+		direction = direction.normalized()
+		var body_mass: float = maxf(mass * lerpf(0.5, 0.9, weight) / float(count), 0.6)
+		var body_size: Vector2 = Vector2(
+			lerpf(14.0, minf(destroyed_display_size.x * 0.26, 52.0), weight),
+			lerpf(10.0, minf(destroyed_display_size.y * 0.34, 32.0), 1.0 - weight)
+		)
+		var debris: DebrisBody2D = _debris_pool.acquire(
+			Transform2D(0.0, fragment_origin + direction * (8.0 + fragment_index * 5.0)),
+			direction * impulse_per_mass * body_mass * lerpf(0.45, 0.75, weight),
+			lerpf(-3.5, 3.5, weight) * body_mass,
+			body_mass,
+			body_size,
+			&"steel",
+			Color("3f4a50"),
+			Color("82939b")
+		)
+		_debris_pool.arm_kinetic_debris(debris, event)
+
+
 func _apply_destroyed_collision() -> void:
+	if is_fully_destroyed:
+		return
 	var rectangle: RectangleShape2D = collision_shape.shape as RectangleShape2D
 	if rectangle != null:
 		rectangle.size = destroyed_collision_size

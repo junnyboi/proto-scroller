@@ -202,8 +202,7 @@ func _build_destructibles() -> void:
 		Vector2(185.0, 90.0),
 		Vector2(42.0, 220.0),
 		Vector2(170.0, 55.0),
-		38.0,
-		4.0
+		{"health": 160.0, "wreck_health": 95.0, "chunks": 3, "mass": 4.0}
 	)
 	streetlamp.destroyed.connect(_on_prop_destroyed.bind(150))
 	car = _create_prop(
@@ -215,8 +214,7 @@ func _build_destructibles() -> void:
 		Vector2(175.0, 76.0),
 		Vector2(150.0, 62.0),
 		Vector2(160.0, 58.0),
-		35.0,
-		12.0
+		{"health": 260.0, "wreck_health": 165.0, "chunks": 5, "mass": 12.0}
 	)
 	car.destroyed.connect(_on_prop_destroyed.bind(300))
 
@@ -249,15 +247,17 @@ func _create_prop(
 	broken_size: Vector2,
 	collision_size: Vector2,
 	broken_collision_size: Vector2,
-	health: float,
-	body_mass: float
+	settings: Dictionary
 ) -> DestructibleProp2D:
 	var prop: DestructibleProp2D = PROP_SCRIPT.new() as DestructibleProp2D
 	prop.name = prop_name
 	prop.position = position_value
 	prop.z_index = 25
-	prop.max_health = health
-	prop.mass = body_mass
+	prop.max_health = float(settings.health)
+	prop.wreck_health = float(settings.wreck_health)
+	prop.gameplay_chunk_count = int(settings.chunks)
+	prop.debris_pool_path = ^"../BuildingDebrisPool"
+	prop.mass = float(settings.mass)
 	prop.collision_layer = PROP_LAYER
 	prop.collision_mask = WORLD_LAYER | ROBOT_LAYER
 	prop.intact_texture = intact_texture
