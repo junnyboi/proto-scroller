@@ -1,10 +1,10 @@
 class_name RuntimeBudget
 extends RefCounted
 
-const SOLDIERS: int = 6
+const SOLDIERS: int = 12
 const TANKS: int = 2
 const HELICOPTERS: int = 1
-const PROCEDURAL_INFANTRY: int = 6
+const PROCEDURAL_INFANTRY: int = 12
 const PROCEDURAL_LIGHT: int = 3
 const PROCEDURAL_HEAVY: int = 4
 const PROCEDURAL_AIR: int = 4
@@ -32,7 +32,7 @@ const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
 const ACTIVE_CATALYSTS: int = 2
 const ACTOR_RESERVATIONS: int = 9
-const PENDING_BEAT_RECORDS: int = 12
+const PENDING_BEAT_RECORDS: int = 24
 const CATALYST_QUERY_RESULTS: int = 12
 const DIRECTIVE_SESSIONS: int = 1
 const DIRECTIVE_CARDS: int = 1
@@ -62,6 +62,7 @@ const PLAYER_STRIKE_FLASHES: int = 1
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_COOLDOWN_INDICATORS: int = 1
+const ELITE_SPAWN_EFFECT_SLOTS: int = 6
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -99,6 +100,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"dodge_cooldown_indicators": (
 			1 if city.gameplay_hud.dodge_cooldown_indicator != null else 0
 		),
+		"elite_spawn_effect_slots": city.encounter_runtime.elite_spawn_effect_pool.slot_count(),
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
@@ -189,6 +191,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		data,
 		"dodge_cooldown_indicators",
 		DODGE_COOLDOWN_INDICATORS
+	)
+	_check_equal(
+		errors,
+		data,
+		"elite_spawn_effect_slots",
+		ELITE_SPAWN_EFFECT_SLOTS
 	)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)

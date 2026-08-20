@@ -22,6 +22,9 @@ const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
 const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
 const PROCEDURAL_SCRIPT: Script = preload("res://scripts/actors/procedural_enemy.gd")
+const ELITE_SPAWN_EFFECT_SCRIPT: Script = preload(
+	"res://scripts/encounter/elite_spawn_effect_pool.gd"
+)
 const SOLDIER_TEXTURE: Texture2D = preload("res://art/city/enemies/soldier.png")
 const TANK_TEXTURE: Texture2D = preload("res://art/city/enemies/tank.png")
 const HELICOPTER_TEXTURE: Texture2D = preload("res://art/city/enemies/helicopter.png")
@@ -44,6 +47,7 @@ var structural_target: StructuralBuilding2D
 var role_profiles: Dictionary[StringName, EnemyRoleProfile] = {}
 var trait_profiles: Dictionary[StringName, EnemyTraitProfile] = {}
 var target_mark_remaining: float = 0.0
+var elite_spawn_effect_pool: EliteSpawnEffectPool
 
 
 func setup(
@@ -71,6 +75,9 @@ func configure_profiles(
 
 
 func _ready() -> void:
+	elite_spawn_effect_pool = ELITE_SPAWN_EFFECT_SCRIPT.new() as EliteSpawnEffectPool
+	elite_spawn_effect_pool.name = "EliteSpawnEffectPool"
+	add_child(elite_spawn_effect_pool)
 	for index: int in range(RuntimeBudget.SOLDIERS):
 		soldiers.append(_create_enemy(&"soldier", index) as SoldierEnemy)
 	for index: int in range(RuntimeBudget.TANKS):
@@ -128,6 +135,8 @@ func acquire(
 		)
 		enemy.structural_target = structural_target
 		enemy.set_attack_gate(attack_gate_enabled)
+		if accepted_trait in EnemyArchetypeCatalog.RANDOM_AFFIXES:
+			elite_spawn_effect_pool.play(enemy.global_position, accepted_trait)
 		enemy_acquired.emit(enemy)
 		return enemy
 	return null
@@ -319,6 +328,13 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	enemy.configure_archetype(kind, profile)
 	var texture: Texture2D = load(String(profile.texture)) as Texture2D
 	var display_size: Vector2 = profile.display as Vector2
+	if EnemyArchetypeCatalog.is_human_enemy(kind):
+		display_size = Vector2(
+			texture.get_size().x
+			* EnemyArchetypeCatalog.HUMAN_RENDER_HEIGHT_PIXELS
+			/ texture.get_size().y,
+			EnemyArchetypeCatalog.HUMAN_RENDER_HEIGHT_PIXELS
+		)
 	var collision_size: Vector2 = profile.collision as Vector2
 	var authored_y: float = float(profile.spawn_y)
 	var visual: Sprite2D = enemy.get_node(^"Visual") as Sprite2D

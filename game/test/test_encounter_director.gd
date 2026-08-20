@@ -9,10 +9,10 @@ const RETALIATION: EnemyWave = preload("res://resources/encounters/wave_04_retal
 
 func test_runtime_prewarms_exact_enemy_caps_without_post_warm_creation() -> void:
 	var city: CitySlice = await _spawn_city()
-	assert_eq(city.encounter_runtime.total_count(&"soldier"), 6)
+	assert_eq(city.encounter_runtime.total_count(&"soldier"), 12)
 	assert_eq(city.encounter_runtime.total_count(&"tank"), 2)
 	assert_eq(city.encounter_runtime.total_count(&"helicopter"), 1)
-	assert_eq(city.encounter_runtime.family_capacity(&"infantry"), 6)
+	assert_eq(city.encounter_runtime.family_capacity(&"infantry"), 12)
 	assert_eq(city.encounter_runtime.family_capacity(&"light"), 3)
 	assert_eq(city.encounter_runtime.family_capacity(&"heavy"), 4)
 	assert_eq(city.encounter_runtime.family_capacity(&"air"), 4)
@@ -96,10 +96,10 @@ func test_projectile_pool_is_partitioned_16_4_4_and_reservations_are_strict() ->
 
 
 func test_authored_waves_match_approved_compositions() -> void:
-	assert_eq(_counts(CONTACT), {"soldier": 2, "tank": 0, "helicopter": 0})
-	assert_eq(_counts(ARMOR), {"soldier": 3, "tank": 1, "helicopter": 0})
-	assert_eq(_counts(AIR), {"soldier": 4, "tank": 1, "helicopter": 1})
-	assert_eq(_counts(RETALIATION), {"soldier": 6, "tank": 2, "helicopter": 1})
+	assert_eq(_counts(CONTACT), {"soldier": 4, "tank": 0, "helicopter": 0})
+	assert_eq(_counts(ARMOR), {"soldier": 6, "tank": 1, "helicopter": 0})
+	assert_eq(_counts(AIR), {"soldier": 8, "tank": 1, "helicopter": 1})
+	assert_eq(_counts(RETALIATION), {"soldier": 12, "tank": 2, "helicopter": 1})
 
 
 func test_wave_progression_waits_for_active_enemies_then_advances() -> void:
@@ -110,7 +110,9 @@ func test_wave_progression_waits_for_active_enemies_then_advances() -> void:
 	director.start()
 	director._process(2.4)
 	assert_eq(director.phase_index, 0)
-	assert_eq(city.encounter_runtime.active_count(&"soldier"), 2)
+	assert_eq(city.encounter_runtime.active_count(&"soldier"), 3)
+	director._process(0.2)
+	assert_eq(city.encounter_runtime.active_count(&"soldier"), 4)
 	director._process(8.0)
 	assert_eq(director.phase_index, 0)
 	city.encounter_runtime.release_all()
@@ -191,5 +193,5 @@ func _acquire_test_projectile(
 func _counts(wave: EnemyWave) -> Dictionary:
 	var counts: Dictionary = {"soldier": 0, "tank": 0, "helicopter": 0}
 	for spawn: EnemySpawnEntry in wave.spawns:
-		counts[spawn.kind] += 1
+		counts[spawn.kind] += EnemyArchetypeCatalog.spawn_multiplier(spawn.kind)
 	return counts

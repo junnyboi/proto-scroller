@@ -20,7 +20,7 @@ func test_six_act_resource_matches_target_arc_and_duration() -> void:
 	for act: DistrictAct in DISTRICT.acts:
 		beat_counts.append(act.beats.size())
 		target_duration += act.target_duration
-	assert_eq(beat_counts, [4, 4, 5, 5, 5, 3])
+	assert_eq(beat_counts, [4, 4, 5, 5, 5, 5])
 	assert_between(target_duration, 360.0, 480.0)
 
 
@@ -81,7 +81,7 @@ func test_late_elite_affixes_are_seeded_replayable_and_never_mutate_authored_ent
 	var alternate_trace: Array[Dictionary] = _elite_trace(74)
 	assert_eq(first_trace, replay_trace)
 	assert_ne(first_trace, alternate_trace)
-	assert_eq(first_trace.size(), 14)
+	assert_eq(first_trace.size(), 20)
 	for assignment: Dictionary in first_trace:
 		assert_gte(int(assignment.act_index), 3)
 		assert_true(
@@ -95,6 +95,33 @@ func test_late_elite_affixes_are_seeded_replayable_and_never_mutate_authored_ent
 			for entry: EnemySpawnEntry in beat.spawns:
 				authored_elites += 1 if not entry.trait_id.is_empty() else 0
 	assert_eq(authored_elites, 3)
+	assert_true(DISTRICT.acts[3].chaos_enabled)
+	assert_gt(DISTRICT.acts[4].mirrored_flank_chance, DISTRICT.acts[3].mirrored_flank_chance)
+	assert_eq(DISTRICT.acts[5].elite_units_per_beat, 2)
+
+
+func test_final_chaos_gauntlet_doubles_humans_and_staggers_the_swarm() -> void:
+	var director: DistrictResponseDirector = city.urban_siege.director
+	director.stop()
+	director.configure_elite_affixes(913, 1)
+	director.running = true
+	director.completed = false
+	director.phase_index = 5
+	director.beat_index = 2
+	director.state = DistrictResponseDirector.STATE_WAITING
+	director.act_elapsed = 0.0
+	director._try_start_next_beat()
+	assert_eq(director.current_beat_id(), &"COMMAND_GAUNTLET")
+	assert_eq(director.pending_count(), 6)
+	assert_eq(director.ledger.pending_count(&"lobber"), 4)
+	var delays: Dictionary[float, bool] = {}
+	var infantry_offsets: int = 0
+	for record: Dictionary in director._beat_pending:
+		delays[float(record.remaining)] = true
+		if EnemyArchetypeCatalog.is_human_enemy(StringName(record.entry.kind)):
+			infantry_offsets += 1 if (record.offset as Vector2).x != 0.0 else 0
+	assert_gt(delays.size(), 1)
+	assert_eq(infantry_offsets, 2)
 
 
 func _elite_trace(p_seed: int) -> Array[Dictionary]:

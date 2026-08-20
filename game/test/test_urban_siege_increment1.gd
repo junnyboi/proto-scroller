@@ -19,7 +19,7 @@ func test_contact_resource_has_bounded_pressure_and_recovery() -> void:
 	for act: DistrictAct in DISTRICT.acts:
 		for beat: DistrictBeat in act.beats:
 			assert_between(beat.pressure_seconds, 8.0, 15.0)
-			assert_between(beat.recovery_seconds, 2.0, 4.0)
+			assert_between(beat.recovery_seconds, 1.0, 4.0)
 
 
 func test_reservation_is_atomic_and_cancels_without_growth() -> void:

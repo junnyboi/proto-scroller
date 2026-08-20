@@ -8,11 +8,14 @@ signal milestone_reached(milestone: StringName)
 const STATE_WAITING: int = 0
 const STATE_PRESSURE: int = 1
 const STATE_RECOVERY: int = 2
-const MAX_PENDING_RECORDS: int = 12
+const MAX_PENDING_RECORDS: int = RuntimeBudget.PENDING_BEAT_RECORDS
 const MAXIMUM_ACT_OVERRUN: float = 20.0
 const LOW_THREAT_WEIGHT: int = 2
 const ELITE_SYSTEM_SALT: int = 0x0E11E77
-const ELITE_AFFIXES: Array[StringName] = [&"BLITZ", &"BRUTAL", &"PHASED"]
+const CHAOS_SYSTEM_SALT: int = 0x0C4A05
+const ELITE_AFFIXES: Array[StringName] = EnemyArchetypeCatalog.RANDOM_AFFIXES
+const HUMAN_COPY_STAGGER: float = 0.14
+const HUMAN_COPY_SPACING: float = 64.0
 
 var district: DistrictDefinition
 var ledger: CapacityReservationLedger = CapacityReservationLedger.new()
@@ -27,6 +30,8 @@ var elite_assignments: Array[Dictionary] = []
 var elite_roll_count: int = 0
 var _elite_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _elite_seed: int = ELITE_SYSTEM_SALT
+var _chaos_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _chaos_seed: int = CHAOS_SYSTEM_SALT
 var _beat_reservation_id: int = 0
 var _beat_pending: Array[Dictionary] = []
 
@@ -44,7 +49,9 @@ func setup_district(p_runtime: EncounterRuntime, p_district: DistrictDefinition)
 
 func configure_elite_affixes(run_seed: int, cycle: int) -> void:
 	_elite_seed = run_seed ^ ELITE_SYSTEM_SALT ^ maxi(cycle, 1) * 7919
+	_chaos_seed = run_seed ^ CHAOS_SYSTEM_SALT ^ maxi(cycle, 1) * 3571
 	_elite_rng.seed = _elite_seed
+	_chaos_rng.seed = _chaos_seed
 	elite_assignments.clear()
 	elite_roll_count = 0
 
@@ -61,6 +68,7 @@ func start() -> void:
 	elapsed = 0.0
 	act_elapsed = 0.0
 	_elite_rng.seed = _elite_seed
+	_chaos_rng.seed = _chaos_seed
 	elite_assignments.clear()
 	elite_roll_count = 0
 	_advance_act()
@@ -188,15 +196,29 @@ func _try_start_next_beat() -> void:
 	_beat_reservation_id = reservation_id
 	_beat_pending.clear()
 	var elite_plan: Dictionary[int, StringName] = _roll_elite_plan(act, next_beat)
+	var pending_index: int = 0
 	for entry_index: int in range(next_beat.spawns.size()):
-		if _beat_pending.size() >= MAX_PENDING_RECORDS:
-			break
 		var entry: EnemySpawnEntry = next_beat.spawns[entry_index]
-		_beat_pending.append({
-			"entry": entry,
-			"remaining": maxf(entry.delay, 0.0),
-			"trait_id": elite_plan.get(entry_index, entry.trait_id),
-		})
+		var kind: StringName = StringName(entry.kind)
+		for copy_index: int in range(EnemyArchetypeCatalog.spawn_multiplier(kind)):
+			if _beat_pending.size() >= MAX_PENDING_RECORDS:
+				break
+			var stagger: float = float(copy_index) * HUMAN_COPY_STAGGER
+			if act.chaos_enabled:
+				stagger += float(pending_index) * act.spawn_stagger_seconds
+				stagger += _chaos_rng.randf_range(0.0, act.spawn_jitter_seconds)
+			var spawn_anchor: String = entry.spawn_anchor
+			if act.chaos_enabled and _chaos_rng.randf() < act.mirrored_flank_chance:
+				spawn_anchor = _mirrored_anchor(spawn_anchor)
+			var copy_direction: float = -1.0 if spawn_anchor in ["BEHIND", "CAMERA_LEFT"] else 1.0
+			_beat_pending.append({
+				"entry": entry,
+				"remaining": maxf(entry.delay + stagger, 0.0),
+				"trait_id": elite_plan.get(entry_index, entry.trait_id),
+				"spawn_anchor": spawn_anchor,
+				"offset": Vector2(copy_direction * float(copy_index) * HUMAN_COPY_SPACING, 0.0),
+			})
+			pending_index += 1
 	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
 	pressure_remaining = next_beat.pressure_seconds
 	recovery_remaining = next_beat.recovery_seconds
@@ -224,7 +246,11 @@ func _process_pending(delta: float) -> void:
 		var kind: StringName = StringName(entry.kind)
 		if runtime.acquire(
 			kind,
-			_resolve_position(entry),
+			_resolve_position(
+				entry,
+				String(record.spawn_anchor),
+				record.offset as Vector2
+			),
 			entry.role_id,
 			StringName(record.trait_id)
 		) == null:
@@ -263,12 +289,17 @@ func _process_legacy_pending(delta: float) -> void:
 			_pending.remove_at(index)
 
 
-func _resolve_position(entry: EnemySpawnEntry) -> Vector2:
-	if entry.spawn_anchor == "WORLD":
-		return entry.position + entry.offset
+func _resolve_position(
+	entry: EnemySpawnEntry,
+	spawn_anchor: String = "",
+	extra_offset: Vector2 = Vector2.ZERO
+) -> Vector2:
+	var resolved_anchor: String = entry.spawn_anchor if spawn_anchor.is_empty() else spawn_anchor
+	if resolved_anchor == "WORLD":
+		return entry.position + entry.offset + extra_offset
 	var robot_x: float = runtime.robot.global_position.x if runtime.robot != null else 760.0
 	var position_value: Vector2 = entry.position
-	match entry.spawn_anchor:
+	match resolved_anchor:
 		"AHEAD":
 			position_value.x = robot_x + 620.0
 		"BEHIND":
@@ -277,7 +308,7 @@ func _resolve_position(entry: EnemySpawnEntry) -> Vector2:
 			position_value.x = robot_x - 720.0
 		"CAMERA_RIGHT":
 			position_value.x = robot_x + 720.0
-	position_value += entry.offset
+	position_value += entry.offset + extra_offset
 	position_value.x = clampf(position_value.x, 80.0, 2480.0)
 	return position_value
 
@@ -292,7 +323,7 @@ func _roll_elite_plan(act: DistrictAct, beat: DistrictBeat) -> Dictionary[int, S
 			eligible.append(entry_index)
 	if eligible.is_empty():
 		return plan
-	var elite_count: int = 2 if phase_index >= 5 and eligible.size() >= 4 else 1
+	var elite_count: int = mini(act.elite_units_per_beat, eligible.size())
 	for elite_index: int in range(elite_count):
 		var eligible_draw: int = _elite_rng.randi_range(0, eligible.size() - 1)
 		var entry_index: int = eligible.pop_at(eligible_draw)
@@ -309,6 +340,20 @@ func _roll_elite_plan(act: DistrictAct, beat: DistrictBeat) -> Dictionary[int, S
 			"trait_id": trait_id,
 		})
 	return plan
+
+
+func _mirrored_anchor(spawn_anchor: String) -> String:
+	match spawn_anchor:
+		"AHEAD":
+			return "BEHIND"
+		"BEHIND":
+			return "AHEAD"
+		"CAMERA_LEFT":
+			return "CAMERA_RIGHT"
+		"CAMERA_RIGHT":
+			return "CAMERA_LEFT"
+		_:
+			return spawn_anchor
 
 
 func _threat_weight() -> int:
