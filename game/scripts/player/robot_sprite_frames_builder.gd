@@ -1,7 +1,7 @@
 class_name RobotSpriteFramesBuilder
 extends RefCounted
 
-const ATLAS_SIZE: Vector2i = Vector2i(6400, 2048)
+const ATLAS_SIZE: Vector2i = Vector2i(6400, 1792)
 const CELL_SIZE: Vector2i = Vector2i(256, 256)
 const FRAME_COUNT: int = 25
 const DEFAULT_FPS: float = 12.0
@@ -13,7 +13,6 @@ const DEFINITIONS: Array[Dictionary] = [
 	{"name": &"attack_se", "row": 4, "frames": FRAME_COUNT, "loop": false},
 	{"name": &"attack_sw", "row": 5, "frames": FRAME_COUNT, "loop": false},
 	{"name": &"idle_s", "row": 6, "frames": 1, "loop": false},
-	{"name": &"idle_n", "row": 7, "frames": 1, "loop": false},
 ]
 
 

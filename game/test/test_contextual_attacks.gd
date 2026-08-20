@@ -201,9 +201,23 @@ func test_enemy_projectiles_damage_intact_building_cells() -> void:
 	_record_test_execution()
 
 
-func test_recovery_space_buffers_facing_dodge_with_240ms_invulnerability() -> void:
+func test_space_during_recovery_remains_attack_only() -> void:
 	var city: CitySlice = await _city()
-	city.robot.global_position = Vector2(80.0, 460.0)
+	_tune_short_attack(city.contextual_attacks.resolver)
+	assert_gt(city.robot.request_attack(), 0)
+	await _wait_for_phase(city.contextual_attacks, ContextualAttackController.Phase.RECOVERY)
+	assert_eq(city.robot.request_attack(), 0)
+	assert_eq(city.contextual_attacks.buffered_dodge_count, 0)
+	await get_tree().create_timer(0.08).timeout
+	assert_eq(city.robot.dodge_count, 0)
+	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.IDLE)
+
+
+func test_recovery_double_tap_buffers_directional_dodge_with_300ms_invulnerability() -> void:
+	var city: CitySlice = await _city()
+	city.robot.global_position = Vector2(400.0, 460.0)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
 	city.robot.facing = -1
 	_tune_short_attack(city.contextual_attacks.resolver)
 	assert_gt(city.robot.request_attack(), 0)
@@ -212,7 +226,8 @@ func test_recovery_space_buffers_facing_dodge_with_240ms_invulnerability() -> vo
 		GiantRobotController.LocomotionState.ATTACK_LOCKED
 	)
 	await _wait_for_phase(city.contextual_attacks, ContextualAttackController.Phase.RECOVERY)
-	assert_eq(city.robot.request_attack(), 0)
+	assert_false(city.robot._register_move_tap(-1))
+	assert_true(city.robot._register_move_tap(-1))
 	assert_eq(city.contextual_attacks.buffered_dodge_count, 1)
 	await get_tree().create_timer(0.08).timeout
 	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
@@ -220,7 +235,7 @@ func test_recovery_space_buffers_facing_dodge_with_240ms_invulnerability() -> vo
 	assert_true(city.robot.dodge_invulnerable)
 	assert_false(city.robot.dodge_ready)
 	assert_almost_eq(city.robot.dodge_cooldown_remaining, 1.20, 0.025)
-	assert_almost_eq(city.robot.dodge_invulnerability_remaining, 0.24, 0.025)
+	assert_almost_eq(city.robot.dodge_invulnerability_remaining, 0.30, 0.025)
 	var start_x: float = city.robot.global_position.x
 	city.robot.physics_step(0.0, 0.05)
 	assert_lt(city.robot.global_position.x, start_x)
@@ -228,7 +243,9 @@ func test_recovery_space_buffers_facing_dodge_with_240ms_invulnerability() -> vo
 	assert_false(city.robot.receive_damage(DamageEvent.new(8801, null, 40.0)))
 	assert_eq(city.robot.current_health, health_before)
 	assert_eq(city.robot.invulnerable_rejection_count, 1)
-	city.robot.physics_step(0.0, 0.26)
+	city.robot.physics_step(0.0, 0.20)
+	assert_true(city.robot.dodge_invulnerable)
+	city.robot.physics_step(0.0, 0.06)
 	assert_false(city.robot.dodge_invulnerable)
 	assert_false(city.robot._start_dodge())
 	assert_true(city.robot.receive_damage(DamageEvent.new(8802, null, 40.0)))
@@ -236,6 +253,24 @@ func test_recovery_space_buffers_facing_dodge_with_240ms_invulnerability() -> vo
 	city.robot.physics_step(0.0, 0.90)
 	assert_true(city.robot.dodge_ready)
 	assert_eq(city.robot.dodge_cooldown_remaining, 0.0)
+
+
+func test_same_direction_double_tap_dodges_left_and_right() -> void:
+	var city: CitySlice = await _city()
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	assert_false(city.robot._register_move_tap(1))
+	assert_true(city.robot._register_move_tap(1))
+	assert_eq(city.robot.facing, 1)
+	assert_eq(city.robot.dodge_count, 1)
+	city.robot.physics_step(0.0, city.robot.dodge_duration + 0.01)
+	city.robot.physics_step(0.0, city.robot.dodge_cooldown_seconds)
+	assert_false(city.robot._register_move_tap(1))
+	assert_false(city.robot._register_move_tap(-1))
+	assert_eq(city.robot.dodge_count, 1)
+	assert_true(city.robot._register_move_tap(-1))
+	assert_eq(city.robot.facing, -1)
+	assert_eq(city.robot.dodge_count, 2)
 
 
 func test_movement_releases_on_first_step_after_attack_recovery() -> void:

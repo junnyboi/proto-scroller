@@ -7,7 +7,6 @@ const VALID_POSES: Array[StringName] = [
 	&"attack_se",
 	&"attack_sw",
 	&"idle_s",
-	&"idle_n",
 	&"walk_e",
 	&"walk_w",
 ]
@@ -33,7 +32,7 @@ func _run() -> void:
 	var sprite: AnimatedSprite2D = (
 		city.robot.get_node(^"VisualRoot/RobotAnimatedSprite") as AnimatedSprite2D
 	)
-	city.robot.facing = -1 if pose.ends_with("w") or pose.ends_with("n") else 1
+	city.robot.facing = -1 if pose.ends_with("w") else 1
 	city.robot.facing_changed.emit(city.robot.facing)
 	sprite.play(pose)
 	sprite.pause()

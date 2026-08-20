@@ -92,8 +92,8 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 	assert_eq(hook, L10n.t("title.command_hook"))
 	for required_control: String in ["A / D", "Mobile joystick", "SPACE", "SMASH"]:
 		assert_true(controls.contains(required_control), required_control)
-	assert_true(field_note.contains("recovery"))
-	assert_true(field_note.contains("dash dodge"))
+	assert_true(field_note.contains("Double-tap A / D"))
+	assert_true(field_note.contains("joystick twice"))
 	assert_eq(
 		(screen.get_node("SemanticContract/PrimaryObjective") as Label).text,
 		"PRIMARY  Survive the city response."
