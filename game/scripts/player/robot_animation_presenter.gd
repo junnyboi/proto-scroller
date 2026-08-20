@@ -201,9 +201,8 @@ func _play_walk() -> void:
 func _show_idle() -> void:
 	if sprite == null or robot == null:
 		return
-	var animation: StringName = &"idle_s" if robot.facing >= 0 else &"idle_n"
 	sprite.speed_scale = 1.0
-	sprite.play(animation)
+	sprite.play(&"idle_s")
 	sprite.pause()
 	sprite.set_frame_and_progress(0, 0.0)
 

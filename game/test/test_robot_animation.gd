@@ -6,7 +6,6 @@ const EXPECTED_ANIMATIONS: Array[StringName] = [
 	&"attack_se",
 	&"attack_sw",
 	&"attack_w",
-	&"idle_n",
 	&"idle_s",
 	&"walk_e",
 	&"walk_w",
@@ -18,6 +17,7 @@ const FORBIDDEN_SCROLLER_ANIMATIONS: Array[StringName] = [
 	&"attack_n",
 	&"attack_ne",
 	&"attack_nw",
+	&"idle_n",
 ]
 
 
@@ -28,7 +28,7 @@ func test_library_excludes_all_northward_walk_and_attack_directions() -> void:
 	names.sort()
 	assert_eq(names, PackedStringArray(EXPECTED_ANIMATIONS))
 	for animation: StringName in EXPECTED_ANIMATIONS:
-		var expected_frames: int = 1 if animation == &"idle_n" or animation == &"idle_s" else 25
+		var expected_frames: int = 1 if animation == &"idle_s" else 25
 		assert_eq(sprite.sprite_frames.get_frame_count(animation), expected_frames)
 	for forbidden_animation: StringName in FORBIDDEN_SCROLLER_ANIMATIONS:
 		assert_false(sprite.sprite_frames.has_animation(forbidden_animation))
@@ -37,7 +37,7 @@ func test_library_excludes_all_northward_walk_and_attack_directions() -> void:
 	assert_almost_eq(sprite.position.y, 72.0, 0.001)
 
 
-func test_idle_and_walk_use_front_back_and_east_west_without_root_mirroring() -> void:
+func test_idle_always_faces_south_while_walk_uses_east_and_west() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var sprite: AnimatedSprite2D = _sprite(city)
@@ -57,7 +57,7 @@ func test_idle_and_walk_use_front_back_and_east_west_without_root_mirroring() ->
 	assert_lt(emitter.position.x, 0.0)
 	robot.locomotion_state = GiantRobotController.LocomotionState.IDLE
 	robot.locomotion_changed.emit(robot.locomotion_state)
-	assert_eq(sprite.animation, &"idle_n")
+	assert_eq(sprite.animation, &"idle_s")
 	assert_eq(sprite.frame, 0)
 	assert_false(sprite.is_playing())
 
@@ -244,7 +244,7 @@ func _assert_attack(
 	)
 	presenter._on_attack_finished(spec)
 	assert_eq(presenter.last_completed_attack_frame, 24)
-	assert_eq(sprite.animation, &"idle_s" if facing > 0 else &"idle_n")
+	assert_eq(sprite.animation, &"idle_s")
 
 
 func _spawn_city() -> CitySlice:

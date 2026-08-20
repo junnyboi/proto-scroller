@@ -2,6 +2,7 @@ class_name MobileControls
 extends Control
 
 signal move_axis_changed(axis: float)
+signal move_direction_tapped(direction: int)
 signal smash_pressed
 
 const JOYSTICK_RADIUS: float = 78.0
@@ -39,6 +40,7 @@ func _ready() -> void:
 	mobile_device_detected = _detect_mobile_device()
 	if robot != null:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
+		move_direction_tapped.connect(robot._register_move_tap)
 		smash_pressed.connect(robot.request_attack)
 	_build_smash_button()
 	L10n.apply_locale_font(self)
@@ -268,10 +270,15 @@ func _press_joystick(touch_index: int, touch_position: Vector2) -> void:
 
 func _release_joystick() -> void:
 	var visual_was_active: bool = joystick_active
+	var released_direction: int = 0
+	if absf(_target_axis) >= 0.50:
+		released_direction = 1 if _target_axis > 0.0 else -1
 	_joystick_touch_index = -1
 	_target_axis = 0.0
 	_knob_offset = Vector2.ZERO
 	joystick_active = false
+	if released_direction != 0 and _controls_enabled:
+		move_direction_tapped.emit(released_direction)
 	if visual_was_active:
 		queue_redraw()
 

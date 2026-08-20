@@ -40,9 +40,10 @@ enum LocomotionState {
 @export_group("Dodge")
 @export var dodge_speed: float = 520.0
 @export var dodge_duration: float = 0.18
-@export var dodge_invulnerability_seconds: float = 0.24
+@export var dodge_invulnerability_seconds: float = 0.30
 @export var dodge_recovery_seconds: float = 0.12
 @export var dodge_cooldown_seconds: float = 1.20
+@export_range(0.15, 0.45, 0.01) var dodge_double_tap_window: float = 0.28
 
 @export_group("Impact")
 @export var stomp_radius: float = 96.0
@@ -100,6 +101,8 @@ var _attack_locked: bool = false
 var _dodge_remaining: float = 0.0
 var _invulnerable_remaining: float = 0.0
 var _dodge_recovery_remaining: float = 0.0
+var _tap_window_remaining: float = 0.0
+var _last_tap_direction: int = 0
 var _seen_attacks: Dictionary[int, bool] = {}
 
 @onready var _visual_root: Node2D = get_node_or_null(visual_root_path) as Node2D
@@ -128,6 +131,10 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _control_enabled and Input.is_action_just_pressed(&"stomp"):
 		request_attack()
+	if _control_enabled and Input.is_action_just_pressed(&"move_left"):
+		_register_move_tap(-1)
+	elif _control_enabled and Input.is_action_just_pressed(&"move_right"):
+		_register_move_tap(1)
 	var input_axis: float = Input.get_axis(&"move_left", &"move_right")
 	if absf(virtual_move_axis) > absf(input_axis):
 		input_axis = virtual_move_axis
@@ -167,6 +174,9 @@ func _is_friendly_damage(event: DamageEvent) -> bool:
 func physics_step(input_axis: float, delta: float) -> void:
 	_invulnerable_remaining = maxf(_invulnerable_remaining - delta, 0.0)
 	dodge_cooldown_remaining = maxf(dodge_cooldown_remaining - delta, 0.0)
+	_tap_window_remaining = maxf(_tap_window_remaining - delta, 0.0)
+	if is_zero_approx(_tap_window_remaining):
+		_last_tap_direction = 0
 	if locomotion_state == LocomotionState.DISABLED:
 		_apply_gravity(delta)
 		move_and_slide()
@@ -203,6 +213,7 @@ func set_control_enabled(enabled: bool) -> void:
 	_control_enabled = enabled
 	if not enabled:
 		virtual_move_axis = 0.0
+		_clear_move_tap()
 	if not enabled and locomotion_state != LocomotionState.DISABLED:
 		_set_locomotion_state(LocomotionState.ATTACK_LOCKED)
 	elif enabled and locomotion_state == LocomotionState.ATTACK_LOCKED and not _attack_locked:
@@ -290,7 +301,30 @@ func _set_attack_locked(locked: bool) -> void:
 	)
 
 
-func _start_dodge() -> bool:
+func _register_move_tap(direction: int) -> bool:
+	var normalized_direction: int = clampi(direction, -1, 1)
+	if normalized_direction == 0 or not _control_enabled:
+		return false
+	var is_double_tap: bool = (
+		normalized_direction == _last_tap_direction
+		and _tap_window_remaining > 0.0
+	)
+	_last_tap_direction = normalized_direction
+	_tap_window_remaining = dodge_double_tap_window
+	if not is_double_tap:
+		return false
+	_clear_move_tap()
+	if attack_controller != null:
+		return attack_controller.request_dodge(normalized_direction)
+	return _start_dodge(normalized_direction)
+
+
+func _clear_move_tap() -> void:
+	_last_tap_direction = 0
+	_tap_window_remaining = 0.0
+
+
+func _start_dodge(direction: int = 0) -> bool:
 	if (
 		not _control_enabled
 		or locomotion_state == LocomotionState.DISABLED
@@ -299,6 +333,14 @@ func _start_dodge() -> bool:
 		or not dodge_ready
 	):
 		return false
+	var dodge_direction: int = clampi(direction, -1, 1)
+	if dodge_direction == 0:
+		dodge_direction = facing
+	if facing != dodge_direction:
+		facing = dodge_direction
+		_pending_facing = facing
+		_apply_visual_facing()
+		facing_changed.emit(facing)
 	_dodge_remaining = dodge_duration
 	_invulnerable_remaining = dodge_invulnerability_seconds
 	dodge_cooldown_remaining = dodge_cooldown_seconds
@@ -311,6 +353,8 @@ func _start_dodge() -> bool:
 
 func set_disabled(disabled: bool) -> void:
 	_control_enabled = not disabled
+	if disabled:
+		_clear_move_tap()
 	_set_locomotion_state(
 		LocomotionState.DISABLED
 		if disabled
