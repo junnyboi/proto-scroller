@@ -132,7 +132,7 @@
   "upgrade.select": "SELECT RUN UPGRADE",
   "upgrade.level": "LEVEL {level} UPGRADE",
   "upgrade.choice": "CHOICE {current} OF {total}",
-  "upgrade.rank": "RANK {current}  →  {next} / {maximum}",
+  "upgrade.rank": "RANK {current}  >  {next} / {maximum}",
   "upgrade.shockwave.name": "SHOCKWAVE +1",
   "upgrade.shockwave.description": "Ground Smash emits a longer-lived expanding shockwave ring.",
   "upgrade.missile.name": "MISSILE +1",
