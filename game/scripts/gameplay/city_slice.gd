@@ -72,6 +72,7 @@ var run_lifecycle: CityRunLifecycle
 var upgrade_assembler: PlayerUpgradeAssembler
 var music_duck_controller: MusicDuckController
 var contextual_attacks: ContextualAttackController
+var air_target_lock_runtime: AirTargetLockRuntime
 var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
 var encounter_director: EncounterDirector
@@ -119,6 +120,10 @@ func _ready() -> void:
 	contextual_attacks.name = "ContextualAttackController"
 	contextual_attacks.setup(robot)
 	add_child(contextual_attacks)
+	air_target_lock_runtime = AirTargetLockRuntime.new()
+	air_target_lock_runtime.name = "AirTargetLockRuntime"
+	air_target_lock_runtime.setup(robot, contextual_attacks)
+	add_child(air_target_lock_runtime)
 	overdrive_session = OVERDRIVE_SCRIPT.new() as OverdriveSession
 	overdrive_session.name = "OverdriveSession"
 	overdrive_session.setup(rampage_session.momentum_meter, robot)
@@ -366,7 +371,8 @@ func _on_robot_heavy_impact(
 		origin,
 		impulse_per_mass,
 		attack_id,
-		options
+		options,
+		air_target_lock_runtime.consume_volley_target(attack_id)
 	)
 	gameplay_hud.set_objective("objective.impact_registered")
 

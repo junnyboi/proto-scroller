@@ -125,6 +125,14 @@ func material_id() -> StringName:
 	return _material_id
 
 
+func is_aerial_shrapnel_for_attack(root_attack_id: int) -> bool:
+	return (
+		aerial_impact_armed
+		and root_attack_id > 0
+		and _aerial_root_attack_id == root_attack_id
+	)
+
+
 func deactivate() -> void:
 	_set_collision_participation(false)
 	aerial_impact_armed = false

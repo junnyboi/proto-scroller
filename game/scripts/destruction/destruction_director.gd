@@ -91,6 +91,12 @@ func _resolve_explosion(data: Dictionary) -> void:
 		if target_node == null:
 			continue
 		var receiver: Node = _damage_receiver(target_node)
+		var debris: DebrisBody2D = target_node as DebrisBody2D
+		if (
+			debris != null
+			and debris.is_aerial_shrapnel_for_attack(int(data.attack_id))
+		):
+			continue
 		if receiver is Destructible2D and int(data.structural_limit) > 0:
 			if structural_targets >= int(data.structural_limit):
 				continue
