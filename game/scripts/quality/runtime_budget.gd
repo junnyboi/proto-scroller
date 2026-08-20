@@ -27,7 +27,7 @@ const SOLDIER_DEFEATS: int = 8
 const WRECKS: int = 4
 const PARTICLE_SLOTS: int = 8
 const AUDIO_VOICES: int = 8
-const ROBOT_AUDIO_VOICES: int = 4
+const ROBOT_AUDIO_VOICES: int = 5
 const AIR_TARGET_VOICES: int = 1
 const AIR_TARGET_RETICLES: int = 1
 const RARE_TAG_ROWS: int = 3
@@ -65,7 +65,6 @@ const PLAYER_STRIKE_FLASHES: int = 1
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_DUST_SLOTS: int = DodgeDustPool2D.CAPACITY
-const DODGE_COOLDOWN_INDICATORS: int = 1
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
 const HAZARD_ACTORS: int = 12
 const HAZARD_VFX_SLOTS: int = 16
@@ -111,9 +110,6 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"air_target_reticles": city.air_target_lock_runtime.reticle_count(),
 		"dodge_afterimage_slots": _robot_afterimage_slot_count(city),
 		"dodge_dust_slots": _robot_dust_slot_count(city),
-		"dodge_cooldown_indicators": (
-			1 if city.gameplay_hud.dodge_cooldown_indicator != null else 0
-		),
 		"elite_spawn_effect_slots": city.encounter_runtime.elite_spawn_effect_pool.slot_count(),
 		"hazard_total": city.urban_siege.hazards.total_count(),
 		"hazard_active": city.urban_siege.hazards.active_count(),
@@ -211,12 +207,6 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "air_target_reticles", AIR_TARGET_RETICLES)
 	_check_equal(errors, data, "dodge_afterimage_slots", DODGE_AFTERIMAGE_SLOTS)
 	_check_equal(errors, data, "dodge_dust_slots", DODGE_DUST_SLOTS)
-	_check_equal(
-		errors,
-		data,
-		"dodge_cooldown_indicators",
-		DODGE_COOLDOWN_INDICATORS
-	)
 	_check_equal(
 		errors,
 		data,

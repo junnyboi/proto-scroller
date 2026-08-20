@@ -20,6 +20,9 @@ const SERVO_SFX: AudioStream = preload(
 const DODGE_SERVO_SFX: AudioStream = preload(
 	"res://audio/sfx/robot/robot_dodge_servo.wav"
 )
+const DODGE_READY_VOICE: AudioStream = preload(
+	"res://audio/voice/dodge_ready.wav"
+)
 
 var robot: GiantRobotController
 var sprite: AnimatedSprite2D
@@ -30,6 +33,7 @@ var audio_play_count: int = 0
 var footstep_play_count: int = 0
 var servo_play_count: int = 0
 var dodge_servo_play_count: int = 0
+var dodge_ready_voice_play_count: int = 0
 var attack_impact_play_count: int = 0
 var audio_recycle_count: int = 0
 var last_audio_cue: StringName = &""
@@ -37,6 +41,7 @@ var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
 var dust_intensity_scale: float = 1.0
 var _audio_players: Array[AudioStreamPlayer2D] = []
+var _status_voice_player: AudioStreamPlayer
 var _audio_cursor: int = 0
 var _afterimage_root: Node2D
 var _afterimages: Array[Sprite2D] = []
@@ -57,6 +62,7 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	robot.attack_committed.connect(_on_attack_committed)
 	robot.dodge_started.connect(_on_dodge_started)
 	robot.dodge_finished.connect(_on_dodge_finished)
+	robot.dodge_cooldown_ready.connect(_on_dodge_cooldown_ready)
 	sprite.frame_changed.connect(_on_sprite_frame_changed)
 	_prewarm_audio()
 	_prewarm_afterimages()
@@ -69,7 +75,7 @@ func bind_attacks(controller: ContextualAttackController) -> void:
 
 
 func audio_voice_count() -> int:
-	return _audio_players.size()
+	return _audio_players.size() + (1 if _status_voice_player != null else 0)
 
 
 func afterimage_slot_count() -> int:
@@ -188,6 +194,18 @@ func _on_dodge_finished() -> void:
 		_show_idle()
 
 
+func _on_dodge_cooldown_ready() -> void:
+	if _status_voice_player == null or DODGE_READY_VOICE == null:
+		return
+	_status_voice_player.stop()
+	_status_voice_player.stream = DODGE_READY_VOICE
+	_status_voice_player.volume_db = -3.0
+	_status_voice_player.play()
+	dodge_ready_voice_play_count += 1
+	audio_play_count += 1
+	last_audio_cue = &"dodge_ready"
+
+
 func _on_sprite_frame_changed() -> void:
 	if attacking or robot.locomotion_state != GiantRobotController.LocomotionState.WALK:
 		return
@@ -249,6 +267,9 @@ func _prewarm_audio() -> void:
 		player.attenuation = 0.45
 		add_child(player)
 		_audio_players.append(player)
+	_status_voice_player = AudioStreamPlayer.new()
+	_status_voice_player.name = "RobotStatusVoice"
+	add_child(_status_voice_player)
 
 
 func _prewarm_afterimages() -> void:

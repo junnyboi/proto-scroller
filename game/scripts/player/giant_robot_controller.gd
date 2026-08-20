@@ -11,6 +11,7 @@ signal attack_mode_selected(mode: int, attack_id: int)
 signal attack_committed(mode: int, attack_id: int)
 signal dodge_started(facing: int, duration: float)
 signal dodge_finished
+signal dodge_cooldown_ready
 signal heavy_impact_requested(
 	origin: Vector2,
 	radius: float,
@@ -173,7 +174,14 @@ func _is_friendly_damage(event: DamageEvent) -> bool:
 
 func physics_step(input_axis: float, delta: float) -> void:
 	_invulnerable_remaining = maxf(_invulnerable_remaining - delta, 0.0)
+	var previous_dodge_cooldown: float = dodge_cooldown_remaining
 	dodge_cooldown_remaining = maxf(dodge_cooldown_remaining - delta, 0.0)
+	if (
+		previous_dodge_cooldown > 0.0
+		and is_zero_approx(dodge_cooldown_remaining)
+		and locomotion_state != LocomotionState.DISABLED
+	):
+		dodge_cooldown_ready.emit()
 	_tap_window_remaining = maxf(_tap_window_remaining - delta, 0.0)
 	if is_zero_approx(_tap_window_remaining):
 		_last_tap_direction = 0

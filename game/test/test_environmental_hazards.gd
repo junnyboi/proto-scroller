@@ -58,7 +58,8 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 			profile.shake_pulses,
 		]
 		effect_signatures[signature] = true
-		audio_streams[String(audio.stream)] = true
+		var stream_path: String = String(audio.stream)
+		audio_streams[stream_path] = true
 		audio_signatures["%.1f/%.2f/%.1f/%.2f/%d/%d" % [
 			audio.warning_gain_db,
 			audio.warning_pitch,
@@ -67,13 +68,16 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 			audio.priority,
 			audio.retrigger_ms,
 		]] = true
-		_assert_hazard_wav(load(String(audio.stream)) as AudioStreamWAV)
+		_assert_hazard_runtime_stream(load(stream_path) as AudioStreamWAV)
+		_assert_hazard_source_master(stream_path)
 	assert_eq(display_names.size(), 12)
 	assert_eq(effect_signatures.size(), 12)
 	assert_eq(audio_streams.size(), 12)
 	assert_eq(audio_signatures.size(), 12)
-	_assert_hazard_wav(HazardAudioPool.WARNING_SFX as AudioStreamWAV)
-	_assert_hazard_wav(HazardAudioPool.CHAIN_SFX as AudioStreamWAV)
+	_assert_hazard_runtime_stream(HazardAudioPool.WARNING_SFX as AudioStreamWAV)
+	_assert_hazard_runtime_stream(HazardAudioPool.CHAIN_SFX as AudioStreamWAV)
+	_assert_hazard_source_master("res://audio/sfx/hazards/hazard_warning.wav")
+	_assert_hazard_source_master("res://audio/sfx/hazards/hazard_chain_reaction.wav")
 	assert_eq(runtime.audio_pool.voice_count(), RuntimeBudget.HAZARD_AUDIO_VOICES)
 
 
@@ -351,8 +355,22 @@ func _pressure_trace(
 	return trace
 
 
-func _assert_hazard_wav(stream: AudioStreamWAV) -> void:
+func _assert_hazard_runtime_stream(stream: AudioStreamWAV) -> void:
 	assert_not_null(stream)
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS)
-	assert_eq(stream.mix_rate, 48000)
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_QOA)
+	assert_eq(stream.mix_rate, 24000)
 	assert_false(stream.stereo)
+
+
+func _assert_hazard_source_master(path: String) -> void:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	assert_not_null(file, path)
+	if file == null:
+		return
+	assert_eq(file.get_buffer(4).get_string_from_ascii(), "RIFF", path)
+	file.seek(20)
+	assert_eq(file.get_16(), 1, path)
+	assert_eq(file.get_16(), 1, path)
+	assert_eq(file.get_32(), 48000, path)
+	file.seek(34)
+	assert_eq(file.get_16(), 16, path)

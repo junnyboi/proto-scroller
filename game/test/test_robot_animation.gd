@@ -122,6 +122,7 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_pcm_cue(RobotAnimationPresenter.FOOTSTEP_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.SERVO_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_SERVO_SFX)
+	_assert_compact_voice_cue(RobotAnimationPresenter.DODGE_READY_VOICE)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	var frame_callable: Callable = presenter._on_sprite_frame_changed
 	sprite.frame_changed.disconnect(frame_callable)
@@ -158,6 +159,27 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 		_set_walk_audio_frame(presenter, sprite, 2 if cycle_index % 2 == 0 else 5)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	assert_gt(presenter.audio_recycle_count, 0)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
+func test_dodge_ready_voice_plays_once_when_cooldown_completes() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	robot.collision_mask = 0
+	robot.gravity = 0.0
+	assert_eq(presenter.dodge_ready_voice_play_count, 0)
+	assert_true(robot._start_dodge())
+	robot.physics_step(0.0, 0.60)
+	assert_eq(presenter.dodge_ready_voice_play_count, 0)
+	robot.physics_step(0.0, 0.60)
+	assert_eq(presenter.dodge_ready_voice_play_count, 1)
+	assert_eq(presenter.last_audio_cue, &"dodge_ready")
+	robot.physics_step(0.0, 0.20)
+	assert_eq(presenter.dodge_ready_voice_play_count, 1)
+	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
@@ -286,6 +308,16 @@ func _assert_pcm_cue(stream: AudioStream) -> void:
 		return
 	assert_eq(wav.format, AudioStreamWAV.FORMAT_16_BITS)
 	assert_eq(wav.mix_rate, 48000)
+	assert_false(wav.stereo)
+
+
+func _assert_compact_voice_cue(stream: AudioStream) -> void:
+	var wav: AudioStreamWAV = stream as AudioStreamWAV
+	assert_not_null(wav)
+	if wav == null:
+		return
+	assert_eq(wav.format, AudioStreamWAV.FORMAT_QOA)
+	assert_eq(wav.mix_rate, 24000)
 	assert_false(wav.stereo)
 
 

@@ -27,7 +27,7 @@ func test_level_offer_waits_for_triggering_smash_release_before_accepting_input(
 		1,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH,
-		500
+		1500
 	)
 	assert_true(city.rampage_session.publish(reward))
 	await get_tree().process_frame
@@ -67,7 +67,7 @@ func test_level_offer_uses_two_fixed_cards_and_preserves_mobile_touches() -> voi
 		1,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH,
-		500
+		1500
 	)
 	assert_true(city.rampage_session.publish(reward))
 	await get_tree().process_frame

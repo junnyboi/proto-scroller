@@ -37,7 +37,7 @@ func _run() -> void:
 		1,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH,
-		500
+		1500
 	)
 	if not city.rampage_session.publish(reward):
 		quit(1)

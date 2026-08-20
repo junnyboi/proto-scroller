@@ -70,13 +70,8 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 	assert_eq(city.gameplay_hud.status_panel.size, Vector2(300.0, 48.0))
 	assert_lte(city.gameplay_hud.score_panel.get_rect().end.y, 172.0)
 	assert_lte(city.gameplay_hud.weapon_status_strip.get_rect().end.y, 224.0)
-	assert_eq(city.gameplay_hud.dodge_cooldown_indicator.position, Vector2(0.0, 226.0))
-	assert_lte(city.gameplay_hud.dodge_cooldown_indicator.get_rect().end.y, 244.0)
-	assert_eq(
-		city.gameplay_hud.dodge_cooldown_indicator.label.text,
-		L10n.t("hud.dodge_ready")
-	)
-	var hud_footprint: Rect2 = Rect2(Vector2.ZERO, Vector2(300.0, 244.0))
+	assert_null(city.gameplay_hud.get_node_or_null(^"DodgeCooldownIndicator"))
+	var hud_footprint: Rect2 = Rect2(Vector2.ZERO, Vector2(300.0, 224.0))
 	assert_lt(
 		hud_footprint.get_area() / (float(PORTRAIT_SIZE.x) * float(PORTRAIT_SIZE.y)),
 		0.08
@@ -85,7 +80,6 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 	assert_true(_inside_viewport(city.gameplay_hud.status_panel, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.score_panel, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.experience_track, PORTRAIT_SIZE))
-	assert_true(_inside_viewport(city.gameplay_hud.dodge_cooldown_indicator, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.directive_card, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.mobile_controls.smash_button, PORTRAIT_SIZE))
 	assert_false(
@@ -116,33 +110,12 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 		assert_true(_inside_viewport(button, PORTRAIT_SIZE))
 
 
-func test_dodge_indicator_tracks_recharge_and_restores_ready_state() -> void:
+func test_landscape_hud_excludes_visual_dodge_cooldown_indicator() -> void:
 	_set_viewport(LANDSCAPE_SIZE)
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
-	city.robot.set_physics_process(false)
-	var indicator: DodgeCooldownIndicator = city.gameplay_hud.dodge_cooldown_indicator
-	assert_eq(indicator.position, Vector2(24.0, 142.0))
-	assert_eq(indicator.label.text, L10n.t("hud.dodge_ready"))
-	assert_almost_eq(indicator.readiness_ratio(), 1.0, 0.001)
-	assert_almost_eq(indicator.fill.size.x, 92.0, 0.001)
-	assert_true(city.robot._start_dodge())
-	indicator._process(0.0)
-	assert_eq(
-		indicator.label.text,
-		L10n.t("hud.dodge_recharging", {"seconds": "1.2"})
-	)
-	assert_almost_eq(indicator.readiness_ratio(), 0.0, 0.001)
-	assert_almost_eq(indicator.fill.size.x, 0.0, 0.001)
-	city.robot.physics_step(0.0, 0.60)
-	indicator._process(0.0)
-	assert_almost_eq(indicator.readiness_ratio(), 0.5, 0.001)
-	assert_almost_eq(indicator.fill.size.x, 46.0, 0.001)
-	city.robot.physics_step(0.0, 0.60)
-	indicator._process(0.0)
-	assert_eq(indicator.label.text, L10n.t("hud.dodge_ready"))
-	assert_almost_eq(indicator.readiness_ratio(), 1.0, 0.001)
+	assert_null(city.gameplay_hud.get_node_or_null(^"DodgeCooldownIndicator"))
 
 
 func test_resize_preserves_touch_ownership_and_runtime_node_count() -> void:

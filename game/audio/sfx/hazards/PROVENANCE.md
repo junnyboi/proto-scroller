@@ -7,9 +7,9 @@ The preferred built-in **Mirelo** sound-effect endpoint was searched first but w
 | `hazard_carrier_a.mp4` | `gemini-omni-flash-preview` | 8.0 s, stereo AAC, 48 kHz | `d0bf80d5bfdebb737595ebf3fe3cc1aaa8f204f53f52792ab5316534ae987eba` |
 | `hazard_carrier_b.mp4` | `veo3.1-fast` | 8.0 s, stereo AAC, 48 kHz | `1f6eda75ddf357bfb995f0eb3a73c8432d15182f0de1f8079117e51a4c03beff` |
 
-Production extraction preserves the carriers’ original **48 kHz** sample rate. Every runtime file is mono signed **PCM16 WAV**. Deterministic mastering uses equal-power stereo summing, cue-specific high-pass, low-pass, and parametric emphasis, 3:1 compression, 12 ms attack fade, 30 ms release fade, and peak limiting with normalization disabled. No synthesized source, procedural oscillator, music generator, or image-generated audio ships.
+Production extraction preserves the carriers’ original **48 kHz** sample rate. Every committed source master is mono signed **PCM16 WAV**. Godot's Web runtime import uses mono 24 kHz QOA while leaving the source masters unchanged. Deterministic mastering uses equal-power stereo summing, cue-specific high-pass, low-pass, and parametric emphasis, 3:1 compression, 12 ms attack fade, 30 ms release fade, and peak limiting with normalization disabled. No synthesized source, procedural oscillator, music generator, or image-generated audio ships.
 
-| Runtime cue | Carrier window | Duration | SHA-256 |
+| Source master cue | Carrier window | Duration | SHA-256 |
 |---|---|---:|---|
 | `traffic_signal.wav` | A, 0.05–1.15 s | 1.10 s | `47018779161b9717deb5ec7c43c061a7f1294cb3a26ddbf1c8bb5ca298fd57cb` |
 | `steam_main.wav` | A, 1.15–2.40 s | 1.25 s | `d20db2b422ac47c0ad37ca02b17faad4177030b3c8eb900c90dd9467bb1fd789` |
@@ -26,4 +26,4 @@ Production extraction preserves the carriers’ original **48 kHz** sample rate.
 | `hazard_chain_reaction.wav` | B, 6.62–7.54 s | 0.92 s | `9feb12a3183ceedb2f1687f6c7edd244484a3ecef3d3a564a6680d2ebef196e2` |
 | `hazard_warning.wav` | A, 3.24–3.72 s | 0.48 s | `3895ae766f6298fdf6e7faa43c85e8b457dcebd06659e1d0b141433f42247910` |
 
-The committed `.wav` files and Godot import metadata are production assets. Carrier videos, gameplay references, spectrograms, and extraction scripts are retained externally as evidence and are intentionally excluded from source control and the Web export.
+The committed `.wav` masters and Godot import metadata are production assets. Carrier videos, gameplay references, spectrograms, and extraction scripts are retained externally as evidence and are intentionally excluded from source control and the Web export.
