@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/title_screen.gd" id="1_script"]
 [ext_resource type="Theme" path="res://resources/title_theme.tres" id="2_theme"]
@@ -106,6 +106,22 @@ content_margin_left = 12.0
 content_margin_top = 5.0
 content_margin_right = 12.0
 content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleSettingsPanel"]
+bg_color = Color(0.00392157, 0.027451, 0.0509804, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.27451, 0.956863, 0.780392, 0.82)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 30.0
+content_margin_top = 24.0
+content_margin_right = 30.0
+content_margin_bottom = 24.0
 
 [node name="TitleScreen" type="Control"]
 layout_mode = 3
@@ -365,6 +381,24 @@ theme_override_styles/pressed = SubResource("StyleToggleEmpty")
 theme_override_styles/focus = SubResource("StyleToggleFocus")
 text = ""
 
+[node name="SettingsButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1052.0
+offset_top = 112.0
+offset_right = 1248.0
+offset_bottom = 160.0
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
 [node name="BriefingLayer" type="Control" parent="."]
 unique_name_in_owner = true
 visible = false
@@ -401,6 +435,109 @@ grow_vertical = 2
 focus_mode = 0
 mouse_default_cursor_shape = 2
 flat = true
+
+[node name="SettingsLayer" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="SettingsDim" type="ColorRect" parent="SettingsLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0.0117647, 0.0235294, 0.78)
+
+[node name="SettingsBackdrop" type="Button" parent="SettingsLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="SettingsPanel" type="PanelContainer" parent="SettingsLayer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 360.0
+offset_top = 180.0
+offset_right = 920.0
+offset_bottom = 540.0
+theme_override_styles/panel = SubResource("StyleSettingsPanel")
+
+[node name="Content" type="VBoxContainer" parent="SettingsLayer/SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="SettingsHeading" type="Label" parent="SettingsLayer/SettingsPanel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.352941, 1, 0.827451, 1)
+text = ""
+
+[node name="VolumeHeader" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
+layout_mode = 2
+
+[node name="MusicVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/VolumeHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+
+[node name="MusicVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/VolumeHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
+text = "70%"
+horizontal_alignment = 2
+
+[node name="MusicVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+max_value = 100.0
+step = 1.0
+value = 70.0
+tick_count = 11
+ticks_on_borders = true
+
+[node name="MusicVolumeHint" type="Label" parent="SettingsLayer/SettingsPanel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
+text = ""
+clip_text = true
+
+[node name="SettingsCloseButton" type="Button" parent="SettingsLayer/SettingsPanel/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
 
 [node name="SemanticContract" type="Control" parent="."]
 modulate = Color(1, 1, 1, 0)

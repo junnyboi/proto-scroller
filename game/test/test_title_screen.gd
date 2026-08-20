@@ -3,6 +3,7 @@ extends GutTest
 const TITLE_SCREEN_SCENE: PackedScene = preload("res://scenes/title_screen.tscn")
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 const LANGUAGE_PREFERENCE_PATH: String = "user://test-title-language.cfg"
+const AUDIO_PREFERENCE_PATH: String = "user://test-title-audio.cfg"
 const MINIMUM_TEXT_HEIGHT: float = 32.0
 
 var screen: TitleScreen
@@ -16,9 +17,11 @@ func before_all() -> void:
 
 func before_each() -> void:
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
+	MusicVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
 	L10n.set_locale("en")
 	screen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
+	screen.audio_preference_path = AUDIO_PREFERENCE_PATH
 	add_child_autofree(screen)
 	await get_tree().process_frame
 
@@ -26,6 +29,8 @@ func before_each() -> void:
 func after_each() -> void:
 	L10n.set_locale("en")
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
+	MusicVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	MusicVolumeSettings.apply_percent(MusicVolumeSettings.DEFAULT_PERCENT)
 
 
 func test_launch_scene_contract() -> void:
@@ -54,6 +59,7 @@ func test_launch_scene_contract() -> void:
 	assert_false(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
 	assert_true(chinese_button.get_theme_font(&"font").has_char("中".unicode_at(0)))
+	assert_eq((screen.get_node("%SettingsButton") as Button).text, L10n.t("title.settings"))
 	assert_true(screen.select_language("zh-CN"))
 	assert_eq(L10n.current_locale(), "zh-CN")
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "zh-CN")
@@ -63,6 +69,10 @@ func test_launch_scene_contract() -> void:
 	assert_false(automatic_button.button_pressed)
 	assert_true(chinese_button.button_pressed)
 	assert_false(english_button.button_pressed)
+	assert_eq(
+		(screen.get_node("%SettingsHeading") as Label).text,
+		L10n.t("title.settings_heading")
+	)
 	assert_true(
 		(screen.get_node("%BriefingArt") as TextureRect)
 		.texture.resource_path.contains("briefing_landscape_zh_cn")
@@ -126,8 +136,53 @@ func test_initialize_seam_transitions_once() -> void:
 	assert_true((screen.get_node("%AutomaticButton") as Button).disabled)
 	assert_true((screen.get_node("%EnglishButton") as Button).disabled)
 	assert_true((screen.get_node("%ChineseButton") as Button).disabled)
+	assert_true((screen.get_node("%SettingsButton") as Button).disabled)
 	assert_false(screen.initialize_game(), "A second initialization must reject without mutation.")
 	assert_eq(status_label.text, L10n.t("title.expedition_active"))
+	_record_test_execution()
+
+
+func test_settings_menu_applies_and_persists_background_music_volume() -> void:
+	var settings_layer: Control = screen.get_node("%SettingsLayer") as Control
+	var slider: HSlider = screen.get_node("%MusicVolumeSlider") as HSlider
+	var value_label: Label = screen.get_node("%MusicVolumeValue") as Label
+	assert_false(settings_layer.visible)
+	assert_almost_eq(slider.value, MusicVolumeSettings.DEFAULT_PERCENT, 0.01)
+	assert_true(screen.open_settings())
+	assert_true(settings_layer.visible)
+	slider.value = 35.0
+	assert_eq(value_label.text, "35%")
+	var music_bus_index: int = AudioServer.get_bus_index(MusicVolumeSettings.MUSIC_BUS)
+	assert_almost_eq(
+		AudioServer.get_bus_volume_db(music_bus_index),
+		MusicVolumeSettings.percent_to_db(35.0),
+		0.01
+	)
+	assert_almost_eq(MusicVolumeSettings.load_percent(AUDIO_PREFERENCE_PATH), 35.0, 0.01)
+	assert_true(screen.close_settings())
+	assert_false(settings_layer.visible)
+	var restored_screen: TitleScreen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
+	restored_screen.audio_preference_path = AUDIO_PREFERENCE_PATH
+	add_child_autofree(restored_screen)
+	await get_tree().process_frame
+	assert_almost_eq(
+		(restored_screen.get_node("%MusicVolumeSlider") as HSlider).value,
+		35.0,
+		0.01
+	)
+	_record_test_execution()
+
+
+func test_settings_and_briefing_are_mutually_exclusive() -> void:
+	assert_true(screen.open_briefing())
+	assert_true(screen.open_settings())
+	assert_false(screen.briefing_open)
+	assert_true(screen.settings_open)
+	assert_false((screen.get_node("%BriefingLayer") as Control).visible)
+	assert_true(screen.open_briefing())
+	assert_true(screen.briefing_open)
+	assert_false(screen.settings_open)
+	assert_false((screen.get_node("%SettingsLayer") as Control).visible)
 	_record_test_execution()
 
 

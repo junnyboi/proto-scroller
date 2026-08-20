@@ -278,7 +278,7 @@ func test_movement_releases_on_first_step_after_attack_recovery() -> void:
 	city.robot.global_position = Vector2(80.0, 460.0)
 	_tune_short_attack(city.contextual_attacks.resolver)
 	assert_gt(city.robot.request_attack(), 0)
-	await get_tree().create_timer(0.10).timeout
+	await _wait_for_phase(city.contextual_attacks, ContextualAttackController.Phase.READY)
 	assert_false(city.contextual_attacks.is_busy())
 	assert_eq(city.contextual_attacks.phase, ContextualAttackController.Phase.READY)
 	city.robot.physics_step(1.0, 1.0 / 60.0)

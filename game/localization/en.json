@@ -46,6 +46,11 @@
   "title.language_resolved_zh_cn": "ZH-CN",
   "title.language_en": "EN",
   "title.language_zh_cn": "简体中文",
+  "title.settings": "BGM",
+  "title.settings_heading": "BGM SETTINGS",
+  "title.music_volume": "BGM VOLUME",
+  "title.music_volume_hint": "BGM ONLY  //  SFX UNCHANGED",
+  "title.settings_close": "CLOSE",
 
   "hud.health": "CHASSIS {current} / {maximum}",
   "hud.pending_score": "+{value} AT RISK",

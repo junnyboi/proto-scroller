@@ -6,7 +6,9 @@ const MINIMUM_TEXT_HEIGHT: float = 32.0
 const REPORT_PATH: String = "res://artifacts/title_screen/report.json"
 const SHOT_PATH: String = "res://artifacts/title_screen/title-screen.png"
 const BRIEFING_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-briefing.png"
+const SETTINGS_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-settings.png"
 const LANGUAGE_PREFERENCE_PATH: String = "user://title-scenario-language.cfg"
+const AUDIO_PREFERENCE_PATH: String = "user://title-scenario-audio.cfg"
 
 var checks: Array[Dictionary] = []
 var completed: bool = false
@@ -33,6 +35,7 @@ func _on_process_frame() -> void:
 
 func _run() -> void:
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
+	MusicVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
 	var target_size: Vector2i = _target_size()
 	root.get_window().content_scale_size = target_size
 	root.size = target_size
@@ -44,6 +47,7 @@ func _run() -> void:
 
 	var screen: TitleScreen = scene_resource.instantiate() as TitleScreen
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
+	screen.audio_preference_path = AUDIO_PREFERENCE_PATH
 	root.add_child(screen)
 	await process_frame
 	await process_frame
@@ -104,6 +108,25 @@ func _run() -> void:
 			"error=%s size=%s" % [briefing_save_error, briefing_image.get_size()]
 		)
 		screen.close_briefing()
+		screen.open_settings()
+		(screen.get_node("%MusicVolumeSlider") as HSlider).value = 35.0
+		await RenderingServer.frame_post_draw
+		var settings_image: Image = root.get_texture().get_image()
+		var settings_save_error: Error = settings_image.save_png(
+			ProjectSettings.globalize_path(SETTINGS_SHOT_PATH)
+		)
+		_check(
+			"settings_shot_saved",
+			settings_save_error == OK,
+			"error=%s size=%s" % [settings_save_error, settings_image.get_size()]
+		)
+		_check(
+			"settings_volume_applied",
+			(screen.get_node("%MusicVolumeValue") as Label).text == "35%",
+			"value=%s" % [(screen.get_node("%MusicVolumeValue") as Label).text]
+		)
+		screen.close_settings(false)
+		button.grab_focus()
 		shot_status = "PASS" if save_error == OK else "FAIL"
 		shot_path = SHOT_PATH
 

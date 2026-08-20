@@ -24,7 +24,9 @@ const PORTRAIT_BRIEFING_ART_ZH_CN: Texture2D = preload(
 
 var initialized: bool = false
 var briefing_open: bool = false
+var settings_open: bool = false
 var locale_preference_path: String = L10n.PREFERENCE_PATH
+var audio_preference_path: String = MusicVolumeSettings.PREFERENCE_PATH
 
 @onready var background_art: TextureRect = %BackgroundArt
 @onready var briefing_art: TextureRect = %BriefingArt
@@ -32,6 +34,16 @@ var locale_preference_path: String = L10n.PREFERENCE_PATH
 @onready var briefing_backdrop: Button = %BriefingBackdrop
 @onready var briefing_toggle: Button = %BriefingToggle
 @onready var initialize_button: Button = %InitializeButton
+@onready var settings_button: Button = %SettingsButton
+@onready var settings_layer: Control = %SettingsLayer
+@onready var settings_backdrop: Button = %SettingsBackdrop
+@onready var settings_panel: PanelContainer = %SettingsPanel
+@onready var settings_heading: Label = %SettingsHeading
+@onready var music_volume_label: Label = %MusicVolumeLabel
+@onready var music_volume_value: Label = %MusicVolumeValue
+@onready var music_volume_slider: HSlider = %MusicVolumeSlider
+@onready var music_volume_hint: Label = %MusicVolumeHint
+@onready var settings_close_button: Button = %SettingsCloseButton
 @onready var language_selector: HBoxContainer = %LanguageSelector
 @onready var language_label: Label = %LanguageLabel
 @onready var automatic_button: Button = %AutomaticButton
@@ -46,9 +58,17 @@ func _ready() -> void:
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	briefing_toggle.pressed.connect(toggle_briefing)
 	briefing_backdrop.pressed.connect(close_briefing)
+	settings_button.pressed.connect(open_settings)
+	settings_backdrop.pressed.connect(close_settings)
+	settings_close_button.pressed.connect(close_settings)
+	music_volume_slider.value_changed.connect(_on_music_volume_changed)
 	automatic_button.pressed.connect(_on_automatic_pressed)
 	english_button.pressed.connect(_on_english_pressed)
 	chinese_button.pressed.connect(_on_chinese_pressed)
+	music_volume_slider.set_value_no_signal(
+		MusicVolumeSettings.apply_saved(audio_preference_path)
+	)
+	_update_music_volume_value()
 	initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_localized_text()
@@ -58,6 +78,12 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if settings_open and event.is_action_pressed(&"ui_cancel"):
+		close_settings()
+		get_viewport().set_input_as_handled()
+		return
+	if settings_open:
+		return
 	if event is InputEventKey:
 		var key_event: InputEventKey = event as InputEventKey
 		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_TAB:
@@ -74,6 +100,7 @@ func initialize_game() -> bool:
 		return false
 	initialized = true
 	close_briefing(false)
+	close_settings(false)
 	status_label.text = L10n.t("title.expedition_active")
 	status_label.modulate = Color("72ffd6")
 	instruction_label.text = L10n.t("title.deployment_authorized")
@@ -82,6 +109,7 @@ func initialize_game() -> bool:
 	initialize_button.text = L10n.t("title.deploying")
 	initialize_button.disabled = true
 	briefing_toggle.disabled = true
+	settings_button.disabled = true
 	automatic_button.disabled = true
 	english_button.disabled = true
 	chinese_button.disabled = true
@@ -91,6 +119,7 @@ func initialize_game() -> bool:
 func open_briefing() -> bool:
 	if initialized or briefing_open:
 		return false
+	close_settings(false)
 	briefing_open = true
 	briefing_layer.visible = true
 	briefing_toggle.text = L10n.t("title.briefing_close")
@@ -113,6 +142,26 @@ func toggle_briefing() -> void:
 		close_briefing()
 	else:
 		open_briefing()
+
+
+func open_settings() -> bool:
+	if initialized or settings_open:
+		return false
+	close_briefing(false)
+	settings_open = true
+	settings_layer.visible = true
+	music_volume_slider.call_deferred("grab_focus")
+	return true
+
+
+func close_settings(restore_focus: bool = true) -> bool:
+	if not settings_open:
+		return false
+	settings_open = false
+	settings_layer.visible = false
+	if restore_focus and not initialized:
+		settings_button.call_deferred("grab_focus")
+	return true
 
 
 func select_language(locale: String) -> bool:
@@ -154,6 +203,15 @@ func _on_chinese_pressed() -> void:
 	select_language("zh-CN")
 
 
+func _on_music_volume_changed(value: float) -> void:
+	MusicVolumeSettings.set_and_save(value, audio_preference_path)
+	_update_music_volume_value()
+
+
+func _update_music_volume_value() -> void:
+	music_volume_value.text = "%d%%" % int(round(music_volume_slider.value))
+
+
 func is_portrait_layout() -> bool:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	return viewport_size.y > viewport_size.x
@@ -192,6 +250,12 @@ func _apply_localized_text() -> void:
 	briefing_toggle.text = L10n.t(
 		"title.briefing_close" if briefing_open else "title.briefing_available"
 	)
+	settings_button.text = L10n.t("title.settings")
+	settings_heading.text = L10n.t("title.settings_heading")
+	music_volume_label.text = L10n.t("title.music_volume")
+	music_volume_hint.text = L10n.t("title.music_volume_hint")
+	settings_close_button.text = L10n.t("title.settings_close")
+	_update_music_volume_value()
 	language_label.text = L10n.t("title.language")
 	automatic_button.text = L10n.t(
 		"title.language_auto_resolved",
@@ -240,6 +304,8 @@ func _apply_landscape_layout() -> void:
 	_set_rect($MoveChip, Rect2(52.0, 590.0, 164.0, 48.0))
 	_set_rect($SmashChip, Rect2(236.0, 590.0, 178.0, 48.0))
 	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
+	_set_rect(settings_button, Rect2(1052.0, 118.0, 196.0, 48.0))
+	_set_rect(settings_panel, Rect2(360.0, 170.0, 560.0, 380.0))
 	_set_font_sizes(24, 56, 24)
 
 
@@ -256,6 +322,8 @@ func _apply_portrait_layout() -> void:
 	_set_rect($MoveChip, Rect2(120.0, 1114.0, 214.0, 58.0))
 	_set_rect($SmashChip, Rect2(372.0, 1114.0, 228.0, 58.0))
 	_set_rect(briefing_toggle, Rect2(174.0, 1180.0, 372.0, 70.0))
+	_set_rect(settings_button, Rect2(466.0, 376.0, 200.0, 56.0))
+	_set_rect(settings_panel, Rect2(54.0, 410.0, 612.0, 410.0))
 	_set_font_sizes(24, 48, 24)
 
 
@@ -272,6 +340,8 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	(%TitleLabel as Label).add_theme_font_size_override(&"font_size", title_size)
 	initialize_button.add_theme_font_size_override(&"font_size", button_size)
 	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
+	settings_button.add_theme_font_size_override(&"font_size", body_size)
+	settings_close_button.add_theme_font_size_override(&"font_size", body_size)
 	language_label.add_theme_font_size_override(&"font_size", body_size)
 	automatic_button.add_theme_font_size_override(&"font_size", body_size)
 	english_button.add_theme_font_size_override(&"font_size", body_size)
