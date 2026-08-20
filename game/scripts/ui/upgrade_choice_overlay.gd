@@ -45,9 +45,10 @@ func show_offer(
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	for card: UpgradeChoiceCard in cards:
+		card.disabled = true
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 	apply_responsive_layout()
-	cards[0].grab_focus()
+	_arm_choice_input(offer_sequence)
 
 
 func hide_offer() -> void:
@@ -56,8 +57,20 @@ func hide_offer() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for card: UpgradeChoiceCard in cards:
+		card.disabled = true
 		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	release_focus()
+
+
+func _arm_choice_input(sequence: int) -> void:
+	await get_tree().process_frame
+	while active and offer_sequence == sequence and Input.is_action_pressed(&"stomp"):
+		await get_tree().process_frame
+	if not active or offer_sequence != sequence:
+		return
+	for card: UpgradeChoiceCard in cards:
+		card.disabled = false
+	cards[0].grab_focus()
 
 
 func apply_responsive_layout() -> void:

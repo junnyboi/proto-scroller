@@ -596,27 +596,62 @@ func test_robot_attack_scatters_defeated_soldier_scrap_and_debris() -> void:
 	_record_test_execution()
 
 
-func test_smash_launches_debris_that_physically_damages_airborne_enemy() -> void:
+func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
-	city.soldier.set_physics_process(false)
-	city.tank.set_physics_process(false)
-	city.helicopter.set_physics_process(false)
-	city.helicopter.global_position = city.robot.global_position + Vector2(740.0, -280.0)
+	city.encounter_runtime.release_all()
+	var origin: Vector2 = (
+		city.robot.get_node(^"GroundImpactOrigin") as Node2D
+	).global_position
+	var farther_overhead: EnemyActor2D = city.encounter_runtime.acquire(
+		&"needle",
+		origin + Vector2(70.0, -600.0)
+	)
+	var closest_overhead: EnemyActor2D = city.encounter_runtime.acquire(
+		&"helicopter",
+		origin + Vector2(35.0, -440.0)
+	)
+	var closer_side_target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"hound",
+		origin + Vector2(330.0, -120.0)
+	)
+	for enemy: EnemyActor2D in [farther_overhead, closest_overhead, closer_side_target]:
+		assert_not_null(enemy)
+		enemy.set_physics_process(false)
 	await get_tree().physics_frame
-	var health_before: float = city.helicopter.current_health
+	assert_true(AerialDebrisLauncher._is_in_overhead_cone(farther_overhead, origin))
+	assert_true(AerialDebrisLauncher._is_in_overhead_cone(closest_overhead, origin))
+	assert_false(AerialDebrisLauncher._is_in_overhead_cone(closer_side_target, origin))
+	assert_same(AerialDebrisLauncher._nearest_target(get_tree(), origin), closest_overhead)
+	farther_overhead.active = false
+	closest_overhead.active = false
+	assert_same(AerialDebrisLauncher._nearest_target(get_tree(), origin), closer_side_target)
+	farther_overhead.active = true
+	closest_overhead.active = true
+	var target_health_before: float = closest_overhead.current_health
+	var side_health_before: float = closer_side_target.current_health
 	city.trigger_test_stomp()
 	assert_eq(city.debris_pool.active_count(), 3)
+	await get_tree().physics_frame
+	var minimum_angle: float = INF
+	var maximum_angle: float = -INF
+	for debris: DebrisBody2D in city.debris_pool.active_bodies():
+		assert_true(debris.aerial_impact_armed)
+		var launch_angle: float = debris.linear_velocity.angle()
+		minimum_angle = minf(minimum_angle, launch_angle)
+		maximum_angle = maxf(maximum_angle, launch_angle)
+	assert_lte(rad_to_deg(maximum_angle - minimum_angle), 8.0)
 	var hit_registered: bool = false
 	for physics_tick: int in range(90):
 		await get_tree().physics_frame
-		if city.helicopter.current_health < health_before:
+		if closest_overhead.current_health < target_health_before:
 			hit_registered = true
 			break
 	assert_true(hit_registered)
-	assert_gt(city.helicopter.current_health, health_before - 13.0)
-	assert_false(city.helicopter.dead)
+	assert_gt(closest_overhead.current_health, target_health_before - 13.0)
+	assert_false(closest_overhead.dead)
+	assert_eq(closer_side_target.current_health, side_health_before)
 	assert_gte(city.rampage_session.momentum_value(), 20.0)
 	assert_gte(city.score, 250)
 	_record_test_execution()
