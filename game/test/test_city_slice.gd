@@ -735,6 +735,9 @@ func test_land_visuals_share_the_asphalt_baseline() -> void:
 	city.soldier.set_physics_process(false)
 	city.tank.set_physics_process(false)
 	await get_tree().process_frame
+	var road_surface: Polygon2D = city.get_node(^"RoadSurface") as Polygon2D
+	var lower_asphalt: Polygon2D = city.get_node(^"LowerAsphalt") as Polygon2D
+	assert_eq(lower_asphalt.color, road_surface.color)
 	var lower_cell: Destructible2D = city.building.get_cell(0, 1)
 	var lower_visual: Sprite2D = lower_cell.get_node(^"IntactVisual") as Sprite2D
 	var visuals: Array[Sprite2D] = [
