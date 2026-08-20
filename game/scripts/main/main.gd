@@ -10,6 +10,7 @@ const RESPONSIVE_VIEWPORT_SCRIPT: Script = preload(
 var title_screen: TitleScreen
 var city_slice: CitySlice
 var responsive_viewport: ResponsiveViewport
+@onready var background_music_player: AudioStreamPlayer = %BackgroundMusicPlayer
 
 
 func _ready() -> void:
