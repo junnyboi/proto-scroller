@@ -1,5 +1,10 @@
 import "./index.css";
 import {
+  calculateLoadingPercent,
+  createGodotFileSizes,
+  loadingStage,
+} from "./lib/godotLoaderState";
+import {
   calculateWebRenderResolution,
   selectWebRenderTier,
   type WebRenderResolution,
@@ -39,7 +44,13 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "f4ace132";
+const GAME_PACK_VERSION = "595e4257-l1";
+const REMOTE_ENGINE_PATH = "/manus-storage/game_7fa06ff5";
+const REMOTE_PACK_PATH = `/manus-storage/game_a0865d1f.pck?v=${GAME_PACK_VERSION}`;
+const ENGINE_WASM_BYTES = 39_513_091;
+const GAME_PACK_BYTES = 8_232_644;
+const SLOW_LOAD_NOTICE_MS = 15_000;
+const RETRY_NOTICE_MS = 45_000;
 const searchParameters = new URLSearchParams(window.location.search);
 const root = document.getElementById("root");
 
@@ -52,17 +63,43 @@ root.innerHTML = `
     <canvas id="canvas" class="game-canvas" tabindex="0" aria-label="Proto Scroller">
       Your browser does not support the canvas element.
     </canvas>
-    <div id="runtime-state" class="runtime-state" role="status">0%</div>
+    <section id="runtime-state" class="runtime-state" role="status" aria-live="polite">
+      <div class="loader-console">
+        <p class="loader-kicker">PROTO SCROLLER // WEB RUNTIME</p>
+        <p id="loader-stage" class="loader-stage">PREPARING ENGINE</p>
+        <div class="loader-progress-row">
+          <progress id="loader-progress" class="loader-progress" max="100"></progress>
+          <span id="loader-percent" class="loader-percent">CONNECTING</span>
+        </div>
+        <p id="loader-detail" class="loader-detail">Loading the Web runtime…</p>
+        <button id="loader-retry" class="loader-retry" type="button" hidden>RETRY DOWNLOAD</button>
+      </div>
+    </section>
   </main>
 `;
 
-const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const runtimeState = document.getElementById("runtime-state") as HTMLDivElement;
+function requireElement<T extends HTMLElement>(id: string): T {
+  const element = document.getElementById(id);
+  if (!element) throw new Error(`Missing loader element: ${id}`);
+  return element as T;
+}
+
+const canvas = requireElement<HTMLCanvasElement>("canvas");
+const runtimeState = requireElement<HTMLElement>("runtime-state");
+const loaderStage = requireElement<HTMLElement>("loader-stage");
+const loaderProgress = requireElement<HTMLProgressElement>("loader-progress");
+const loaderPercent = requireElement<HTMLElement>("loader-percent");
+const loaderDetail = requireElement<HTMLElement>("loader-detail");
+const loaderRetry = requireElement<HTMLButtonElement>("loader-retry");
 const renderTier = selectWebRenderTier(
   searchParameters.get("renderTier"),
   navigator.maxTouchPoints
 );
 let resizeFrame = 0;
+let loadingComplete = false;
+let latestPercent: number | null = null;
+
+loaderRetry.addEventListener("click", () => window.location.reload());
 
 function updateCanvasResolution(): void {
   const bounds = canvas.getBoundingClientRect();
@@ -85,15 +122,54 @@ function queueCanvasResolutionUpdate(): void {
   resizeFrame = window.requestAnimationFrame(updateCanvasResolution);
 }
 
-updateCanvasResolution();
-window.addEventListener("resize", queueCanvasResolutionUpdate, {
-  passive: true,
-});
+function formatMebibytes(bytes: number): string {
+  return `${(bytes / 1_048_576).toFixed(1)} MiB`;
+}
+
+function showDownloadProgress(current: number, total: number): void {
+  const percent = calculateLoadingPercent(current, total);
+  latestPercent = percent;
+  if (percent === null) {
+    loaderProgress.removeAttribute("value");
+    loaderPercent.textContent = "CONNECTING";
+    return;
+  }
+
+  loaderProgress.value = percent;
+  loaderPercent.textContent = `${percent}%`;
+  loaderStage.textContent = loadingStage(percent);
+  loaderDetail.textContent = `${formatMebibytes(current)} / ${formatMebibytes(total)}`;
+}
 
 function showError(message: string): void {
+  console.error(message);
   runtimeState.classList.add("is-error");
-  runtimeState.textContent = message;
+  loaderStage.textContent = "LOAD FAILED";
+  loaderPercent.textContent = "OFFLINE";
+  loaderDetail.textContent = message;
+  loaderProgress.hidden = true;
+  loaderRetry.hidden = false;
 }
+
+function nextPaint(): Promise<void> {
+  return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+updateCanvasResolution();
+window.addEventListener("resize", queueCanvasResolutionUpdate, { passive: true });
+
+const slowLoadTimer = window.setTimeout(() => {
+  if (loadingComplete) return;
+  loaderDetail.textContent = latestPercent === null
+    ? "Connecting to game storage. This can take longer on a cold deployment…"
+    : `${loaderPercent.textContent} received. Initializing the 47.5 MiB runtime…`;
+}, SLOW_LOAD_NOTICE_MS);
+
+const retryTimer = window.setTimeout(() => {
+  if (loadingComplete) return;
+  loaderDetail.textContent = "Loading is taking longer than expected. You can retry safely.";
+  loaderRetry.hidden = false;
+}, RETRY_NOTICE_MS);
 
 async function startEngine(): Promise<void> {
   const Engine = window.Engine;
@@ -107,35 +183,44 @@ async function startEngine(): Promise<void> {
 
   const useLocalGameFiles =
     import.meta.env.DEV && searchParameters.has("localGame");
+  const executable = useLocalGameFiles ? "/game/game" : REMOTE_ENGINE_PATH;
+  const mainPack = useLocalGameFiles ? "/game/game.pck" : REMOTE_PACK_PATH;
   const engine = new Engine({
     args: [],
     canvas,
     canvasResizePolicy: 0,
     emscriptenPoolSize: 8,
     ensureCrossOriginIsolationHeaders: true,
-    executable: useLocalGameFiles
-      ? "/game/game"
-      : "/manus-storage/game_7fa06ff5",
+    executable,
     experimentalVK: false,
-    fileSizes: {},
+    fileSizes: createGodotFileSizes(
+      executable,
+      mainPack,
+      ENGINE_WASM_BYTES,
+      GAME_PACK_BYTES
+    ),
     focusCanvas: true,
     gdextensionLibs: [],
     godotPoolSize: 4,
-    mainPack: useLocalGameFiles
-      ? "/game/game.pck"
-      : `/manus-storage/game_e69ed158.pck?v=${GAME_PACK_VERSION}`,
+    mainPack,
   });
 
+  loaderStage.textContent = "DOWNLOADING GAME DATA";
+  loaderDetail.textContent = "Downloading engine and game pack…";
+
   try {
-    await engine.startGame({
-      onProgress: (current, total) => {
-        if (total > 0) {
-          runtimeState.textContent = `${Math.round((current / total) * 100)}%`;
-        }
-      },
-    });
-    runtimeState.remove();
+    await engine.startGame({ onProgress: showDownloadProgress });
+    loadingComplete = true;
+    window.clearTimeout(slowLoadTimer);
+    window.clearTimeout(retryTimer);
+    loaderStage.textContent = "STARTING GAME";
+    loaderPercent.textContent = "100%";
+    loaderProgress.value = 100;
+    loaderDetail.textContent = "Runtime ready.";
     canvas.classList.add("is-ready");
+    await nextPaint();
+    await nextPaint();
+    runtimeState.remove();
     canvas.focus();
   } catch (runtimeError) {
     showError(

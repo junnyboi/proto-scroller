@@ -657,6 +657,19 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_same(city.air_target_lock_runtime.reticle_target(), closest_overhead)
 	assert_eq(lock_reticle.global_position, closest_overhead.global_position)
 	assert_true(lock_reticle.is_processing())
+	assert_false(lock_reticle.is_release_imminent())
+	assert_eq(lock_reticle.pulse_strength(), 0.0)
+	city.air_target_lock_runtime._process(
+		spec.anticipation_seconds
+		* (AirTargetReticle2D.IMMINENT_START_PROGRESS - 0.05)
+	)
+	assert_false(lock_reticle.is_release_imminent())
+	assert_eq(lock_reticle.pulse_strength(), 0.0)
+	city.air_target_lock_runtime._process(spec.anticipation_seconds * 0.06)
+	assert_true(lock_reticle.is_release_imminent())
+	assert_gt(lock_reticle.telegraph_progress(), AirTargetReticle2D.IMMINENT_START_PROGRESS)
+	lock_reticle._process(0.05)
+	assert_gt(lock_reticle.pulse_strength(), 0.0)
 	assert_eq(city.air_target_lock_runtime.target_acquired_play_count, 1)
 	assert_eq(city.air_target_lock_runtime.last_voice_cue, &"air_target_acquired")
 	closest_overhead.global_position = origin + Vector2(520.0, -120.0)
@@ -665,6 +678,7 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_false(city.air_target_lock_runtime.reticle_visible())
 	assert_null(city.air_target_lock_runtime.reticle_target())
 	assert_false(lock_reticle.is_processing())
+	assert_false(lock_reticle.is_release_imminent())
 	assert_eq(city.air_target_lock_runtime.target_lost_play_count, 1)
 	assert_eq(city.air_target_lock_runtime.last_voice_cue, &"target_lost")
 	closest_overhead.global_position = origin + Vector2(35.0, -440.0)
@@ -673,6 +687,7 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_true(city.air_target_lock_runtime.reticle_visible())
 	assert_same(city.air_target_lock_runtime.reticle_target(), closest_overhead)
 	assert_true(lock_reticle.is_processing())
+	assert_true(lock_reticle.is_release_imminent())
 	assert_eq(city.air_target_lock_runtime.target_acquired_play_count, 2)
 	var target_health_before: float = closest_overhead.current_health
 	var side_health_before: float = closer_side_target.current_health
@@ -682,6 +697,7 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_false(city.air_target_lock_runtime.reticle_visible())
 	assert_null(city.air_target_lock_runtime.reticle_target())
 	assert_false(lock_reticle.is_processing())
+	assert_false(lock_reticle.is_release_imminent())
 	for launch_tick: int in range(2):
 		await get_tree().physics_frame
 		if city.debris_pool.active_bodies().any(
@@ -719,6 +735,9 @@ func test_land_visuals_share_the_asphalt_baseline() -> void:
 	city.soldier.set_physics_process(false)
 	city.tank.set_physics_process(false)
 	await get_tree().process_frame
+	var road_surface: Polygon2D = city.get_node(^"RoadSurface") as Polygon2D
+	var lower_asphalt: Polygon2D = city.get_node(^"LowerAsphalt") as Polygon2D
+	assert_eq(lower_asphalt.color, road_surface.color)
 	var lower_cell: Destructible2D = city.building.get_cell(0, 1)
 	var lower_visual: Sprite2D = lower_cell.get_node(^"IntactVisual") as Sprite2D
 	var visuals: Array[Sprite2D] = [

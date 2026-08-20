@@ -180,7 +180,7 @@ static func _build_street(parent: Node2D) -> void:
 		Vector2(3600.0, 760.0),
 		Vector2(-800.0, 760.0),
 	])
-	lower_asphalt.color = Color("2a3038")
+	lower_asphalt.color = road_surface.color
 	parent.add_child(lower_asphalt)
 	for segment_index: int in range(12):
 		var lane_mark: Line2D = Line2D.new()
