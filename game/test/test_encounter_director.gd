@@ -27,6 +27,48 @@ func test_runtime_prewarms_exact_enemy_caps_without_post_warm_creation() -> void
 	assert_eq(city.encounter_runtime.post_warm_creation_count, 0)
 
 
+func test_all_regular_soldiers_share_exact_pixel_height_and_face_the_player() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	for soldier_index: int in range(city.encounter_runtime.soldiers.size()):
+		var soldier: SoldierEnemy = city.encounter_runtime.acquire(
+			&"soldier",
+			Vector2(980.0 + float(soldier_index) * 40.0, 542.5)
+		) as SoldierEnemy
+		assert_not_null(soldier)
+		var rendered_height: float = (
+			soldier.visual.texture.get_size().y * absf(soldier.visual.scale.y)
+		)
+		assert_almost_eq(
+			rendered_height,
+			EncounterRuntime.SOLDIER_RENDER_HEIGHT_PIXELS,
+			0.001
+		)
+		assert_eq(soldier.facing, -1)
+		assert_false(soldier.visual.flip_h)
+		assert_eq(soldier.bounce_squash, 0.0)
+		soldier.velocity.x = soldier.move_speed
+		soldier.update_movement_bounce(0.11 + float(soldier_index) * 0.02)
+		var animated_height: float = (
+			soldier.visual.texture.get_size().y * absf(soldier.visual.scale.y)
+		)
+		assert_almost_eq(
+			animated_height,
+			EncounterRuntime.SOLDIER_RENDER_HEIGHT_PIXELS,
+			0.001
+		)
+	var tracked: SoldierEnemy = city.encounter_runtime.soldiers[0]
+	tracked.state = SoldierEnemy.State.ANTICIPATE
+	city.robot.global_position.x = tracked.global_position.x + 200.0
+	tracked._physics_process(0.0)
+	assert_eq(tracked.facing, 1)
+	assert_true(tracked.visual.flip_h)
+	city.robot.global_position.x = tracked.global_position.x - 200.0
+	tracked._physics_process(0.0)
+	assert_eq(tracked.facing, -1)
+	assert_false(tracked.visual.flip_h)
+
+
 func test_projectile_pool_is_partitioned_16_4_4_and_reservations_are_strict() -> void:
 	var city: CitySlice = await _spawn_city()
 	var pool: ProjectilePool = city.projectile_root

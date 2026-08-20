@@ -25,6 +25,7 @@ const PROCEDURAL_SCRIPT: Script = preload("res://scripts/actors/procedural_enemy
 const SOLDIER_TEXTURE: Texture2D = preload("res://art/city/enemies/soldier.png")
 const TANK_TEXTURE: Texture2D = preload("res://art/city/enemies/tank.png")
 const HELICOPTER_TEXTURE: Texture2D = preload("res://art/city/enemies/helicopter.png")
+const SOLDIER_RENDER_HEIGHT_PIXELS: float = 108.0
 const MARK_DAMAGE_MULTIPLIER: float = 1.15
 const STATIC_INTERVAL_MULTIPLIER: float = 0.82
 const AEGIS_DAMAGE_MULTIPLIER: float = 0.65
@@ -262,7 +263,10 @@ func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
 	if kind == &"soldier":
 		enemy = SOLDIER_SCRIPT.new() as SoldierEnemy
 		texture = SOLDIER_TEXTURE
-		display_size = Vector2(68.0, 108.0)
+		display_size = Vector2(
+			texture.get_size().x * SOLDIER_RENDER_HEIGHT_PIXELS / texture.get_size().y,
+			SOLDIER_RENDER_HEIGHT_PIXELS
+		)
 		collision_size = Vector2(42.0, 95.0)
 	elif kind == &"tank":
 		enemy = TANK_SCRIPT.new() as TankEnemy
@@ -360,7 +364,7 @@ func _configure_actor_nodes(
 		if kind == &"soldier":
 			enemy.bounce_height = 5.5
 			enemy.bounce_frequency = 3.8
-			enemy.bounce_squash = 0.055
+			enemy.bounce_squash = 0.0
 			enemy.bounce_speed_reference = 92.0
 		else:
 			enemy.bounce_height = 2.5
