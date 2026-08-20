@@ -69,15 +69,22 @@ func test_dash_amplifier_extends_range_and_duration_from_immutable_baselines() -
 	var dash: DashAmplifierRuntime = (
 		city.upgrade_assembler.runtimes[&"DASH_AMPLIFIER"] as DashAmplifierRuntime
 	)
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
 	assert_true(dash.apply_rank(1))
-	assert_almost_eq(city.robot.dodge_speed, 561.6, 0.001)
+	assert_almost_eq(city.robot.dodge_speed, 1123.2, 0.001)
 	assert_almost_eq(city.robot.dodge_duration, 0.207, 0.001)
+	assert_almost_eq(presenter.dust_intensity_scale, 1.2, 0.001)
 	assert_true(dash.apply_rank(3))
-	assert_almost_eq(city.robot.dodge_speed, 644.8, 0.001)
+	assert_almost_eq(city.robot.dodge_speed, 1289.6, 0.001)
 	assert_almost_eq(city.robot.dodge_duration, 0.261, 0.001)
+	assert_almost_eq(presenter.dust_intensity_scale, 1.8, 0.001)
+	presenter._spawn_dodge_dust(1.20)
+	assert_almost_eq(presenter._dust_pool.last_intensity, 2.16, 0.001)
 	assert_almost_eq(
 		city.robot.dodge_speed * city.robot.dodge_duration,
-		168.2928,
+		336.5856,
 		0.001
 	)
 	assert_false(dash.apply_rank(3))
@@ -98,8 +105,9 @@ func test_dash_amplifier_extends_range_and_duration_from_immutable_baselines() -
 	assert_true(city.robot._start_dodge())
 	dash.reset_run()
 	assert_eq(dash.current_rank, 0)
-	assert_almost_eq(city.robot.dodge_speed, 520.0, 0.001)
+	assert_almost_eq(city.robot.dodge_speed, 1040.0, 0.001)
 	assert_almost_eq(city.robot.dodge_duration, 0.18, 0.001)
+	assert_almost_eq(presenter.dust_intensity_scale, 1.0, 0.001)
 
 
 func test_kinetic_decorates_once_and_directive_flags_are_ored() -> void:

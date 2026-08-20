@@ -38,7 +38,7 @@ enum LocomotionState {
 @export_range(0.04, 0.25, 0.01) var turn_duration: float = 0.10
 
 @export_group("Dodge")
-@export var dodge_speed: float = 520.0
+@export var dodge_speed: float = 1040.0
 @export var dodge_duration: float = 0.18
 @export var dodge_invulnerability_seconds: float = 0.30
 @export var dodge_recovery_seconds: float = 0.12

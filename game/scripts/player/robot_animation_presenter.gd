@@ -35,6 +35,7 @@ var audio_recycle_count: int = 0
 var last_audio_cue: StringName = &""
 var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
+var dust_intensity_scale: float = 1.0
 var _audio_players: Array[AudioStreamPlayer2D] = []
 var _audio_cursor: int = 0
 var _afterimage_root: Node2D
@@ -281,7 +282,7 @@ func _spawn_dodge_dust(intensity: float) -> void:
 	var origin: Vector2 = (
 		ground_origin.global_position if ground_origin != null else robot.global_position
 	)
-	_dust_pool.spawn(origin, _dodge_facing, intensity)
+	_dust_pool.spawn(origin, _dodge_facing, intensity * dust_intensity_scale)
 
 
 func _spawn_afterimage() -> void:

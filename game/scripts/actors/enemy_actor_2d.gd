@@ -56,6 +56,8 @@ var player_anticipation_count: int = 0
 var player_strike_reaction_count: int = 0
 var last_player_reaction_attack_id: int = 0
 var last_player_knockback_attack_id: int = 0
+var dodge_wheel_slip_count: int = 0
+var last_dodge_wheel_slip_direction: int = 0
 var _base_max_health: float = 0.0
 var _shield_available: bool = false
 var _shield_damage_ratio: float = 1.0
@@ -230,6 +232,31 @@ func commit_player_attack_reaction(attack_id: int, attacker_position: Vector2) -
 		0.22
 	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_player_reaction_tween.tween_property(visual, "modulate", Color.WHITE, 0.16)
+
+
+func _apply_dodge_wheel_slip(dodge_direction: int) -> bool:
+	if not active or dead or visual == null:
+		return false
+	_cancel_player_reaction_tween()
+	var direction: int = 1 if dodge_direction >= 0 else -1
+	dodge_wheel_slip_count += 1
+	last_dodge_wheel_slip_direction = direction
+	visual.modulate = Color.WHITE
+	visual.skew = -float(direction) * 0.08
+	_player_reaction_tween = create_tween()
+	_player_reaction_tween.tween_property(
+		visual,
+		"skew",
+		float(direction) * 0.18,
+		0.05
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_player_reaction_tween.tween_property(
+		visual,
+		"skew",
+		0.0,
+		0.10
+	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	return true
 
 
 func set_attack_gate(enabled: bool) -> void:
