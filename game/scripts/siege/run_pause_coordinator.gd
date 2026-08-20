@@ -76,5 +76,10 @@ func _apply_pause(paused: bool) -> void:
 	director.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
 	catalysts.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
 	if hazards != null:
-		hazards.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
+		if paused:
+			hazards.set_paused(true)
+			hazards.process_mode = Node.PROCESS_MODE_DISABLED
+		else:
+			hazards.process_mode = Node.PROCESS_MODE_INHERIT
+			hazards.set_paused(false)
 	pause_changed.emit(paused)

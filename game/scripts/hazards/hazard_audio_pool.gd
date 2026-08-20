@@ -1,0 +1,216 @@
+class_name HazardAudioPool
+extends Node2D
+
+const WARNING_SFX: AudioStream = preload(
+	"res://audio/sfx/hazards/hazard_warning.wav"
+)
+const CHAIN_SFX: AudioStream = preload(
+	"res://audio/sfx/hazards/hazard_chain_reaction.wav"
+)
+const MAX_DISTANCE: float = 1900.0
+const ATTENUATION: float = 0.45
+
+var voice_capacity: int = RuntimeBudget.HAZARD_AUDIO_VOICES
+var warning_play_count: int = 0
+var impact_play_count: int = 0
+var pulse_play_count: int = 0
+var chain_play_count: int = 0
+var recycle_count: int = 0
+var drop_count: int = 0
+var last_hazard_id: StringName = &""
+var last_phase: StringName = &""
+var _voices: Array[AudioStreamPlayer2D] = []
+var _streams: Dictionary[StringName, AudioStream] = {}
+var _cooldowns: Dictionary[StringName, int] = {}
+var _paused: bool = false
+
+
+func _ready() -> void:
+	for hazard_id: StringName in EnvironmentalHazardCatalog.ACTIVE_IDS:
+		var audio_profile: Dictionary = EnvironmentalHazardCatalog.audio_profile(hazard_id)
+		_streams[hazard_id] = load(String(audio_profile.stream)) as AudioStream
+	for index: int in range(voice_capacity):
+		var voice: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
+		voice.name = "HazardVoice%02d" % index
+		voice.max_distance = MAX_DISTANCE
+		voice.attenuation = ATTENUATION
+		voice.set_meta(&"priority", 0)
+		voice.set_meta(&"started_msec", 0)
+		add_child(voice)
+		_voices.append(voice)
+
+
+func play_warning(hazard_id: StringName, origin: Vector2) -> AudioStreamPlayer2D:
+	var profile: Dictionary = EnvironmentalHazardCatalog.audio_profile(hazard_id)
+	var voice: AudioStreamPlayer2D = _play(
+		&"warning",
+		hazard_id,
+		WARNING_SFX,
+		origin,
+		float(profile.warning_gain_db),
+		float(profile.warning_pitch),
+		maxi(int(profile.priority) - 2, 2),
+		0,
+		true
+	)
+	if voice != null:
+		warning_play_count += 1
+	return voice
+
+
+func play_impact(
+	hazard_id: StringName,
+	origin: Vector2,
+	primary: bool
+) -> AudioStreamPlayer2D:
+	var profile: Dictionary = EnvironmentalHazardCatalog.audio_profile(hazard_id)
+	var phase: StringName = &"impact" if primary else &"pulse"
+	var gain_db: float = (
+		float(profile.impact_gain_db) if primary else float(profile.pulse_gain_db)
+	)
+	var pitch: float = float(profile.impact_pitch) if primary else float(profile.pulse_pitch)
+	var priority: int = int(profile.priority) if primary else maxi(int(profile.priority) - 3, 1)
+	var retrigger_ms: int = 0 if primary else int(profile.retrigger_ms)
+	var voice: AudioStreamPlayer2D = _play(
+		phase,
+		hazard_id,
+		_streams.get(hazard_id) as AudioStream,
+		origin,
+		gain_db,
+		pitch,
+		priority,
+		retrigger_ms,
+		primary
+	)
+	if voice != null:
+		if primary:
+			impact_play_count += 1
+		else:
+			pulse_play_count += 1
+	return voice
+
+
+func play_chain(
+	source_id: StringName,
+	target_id: StringName,
+	origin: Vector2,
+	causal_depth: int
+) -> AudioStreamPlayer2D:
+	var cue_id: StringName = StringName("%s_to_%s" % [source_id, target_id])
+	var voice: AudioStreamPlayer2D = _play(
+		&"chain",
+		cue_id,
+		CHAIN_SFX,
+		origin,
+		-1.5,
+		clampf(1.04 - float(causal_depth) * 0.06, 0.82, 1.04),
+		10,
+		120,
+		true
+	)
+	if voice != null:
+		chain_play_count += 1
+	return voice
+
+
+func set_paused(paused: bool) -> void:
+	_paused = paused
+	for voice: AudioStreamPlayer2D in _voices:
+		voice.stream_paused = paused
+
+
+func is_paused() -> bool:
+	return _paused
+
+
+func reset_all() -> void:
+	_paused = false
+	for voice: AudioStreamPlayer2D in _voices:
+		voice.stop()
+		voice.stream_paused = false
+		voice.set_meta(&"priority", 0)
+		voice.set_meta(&"started_msec", 0)
+	_cooldowns.clear()
+	warning_play_count = 0
+	impact_play_count = 0
+	pulse_play_count = 0
+	chain_play_count = 0
+	recycle_count = 0
+	drop_count = 0
+	last_hazard_id = &""
+	last_phase = &""
+
+
+func voice_count() -> int:
+	return _voices.size()
+
+
+func active_voice_count() -> int:
+	var count: int = 0
+	for voice: AudioStreamPlayer2D in _voices:
+		count += 1 if voice.playing else 0
+	return count
+
+
+func stream_for(hazard_id: StringName) -> AudioStream:
+	return _streams.get(hazard_id) as AudioStream
+
+
+func _play(
+	phase: StringName,
+	hazard_id: StringName,
+	stream: AudioStream,
+	origin: Vector2,
+	gain_db: float,
+	pitch: float,
+	priority: int,
+	retrigger_ms: int,
+	force_play: bool
+) -> AudioStreamPlayer2D:
+	if stream == null or _voices.is_empty():
+		return null
+	var cooldown_key: StringName = StringName("%s:%s" % [hazard_id, phase])
+	var now_msec: int = Time.get_ticks_msec()
+	if not force_play and now_msec < _cooldowns.get(cooldown_key, 0):
+		return null
+	var voice: AudioStreamPlayer2D = _acquire_voice(priority)
+	if voice == null:
+		drop_count += 1
+		return null
+	voice.stop()
+	voice.name = "%s%s" % [String(hazard_id).to_pascal_case(), String(phase).capitalize()]
+	voice.stream = stream
+	voice.global_position = origin
+	voice.volume_db = gain_db
+	voice.pitch_scale = pitch
+	voice.set_meta(&"hazard_id", hazard_id)
+	voice.set_meta(&"phase", phase)
+	voice.set_meta(&"priority", priority)
+	voice.set_meta(&"started_msec", now_msec)
+	_cooldowns[cooldown_key] = now_msec + retrigger_ms
+	last_hazard_id = hazard_id
+	last_phase = phase
+	voice.play()
+	return voice
+
+
+func _acquire_voice(priority: int) -> AudioStreamPlayer2D:
+	for voice: AudioStreamPlayer2D in _voices:
+		if not voice.playing:
+			return voice
+	var candidate: AudioStreamPlayer2D = _voices[0]
+	for voice: AudioStreamPlayer2D in _voices:
+		if _voice_precedes(voice, candidate):
+			candidate = voice
+	if int(candidate.get_meta(&"priority", 0)) > priority:
+		return null
+	recycle_count += 1
+	return candidate
+
+
+func _voice_precedes(a: AudioStreamPlayer2D, b: AudioStreamPlayer2D) -> bool:
+	var a_priority: int = int(a.get_meta(&"priority", 0))
+	var b_priority: int = int(b.get_meta(&"priority", 0))
+	if a_priority != b_priority:
+		return a_priority < b_priority
+	return int(a.get_meta(&"started_msec", 0)) < int(b.get_meta(&"started_msec", 0))

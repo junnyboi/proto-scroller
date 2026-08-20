@@ -33,6 +33,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.elite_spawn_effect_slots, 6)
 	assert_eq(snapshot.hazard_total, RuntimeBudget.HAZARD_ACTORS)
 	assert_eq(snapshot.hazard_vfx_slots, RuntimeBudget.HAZARD_VFX_SLOTS)
+	assert_eq(snapshot.hazard_audio_voices, RuntimeBudget.HAZARD_AUDIO_VOICES)
 	assert_eq(snapshot.hazard_active, 0)
 	assert_eq(snapshot.hazard_post_warm_creations, 0)
 	assert_eq(snapshot.rare_rows, 3)

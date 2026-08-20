@@ -147,6 +147,8 @@ func _begin_telegraph(event: DamageEvent) -> void:
 	_state_remaining = float(profile.telegraph)
 	current_health = 0.0
 	trigger_count += 1
+	if runtime != null:
+		runtime.resolve_telegraph(self)
 	triggered.emit(self, hazard_id)
 	queue_redraw()
 

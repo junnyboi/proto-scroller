@@ -39,9 +39,13 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 	assert_eq(EnvironmentalHazardCatalog.APEX_IDS.size(), 4)
 	var display_names: Dictionary[String, bool] = {}
 	var effect_signatures: Dictionary[String, bool] = {}
+	var audio_streams: Dictionary[String, bool] = {}
+	var audio_signatures: Dictionary[String, bool] = {}
 	for hazard_id: StringName in EnvironmentalHazardCatalog.IDS:
 		var profile: Dictionary = EnvironmentalHazardCatalog.profile(hazard_id)
+		var audio: Dictionary = EnvironmentalHazardCatalog.audio_profile(hazard_id)
 		assert_false(profile.is_empty(), hazard_id)
+		assert_false(audio.is_empty(), hazard_id)
 		assert_gt(int(profile.particles), 0, hazard_id)
 		assert_gt(float(profile.particle_lifetime), 0.0, hazard_id)
 		assert_gt((profile.shake as Vector2).length(), 0.0, hazard_id)
@@ -54,8 +58,23 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 			profile.shake_pulses,
 		]
 		effect_signatures[signature] = true
+		audio_streams[String(audio.stream)] = true
+		audio_signatures["%.1f/%.2f/%.1f/%.2f/%d/%d" % [
+			audio.warning_gain_db,
+			audio.warning_pitch,
+			audio.impact_gain_db,
+			audio.impact_pitch,
+			audio.priority,
+			audio.retrigger_ms,
+		]] = true
+		_assert_hazard_wav(load(String(audio.stream)) as AudioStreamWAV)
 	assert_eq(display_names.size(), 12)
 	assert_eq(effect_signatures.size(), 12)
+	assert_eq(audio_streams.size(), 12)
+	assert_eq(audio_signatures.size(), 12)
+	_assert_hazard_wav(HazardAudioPool.WARNING_SFX as AudioStreamWAV)
+	_assert_hazard_wav(HazardAudioPool.CHAIN_SFX as AudioStreamWAV)
+	assert_eq(runtime.audio_pool.voice_count(), RuntimeBudget.HAZARD_AUDIO_VOICES)
 
 
 func test_active_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void:
@@ -85,6 +104,9 @@ func test_active_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void
 func test_each_active_hazard_triggers_animates_and_releases_without_growth() -> void:
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
 	for hazard_id: StringName in EnvironmentalHazardCatalog.ACTIVE_IDS:
+		runtime.audio_pool.reset_all()
+		var warning_count: int = runtime.audio_pool.warning_play_count
+		var impact_audio_count: int = runtime.audio_pool.impact_play_count
 		var actor: EnvironmentalHazard2D = runtime.activate(
 			hazard_id,
 			Vector2(820.0, CitySlice.LAND_VISUAL_BASELINE_Y),
@@ -100,6 +122,8 @@ func test_each_active_hazard_triggers_animates_and_releases_without_growth() -> 
 			400.0
 		)), hazard_id)
 		assert_eq(actor.state, EnvironmentalHazard2D.STATE_TELEGRAPH, hazard_id)
+		assert_eq(runtime.audio_pool.warning_play_count, warning_count + 1, hazard_id)
+		assert_eq(runtime.audio_pool.last_phase, &"warning", hazard_id)
 		var before_transform: Transform2D = actor.visual.transform
 		actor._process(float(actor.profile.telegraph) + 0.01)
 		assert_eq(actor.state, EnvironmentalHazard2D.STATE_ACTIVE, hazard_id)
@@ -108,6 +132,8 @@ func test_each_active_hazard_triggers_animates_and_releases_without_growth() -> 
 		assert_eq(actor.last_root_attack_id, 101, hazard_id)
 		assert_eq(runtime.last_hazard_id, hazard_id, hazard_id)
 		assert_gt(runtime.vfx_pool.play_count, 0, hazard_id)
+		assert_eq(runtime.audio_pool.impact_play_count, impact_audio_count + 1, hazard_id)
+		assert_eq(runtime.audio_pool.last_hazard_id, hazard_id, hazard_id)
 		actor._process(float(actor.profile.active) + 0.01)
 		actor._process(float(actor.profile.aftermath) + 0.01)
 		assert_false(actor.active, hazard_id)
@@ -187,6 +213,8 @@ func test_apex_pair_propagates_one_bounded_causal_chain() -> void:
 	assert_eq(runtime.last_chain_target, &"ammo_convoy")
 	assert_eq(target.state, EnvironmentalHazard2D.STATE_TELEGRAPH)
 	assert_eq(target.last_root_attack_id, 505)
+	assert_eq(runtime.audio_pool.chain_play_count, 1)
+	assert_eq(runtime.audio_pool.last_phase, &"chain")
 	target._process(float(target.profile.telegraph) + 0.01)
 	assert_eq(target.state, EnvironmentalHazard2D.STATE_ACTIVE)
 	assert_eq(runtime.impact_count, 2)
@@ -199,10 +227,14 @@ func test_modal_pause_freezes_and_restores_hazard_processing() -> void:
 		1
 	)
 	assert_not_null(actor)
+	actor.receive_damage(DamageEvent.new(404, city.robot, 80.0))
+	assert_gt(runtime.audio_pool.active_voice_count(), 0)
 	var token: int = city.urban_siege.pause_coordinator.acquire(&"hazard_test")
 	assert_eq(runtime.process_mode, Node.PROCESS_MODE_DISABLED)
+	assert_true(runtime.audio_pool.is_paused())
 	city.urban_siege.pause_coordinator.release(token)
 	assert_eq(runtime.process_mode, Node.PROCESS_MODE_INHERIT)
+	assert_false(runtime.audio_pool.is_paused())
 
 
 func test_hazard_damage_hits_both_sides_with_lower_player_damage() -> void:
@@ -317,3 +349,10 @@ func _pressure_trace(
 				"plan": plan,
 			})
 	return trace
+
+
+func _assert_hazard_wav(stream: AudioStreamWAV) -> void:
+	assert_not_null(stream)
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_eq(stream.mix_rate, 48000)
+	assert_false(stream.stereo)

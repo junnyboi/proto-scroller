@@ -68,6 +68,7 @@ const DODGE_COOLDOWN_INDICATORS: int = 1
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
 const HAZARD_ACTORS: int = 12
 const HAZARD_VFX_SLOTS: int = 16
+const HAZARD_AUDIO_VOICES: int = 6
 const ACTIVE_HAZARDS: int = 6
 const PENDING_HAZARDS: int = 3
 const HAZARD_PRESSURE: int = 10
@@ -116,6 +117,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"hazard_active": city.urban_siege.hazards.active_count(),
 		"hazard_post_warm_creations": city.urban_siege.hazards.post_warm_creation_count,
 		"hazard_vfx_slots": city.urban_siege.hazards.vfx_pool.slot_count(),
+		"hazard_audio_voices": city.urban_siege.hazards.audio_pool.voice_count(),
 		"hazard_pending_peak": city.urban_siege.director.peak_hazard_pending,
 		"hazard_pressure_peak": city.urban_siege.hazard_pressure.peak_used_budget,
 		"telegraph_active": city.telegraph_presenter.active_count(),
@@ -220,6 +222,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	)
 	_check_equal(errors, data, "hazard_total", HAZARD_ACTORS)
 	_check_equal(errors, data, "hazard_vfx_slots", HAZARD_VFX_SLOTS)
+	_check_equal(errors, data, "hazard_audio_voices", HAZARD_AUDIO_VOICES)
 	_check_equal(errors, data, "hazard_post_warm_creations", 0)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)

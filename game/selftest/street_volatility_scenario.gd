@@ -129,6 +129,31 @@ func _run() -> void:
 		"impacts=%d" % city.urban_siege.hazards.impact_count
 	)
 	_check(
+		"all_hazard_warnings_sound",
+		city.urban_siege.hazards.audio_pool.warning_play_count == 4,
+		"warnings=%d" % city.urban_siege.hazards.audio_pool.warning_play_count
+	)
+	_check(
+		"all_primary_impacts_sound",
+		city.urban_siege.hazards.audio_pool.impact_play_count >= 4,
+		"impacts=%d" % city.urban_siege.hazards.audio_pool.impact_play_count
+	)
+	_check(
+		"both_chain_stingers_sound",
+		city.urban_siege.hazards.audio_pool.chain_play_count == 2,
+		"chains=%d" % city.urban_siege.hazards.audio_pool.chain_play_count
+	)
+	_check(
+		"hazard_audio_voice_cap_holds",
+		city.urban_siege.hazards.audio_pool.active_voice_count()
+		<= RuntimeBudget.HAZARD_AUDIO_VOICES,
+		"active=%d cap=%d"
+		% [
+			city.urban_siege.hazards.audio_pool.active_voice_count(),
+			RuntimeBudget.HAZARD_AUDIO_VOICES,
+		]
+	)
+	_check(
 		"custom_vfx_active",
 		city.urban_siege.hazards.vfx_pool.active_count() >= 4,
 		"active=%d" % city.urban_siege.hazards.vfx_pool.active_count()
@@ -172,6 +197,11 @@ func _run() -> void:
 			city.urban_siege.hazards.active_count(),
 			city.urban_siege.hazards.vfx_pool.active_count(),
 		]
+	)
+	_check(
+		"hazard_audio_releases_cleanly",
+		city.urban_siege.hazards.audio_pool.active_voice_count() == 0,
+		"active=%d" % city.urban_siege.hazards.audio_pool.active_voice_count()
 	)
 	var cap_errors: PackedStringArray = RuntimeBudget.validation_errors(city)
 	_check("runtime_caps_hold", cap_errors.is_empty(), "errors=%s" % cap_errors)

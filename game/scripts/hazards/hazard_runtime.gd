@@ -10,12 +10,14 @@ const HAZARD_SCRIPT: Script = preload(
 	"res://scripts/hazards/environmental_hazard_2d.gd"
 )
 const VFX_SCRIPT: Script = preload("res://scripts/hazards/hazard_vfx_pool.gd")
+const AUDIO_SCRIPT: Script = preload("res://scripts/hazards/hazard_audio_pool.gd")
 const BASE_ATTACK_ID: int = 2_400_000
 const MAX_CHAIN_TARGETS_PER_IMPACT: int = 2
 
 var dependencies: UrbanSiegeDependencies
 var actors: Array[EnvironmentalHazard2D] = []
 var vfx_pool: HazardVfxPool
+var audio_pool: HazardAudioPool
 var post_warm_creation_count: int = 0
 var activation_count: int = 0
 var impact_count: int = 0
@@ -35,6 +37,9 @@ func _ready() -> void:
 	vfx_pool = VFX_SCRIPT.new() as HazardVfxPool
 	vfx_pool.name = "HazardVfxPool"
 	add_child(vfx_pool)
+	audio_pool = AUDIO_SCRIPT.new() as HazardAudioPool
+	audio_pool.name = "HazardAudioPool"
+	add_child(audio_pool)
 	for hazard_id: StringName in EnvironmentalHazardCatalog.ACTIVE_IDS:
 		var actor: EnvironmentalHazard2D = _build_actor(hazard_id)
 		add_child(actor)
@@ -73,6 +78,12 @@ func activate(
 	return actor
 
 
+func resolve_telegraph(hazard: EnvironmentalHazard2D) -> void:
+	if hazard == null or not hazard.active or audio_pool == null:
+		return
+	audio_pool.play_warning(hazard.hazard_id, hazard.impact_origin())
+
+
 func resolve_impact(
 	hazard: EnvironmentalHazard2D,
 	trigger_event: DamageEvent,
@@ -108,6 +119,8 @@ func resolve_impact(
 		options
 	)
 	vfx_pool.play(hazard.hazard_id, hazard.impact_origin(), direction)
+	if audio_pool != null:
+		audio_pool.play_impact(hazard.hazard_id, hazard.impact_origin(), primary)
 	_apply_screen_shake(hazard, primary)
 	impact_count += 1
 	if primary:
@@ -128,11 +141,18 @@ func release_all() -> void:
 		actor.reset_hazard()
 	if vfx_pool != null:
 		vfx_pool.reset_all()
+	if audio_pool != null:
+		audio_pool.reset_all()
 	if dependencies != null and dependencies.destruction_director != null:
 		dependencies.destruction_director.cancel_effect_flags(DamageEvent.FLAG_HAZARD)
 	chain_trigger_count = 0
 	last_chain_source = &""
 	last_chain_target = &""
+
+
+func set_paused(paused: bool) -> void:
+	if audio_pool != null:
+		audio_pool.set_paused(paused)
 
 
 func actor_for(hazard_id: StringName) -> EnvironmentalHazard2D:
@@ -233,6 +253,13 @@ func _propagate_chain(
 		chained += 1
 		last_chain_source = source.hazard_id
 		last_chain_target = target_id
+		if audio_pool != null:
+			audio_pool.play_chain(
+				source.hazard_id,
+				target_id,
+				target.global_position,
+				causal_depth + 1
+			)
 		hazard_chained.emit(source.hazard_id, target_id, causal_depth + 1)
 		if chained >= MAX_CHAIN_TARGETS_PER_IMPACT:
 			break

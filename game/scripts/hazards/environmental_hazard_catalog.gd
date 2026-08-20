@@ -20,6 +20,92 @@ const ACTIVE_IDS: Array[StringName] = [
 	&"crane_drop", &"gas_fireline", &"facade_shear", &"metro_vent",
 	&"metro_car", &"flooded_lane", &"skybridge", &"ammo_convoy",
 ]
+const AUDIO_PROFILES: Dictionary = {
+	&"traffic_signal": {
+		"stream": "res://audio/sfx/hazards/traffic_signal.wav",
+		"warning_gain_db": -12.0, "warning_pitch": 0.88,
+		"impact_gain_db": -3.0, "impact_pitch": 0.90,
+		"pulse_gain_db": -13.0, "pulse_pitch": 0.96,
+		"priority": 7, "retrigger_ms": 720,
+	},
+	&"steam_main": {
+		"stream": "res://audio/sfx/hazards/steam_main.wav",
+		"warning_gain_db": -14.0, "warning_pitch": 1.16,
+		"impact_gain_db": -6.0, "impact_pitch": 1.08,
+		"pulse_gain_db": -14.0, "pulse_pitch": 1.18,
+		"priority": 4, "retrigger_ms": 520,
+	},
+	&"powerline": {
+		"stream": "res://audio/sfx/hazards/powerline.wav",
+		"warning_gain_db": -13.0, "warning_pitch": 1.28,
+		"impact_gain_db": -5.0, "impact_pitch": 1.18,
+		"pulse_gain_db": -13.0, "pulse_pitch": 1.32,
+		"priority": 6, "retrigger_ms": 480,
+	},
+	&"road_plate": {
+		"stream": "res://audio/sfx/hazards/road_plate.wav",
+		"warning_gain_db": -12.0, "warning_pitch": 0.96,
+		"impact_gain_db": -4.0, "impact_pitch": 1.04,
+		"pulse_gain_db": -14.0, "pulse_pitch": 1.08,
+		"priority": 6, "retrigger_ms": 700,
+	},
+	&"crane_drop": {
+		"stream": "res://audio/sfx/hazards/crane_drop.wav",
+		"warning_gain_db": -9.0, "warning_pitch": 0.72,
+		"impact_gain_db": -2.0, "impact_pitch": 0.78,
+		"pulse_gain_db": -12.0, "pulse_pitch": 0.82,
+		"priority": 8, "retrigger_ms": 900,
+	},
+	&"gas_fireline": {
+		"stream": "res://audio/sfx/hazards/gas_fireline.wav",
+		"warning_gain_db": -12.0, "warning_pitch": 1.08,
+		"impact_gain_db": -5.0, "impact_pitch": 0.94,
+		"pulse_gain_db": -13.0, "pulse_pitch": 1.02,
+		"priority": 6, "retrigger_ms": 520,
+	},
+	&"facade_shear": {
+		"stream": "res://audio/sfx/hazards/facade_shear.wav",
+		"warning_gain_db": -9.0, "warning_pitch": 0.76,
+		"impact_gain_db": -2.5, "impact_pitch": 0.82,
+		"pulse_gain_db": -12.0, "pulse_pitch": 0.86,
+		"priority": 8, "retrigger_ms": 900,
+	},
+	&"metro_vent": {
+		"stream": "res://audio/sfx/hazards/metro_vent.wav",
+		"warning_gain_db": -13.0, "warning_pitch": 1.12,
+		"impact_gain_db": -6.0, "impact_pitch": 1.08,
+		"pulse_gain_db": -14.0, "pulse_pitch": 1.14,
+		"priority": 5, "retrigger_ms": 480,
+	},
+	&"metro_car": {
+		"stream": "res://audio/sfx/hazards/metro_car.wav",
+		"warning_gain_db": -8.0, "warning_pitch": 0.68,
+		"impact_gain_db": -1.0, "impact_pitch": 0.74,
+		"pulse_gain_db": -11.0, "pulse_pitch": 0.78,
+		"priority": 9, "retrigger_ms": 1000,
+	},
+	&"flooded_lane": {
+		"stream": "res://audio/sfx/hazards/flooded_lane.wav",
+		"warning_gain_db": -11.0, "warning_pitch": 1.28,
+		"impact_gain_db": -5.0, "impact_pitch": 1.20,
+		"pulse_gain_db": -12.0, "pulse_pitch": 1.30,
+		"priority": 7, "retrigger_ms": 450,
+	},
+	&"skybridge": {
+		"stream": "res://audio/sfx/hazards/skybridge.wav",
+		"warning_gain_db": -7.0, "warning_pitch": 0.62,
+		"impact_gain_db": -1.0, "impact_pitch": 0.68,
+		"pulse_gain_db": -10.0, "pulse_pitch": 0.72,
+		"priority": 10, "retrigger_ms": 1000,
+	},
+	&"ammo_convoy": {
+		"stream": "res://audio/sfx/hazards/ammo_convoy.wav",
+		"warning_gain_db": -9.0, "warning_pitch": 1.06,
+		"impact_gain_db": -1.5, "impact_pitch": 0.90,
+		"pulse_gain_db": -8.0, "pulse_pitch": 0.94,
+		"priority": 9, "retrigger_ms": 420,
+	},
+}
 const PROFILES: Dictionary = {
 	&"traffic_signal": {
 		"display_name": "TRAFFIC SIGNAL KILLZONE", "cost": 1,
@@ -198,6 +284,10 @@ static func pressure_cost(hazard_id: StringName) -> int:
 	return int(profile(hazard_id).get("cost", 0))
 
 
+static func audio_profile(hazard_id: StringName) -> Dictionary:
+	return AUDIO_PROFILES.get(hazard_id, {})
+
+
 static func mvp_profiles_valid() -> bool:
 	for hazard_id: StringName in MVP_IDS:
 		var item: Dictionary = profile(hazard_id)
@@ -214,5 +304,8 @@ static func active_profiles_valid() -> bool:
 		if not item.has("display") or not item.has("collision"):
 			return false
 		if not item.has("radius") or not item.has("enemy_damage"):
+			return false
+		var audio: Dictionary = audio_profile(hazard_id)
+		if audio.is_empty() or not audio.has("stream") or not audio.has("priority"):
 			return false
 	return true
