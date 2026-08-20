@@ -59,52 +59,70 @@ func _run() -> void:
 	_check("mixed_enemies_present", enemy_count == enemies.size(), "count=%d" % enemy_count)
 	var placements: Array[Dictionary] = [
 		{
-			"id": &"crane_drop",
-			"position": Vector2(920.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+			"id": &"skybridge",
+			"position": Vector2(1070.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": 1,
+			"source": true,
 		},
 		{
-			"id": &"gas_fireline",
-			"position": Vector2(1150.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+			"id": &"flooded_lane",
+			"position": Vector2(1230.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": 1,
+			"source": false,
 		},
 		{
-			"id": &"metro_vent",
-			"position": Vector2(1480.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+			"id": &"metro_car",
+			"position": Vector2(1510.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": -1,
+			"source": true,
 		},
 		{
-			"id": &"facade_shear",
-			"position": Vector2(1740.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+			"id": &"ammo_convoy",
+			"position": Vector2(1670.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": -1,
+			"source": false,
 		},
 	]
 	var hazards: Array[EnvironmentalHazard2D] = []
+	var sources: Array[EnvironmentalHazard2D] = []
 	for item: Dictionary in placements:
 		var hazard: EnvironmentalHazard2D = city.urban_siege.hazards.activate(
 			item.id,
 			item.position,
-			item.facing
+			item.facing,
+			false
 		)
 		_check("%s_acquires" % item.id, hazard != null, "active=%s" % [hazard != null])
 		if hazard == null:
 			continue
 		hazards.append(hazard)
-		hazard.receive_damage(DamageEvent.new(
-			700 + hazards.size(),
+		if bool(item.source):
+			sources.append(hazard)
+	for source_index: int in range(sources.size()):
+		var source: EnvironmentalHazard2D = sources[source_index]
+		source.receive_damage(DamageEvent.new(
+			701 + source_index,
 			city.robot,
 			80.0,
 			&"ground_smash",
-			hazard.global_position,
-			Vector2(float(item.facing), -0.2),
+			source.global_position,
+			Vector2(float(source.facing), -0.2),
 			520.0
 		))
-		hazard._process(float(hazard.profile.telegraph) + 0.01)
+		source._process(float(source.profile.telegraph) + 0.01)
+	for hazard: EnvironmentalHazard2D in hazards:
+		if hazard.state == EnvironmentalHazard2D.STATE_TELEGRAPH:
+			hazard._process(float(hazard.profile.telegraph) + 0.01)
 	await physics_frame
 	city.destruction_director._physics_process(0.016)
 	for frame_index: int in range(12):
 		await process_frame
-	_check("second_tier_active", hazards.size() == 4, "count=%d" % hazards.size())
+	_check("apex_tier_active", hazards.size() == 4, "count=%d" % hazards.size())
+	_check(
+		"cross_hazard_chains_fire",
+		city.urban_siege.hazards.chain_trigger_count == 2,
+		"chains=%d" % city.urban_siege.hazards.chain_trigger_count
+	)
 	_check(
 		"all_hazards_impact",
 		city.urban_siege.hazards.impact_count >= 4,

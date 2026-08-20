@@ -550,8 +550,8 @@ spawn_stagger_seconds = 0.1
 spawn_jitter_seconds = 0.22
 mirrored_flank_chance = 0.5
 elite_units_per_beat = 2
-hazard_pressure_budget = 5
-hazard_events_per_beat = 2
+hazard_pressure_budget = 10
+hazard_events_per_beat = 3
 
 [resource]
 script = ExtResource("1")

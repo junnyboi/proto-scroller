@@ -28,6 +28,7 @@ var _activation_event: DamageEvent
 var _visual_tween: Tween
 var _phase: float = 0.0
 var _rest_visual_position: Vector2 = Vector2.ZERO
+var _auto_trigger: bool = true
 
 @onready var visual: Sprite2D = get_node(^"Visual") as Sprite2D
 @onready var collision_shape: CollisionShape2D = (
@@ -42,7 +43,7 @@ func _process(delta: float) -> void:
 	_state_remaining = maxf(_state_remaining - delta, 0.0)
 	match state:
 		STATE_ARMED:
-			if is_zero_approx(_state_remaining):
+			if _auto_trigger and is_zero_approx(_state_remaining):
 				_begin_telegraph(null)
 		STATE_TELEGRAPH:
 			queue_redraw()
@@ -61,7 +62,8 @@ func activate(
 	p_hazard_id: StringName,
 	p_profile: Dictionary,
 	world_position: Vector2,
-	p_facing: int = 1
+	p_facing: int = 1,
+	p_auto_trigger: bool = true
 ) -> void:
 	hazard_id = p_hazard_id
 	profile = p_profile
@@ -69,6 +71,7 @@ func activate(
 	facing = 1 if p_facing >= 0 else -1
 	active = true
 	state = STATE_ARMED
+	_auto_trigger = p_auto_trigger
 	current_health = 45.0
 	_state_remaining = AUTO_TRIGGER_DELAY
 	_pulse_remaining = 0.0
@@ -116,17 +119,23 @@ func receive_damage(event: DamageEvent) -> bool:
 
 
 func impact_origin() -> Vector2:
+	var offset: Vector2 = Vector2(0.0, -16.0)
 	match StringName(profile.get("behavior", &"")):
 		&"collapse":
-			return global_position + Vector2(150.0 * float(facing), -24.0)
+			offset = Vector2(150.0 * float(facing), -24.0)
 		&"electric":
-			return global_position + Vector2(72.0 * float(facing), -12.0)
+			offset = Vector2(72.0 * float(facing), -12.0)
 		&"fireline":
-			return global_position + Vector2(90.0 * float(facing), -12.0)
+			offset = Vector2(90.0 * float(facing), -12.0)
 		&"shear":
-			return global_position + Vector2(82.0 * float(facing), -28.0)
-		_:
-			return global_position + Vector2(0.0, -16.0)
+			offset = Vector2(82.0 * float(facing), -28.0)
+		&"metro_crash":
+			offset = Vector2(90.0 * float(facing), -34.0)
+		&"skybridge":
+			offset = Vector2(0.0, -42.0)
+		&"convoy":
+			offset = Vector2(110.0 * float(facing), -20.0)
+	return global_position + offset
 
 
 func _begin_telegraph(event: DamageEvent) -> void:
@@ -157,7 +166,7 @@ func _begin_impact() -> void:
 
 func _process_active_pulses(delta: float) -> void:
 	var behavior: StringName = StringName(profile.behavior)
-	if behavior not in [&"steam", &"electric", &"fireline", &"vent"]:
+	if behavior not in [&"steam", &"electric", &"fireline", &"vent", &"flood", &"convoy"]:
 		return
 	_pulse_remaining = maxf(_pulse_remaining - delta, 0.0)
 	if not is_zero_approx(_pulse_remaining):
@@ -169,7 +178,7 @@ func _process_active_pulses(delta: float) -> void:
 
 
 func _pulse_interval(behavior: StringName) -> float:
-	if behavior not in [&"steam", &"electric", &"fireline", &"vent"]:
+	if behavior not in [&"steam", &"electric", &"fireline", &"vent", &"flood", &"convoy"]:
 		return 0.0
 	var fallback_interval: float = 0.36 if behavior == &"steam" else 0.48
 	return float(profile.get("pulse_interval", fallback_interval))
@@ -199,6 +208,10 @@ func _configure_geometry() -> void:
 		visual.position.y -= 250.0
 	elif behavior == &"shear":
 		visual.position.x = 42.0 * float(facing)
+	elif behavior == &"metro_crash":
+		visual.position += Vector2(-display.x * 0.78 * float(facing), -125.0)
+	elif behavior == &"skybridge":
+		visual.position.y -= 285.0
 	_rest_visual_position = visual.position
 	var rectangle: RectangleShape2D = collision_shape.shape as RectangleShape2D
 	if rectangle != null:
@@ -262,6 +275,63 @@ func _play_procedural_animation() -> void:
 				0.08
 			)
 			_visual_tween.tween_property(visual, "position:y", _rest_visual_position.y, 0.10)
+		&"metro_crash":
+			_visual_tween.set_parallel(true)
+			_visual_tween.tween_property(
+				visual,
+				"position:x",
+				_rest_visual_position.x + 420.0 * float(facing),
+				0.62
+			)
+			_visual_tween.tween_property(
+				visual,
+				"position:y",
+				_rest_visual_position.y + 125.0,
+				0.62
+			)
+			_visual_tween.tween_property(visual, "rotation", float(facing) * 0.22, 0.62)
+			_visual_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		&"flood":
+			_visual_tween.set_loops(6)
+			_visual_tween.set_parallel(true)
+			_visual_tween.tween_property(visual, "modulate", Color("bdefff"), 0.08)
+			_visual_tween.tween_property(
+				visual,
+				"position:y",
+				_rest_visual_position.y - 3.0,
+				0.08
+			)
+			_visual_tween.chain().tween_property(visual, "modulate", Color.WHITE, 0.12)
+			_visual_tween.tween_property(
+				visual,
+				"position:y",
+				_rest_visual_position.y,
+				0.12
+			)
+		&"skybridge":
+			_visual_tween.set_parallel(true)
+			_visual_tween.tween_property(
+				visual,
+				"position:y",
+				_rest_visual_position.y + 285.0,
+				0.58
+			)
+			_visual_tween.tween_property(visual, "rotation", -float(facing) * 0.18, 0.58)
+			_visual_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		&"convoy":
+			_visual_tween.set_loops(6)
+			_visual_tween.tween_property(
+				visual,
+				"position:x",
+				_rest_visual_position.x + 9.0 * float(facing),
+				0.08
+			)
+			_visual_tween.tween_property(
+				visual,
+				"position:x",
+				_rest_visual_position.x - 7.0 * float(facing),
+				0.10
+			)
 
 
 func _cancel_visual_tween() -> void:
@@ -286,9 +356,13 @@ func _draw() -> void:
 		draw_line(Vector2(-radius, 18.0), Vector2(radius, 18.0), warning_color, 4.0)
 	elif state == STATE_ACTIVE:
 		var behavior: StringName = StringName(profile.behavior)
-		if behavior in [&"steam", &"electric", &"fireline", &"vent"]:
+		if behavior in [&"steam", &"electric", &"fireline", &"vent", &"flood", &"convoy"]:
 			var active_color: Color = Color(impact_color, 0.20 + 0.08 * sin(_phase * 24.0))
-			var band_height: float = 68.0 if behavior == &"fireline" else 40.0
+			var band_height: float = 40.0
+			if behavior in [&"fireline", &"convoy"]:
+				band_height = 68.0
+			elif behavior == &"flood":
+				band_height = 54.0
 			draw_rect(
 				Rect2(-radius, -band_height * 0.5, radius * 2.0, band_height),
 				active_color,

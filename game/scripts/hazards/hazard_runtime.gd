@@ -4,12 +4,14 @@ extends Node2D
 signal hazard_activated(hazard_id: StringName, world_position: Vector2)
 signal hazard_triggered(hazard_id: StringName, world_position: Vector2)
 signal hazard_released(hazard_id: StringName)
+signal hazard_chained(source_id: StringName, target_id: StringName, causal_depth: int)
 
 const HAZARD_SCRIPT: Script = preload(
 	"res://scripts/hazards/environmental_hazard_2d.gd"
 )
 const VFX_SCRIPT: Script = preload("res://scripts/hazards/hazard_vfx_pool.gd")
 const BASE_ATTACK_ID: int = 2_400_000
+const MAX_CHAIN_TARGETS_PER_IMPACT: int = 2
 
 var dependencies: UrbanSiegeDependencies
 var actors: Array[EnvironmentalHazard2D] = []
@@ -18,7 +20,10 @@ var post_warm_creation_count: int = 0
 var activation_count: int = 0
 var impact_count: int = 0
 var recycle_count: int = 0
+var chain_trigger_count: int = 0
 var last_hazard_id: StringName = &""
+var last_chain_source: StringName = &""
+var last_chain_target: StringName = &""
 var _next_attack_id: int = BASE_ATTACK_ID
 
 
@@ -40,7 +45,8 @@ func _ready() -> void:
 func activate(
 	hazard_id: StringName,
 	world_position: Vector2,
-	facing: int = 1
+	facing: int = 1,
+	auto_trigger: bool = true
 ) -> EnvironmentalHazard2D:
 	if not EnvironmentalHazardCatalog.ACTIVE_IDS.has(hazard_id):
 		return null
@@ -58,7 +64,8 @@ func activate(
 		hazard_id,
 		EnvironmentalHazardCatalog.profile(hazard_id),
 		position_value,
-		facing
+		facing,
+		auto_trigger
 	)
 	activation_count += 1
 	last_hazard_id = hazard_id
@@ -105,6 +112,7 @@ func resolve_impact(
 	impact_count += 1
 	if primary:
 		hazard_triggered.emit(hazard.hazard_id, hazard.impact_origin())
+		_propagate_chain(hazard, attack_id, root_attack_id, causal_depth)
 
 
 func release(hazard: EnvironmentalHazard2D) -> void:
@@ -122,6 +130,9 @@ func release_all() -> void:
 		vfx_pool.reset_all()
 	if dependencies != null and dependencies.destruction_director != null:
 		dependencies.destruction_director.cancel_effect_flags(DamageEvent.FLAG_HAZARD)
+	chain_trigger_count = 0
+	last_chain_source = &""
+	last_chain_target = &""
 
 
 func actor_for(hazard_id: StringName) -> EnvironmentalHazard2D:
@@ -174,7 +185,57 @@ func _impact_direction(hazard: EnvironmentalHazard2D) -> Vector2:
 			result = Vector2(float(hazard.facing), -0.16)
 		&"vent":
 			result = Vector2(float(hazard.facing) * 0.12, -1.0)
+		&"metro_crash":
+			result = Vector2(float(hazard.facing), -0.34)
+		&"flood":
+			result = Vector2(float(hazard.facing) * 0.10, -0.22)
+		&"skybridge":
+			result = Vector2(float(hazard.facing) * 0.10, 1.0)
+		&"convoy":
+			result = Vector2(float(hazard.facing), -0.64)
 	return result.normalized()
+
+
+func _propagate_chain(
+	source: EnvironmentalHazard2D,
+	attack_id: int,
+	root_attack_id: int,
+	causal_depth: int
+) -> void:
+	if causal_depth >= DamageEvent.MAX_CAUSAL_DEPTH:
+		return
+	var targets: Array = source.profile.get("chain_targets", []) as Array
+	var chain_radius: float = float(source.profile.get("chain_radius", 0.0))
+	var chained: int = 0
+	for target_id_value: Variant in targets:
+		var target_id: StringName = StringName(target_id_value)
+		var target: EnvironmentalHazard2D = actor_for(target_id)
+		if target == null or not target.active or target.state != EnvironmentalHazard2D.STATE_ARMED:
+			continue
+		if source.global_position.distance_to(target.global_position) > chain_radius:
+			continue
+		var direction: Vector2 = target.global_position - source.global_position
+		var chain_event: DamageEvent = DamageEvent.new(
+			attack_id,
+			source,
+			999.0,
+			&"hazard_chain",
+			target.global_position,
+			direction,
+			float(source.profile.impulse),
+			root_attack_id,
+			causal_depth,
+			DamageEvent.FLAG_HAZARD
+		)
+		if not target.receive_damage(chain_event):
+			continue
+		chain_trigger_count += 1
+		chained += 1
+		last_chain_source = source.hazard_id
+		last_chain_target = target_id
+		hazard_chained.emit(source.hazard_id, target_id, causal_depth + 1)
+		if chained >= MAX_CHAIN_TARGETS_PER_IMPACT:
+			break
 
 
 func _apply_screen_shake(hazard: EnvironmentalHazard2D, primary: bool) -> void:

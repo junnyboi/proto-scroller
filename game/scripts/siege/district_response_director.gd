@@ -303,7 +303,8 @@ func _process_hazard_pending(delta: float) -> void:
 		if hazard_runtime.activate(
 			StringName(record.hazard_id),
 			record.position as Vector2,
-			int(record.facing)
+			int(record.facing),
+			bool(record.get("auto_trigger", true))
 		) == null:
 			continue
 		_hazard_pending.remove_at(index)

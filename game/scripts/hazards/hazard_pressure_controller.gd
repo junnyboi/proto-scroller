@@ -4,6 +4,13 @@ extends RefCounted
 const SYSTEM_SALT: int = 0x48A2A4D
 const MINIMUM_DISTANCE: float = 300.0
 const MAXIMUM_DISTANCE: float = 520.0
+const APEX_PAIRS: Array[Array] = [
+	[&"skybridge", &"flooded_lane"],
+	[&"metro_car", &"ammo_convoy"],
+	[&"flooded_lane", &"metro_car"],
+	[&"ammo_convoy", &"skybridge"],
+]
+const CHAIN_PAIR_SPACING: float = 160.0
 
 var runtime: HazardRuntime
 var assignments: Array[Dictionary] = []
@@ -54,7 +61,37 @@ func plan_for_beat(
 	for actor: EnvironmentalHazard2D in runtime.actors:
 		if actor.active:
 			candidates.erase(StringName(actor.get_meta(&"pool_hazard_id", &"")))
-	for event_index: int in range(act.hazard_events_per_beat):
+	if act_index == 4:
+		var tier2_id: StringName = (
+			EnvironmentalHazardCatalog.TIER2_IDS[
+				beat_index % EnvironmentalHazardCatalog.TIER2_IDS.size()
+			]
+		)
+		if candidates.has(tier2_id):
+			var side: int = -1 if beat_index % 2 == 0 else 1
+			var world_x: float = clampf(robot_x + float(side) * 390.0, 140.0, 2420.0)
+			var record: Dictionary = {
+				"hazard_id": tier2_id,
+				"remaining": 0.55,
+				"position": Vector2(world_x, CitySlice.LAND_VISUAL_BASELINE_Y),
+				"facing": -side,
+				"cost": EnvironmentalHazardCatalog.pressure_cost(tier2_id),
+				"act_index": act_index,
+				"beat_index": beat_index,
+				"beat_id": beat.beat_id,
+			}
+			plan.append(record)
+			assignments.append(record.duplicate())
+			last_used_budget += int(record.cost)
+			candidates.erase(tier2_id)
+	elif act_index >= 5 and act.hazard_events_per_beat >= 2:
+		var pair_plan: Array[Dictionary] = _plan_apex_pair(beat_index, act, robot_x)
+		for record: Dictionary in pair_plan:
+			plan.append(record)
+			assignments.append(record.duplicate())
+			last_used_budget += int(record.cost)
+			candidates.erase(StringName(record.hazard_id))
+	for event_index: int in range(plan.size(), act.hazard_events_per_beat):
 		var affordable: Array[StringName] = []
 		for hazard_id: StringName in candidates:
 			var candidate_cost: int = EnvironmentalHazardCatalog.pressure_cost(hazard_id)
@@ -89,12 +126,63 @@ func plan_for_beat(
 	return plan
 
 
+func _plan_apex_pair(
+	beat_index: int,
+	act: DistrictAct,
+	robot_x: float
+) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var pair: Array = APEX_PAIRS[beat_index % APEX_PAIRS.size()]
+	var source_id: StringName = StringName(pair[0])
+	var target_id: StringName = StringName(pair[1])
+	var pair_cost: int = (
+		EnvironmentalHazardCatalog.pressure_cost(source_id)
+		+ EnvironmentalHazardCatalog.pressure_cost(target_id)
+	)
+	if pair_cost > act.hazard_pressure_budget:
+		return result
+	var side: int = -1 if beat_index % 2 == 0 else 1
+	var source_x: float = clampf(robot_x + float(side) * 320.0, 160.0, 2400.0)
+	var target_x: float = clampf(
+		source_x + float(side) * CHAIN_PAIR_SPACING,
+		140.0,
+		2420.0
+	)
+	var delay: float = 0.52 + _rng.randf_range(0.0, 0.18)
+	roll_count += 1
+	result.append(_record(source_id, delay, source_x, -side, beat_index, true))
+	result.append(_record(target_id, delay, target_x, side, beat_index, false))
+	return result
+
+
+func _record(
+	hazard_id: StringName,
+	delay: float,
+	world_x: float,
+	facing: int,
+	beat_index: int,
+	auto_trigger: bool
+) -> Dictionary:
+	return {
+		"hazard_id": hazard_id,
+		"remaining": delay,
+		"position": Vector2(world_x, CitySlice.LAND_VISUAL_BASELINE_Y),
+		"facing": facing,
+		"cost": EnvironmentalHazardCatalog.pressure_cost(hazard_id),
+		"act_index": 5,
+		"beat_index": beat_index,
+		"beat_id": &"APEX_CHAIN",
+		"auto_trigger": auto_trigger,
+		"chain_pair": true,
+	}
+
+
 func _eligible_ids(act_index: int) -> Array[StringName]:
 	if act_index <= 3:
 		return [&"traffic_signal", &"steam_main", &"road_plate", &"metro_vent"]
 	if act_index == 4:
 		return [
 			&"traffic_signal", &"steam_main", &"powerline", &"road_plate",
-			&"crane_drop", &"gas_fireline", &"metro_vent",
+			&"crane_drop", &"gas_fireline", &"facade_shear", &"metro_vent",
 		]
 	return EnvironmentalHazardCatalog.ACTIVE_IDS.duplicate()

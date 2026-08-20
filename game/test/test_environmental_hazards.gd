@@ -11,6 +11,10 @@ const EXPECTED_DISPLAYS: Dictionary = {
 	&"gas_fireline": Vector2(200.0, 95.0),
 	&"facade_shear": Vector2(220.0, 315.0),
 	&"metro_vent": Vector2(235.0, 70.0),
+	&"metro_car": Vector2(540.0, 230.0),
+	&"flooded_lane": Vector2(520.0, 120.0),
+	&"skybridge": Vector2(610.0, 145.0),
+	&"ammo_convoy": Vector2(620.0, 160.0),
 }
 
 var city: CitySlice
@@ -30,8 +34,9 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 	assert_eq(EnvironmentalHazardCatalog.IDS.size(), 12)
 	assert_true(EnvironmentalHazardCatalog.mvp_profiles_valid())
 	assert_true(EnvironmentalHazardCatalog.active_profiles_valid())
-	assert_eq(EnvironmentalHazardCatalog.ACTIVE_IDS.size(), 8)
+	assert_eq(EnvironmentalHazardCatalog.ACTIVE_IDS.size(), 12)
 	assert_eq(EnvironmentalHazardCatalog.TIER2_IDS.size(), 4)
+	assert_eq(EnvironmentalHazardCatalog.APEX_IDS.size(), 4)
 	var display_names: Dictionary[String, bool] = {}
 	var effect_signatures: Dictionary[String, bool] = {}
 	for hazard_id: StringName in EnvironmentalHazardCatalog.IDS:
@@ -122,10 +127,10 @@ func test_late_pressure_budget_is_seeded_bounded_and_escalating() -> void:
 	assert_ne(first_trace, alternate_trace)
 	assert_eq(DISTRICT.acts[3].hazard_pressure_budget, 2)
 	assert_eq(DISTRICT.acts[4].hazard_pressure_budget, 4)
-	assert_eq(DISTRICT.acts[5].hazard_pressure_budget, 5)
+	assert_eq(DISTRICT.acts[5].hazard_pressure_budget, 10)
 	assert_eq(DISTRICT.acts[3].hazard_events_per_beat, 1)
 	assert_eq(DISTRICT.acts[4].hazard_events_per_beat, 2)
-	assert_eq(DISTRICT.acts[5].hazard_events_per_beat, 2)
+	assert_eq(DISTRICT.acts[5].hazard_events_per_beat, 3)
 	for assignment: Dictionary in first_trace:
 		var act: DistrictAct = DISTRICT.acts[int(assignment.act_index)]
 		assert_lte(int(assignment.used_budget), act.hazard_pressure_budget)
@@ -135,7 +140,7 @@ func test_late_pressure_budget_is_seeded_bounded_and_escalating() -> void:
 	assert_does_not_have(controller._eligible_ids(3), &"crane_drop")
 	assert_has(controller._eligible_ids(4), &"crane_drop")
 	assert_has(controller._eligible_ids(4), &"gas_fireline")
-	assert_does_not_have(controller._eligible_ids(4), &"facade_shear")
+	assert_has(controller._eligible_ids(4), &"facade_shear")
 	for hazard_id: StringName in EnvironmentalHazardCatalog.TIER2_IDS:
 		assert_has(controller._eligible_ids(5), hazard_id)
 	var scheduled_tier2: Dictionary[StringName, bool] = {}
@@ -145,6 +150,46 @@ func test_late_pressure_budget_is_seeded_bounded_and_escalating() -> void:
 			if hazard_id in EnvironmentalHazardCatalog.TIER2_IDS:
 				scheduled_tier2[hazard_id] = true
 	assert_eq(scheduled_tier2.size(), EnvironmentalHazardCatalog.TIER2_IDS.size())
+	var scheduled_apex: Dictionary[StringName, bool] = {}
+	for assignment: Dictionary in first_trace:
+		for record: Dictionary in assignment.plan:
+			var hazard_id: StringName = StringName(record.hazard_id)
+			if hazard_id in EnvironmentalHazardCatalog.APEX_IDS:
+				scheduled_apex[hazard_id] = true
+	assert_eq(scheduled_apex.size(), EnvironmentalHazardCatalog.APEX_IDS.size())
+
+
+func test_apex_pair_propagates_one_bounded_causal_chain() -> void:
+	var target: EnvironmentalHazard2D = runtime.activate(
+		&"ammo_convoy",
+		Vector2(1120.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+		1,
+		false
+	)
+	var source: EnvironmentalHazard2D = runtime.activate(
+		&"metro_car",
+		Vector2(1340.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+		-1,
+		false
+	)
+	assert_not_null(source)
+	assert_not_null(target)
+	assert_true(source.receive_damage(DamageEvent.new(
+		505,
+		city.robot,
+		80.0,
+		&"ground_smash",
+		source.global_position
+	)))
+	source._process(float(source.profile.telegraph) + 0.01)
+	assert_eq(runtime.chain_trigger_count, 1)
+	assert_eq(runtime.last_chain_source, &"metro_car")
+	assert_eq(runtime.last_chain_target, &"ammo_convoy")
+	assert_eq(target.state, EnvironmentalHazard2D.STATE_TELEGRAPH)
+	assert_eq(target.last_root_attack_id, 505)
+	target._process(float(target.profile.telegraph) + 0.01)
+	assert_eq(target.state, EnvironmentalHazard2D.STATE_ACTIVE)
+	assert_eq(runtime.impact_count, 2)
 
 
 func test_modal_pause_freezes_and_restores_hazard_processing() -> void:
@@ -223,7 +268,7 @@ func test_final_chaos_beat_schedules_hazards_without_spend_or_pending_overflow()
 	director.act_elapsed = 0.0
 	director._try_start_next_beat()
 	assert_eq(director.current_beat_id(), &"COMMAND_GAUNTLET")
-	assert_between(director.hazard_pending_count(), 1, RuntimeBudget.PENDING_HAZARDS)
+	assert_between(director.hazard_pending_count(), 2, RuntimeBudget.PENDING_HAZARDS)
 	assert_lte(
 		city.urban_siege.hazard_pressure.last_used_budget,
 		DISTRICT.acts[5].hazard_pressure_budget
@@ -234,6 +279,18 @@ func test_final_chaos_beat_schedules_hazards_without_spend_or_pending_overflow()
 			HazardPressureController.MINIMUM_DISTANCE,
 			HazardPressureController.MAXIMUM_DISTANCE
 		)
+	var pair_records: Array[Dictionary] = []
+	for record: Dictionary in director._hazard_pending:
+		if bool(record.get("chain_pair", false)):
+			pair_records.append(record)
+	assert_eq(pair_records.size(), 2)
+	assert_true(bool(pair_records[0].auto_trigger) != bool(pair_records[1].auto_trigger))
+	assert_lte(
+		(pair_records[0].position as Vector2).distance_to(
+			pair_records[1].position as Vector2
+		),
+		HazardPressureController.CHAIN_PAIR_SPACING + 0.01
+	)
 
 
 func _pressure_trace(
