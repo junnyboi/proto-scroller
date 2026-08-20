@@ -17,6 +17,7 @@ var _locked_target: EnemyActor2D
 var _locked_attack_id: int = 0
 var _monitoring: bool = false
 var _voice_player: AudioStreamPlayer
+var _reticle: AirTargetReticle2D
 
 
 func setup(
@@ -28,6 +29,9 @@ func setup(
 
 
 func _ready() -> void:
+	_reticle = AirTargetReticle2D.new()
+	_reticle.name = "AirTargetReticle"
+	add_child(_reticle)
 	_voice_player = AudioStreamPlayer.new()
 	_voice_player.name = "AirTargetVoice"
 	_voice_player.volume_db = -3.0
@@ -56,6 +60,7 @@ func _process(_delta: float) -> void:
 		origin
 	):
 		_locked_target = null
+		_reticle.clear_lock()
 		_play_voice(TARGET_LOST_SFX, &"target_lost")
 		return
 	if _locked_target != null:
@@ -67,6 +72,7 @@ func _process(_delta: float) -> void:
 	if nearest == null:
 		return
 	_locked_target = nearest
+	_reticle.acquire(nearest)
 	_play_voice(TARGET_ACQUIRED_SFX, &"air_target_acquired")
 
 
@@ -76,6 +82,18 @@ func current_target() -> EnemyActor2D:
 
 func voice_player_count() -> int:
 	return 1 if _voice_player != null else 0
+
+
+func reticle_count() -> int:
+	return 1 if _reticle != null else 0
+
+
+func reticle_visible() -> bool:
+	return _reticle != null and _reticle.visible
+
+
+func reticle_target() -> EnemyActor2D:
+	return _reticle.current_target() if _reticle != null else null
 
 
 func consume_volley_target(attack_id: int) -> EnemyActor2D:
@@ -115,6 +133,8 @@ func _clear_lock() -> void:
 	_locked_attack_id = 0
 	_monitoring = false
 	set_process(false)
+	if _reticle != null:
+		_reticle.clear_lock()
 
 
 func _impact_origin() -> Vector2:

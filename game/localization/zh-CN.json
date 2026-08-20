@@ -132,7 +132,7 @@
   "upgrade.select": "选择本局升级",
   "upgrade.level": "等级 {level} 升级",
   "upgrade.choice": "选择 {current} / {total}",
-  "upgrade.rank": "阶级 {current}  →  {next} / {maximum}",
+  "upgrade.rank": "阶级 {current}  >  {next} / {maximum}",
   "upgrade.shockwave.name": "冲击波 +1",
   "upgrade.shockwave.description": "地面重击会释放持续时间更长的扩散冲击波。",
   "upgrade.missile.name": "导弹 +1",
@@ -209,10 +209,10 @@
   "material.glass": "玻璃",
   "material.steel": "钢材",
 
-  "weapon.machine_gun": "机枪",
-  "weapon.missile": "导弹",
-  "weapon.laser": "激光",
-  "weapon.flamethrower": "火焰",
+  "weapon.machine_gun": "MG",
+  "weapon.missile": "MSL",
+  "weapon.laser": "LAS",
+  "weapon.flamethrower": "FLM",
   "weapon.entry": "{label} {rank}",
   "weapon.separator": "  ·  ",
   "mobile.smash": "重击"

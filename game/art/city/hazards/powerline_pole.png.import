@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/powerline_pole.png-c44aa523093eda781df281d4b9
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

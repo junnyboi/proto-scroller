@@ -2,6 +2,12 @@ extends GutTest
 
 const TITLE_SCREEN_SCENE: PackedScene = preload("res://scenes/title_screen.tscn")
 const TEST_PREFERENCE_PATH: String = "user://test-l10n-preference.cfg"
+const INVARIANT_ABBREVIATION_KEYS: PackedStringArray = [
+	"weapon.machine_gun",
+	"weapon.missile",
+	"weapon.laser",
+	"weapon.flamethrower",
+]
 
 
 func before_each() -> void:
@@ -20,12 +26,23 @@ func test_catalogs_have_identical_keys() -> void:
 	assert_gt(english_keys.size(), 100)
 	assert_eq(chinese_keys, english_keys)
 	var english_placeholders: Dictionary[String, PackedStringArray] = {}
+	var english_values: Dictionary[String, String] = {}
 	L10n.set_locale("en")
 	for key: String in english_keys:
-		english_placeholders[key] = _placeholders(L10n.t(key))
+		var english_value: String = L10n.t(key)
+		english_values[key] = english_value
+		english_placeholders[key] = _placeholders(english_value)
 	L10n.set_locale("zh-CN")
 	for key: String in chinese_keys:
-		assert_eq(_placeholders(L10n.t(key)), english_placeholders[key], key)
+		var chinese_value: String = L10n.t(key)
+		assert_eq(_placeholders(chinese_value), english_placeholders[key], key)
+		if INVARIANT_ABBREVIATION_KEYS.has(key):
+			assert_eq(chinese_value, english_values[key], "Invariant abbreviation: %s" % key)
+		for token: String in _neutral_tokens(chinese_value):
+			assert_true(
+				english_values[key].contains(token),
+				"Neutral token changed for %s: %s" % [key, token]
+			)
 
 
 func test_named_placeholders_are_substituted() -> void:
@@ -96,6 +113,12 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 	assert_true((screen.get_node("SmashChip/Label") as Label).text.begins_with("SPACE"))
 	assert_eq((screen.get_node("%EnglishButton") as Button).text, "EN")
 	assert_true((screen.get_node("%BriefingToggle") as Button).text.contains("[TAB]"))
+	_assert_locale_font_coverage("zh-CN", title_font)
+	_assert_locale_font_coverage("en", ThemeDB.fallback_font, [&"title.language_zh_cn"])
+	var chinese_button_font: Font = (
+		(screen.get_node("%ChineseButton") as Button).get_theme_font(&"font")
+	)
+	assert_true(chinese_button_font.has_char("中".unicode_at(0)))
 
 
 func _placeholders(value: String) -> PackedStringArray:
@@ -106,3 +129,48 @@ func _placeholders(value: String) -> PackedStringArray:
 		names.append(result.get_string(1))
 	names.sort()
 	return names
+
+
+func _neutral_tokens(value: String) -> PackedStringArray:
+	var matcher: RegEx = RegEx.new()
+	matcher.compile("[A-Za-z0-9]+(?:[./:+_-][A-Za-z0-9]+)*")
+	var letter_matcher: RegEx = RegEx.new()
+	letter_matcher.compile("[A-Za-z]")
+	var tokens: PackedStringArray = []
+	for result: RegExMatch in matcher.search_all(_without_placeholders(value)):
+		var token: String = result.get_string()
+		if letter_matcher.search(token) != null:
+			tokens.append(token)
+	return tokens
+
+
+func _without_placeholders(value: String) -> String:
+	var matcher: RegEx = RegEx.new()
+	matcher.compile("\\{[a-zA-Z0-9_]+\\}")
+	return matcher.sub(value, "", true)
+
+
+func _assert_locale_font_coverage(
+	locale: String,
+	font: Font,
+	excluded_keys: Array[StringName] = []
+) -> void:
+	assert_not_null(font, "%s locale font must exist" % locale)
+	assert_true(L10n.set_locale(locale))
+	var glyph_sources: Dictionary[int, String] = {}
+	for key: String in L10n.keys_for_locale(locale):
+		if excluded_keys.has(StringName(key)):
+			continue
+		var value: String = _without_placeholders(L10n.t(key))
+		for index: int in value.length():
+			var codepoint: int = value.unicode_at(index)
+			if codepoint <= 32:
+				continue
+			glyph_sources[codepoint] = key
+	var codepoints: Array = glyph_sources.keys()
+	codepoints.sort()
+	for codepoint: int in codepoints:
+		assert_true(
+			font.has_char(codepoint),
+			"%s font missing U+%04X from %s" % [locale, codepoint, glyph_sources[codepoint]]
+		)
