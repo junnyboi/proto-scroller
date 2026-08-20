@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/steam_main_valve.png-96f2eac575503068e628464e
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
