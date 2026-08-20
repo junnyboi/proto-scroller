@@ -642,27 +642,46 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_between(acquired_stream.get_length(), 0.85, 0.93)
 	assert_between(lost_stream.get_length(), 0.65, 0.80)
 	assert_eq(city.air_target_lock_runtime.voice_player_count(), 1)
+	assert_eq(city.air_target_lock_runtime.reticle_count(), 1)
+	assert_false(city.air_target_lock_runtime.reticle_visible())
+	var lock_reticle: AirTargetReticle2D = city.air_target_lock_runtime.get_node(
+		^"AirTargetReticle"
+	) as AirTargetReticle2D
+	assert_false(lock_reticle.is_processing())
 	var attack_id: int = city.robot.request_attack()
 	var spec: AttackSpec = city.contextual_attacks.current_spec
 	assert_gt(attack_id, 0)
 	assert_true(spec.is_ground_smash())
 	assert_same(city.air_target_lock_runtime.current_target(), closest_overhead)
+	assert_true(city.air_target_lock_runtime.reticle_visible())
+	assert_same(city.air_target_lock_runtime.reticle_target(), closest_overhead)
+	assert_eq(lock_reticle.global_position, closest_overhead.global_position)
+	assert_true(lock_reticle.is_processing())
 	assert_eq(city.air_target_lock_runtime.target_acquired_play_count, 1)
 	assert_eq(city.air_target_lock_runtime.last_voice_cue, &"air_target_acquired")
 	closest_overhead.global_position = origin + Vector2(520.0, -120.0)
 	city.air_target_lock_runtime._process(0.0)
 	assert_null(city.air_target_lock_runtime.current_target())
+	assert_false(city.air_target_lock_runtime.reticle_visible())
+	assert_null(city.air_target_lock_runtime.reticle_target())
+	assert_false(lock_reticle.is_processing())
 	assert_eq(city.air_target_lock_runtime.target_lost_play_count, 1)
 	assert_eq(city.air_target_lock_runtime.last_voice_cue, &"target_lost")
 	closest_overhead.global_position = origin + Vector2(35.0, -440.0)
 	city.air_target_lock_runtime._process(0.0)
 	assert_same(city.air_target_lock_runtime.current_target(), closest_overhead)
+	assert_true(city.air_target_lock_runtime.reticle_visible())
+	assert_same(city.air_target_lock_runtime.reticle_target(), closest_overhead)
+	assert_true(lock_reticle.is_processing())
 	assert_eq(city.air_target_lock_runtime.target_acquired_play_count, 2)
 	var target_health_before: float = closest_overhead.current_health
 	var side_health_before: float = closer_side_target.current_health
 	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
 	assert_eq(city.debris_pool.active_count(), 3)
 	assert_null(city.air_target_lock_runtime.current_target())
+	assert_false(city.air_target_lock_runtime.reticle_visible())
+	assert_null(city.air_target_lock_runtime.reticle_target())
+	assert_false(lock_reticle.is_processing())
 	for launch_tick: int in range(2):
 		await get_tree().physics_frame
 		if city.debris_pool.active_bodies().any(
