@@ -8,6 +8,7 @@ const AFTERIMAGE_CAPACITY: int = 8
 const AFTERIMAGE_INTERVAL: float = 0.035
 const AFTERIMAGE_LIFETIME: float = 0.22
 const AFTERIMAGE_ALPHA: float = 0.34
+const DUST_INTERVAL: float = 0.055
 const WALK_SERVO_FRAMES: Array[int] = [2, 15]
 const WALK_CONTACT_FRAMES: Array[int] = [5, 18]
 const FOOTSTEP_SFX: AudioStream = preload(
@@ -41,6 +42,9 @@ var _afterimages: Array[Sprite2D] = []
 var _afterimage_remaining: Array[float] = []
 var _afterimage_cursor: int = 0
 var _afterimage_elapsed: float = 0.0
+var _dust_pool: DodgeDustPool2D
+var _dust_elapsed: float = 0.0
+var _dodge_facing: int = 1
 
 
 func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
@@ -55,6 +59,7 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	sprite.frame_changed.connect(_on_sprite_frame_changed)
 	_prewarm_audio()
 	_prewarm_afterimages()
+	_prewarm_dust()
 	_show_idle()
 
 
@@ -78,6 +83,14 @@ func active_afterimage_count() -> int:
 	return active_count
 
 
+func dust_slot_count() -> int:
+	return _dust_pool.slot_count() if _dust_pool != null else 0
+
+
+func active_dust_slot_count() -> int:
+	return _dust_pool.active_slot_count() if _dust_pool != null else 0
+
+
 func _process(delta: float) -> void:
 	_advance_afterimages(delta)
 	if dodging:
@@ -85,6 +98,10 @@ func _process(delta: float) -> void:
 		while _afterimage_elapsed >= AFTERIMAGE_INTERVAL:
 			_afterimage_elapsed -= AFTERIMAGE_INTERVAL
 			_spawn_afterimage()
+		_dust_elapsed += delta
+		while _dust_elapsed >= DUST_INTERVAL:
+			_dust_elapsed -= DUST_INTERVAL
+			_spawn_dodge_dust(0.82)
 	if robot == null or sprite == null or attacking:
 		return
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
@@ -148,16 +165,20 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 
 func _on_dodge_started(p_facing: int, _duration: float) -> void:
 	dodging = true
+	_dodge_facing = 1 if p_facing >= 0 else -1
 	_play_mechanics(DODGE_SERVO_SFX, &"dodge_servo", 1.5, 1.0)
 	_show_idle()
 	sprite.skew = -float(p_facing) * 0.10
 	sprite.modulate = Color(0.72, 0.94, 1.0, 0.82)
 	_afterimage_elapsed = 0.0
+	_dust_elapsed = 0.0
 	_spawn_afterimage()
+	_spawn_dodge_dust(1.20)
 
 
 func _on_dodge_finished() -> void:
 	dodging = false
+	_spawn_dodge_dust(0.70)
 	sprite.skew = 0.0
 	sprite.modulate = Color.WHITE
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
@@ -244,6 +265,23 @@ func _prewarm_afterimages() -> void:
 		_afterimage_root.add_child(ghost)
 		_afterimages.append(ghost)
 		_afterimage_remaining.append(0.0)
+
+
+func _prewarm_dust() -> void:
+	_dust_pool = DodgeDustPool2D.new()
+	_dust_pool.name = "DodgeDustPool"
+	add_child(_dust_pool)
+	_dust_pool.setup()
+
+
+func _spawn_dodge_dust(intensity: float) -> void:
+	if _dust_pool == null or robot == null:
+		return
+	var ground_origin: Node2D = robot.get_node_or_null(^"GroundImpactOrigin") as Node2D
+	var origin: Vector2 = (
+		ground_origin.global_position if ground_origin != null else robot.global_position
+	)
+	_dust_pool.spawn(origin, _dodge_facing, intensity)
 
 
 func _spawn_afterimage() -> void:

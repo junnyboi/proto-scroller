@@ -63,6 +63,7 @@ const MISSILE_EXPLOSION_QUEUE: int = 8
 const PLAYER_STRIKE_FLASHES: int = 1
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
+const DODGE_DUST_SLOTS: int = DodgeDustPool2D.CAPACITY
 const DODGE_COOLDOWN_INDICATORS: int = 1
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
 const HAZARD_ACTORS: int = 8
@@ -106,6 +107,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"air_target_voices": city.air_target_lock_runtime.voice_player_count(),
 		"air_target_reticles": city.air_target_lock_runtime.reticle_count(),
 		"dodge_afterimage_slots": _robot_afterimage_slot_count(city),
+		"dodge_dust_slots": _robot_dust_slot_count(city),
 		"dodge_cooldown_indicators": (
 			1 if city.gameplay_hud.dodge_cooldown_indicator != null else 0
 		),
@@ -203,6 +205,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "air_target_voices", AIR_TARGET_VOICES)
 	_check_equal(errors, data, "air_target_reticles", AIR_TARGET_RETICLES)
 	_check_equal(errors, data, "dodge_afterimage_slots", DODGE_AFTERIMAGE_SLOTS)
+	_check_equal(errors, data, "dodge_dust_slots", DODGE_DUST_SLOTS)
 	_check_equal(
 		errors,
 		data,
@@ -319,3 +322,10 @@ static func _robot_afterimage_slot_count(city: CitySlice) -> int:
 		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
 	return presenter.afterimage_slot_count() if presenter != null else 0
+
+
+static func _robot_dust_slot_count(city: CitySlice) -> int:
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	return presenter.dust_slot_count() if presenter != null else 0

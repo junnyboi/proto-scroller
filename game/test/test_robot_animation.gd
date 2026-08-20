@@ -184,10 +184,15 @@ func test_dodge_uses_facing_lean_and_restores_clean_sprite_state() -> void:
 	assert_lt(sprite.modulate.a, 1.0)
 	assert_eq(presenter.afterimage_slot_count(), RuntimeBudget.DODGE_AFTERIMAGE_SLOTS)
 	assert_eq(presenter.active_afterimage_count(), 1)
+	assert_eq(presenter.dust_slot_count(), RuntimeBudget.DODGE_DUST_SLOTS)
+	assert_eq(presenter.active_dust_slot_count(), 1)
+	assert_gt(presenter._dust_pool.last_direction.x, 0.0)
+	assert_lt(presenter._dust_pool.last_direction.y, 0.0)
 	for step_index: int in range(4):
 		robot.physics_step(0.0, 0.04)
 		presenter._process(0.04)
 	assert_gte(presenter.active_afterimage_count(), 4)
+	assert_gte(presenter.active_dust_slot_count(), 3)
 	var minimum_x: float = INF
 	var maximum_x: float = -INF
 	for ghost: Sprite2D in presenter._afterimages:
@@ -197,7 +202,10 @@ func test_dodge_uses_facing_lean_and_restores_clean_sprite_state() -> void:
 	assert_gt(maximum_x - minimum_x, 30.0)
 	for saturation_index: int in range(16):
 		presenter._spawn_afterimage()
+		presenter._spawn_dodge_dust(1.0)
 	assert_eq(presenter.active_afterimage_count(), RuntimeBudget.DODGE_AFTERIMAGE_SLOTS)
+	assert_eq(presenter.active_dust_slot_count(), RuntimeBudget.DODGE_DUST_SLOTS)
+	assert_gt(presenter._dust_pool.recycle_count, 0)
 	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
 	robot.physics_step(0.0, 0.03)
 	presenter._process(0.03)
@@ -206,6 +214,8 @@ func test_dodge_uses_facing_lean_and_restores_clean_sprite_state() -> void:
 	assert_eq(sprite.modulate, Color.WHITE)
 	presenter._process(RobotAnimationPresenter.AFTERIMAGE_LIFETIME + 0.01)
 	assert_eq(presenter.active_afterimage_count(), 0)
+	presenter._dust_pool.stop_all()
+	assert_eq(presenter.active_dust_slot_count(), 0)
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
