@@ -5,6 +5,12 @@ const AIRBORNE_GROUP: StringName = &"airborne_enemy"
 const LAUNCH_COUNT: int = 3
 const IMPACT_DAMAGE: float = 4.0
 const GRAVITY: float = 980.0
+const MIN_OVERHEAD_CLEARANCE: float = 100.0
+const OVERHEAD_CONE_COSINE: float = 0.8660254
+const FOCUSED_SPAWN_SPACING: float = 8.0
+const FOCUSED_TARGET_SPACING: float = 12.0
+const WIDE_SPAWN_SPACING: float = 18.0
+const WIDE_TARGET_SPACING: float = 42.0
 
 
 static func launch(
@@ -21,16 +27,23 @@ static func launch(
 	var target: EnemyActor2D = _nearest_target(tree, origin)
 	if target == null:
 		return 0
+	var concentrated: bool = _is_in_overhead_cone(target, origin)
+	var spawn_spacing: float = (
+		FOCUSED_SPAWN_SPACING if concentrated else WIDE_SPAWN_SPACING
+	)
+	var target_spacing: float = (
+		FOCUSED_TARGET_SPACING if concentrated else WIDE_TARGET_SPACING
+	)
 	var launched: int = 0
 	for debris_index: int in range(LAUNCH_COUNT):
 		var spawn_position: Vector2 = origin + Vector2(
-			float(debris_index - 1) * 18.0,
+			float(debris_index - 1) * spawn_spacing,
 			-10.0
 		)
 		var body_mass: float = 3.5 + float(debris_index) * 1.25
 		var target_offset: Vector2 = Vector2(
-			float(debris_index - 1) * 42.0,
-			float(abs(debris_index - 1)) * 8.0
+			float(debris_index - 1) * target_spacing,
+			float(abs(debris_index - 1)) * (3.0 if concentrated else 8.0)
 		)
 		var launch_velocity: Vector2 = _ballistic_velocity(
 			spawn_position,
@@ -74,17 +87,31 @@ static func launch(
 static func _nearest_target(tree: SceneTree, origin: Vector2) -> EnemyActor2D:
 	var nearest: EnemyActor2D
 	var nearest_distance: float = INF
+	var nearest_overhead: EnemyActor2D
+	var nearest_overhead_distance: float = INF
 	for candidate: Node in tree.get_nodes_in_group(AIRBORNE_GROUP):
 		if not candidate is EnemyActor2D:
 			continue
 		var enemy: EnemyActor2D = candidate as EnemyActor2D
-		if enemy.dead or enemy.global_position.y > origin.y - 100.0:
+		if not enemy.active or enemy.dead or enemy.global_position.y > origin.y - MIN_OVERHEAD_CLEARANCE:
 			continue
 		var distance: float = origin.distance_squared_to(enemy.global_position)
 		if distance < nearest_distance:
 			nearest = enemy
 			nearest_distance = distance
-	return nearest
+		if _is_in_overhead_cone(enemy, origin) and distance < nearest_overhead_distance:
+			nearest_overhead = enemy
+			nearest_overhead_distance = distance
+	return nearest_overhead if nearest_overhead != null else nearest
+
+
+static func _is_in_overhead_cone(target: EnemyActor2D, origin: Vector2) -> bool:
+	if target == null:
+		return false
+	var offset: Vector2 = target.global_position - origin
+	if offset.y > -MIN_OVERHEAD_CLEARANCE or offset.is_zero_approx():
+		return false
+	return offset.normalized().dot(Vector2.UP) >= OVERHEAD_CONE_COSINE
 
 
 static func _ballistic_velocity(
