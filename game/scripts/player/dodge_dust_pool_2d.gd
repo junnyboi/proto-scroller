@@ -3,11 +3,13 @@ extends Node2D
 
 const CAPACITY: int = 6
 const PARTICLES_PER_BURST: int = 16
+const MAX_INTENSITY: float = 2.20
 
 var spawn_count: int = 0
 var recycle_count: int = 0
 var last_direction: Vector2 = Vector2.ZERO
 var last_origin: Vector2 = Vector2.ZERO
+var last_intensity: float = 0.0
 var _slots: Array[CPUParticles2D] = []
 var _cursor: int = 0
 var _dust_texture: ImageTexture
@@ -50,9 +52,10 @@ func spawn(origin: Vector2, facing: int, intensity: float = 1.0) -> CPUParticles
 		return null
 	var direction_sign: int = 1 if facing >= 0 else -1
 	var particles: CPUParticles2D = _acquire_slot()
-	var strength: float = clampf(intensity, 0.5, 1.35)
+	var strength: float = clampf(intensity, 0.5, MAX_INTENSITY)
 	last_origin = origin
 	last_direction = Vector2(-float(direction_sign), -0.18).normalized()
+	last_intensity = strength
 	particles.global_position = origin + Vector2(-float(direction_sign) * 22.0, 0.0)
 	particles.direction = last_direction
 	particles.amount = roundi(float(PARTICLES_PER_BURST) * strength)

@@ -9,6 +9,13 @@ func test_background_music_player_is_persistent_and_routes_to_music_bus() -> voi
 	await get_tree().process_frame
 	var player: AudioStreamPlayer = main.background_music_player
 	assert_not_null(player)
+	assert_not_null(player.stream)
+	assert_true(player.stream is AudioStreamOggVorbis)
+	var music_stream: AudioStreamOggVorbis = player.stream as AudioStreamOggVorbis
+	assert_true(music_stream.loop)
+	assert_almost_eq(music_stream.get_length(), 28.0, 0.05)
+	assert_true(player.autoplay)
+	assert_true(player.playing)
 	assert_eq(player.bus, &"Music")
 	assert_eq(player.process_mode, Node.PROCESS_MODE_ALWAYS)
 	assert_gte(AudioServer.get_bus_index(player.bus), 0)

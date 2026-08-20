@@ -158,6 +158,59 @@ func test_player_frame_11_dispatches_flash_shake_enemy_recoil_and_knockback() ->
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
+func test_dodge_through_light_enemies_triggers_one_non_damaging_wheel_slip() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.deactivate()
+	city.robot.global_position = Vector2(500.0, 460.0)
+	city.robot.facing = 1
+	city.soldier.activate(city.robot.global_position + Vector2(150.0, 0.0), city.robot)
+	city.soldier.set_physics_process(false)
+	var jackal: EnemyActor2D = city.encounter_runtime.acquire(
+		&"jackal",
+		city.robot.global_position + Vector2(55.0, 0.0)
+	)
+	assert_not_null(jackal)
+	if jackal == null:
+		return
+	jackal.set_physics_process(false)
+	city.tank.activate(city.robot.global_position + Vector2(55.0, 0.0), city.robot)
+	city.tank.set_physics_process(false)
+	var reactions: PlayerAttackReactionRuntime = (
+		city.upgrade_assembler.get_node(^"PlayerAttackReactionRuntime")
+		as PlayerAttackReactionRuntime
+	)
+	var soldier_health: float = city.soldier.current_health
+	var jackal_health: float = jackal.current_health
+	assert_true(city.robot._start_dodge(1))
+	assert_eq(jackal.dodge_wheel_slip_count, 1)
+	assert_eq(city.soldier.dodge_wheel_slip_count, 0)
+	assert_eq(city.tank.dodge_wheel_slip_count, 0)
+	city.robot.global_position.x += 100.0
+	reactions._physics_process(0.0)
+	assert_eq(city.soldier.dodge_wheel_slip_count, 1)
+	assert_eq(jackal.dodge_wheel_slip_count, 1)
+	assert_eq(city.tank.dodge_wheel_slip_count, 0)
+	assert_eq(reactions.dodge_slip_dispatch_count, 2)
+	assert_eq(city.soldier.last_dodge_wheel_slip_direction, 1)
+	assert_eq(city.soldier.current_health, soldier_health)
+	assert_eq(jackal.current_health, jackal_health)
+	assert_eq(city.soldier.visual.modulate, Color.WHITE)
+	assert_ne(city.soldier.visual.skew, 0.0)
+	reactions._physics_process(0.0)
+	assert_eq(city.soldier.dodge_wheel_slip_count, 1)
+	assert_eq(jackal.dodge_wheel_slip_count, 1)
+	await get_tree().create_timer(0.17).timeout
+	assert_almost_eq(city.soldier.visual.skew, 0.0, 0.001)
+	assert_almost_eq(jackal.visual.skew, 0.0, 0.001)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
 func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 	var overdrive_stream: AudioStreamWAV = (
 		ImpactFeedbackPool.OVERDRIVE_ACTIVATION_SFX as AudioStreamWAV
