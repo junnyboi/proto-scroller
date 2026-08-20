@@ -8,7 +8,7 @@ enum Step {
 	MOVE,
 	GROUND_SMASH,
 	JAB_CROSS,
-	RECOVERY_DODGE,
+	DIRECTION_DODGE,
 	COMPLETE,
 }
 
@@ -35,7 +35,6 @@ var title_label: Label
 var body_label: Label
 var skip_button: Button
 var _robot: GiantRobotController
-var _attacks: ContextualAttackController
 var _mobile_controls: MobileControls
 var _preference_path: String = PREFERENCE_PATH
 var _persist_completion: bool = true
@@ -44,12 +43,11 @@ var _completion_generation: int = 0
 
 func setup(
 	robot: GiantRobotController,
-	attacks: ContextualAttackController,
+	_unused_attacks: ContextualAttackController,
 	mobile_controls: MobileControls = null,
 	preference_path: String = PREFERENCE_PATH
 ) -> void:
 	_robot = robot
-	_attacks = attacks
 	_mobile_controls = mobile_controls
 	_preference_path = preference_path
 	_bind_mechanic_signals()
@@ -87,16 +85,11 @@ func observe_attack_committed(mode: int, _attack_id: int) -> void:
 	if current_step == Step.GROUND_SMASH and mode == AttackSpec.Mode.GROUND_SMASH:
 		_advance_to(Step.JAB_CROSS)
 	elif current_step == Step.JAB_CROSS and mode == AttackSpec.Mode.JAB_CROSS:
-		_advance_to(Step.RECOVERY_DODGE)
+		_advance_to(Step.DIRECTION_DODGE)
 
 
 func observe_dodge_started(_facing: int, _duration: float) -> void:
-	if tutorial_active and current_step == Step.RECOVERY_DODGE:
-		_finish_tutorial(false)
-
-
-func observe_dodge_buffered(_attack_id: int) -> void:
-	if tutorial_active and current_step == Step.RECOVERY_DODGE:
+	if tutorial_active and current_step == Step.DIRECTION_DODGE:
 		_finish_tutorial(false)
 
 
@@ -134,8 +127,6 @@ func _bind_mechanic_signals() -> void:
 			_robot.attack_committed.connect(observe_attack_committed)
 		if not _robot.dodge_started.is_connected(observe_dodge_started):
 			_robot.dodge_started.connect(observe_dodge_started)
-	if _attacks != null and not _attacks.dodge_buffered.is_connected(observe_dodge_buffered):
-		_attacks.dodge_buffered.connect(observe_dodge_buffered)
 
 
 func _start_if_needed() -> void:
@@ -206,8 +197,8 @@ func _update_copy() -> void:
 			key = "ground_smash"
 		Step.JAB_CROSS:
 			key = "jab_cross"
-		Step.RECOVERY_DODGE:
-			key = "recovery_dodge"
+		Step.DIRECTION_DODGE:
+			key = "direction_dodge"
 		Step.COMPLETE:
 			key = "complete"
 	title_label.text = L10n.t("tutorial.%s.title" % key)

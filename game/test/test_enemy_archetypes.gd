@@ -19,7 +19,7 @@ const EXPECTED_BASELINE_PUNCHES: Dictionary = {
 	&"kestrel": 2, &"rainmaker": 2, &"shrike": 2, &"cinder": 3, &"aegis": 2,
 	&"longbow": 3, &"hive": 3, &"goliath": 5, &"nemesis": 6, &"leviathan": 13,
 }
-const EXPECTED_ACT_PEAK_THREAT: Array[int] = [4, 6, 9, 12, 16, 16]
+const EXPECTED_ACT_PEAK_THREAT: Array[int] = [5, 9, 12, 16, 17, 20]
 const MAX_ARMOR_LOADOUT_HEALTH: float = 1200.0
 const LATE_WAVE_MINIMUM_DPS: float = 20.0
 
@@ -156,6 +156,50 @@ func test_elite_affixes_modify_distinct_pressure_axes_and_keep_honest_warnings()
 	assert_true(phased.dead)
 
 
+func test_specialist_humans_match_108_pixel_height_through_attack_animation() -> void:
+	for archetype_id: StringName in [&"bulwark", &"lobber", &"sapper", &"lancer"]:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var actor: ProceduralEnemy = runtime.acquire(
+			archetype_id,
+			Vector2(1100.0, float(profile.spawn_y))
+		) as ProceduralEnemy
+		assert_not_null(actor)
+		actor.set_physics_process(false)
+		actor._attack_kick = 1.0
+		actor._animate_visual(0.12)
+		var rendered_height: float = (
+			actor.visual.texture.get_size().y * absf(actor.visual.scale.y)
+		)
+		assert_almost_eq(
+			rendered_height,
+			EnemyArchetypeCatalog.HUMAN_RENDER_HEIGHT_PIXELS,
+			0.01,
+			archetype_id
+		)
+		runtime.release(actor)
+
+
+func test_random_affix_spawns_play_bounded_colored_impact_effects() -> void:
+	var effects: EliteSpawnEffectPool = runtime.elite_spawn_effect_pool
+	assert_eq(effects.slot_count(), RuntimeBudget.ELITE_SPAWN_EFFECT_SLOTS)
+	for trait_id: StringName in EnemyArchetypeCatalog.RANDOM_AFFIXES:
+		var actor: ProceduralEnemy = runtime.acquire(
+			&"hound",
+			Vector2(980.0 + float(effects.play_count) * 80.0, 230.0),
+			&"",
+			trait_id
+		) as ProceduralEnemy
+		assert_not_null(actor)
+	assert_eq(effects.play_count, 3)
+	assert_eq(effects.active_count(), 3)
+	assert_eq(effects.last_trait_id, &"PHASED")
+	var latest: Node2D = effects.get_child(2) as Node2D
+	assert_true((latest.get_node(^"Particles") as CPUParticles2D).emitting)
+	assert_eq(latest.get_meta(&"trait_id"), &"PHASED")
+	await get_tree().create_timer(0.75).timeout
+	assert_eq(effects.active_count(), 0)
+
+
 func test_carrier_at_family_capacity_completes_without_firing_a_fallback_shot() -> void:
 	var hive: ProceduralEnemy = runtime.acquire(
 		&"hive", Vector2(1200.0, 185.0)
@@ -246,7 +290,10 @@ func test_late_acts_use_cross_family_waves_and_smooth_threat_peaks() -> void:
 			var families: Dictionary[StringName, bool] = {}
 			for entry: EnemySpawnEntry in beat.spawns:
 				var kind: StringName = StringName(entry.kind)
-				beat_threat += EnemyArchetypeCatalog.threat_cost(kind)
+				beat_threat += (
+					EnemyArchetypeCatalog.threat_cost(kind)
+					* EnemyArchetypeCatalog.spawn_multiplier(kind)
+				)
 				families[EnemyArchetypeCatalog.family_for(kind)] = true
 			peak_threat = maxi(peak_threat, beat_threat)
 			if act_index >= 3 and beat.spawns.size() >= 2:
@@ -277,7 +324,10 @@ func test_all_twenty_archetypes_enter_in_monotonic_act_order_within_caps() -> vo
 			var threat: int = 0
 			for entry: EnemySpawnEntry in beat.spawns:
 				var kind: StringName = StringName(entry.kind)
-				threat += EnemyArchetypeCatalog.threat_cost(kind)
+				threat += (
+					EnemyArchetypeCatalog.threat_cost(kind)
+					* EnemyArchetypeCatalog.spawn_multiplier(kind)
+				)
 				if EnemyArchetypeCatalog.has(kind) and not first_act.has(kind):
 					first_act[kind] = act_index
 			assert_lte(threat, beat.maximum_threat, beat.beat_id)
@@ -291,8 +341,9 @@ func _direct_outgoing_dps(beat: DistrictBeat) -> float:
 	var total: float = 0.0
 	for entry: EnemySpawnEntry in beat.spawns:
 		var kind: StringName = StringName(entry.kind)
+		var spawn_multiplier: float = float(EnemyArchetypeCatalog.spawn_multiplier(kind))
 		if kind == &"soldier":
-			total += 8.0 / 0.95
+			total += spawn_multiplier * 8.0 / 0.95
 			continue
 		if kind == &"tank":
 			total += 24.0 / 2.30
@@ -310,5 +361,10 @@ func _direct_outgoing_dps(beat: DistrictBeat) -> float:
 			salvo_multiplier = 2.44
 		elif profile.attack_style == &"fortress_barrage":
 			salvo_multiplier = 3.16
-		total += float(profile.damage) * salvo_multiplier / float(profile.attack_interval)
+		total += (
+			spawn_multiplier
+			* float(profile.damage)
+			* salvo_multiplier
+			/ float(profile.attack_interval)
+		)
 	return total

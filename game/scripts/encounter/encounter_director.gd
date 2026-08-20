@@ -74,10 +74,13 @@ func _advance_phase() -> void:
 	_respite_remaining = 0.0
 	var wave: EnemyWave = waves[phase_index]
 	for spawn: EnemySpawnEntry in wave.spawns:
-		_pending.append({
-			"entry": spawn,
-			"remaining": wave.opening_delay + spawn.delay,
-		})
+		var kind: StringName = StringName(spawn.kind)
+		for copy_index: int in range(EnemyArchetypeCatalog.spawn_multiplier(kind)):
+			_pending.append({
+				"entry": spawn,
+				"remaining": wave.opening_delay + spawn.delay + float(copy_index) * 0.14,
+				"offset": Vector2(float(copy_index) * 52.0, 0.0),
+			})
 	phase_changed.emit(phase_index, wave.display_name)
 
 
@@ -88,5 +91,8 @@ func _process_pending(delta: float) -> void:
 		if not is_zero_approx(float(record.remaining)):
 			continue
 		var entry: EnemySpawnEntry = record.entry
-		if runtime.acquire(StringName(entry.kind), entry.position) != null:
+		if runtime.acquire(
+			StringName(entry.kind),
+			entry.position + (record.offset as Vector2)
+		) != null:
 			_pending.remove_at(index)

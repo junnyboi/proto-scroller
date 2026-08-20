@@ -159,6 +159,33 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	_record_test_execution()
 
 
+func test_mobile_joystick_double_flick_dodges_in_selected_direction() -> void:
+	get_tree().root.size = Vector2i(1280, 720)
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	city.mobile_detection_override = 1
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	for tap_index: int in range(2):
+		var touch_index: int = 20 + tap_index
+		city.mobile_controls.handle_touch_input(
+			_screen_touch(touch_index, Vector2(210.0, 530.0), true)
+		)
+		city.mobile_controls.handle_touch_input(
+			_screen_drag(touch_index, Vector2(300.0, 530.0))
+		)
+		city.mobile_controls.handle_touch_input(
+			_screen_touch(touch_index, Vector2(300.0, 530.0), false)
+		)
+	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
+	assert_eq(city.robot.facing, 1)
+	assert_eq(city.robot.dodge_count, 1)
+	assert_eq(city.mobile_controls.smash_press_count, 0)
+	_record_test_execution()
+
+
 func _screen_touch(
 	index: int,
 	position: Vector2,

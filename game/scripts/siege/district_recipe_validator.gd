@@ -9,19 +9,22 @@ static func validate(district: DistrictDefinition) -> PackedStringArray:
 			var counts: Dictionary[StringName, int] = {}
 			var elites: int = 0
 			var threat: int = 0
+			var actor_count: int = 0
 			for entry: EnemySpawnEntry in beat.spawns:
 				var kind: StringName = StringName(entry.kind)
 				if not EnemyArchetypeCatalog.is_valid_kind(kind):
 					errors.append("%s has invalid enemy kind %s" % [beat.beat_id, kind])
 					continue
 				var key: StringName = EnemyArchetypeCatalog.reservation_key(kind)
-				counts[key] = int(counts.get(key, 0)) + 1
-				threat += EnemyArchetypeCatalog.threat_cost(kind)
+				var multiplier: int = EnemyArchetypeCatalog.spawn_multiplier(kind)
+				counts[key] = int(counts.get(key, 0)) + multiplier
+				actor_count += multiplier
+				threat += EnemyArchetypeCatalog.threat_cost(kind) * multiplier
 				elites += 1 if not entry.trait_id.is_empty() else 0
 			for key: StringName in counts:
 				if int(counts[key]) > _capacity_for_key(key):
 					errors.append("%s exceeds %s pool cap" % [beat.beat_id, key])
-			if beat.spawns.size() > RuntimeBudget.PENDING_BEAT_RECORDS:
+			if actor_count > RuntimeBudget.PENDING_BEAT_RECORDS:
 				errors.append("%s actors exceed pending-record cap" % beat.beat_id)
 			if threat > beat.maximum_threat:
 				errors.append(

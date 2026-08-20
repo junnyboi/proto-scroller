@@ -7,3 +7,8 @@ extends Resource
 @export var beats: Array[DistrictBeat] = []
 @export var milestone_after: StringName = &""
 @export var elite_allowed: bool = false
+@export var chaos_enabled: bool = false
+@export_range(0.0, 0.5, 0.01) var spawn_stagger_seconds: float = 0.0
+@export_range(0.0, 0.5, 0.01) var spawn_jitter_seconds: float = 0.0
+@export_range(0.0, 1.0, 0.05) var mirrored_flank_chance: float = 0.0
+@export_range(1, 3, 1) var elite_units_per_beat: int = 1

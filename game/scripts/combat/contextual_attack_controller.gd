@@ -4,7 +4,7 @@ extends Node
 signal attack_started(spec: AttackSpec)
 signal attack_active(spec: AttackSpec)
 signal attack_finished(spec: AttackSpec)
-signal dodge_buffered(attack_id: int)
+signal dodge_buffered(attack_id: int, direction: int)
 
 enum Phase {
 	READY,
@@ -27,7 +27,7 @@ var _rest_position: Vector2
 var _rest_scale: Vector2 = Vector2.ONE
 var _rest_rotation: float = 0.0
 var _busy: bool = false
-var _dodge_buffered: bool = false
+var _buffered_dodge_direction: int = 0
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -70,15 +70,6 @@ func _ready() -> void:
 
 func request_attack() -> int:
 	if _busy:
-		if (
-			phase == Phase.RECOVERY
-			and not _dodge_buffered
-			and _robot.can_request_attack()
-			and _robot.dodge_ready
-		):
-			_dodge_buffered = true
-			buffered_dodge_count += 1
-			dodge_buffered.emit(current_spec.attack_id)
 		return 0
 	if _robot == null or not _robot.can_request_attack():
 		return 0
@@ -111,13 +102,27 @@ func request_attack() -> int:
 	if directive_session != null:
 		current_spec = directive_session.decorate_attack(current_spec)
 	_busy = true
-	_dodge_buffered = false
+	_buffered_dodge_direction = 0
 	phase = Phase.ANTICIPATION
 	_robot._set_attack_locked(true)
 	_robot.notify_attack_selected(current_spec.mode, current_spec.attack_id)
 	attack_started.emit(current_spec)
 	_run_attack(current_spec)
 	return attack_id
+
+
+func request_dodge(direction: int) -> bool:
+	var normalized_direction: int = clampi(direction, -1, 1)
+	if _robot == null or normalized_direction == 0 or not _robot.dodge_ready:
+		return false
+	if not _busy:
+		return _robot._start_dodge(normalized_direction)
+	if phase != Phase.RECOVERY or _buffered_dodge_direction != 0:
+		return false
+	_buffered_dodge_direction = normalized_direction
+	buffered_dodge_count += 1
+	dodge_buffered.emit(current_spec.attack_id, normalized_direction)
+	return true
 
 
 func is_busy() -> bool:
@@ -127,7 +132,7 @@ func is_busy() -> bool:
 func cancel_attack() -> void:
 	current_spec = null
 	_busy = false
-	_dodge_buffered = false
+	_buffered_dodge_direction = 0
 	phase = Phase.READY
 	if _robot != null:
 		_robot._set_attack_locked(false)
@@ -168,9 +173,10 @@ func _run_attack(spec: AttackSpec) -> void:
 	phase = Phase.READY
 	_robot._set_attack_locked(false)
 	attack_finished.emit(spec)
-	if _dodge_buffered:
-		_dodge_buffered = false
-		_robot._start_dodge()
+	if _buffered_dodge_direction != 0:
+		var dodge_direction: int = _buffered_dodge_direction
+		_buffered_dodge_direction = 0
+		_robot._start_dodge(dodge_direction)
 
 func _apply_windup_pose(spec: AttackSpec) -> void:
 	if _visual_root == null:
