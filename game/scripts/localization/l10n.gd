@@ -172,6 +172,8 @@ static func _load_cjk_font() -> bool:
 	if _cjk_font == null:
 		push_error("Unable to load Simplified Chinese font: %s" % CJK_FONT_PATH)
 		return false
+	if _cjk_font.fallbacks.is_empty() and ThemeDB.fallback_font != null:
+		_cjk_font.fallbacks = [ThemeDB.fallback_font]
 	return true
 
 

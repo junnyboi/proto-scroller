@@ -86,6 +86,16 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 	)
 	var title_font: Font = (screen.get_node("%TitleLabel") as Label).get_theme_font(&"font")
 	assert_true(title_font.has_char("中".unicode_at(0)))
+	for token_character: String in ">ADENSPCTB[]/·":
+		assert_true(
+			title_font.has_char(token_character.unicode_at(0)),
+			"Missing invariant control glyph: %s" % token_character
+		)
+	assert_eq((screen.get_node("HintLabel") as Label).text, "ENTER  /  TAP")
+	assert_true((screen.get_node("MoveChip/Label") as Label).text.begins_with("A / D"))
+	assert_true((screen.get_node("SmashChip/Label") as Label).text.begins_with("SPACE"))
+	assert_eq((screen.get_node("%EnglishButton") as Button).text, "EN")
+	assert_true((screen.get_node("%BriefingToggle") as Button).text.contains("[TAB]"))
 
 
 func _placeholders(value: String) -> PackedStringArray:

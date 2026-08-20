@@ -20,11 +20,14 @@ static func launch(
 	origin: Vector2,
 	impulse_per_mass: float,
 	attack_id: int,
-	options: DamageQueryOptions = null
+	options: DamageQueryOptions = null,
+	focused_target: EnemyActor2D = null
 ) -> int:
 	if tree == null or pool == null or source == null:
 		return 0
-	var target: EnemyActor2D = _nearest_target(tree, origin)
+	var target: EnemyActor2D = focused_target
+	if not is_valid_focused_target(target, origin):
+		target = _nearest_target(tree, origin)
 	if target == null:
 		return 0
 	var concentrated: bool = _is_in_overhead_cone(target, origin)
@@ -103,6 +106,38 @@ static func _nearest_target(tree: SceneTree, origin: Vector2) -> EnemyActor2D:
 			nearest_overhead = enemy
 			nearest_overhead_distance = distance
 	return nearest_overhead if nearest_overhead != null else nearest
+
+
+static func nearest_overhead_target(
+	tree: SceneTree,
+	origin: Vector2
+) -> EnemyActor2D:
+	if tree == null:
+		return null
+	var nearest: EnemyActor2D
+	var nearest_distance: float = INF
+	for candidate: Node in tree.get_nodes_in_group(AIRBORNE_GROUP):
+		if not candidate is EnemyActor2D:
+			continue
+		var enemy: EnemyActor2D = candidate as EnemyActor2D
+		if not is_valid_focused_target(enemy, origin):
+			continue
+		var distance: float = origin.distance_squared_to(enemy.global_position)
+		if distance < nearest_distance:
+			nearest = enemy
+			nearest_distance = distance
+	return nearest
+
+
+static func is_valid_focused_target(
+	target: EnemyActor2D,
+	origin: Vector2
+) -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	if not target.active or target.dead:
+		return false
+	return _is_in_overhead_cone(target, origin)
 
 
 static func _is_in_overhead_cone(target: EnemyActor2D, origin: Vector2) -> bool:

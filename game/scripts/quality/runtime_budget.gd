@@ -27,6 +27,7 @@ const WRECKS: int = 4
 const PARTICLE_SLOTS: int = 8
 const AUDIO_VOICES: int = 8
 const ROBOT_AUDIO_VOICES: int = 4
+const AIR_TARGET_VOICES: int = 1
 const RARE_TAG_ROWS: int = 3
 const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
@@ -101,6 +102,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"particle_slots": city.impact_feedback_pool.particle_child_count(),
 		"audio_voices": city.impact_feedback_pool.audio_child_count(),
 		"robot_audio_voices": _robot_audio_voice_count(city),
+		"air_target_voices": city.air_target_lock_runtime.voice_player_count(),
 		"dodge_afterimage_slots": _robot_afterimage_slot_count(city),
 		"dodge_cooldown_indicators": (
 			1 if city.gameplay_hud.dodge_cooldown_indicator != null else 0
@@ -196,6 +198,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "particle_slots", PARTICLE_SLOTS)
 	_check_equal(errors, data, "audio_voices", AUDIO_VOICES)
 	_check_equal(errors, data, "robot_audio_voices", ROBOT_AUDIO_VOICES)
+	_check_equal(errors, data, "air_target_voices", AIR_TARGET_VOICES)
 	_check_equal(errors, data, "dodge_afterimage_slots", DODGE_AFTERIMAGE_SLOTS)
 	_check_equal(
 		errors,

@@ -3,42 +3,24 @@ extends Node2D
 
 signal retry_requested
 
-const DAMAGE_MASK: int = (1 << 1) | (1 << 6) | (1 << 7)
 const WORLD_LAYER: int = 1 << 0
 const ROBOT_LAYER: int = 1 << 1
-const ENEMY_LAYER: int = 1 << 2
 const BUILDING_LAYER: int = 1 << 3
 const HURTBOX_LAYER: int = 1 << 6
 const PROP_LAYER: int = 1 << 7
-const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
 const MOBILE_CONTROLS_SCRIPT: Script = preload("res://scripts/input/mobile_controls.gd")
 const GAMEPLAY_HUD_SCRIPT: Script = preload("res://scripts/ui/gameplay_hud.gd")
-const WORLD_BUILDER_SCRIPT: Script = preload("res://scripts/gameplay/city_world_builder.gd")
-const PROJECTILE_POOL_SCRIPT: Script = preload("res://scripts/combat/projectile_pool.gd")
-const IMPACT_FEEDBACK_SCRIPT: Script = preload(
-	"res://scripts/gameplay/impact_feedback_pool.gd"
-)
-const HIT_STOP_SCRIPT: Script = preload("res://scripts/feedback/hit_stop_lease.gd")
 const HAPTICS_SCRIPT: Script = preload("res://scripts/input/haptics_adapter.gd")
 const FEEDBACK_DIRECTOR_SCRIPT: Script = preload(
 	"res://scripts/feedback/impact_feedback_director.gd"
 )
-const ENEMY_REMAINS_FACTORY_SCRIPT: Script = preload(
-	"res://scripts/actors/enemy_remains_factory.gd"
-)
-const RAMPAGE_SESSION_SCRIPT: Script = preload("res://scripts/rampage/rampage_session.gd")
 const OVERDRIVE_SCRIPT: Script = preload("res://scripts/rampage/overdrive_session.gd")
 const RUN_LIFECYCLE_SCRIPT: Script = preload(
 	"res://scripts/gameplay/city_run_lifecycle.gd"
 )
-const RAMPAGE_EVENT_ADAPTER_SCRIPT: Script = preload(
-	"res://scripts/rampage/rampage_event_adapter.gd"
-)
-const DIRECTOR_SCRIPT: Script = preload("res://scripts/destruction/destruction_director.gd")
-const DEBRIS_POOL_SCRIPT: Script = preload("res://scripts/destruction/debris_pool.gd")
 const STRUCTURAL_BUILDING_SCRIPT: Script = preload(
 	"res://scripts/destruction/structural_building_2d.gd"
 )
@@ -53,9 +35,6 @@ const TELEGRAPH_SCRIPT: Script = preload(
 const CONTACT_DISTRICT: DistrictDefinition = preload(
 	"res://resources/siege/district_contact.tres"
 )
-const SOLDIER_DEFEAT_POOL_SCRIPT: Script = preload(
-	"res://scripts/actors/soldier_defeat_pool.gd"
-)
 const BUILDING_INTACT: Texture2D = preload("res://art/city/destructibles/building_intact.png")
 const BUILDING_DAMAGED: Texture2D = preload("res://art/city/destructibles/building_damaged.png")
 const BUILDING_RUBBLE: Texture2D = preload("res://art/city/destructibles/building_rubble.png")
@@ -63,22 +42,14 @@ const LAMP_INTACT: Texture2D = preload("res://art/city/destructibles/streetlamp_
 const LAMP_BROKEN: Texture2D = preload("res://art/city/destructibles/streetlamp_broken.png")
 const CAR_INTACT: Texture2D = preload("res://art/city/destructibles/car_intact.png")
 const CAR_WRECK: Texture2D = preload("res://art/city/destructibles/car_wreck.png")
-const SOLDIER_TEXTURE: Texture2D = preload("res://art/city/enemies/soldier.png")
-const TANK_TEXTURE: Texture2D = preload("res://art/city/enemies/tank.png")
-const HELICOPTER_TEXTURE: Texture2D = preload("res://art/city/enemies/helicopter.png")
 const GLASS_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/glass_shatter.wav"
-)
-const CONCRETE_IMPACT_SFX: AudioStream = preload(
-	"res://audio/sfx/structural/concrete_crunch.wav"
-)
-const STEEL_IMPACT_SFX: AudioStream = preload(
-	"res://audio/sfx/structural/steel_groan.wav"
 )
 
 @export_range(-1, 1, 1) var mobile_detection_override: int = -1
 
 var robot: GiantRobotController
+var runtime_services: CityRuntimeServices
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
 var enemy_scrap_pool: DebrisPool
@@ -99,7 +70,9 @@ var rampage_events: RampageEventAdapter
 var overdrive_session: OverdriveSession
 var run_lifecycle: CityRunLifecycle
 var upgrade_assembler: PlayerUpgradeAssembler
+var music_duck_controller: MusicDuckController
 var contextual_attacks: ContextualAttackController
+var air_target_lock_runtime: AirTargetLockRuntime
 var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
 var encounter_director: EncounterDirector
@@ -147,6 +120,10 @@ func _ready() -> void:
 	contextual_attacks.name = "ContextualAttackController"
 	contextual_attacks.setup(robot)
 	add_child(contextual_attacks)
+	air_target_lock_runtime = AirTargetLockRuntime.new()
+	air_target_lock_runtime.name = "AirTargetLockRuntime"
+	air_target_lock_runtime.setup(robot, contextual_attacks)
+	add_child(air_target_lock_runtime)
 	overdrive_session = OVERDRIVE_SCRIPT.new() as OverdriveSession
 	overdrive_session.name = "OverdriveSession"
 	overdrive_session.setup(rampage_session.momentum_meter, robot)
@@ -165,9 +142,7 @@ func _ready() -> void:
 	upgrade_assembler = PlayerUpgradeAssembler.new()
 	add_child(upgrade_assembler)
 	var upgrade_errors: PackedStringArray = upgrade_assembler.setup(self)
-	if not upgrade_errors.is_empty():
-		push_error("Upgrade setup failed: %s" % [upgrade_errors])
-	assert(upgrade_errors.is_empty())
+	assert(upgrade_errors.is_empty(), "Upgrade setup failed: %s" % [upgrade_errors])
 
 
 func _process(delta: float) -> void:
@@ -188,72 +163,28 @@ func all_destructibles_broken() -> bool:
 
 
 func _build_services() -> void:
-	rampage_session = RAMPAGE_SESSION_SCRIPT.new() as RampageSession
-	rampage_session.name = "RampageSession"
-	rampage_session.run_score.score_changed.connect(_on_score_changed)
-	rampage_session.run_score.pending_changed.connect(_on_pending_score_changed)
-	rampage_session.combo_tracker.combo_changed.connect(_on_combo_changed)
-	add_child(rampage_session)
-	rampage_events = RAMPAGE_EVENT_ADAPTER_SCRIPT.new(rampage_session) as RampageEventAdapter
-	projectile_root = PROJECTILE_POOL_SCRIPT.new() as ProjectilePool
-	projectile_root.name = "ProjectileRoot"
-	projectile_root.capacity = (
-		RuntimeBudget.BULLETS + RuntimeBudget.SHELLS + RuntimeBudget.ROCKETS
+	runtime_services = CityRuntimeServices.new()
+	runtime_services.build(
+		self,
+		_on_score_changed,
+		_on_pending_score_changed,
+		_on_combo_changed,
+		_on_aerial_impact_accepted,
+		_on_enemy_wreck_scrapped
 	)
-	projectile_root.z_index = 45
-	add_child(projectile_root)
-	impact_audio_root = Node2D.new()
-	impact_audio_root.name = "ImpactAudioRoot"
-	add_child(impact_audio_root)
-	enemy_remains_root = Node2D.new()
-	enemy_remains_root.name = "EnemyRemainsRoot"
-	enemy_remains_root.z_index = 28
-	add_child(enemy_remains_root)
-	impact_feedback_pool = IMPACT_FEEDBACK_SCRIPT.new() as ImpactFeedbackPool
-	impact_feedback_pool.name = "ImpactFeedbackPool"
-	impact_feedback_pool.setup(self, impact_audio_root)
-	add_child(impact_feedback_pool)
-	hit_stop = HIT_STOP_SCRIPT.new() as HitStopLease
-	hit_stop.name = "HitStopLease"
-	hit_stop.enabled = DisplayServer.get_name() != "headless"
-	add_child(hit_stop)
-	destruction_director = DIRECTOR_SCRIPT.new() as DestructionDirector
-	destruction_director.name = "DestructionDirector"
-	destruction_director.max_results = 64
-	destruction_director.blast_mask = (
-		HURTBOX_LAYER
-		| PROP_LAYER
-		| ENEMY_LAYER
-		| DEBRIS_LAYER
-		| REMAINS_LAYER
-	)
-	add_child(destruction_director)
-	debris_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
-	debris_pool.name = "BuildingDebrisPool"
-	debris_pool.capacity = RuntimeBudget.STRUCTURAL_DEBRIS
-	debris_pool.z_index = 30
-	debris_pool.aerial_impact_accepted.connect(_on_aerial_impact_accepted)
-	add_child(debris_pool)
-	enemy_scrap_pool = DEBRIS_POOL_SCRIPT.new() as DebrisPool
-	enemy_scrap_pool.name = "EnemyScrapPool"
-	enemy_scrap_pool.capacity = RuntimeBudget.ENEMY_SCRAP
-	enemy_scrap_pool.z_index = 31
-	add_child(enemy_scrap_pool)
-	soldier_defeat_pool = SOLDIER_DEFEAT_POOL_SCRIPT.new() as SoldierDefeatPool
-	soldier_defeat_pool.name = "SoldierDefeatPool"
-	soldier_defeat_pool.capacity = RuntimeBudget.SOLDIER_DEFEATS
-	soldier_defeat_pool.z_index = 28
-	enemy_remains_root.add_child(soldier_defeat_pool)
-	enemy_remains_factory = ENEMY_REMAINS_FACTORY_SCRIPT.new() as EnemyRemainsFactory
-	enemy_remains_factory.name = "EnemyRemainsFactory"
-	enemy_remains_factory.setup(
-		enemy_remains_root,
-		enemy_scrap_pool,
-		TANK_TEXTURE,
-		HELICOPTER_TEXTURE
-	)
-	enemy_remains_factory.wreck_scrapped.connect(_on_enemy_wreck_scrapped)
-	add_child(enemy_remains_factory)
+	rampage_session = runtime_services.rampage_session
+	rampage_events = runtime_services.rampage_events
+	projectile_root = runtime_services.projectile_root
+	impact_audio_root = runtime_services.impact_audio_root
+	enemy_remains_root = runtime_services.enemy_remains_root
+	impact_feedback_pool = runtime_services.impact_feedback_pool
+	hit_stop = runtime_services.hit_stop
+	destruction_director = runtime_services.destruction_director
+	debris_pool = runtime_services.debris_pool
+	enemy_scrap_pool = runtime_services.enemy_scrap_pool
+	soldier_defeat_pool = runtime_services.soldier_defeat_pool
+	enemy_remains_factory = runtime_services.enemy_remains_factory
+	music_duck_controller = runtime_services.music_duck_controller
 func _build_destructibles() -> void:
 	building = _create_building(Vector2(1450.0, LAND_VISUAL_BASELINE_Y))
 	building.damage_applied.connect(_on_building_damage_applied)
@@ -440,7 +371,8 @@ func _on_robot_heavy_impact(
 		origin,
 		impulse_per_mass,
 		attack_id,
-		options
+		options,
+		air_target_lock_runtime.consume_volley_target(attack_id)
 	)
 	gameplay_hud.set_objective("objective.impact_registered")
 

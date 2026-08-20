@@ -25,6 +25,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.particle_slots, 8)
 	assert_eq(snapshot.audio_voices, 8)
 	assert_eq(snapshot.robot_audio_voices, 4)
+	assert_eq(snapshot.air_target_voices, 1)
 	assert_eq(snapshot.dodge_afterimage_slots, 8)
 	assert_eq(snapshot.dodge_cooldown_indicators, 1)
 	assert_eq(snapshot.elite_spawn_effect_slots, 6)

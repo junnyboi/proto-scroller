@@ -74,6 +74,9 @@ func setup(city: Node) -> PackedStringArray:
 	var siege: UrbanSiegeRuntime = city.get("urban_siege") as UrbanSiegeRuntime
 	var rampage: RampageSession = city.get("rampage_session") as RampageSession
 	var hud: GameplayHud = city.get("gameplay_hud") as GameplayHud
+	var music_duck: MusicDuckController = (
+		city.get("music_duck_controller") as MusicDuckController
+	)
 	var destruction: DestructionUpgradeRuntime = (
 		runtimes[&"DESTRUCTION"] as DestructionUpgradeRuntime
 	)
@@ -95,9 +98,9 @@ func setup(city: Node) -> PackedStringArray:
 		runtimes,
 		city.get_instance_id()
 	)
-	session.offer_opened.connect(_on_offer_opened.bind(hud))
+	session.offer_opened.connect(_on_offer_opened.bind(hud, music_duck))
 	session.offer_resolved.connect(_on_offer_resolved.bind(hud))
-	session.queue_drained.connect(hud.upgrade_choice_overlay.hide_offer)
+	session.queue_drained.connect(_on_queue_drained.bind(hud, music_duck))
 	session.rank_changed.connect(hud.weapon_status_strip.set_rank)
 	session.upgrade_acquired.connect(
 		_on_upgrade_acquired.bind(city.get("impact_feedback_pool"), robot)
@@ -159,7 +162,13 @@ func _on_pause_changed(is_paused: bool) -> void:
 		runtime.set_paused(is_paused)
 
 
-func _on_offer_opened(offer: UpgradeOffer, hud: GameplayHud) -> void:
+
+func _on_offer_opened(
+	offer: UpgradeOffer,
+	hud: GameplayHud,
+	music_duck: MusicDuckController
+) -> void:
+	music_duck.set_ducked(true)
 	hud.upgrade_choice_overlay.show_offer(
 		offer,
 		CATALOG,
@@ -175,6 +184,11 @@ func _on_offer_resolved(
 	hud: GameplayHud
 ) -> void:
 	hud.upgrade_choice_overlay.hide_offer()
+
+
+func _on_queue_drained(hud: GameplayHud, music_duck: MusicDuckController) -> void:
+	hud.upgrade_choice_overlay.hide_offer()
+	music_duck.set_ducked(false)
 
 
 func _on_upgrade_acquired(
