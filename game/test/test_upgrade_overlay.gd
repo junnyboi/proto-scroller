@@ -3,6 +3,14 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
+func test_upgrade_setup_executes_outside_release_stripped_assertions() -> void:
+	var source: String = FileAccess.get_file_as_string(
+		"res://scripts/gameplay/city_slice.gd"
+	)
+	assert_true(source.contains("upgrade_assembler.setup(self)"))
+	assert_false(source.contains("assert(upgrade_assembler.setup(self)"))
+
+
 func test_level_offer_uses_two_fixed_cards_and_preserves_mobile_touches() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	city.mobile_detection_override = 1
