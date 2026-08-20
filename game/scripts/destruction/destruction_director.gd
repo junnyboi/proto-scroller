@@ -42,7 +42,15 @@ func queue_explosion(
 		"structural_limit": options.structural_limit if options != null else 0,
 		"debris_limit": options.debris_limit if options != null else 0,
 		"damage_type": options.damage_type if options != null else &"explosive",
+		"player_damage_scale": options.player_damage_scale if options != null else 1.0,
+		"enemy_damage_scale": options.enemy_damage_scale if options != null else 1.0,
 	})
+
+
+func cancel_effect_flags(effect_flags: int) -> void:
+	for index: int in range(_queue.size() - 1, -1, -1):
+		if int(_queue[index].effect_flags) & effect_flags:
+			_queue.remove_at(index)
 
 
 func _physics_process(_delta: float) -> void:
@@ -121,8 +129,12 @@ func _resolve_explosion(data: Dictionary) -> void:
 				int(data.effect_flags),
 				float(data.kinetic_debris_bonus)
 			)
-		var accepted: bool = _deliver_damage(receiver, event)
-		_apply_rigid_impulse(target_node, event)
+		var receiver_scale: float = _damage_scale_for(receiver, data)
+		if receiver_scale <= 0.0:
+			continue
+		var scaled_event: DamageEvent = event.scaled(receiver_scale)
+		var accepted: bool = _deliver_damage(receiver, scaled_event)
+		_apply_rigid_impulse(target_node, scaled_event)
 		if accepted:
 			accepted_targets += 1
 	explosion_resolved.emit(origin, accepted_targets)
@@ -138,6 +150,14 @@ func _deliver_damage(receiver: Node, event: DamageEvent) -> bool:
 	if receiver != null:
 		return bool(receiver.call("receive_damage", event))
 	return false
+
+
+func _damage_scale_for(receiver: Node, data: Dictionary) -> float:
+	if receiver is GiantRobotController:
+		return maxf(float(data.player_damage_scale), 0.0)
+	if receiver is EnemyActor2D:
+		return maxf(float(data.enemy_damage_scale), 0.0)
+	return 1.0
 
 
 func _damage_receiver(start_node: Node) -> Node:

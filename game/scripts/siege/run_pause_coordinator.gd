@@ -6,6 +6,7 @@ signal pause_changed(paused: bool)
 var dependencies: UrbanSiegeDependencies
 var director: DistrictResponseDirector
 var catalysts: CatalystRuntime
+var hazards: HazardRuntime
 var _leases: Dictionary[int, StringName] = {}
 var _next_token: int = 1
 
@@ -13,11 +14,13 @@ var _next_token: int = 1
 func setup(
 	p_dependencies: UrbanSiegeDependencies,
 	p_director: DistrictResponseDirector,
-	p_catalysts: CatalystRuntime
+	p_catalysts: CatalystRuntime,
+	p_hazards: HazardRuntime = null
 ) -> void:
 	dependencies = p_dependencies
 	director = p_director
 	catalysts = p_catalysts
+	hazards = p_hazards
 
 
 func acquire(reason: StringName) -> int:
@@ -72,4 +75,6 @@ func _apply_pause(paused: bool) -> void:
 	)
 	director.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
 	catalysts.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
+	if hazards != null:
+		hazards.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
 	pause_changed.emit(paused)

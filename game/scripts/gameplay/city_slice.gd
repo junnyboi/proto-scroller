@@ -618,12 +618,8 @@ func _on_combo_changed(multiplier: int, grace_remaining: float) -> void:
 
 
 func _on_projectile_requested(
-	origin: Vector2,
-	direction: Vector2,
-	speed: float,
-	damage: float,
-	kind: StringName,
-	source: Node
+	origin: Vector2, direction: Vector2, speed: float, damage: float,
+	kind: StringName, source: Node
 ) -> void:
 	projectile_root.acquire(
 		origin,

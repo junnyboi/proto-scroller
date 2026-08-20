@@ -63,6 +63,11 @@ const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_COOLDOWN_INDICATORS: int = 1
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
+const HAZARD_ACTORS: int = 4
+const HAZARD_VFX_SLOTS: int = 12
+const ACTIVE_HAZARDS: int = 4
+const PENDING_HAZARDS: int = 2
+const HAZARD_PRESSURE: int = 4
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -101,6 +106,12 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			1 if city.gameplay_hud.dodge_cooldown_indicator != null else 0
 		),
 		"elite_spawn_effect_slots": city.encounter_runtime.elite_spawn_effect_pool.slot_count(),
+		"hazard_total": city.urban_siege.hazards.total_count(),
+		"hazard_active": city.urban_siege.hazards.active_count(),
+		"hazard_post_warm_creations": city.urban_siege.hazards.post_warm_creation_count,
+		"hazard_vfx_slots": city.urban_siege.hazards.vfx_pool.slot_count(),
+		"hazard_pending_peak": city.urban_siege.director.peak_hazard_pending,
+		"hazard_pressure_peak": city.urban_siege.hazard_pressure.peak_used_budget,
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
@@ -198,6 +209,9 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		"elite_spawn_effect_slots",
 		ELITE_SPAWN_EFFECT_SLOTS
 	)
+	_check_equal(errors, data, "hazard_total", HAZARD_ACTORS)
+	_check_equal(errors, data, "hazard_vfx_slots", HAZARD_VFX_SLOTS)
+	_check_equal(errors, data, "hazard_post_warm_creations", 0)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)
@@ -251,6 +265,18 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		errors.append(
 			"pending_beat_peak=%d cap=%d"
 			% [data.pending_beat_peak, PENDING_BEAT_RECORDS]
+		)
+	if int(data.hazard_active) > ACTIVE_HAZARDS:
+		errors.append("hazard_active=%d cap=%d" % [data.hazard_active, ACTIVE_HAZARDS])
+	if int(data.hazard_pending_peak) > PENDING_HAZARDS:
+		errors.append(
+			"hazard_pending_peak=%d cap=%d"
+			% [data.hazard_pending_peak, PENDING_HAZARDS]
+		)
+	if int(data.hazard_pressure_peak) > HAZARD_PRESSURE:
+		errors.append(
+			"hazard_pressure_peak=%d cap=%d"
+			% [data.hazard_pressure_peak, HAZARD_PRESSURE]
 		)
 	if int(data.telegraph_peak) > TELEGRAPH_RECORDS:
 		errors.append("telegraph_peak=%d cap=%d" % [data.telegraph_peak, TELEGRAPH_RECORDS])

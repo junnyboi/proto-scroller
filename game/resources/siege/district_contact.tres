@@ -520,6 +520,8 @@ chaos_enabled = true
 spawn_stagger_seconds = 0.18
 spawn_jitter_seconds = 0.12
 mirrored_flank_chance = 0.2
+hazard_pressure_budget = 2
+hazard_events_per_beat = 1
 
 [sub_resource type="Resource" id="RetaliationAct"]
 script = ExtResource("2")
@@ -532,6 +534,8 @@ chaos_enabled = true
 spawn_stagger_seconds = 0.14
 spawn_jitter_seconds = 0.18
 mirrored_flank_chance = 0.35
+hazard_pressure_budget = 3
+hazard_events_per_beat = 2
 
 [sub_resource type="Resource" id="CommandTestAct"]
 script = ExtResource("2")
@@ -546,6 +550,8 @@ spawn_stagger_seconds = 0.1
 spawn_jitter_seconds = 0.22
 mirrored_flank_chance = 0.5
 elite_units_per_beat = 2
+hazard_pressure_budget = 4
+hazard_events_per_beat = 2
 
 [resource]
 script = ExtResource("1")

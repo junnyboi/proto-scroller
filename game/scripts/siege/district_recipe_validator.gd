@@ -4,7 +4,16 @@ extends RefCounted
 
 static func validate(district: DistrictDefinition) -> PackedStringArray:
 	var errors: PackedStringArray = []
-	for act: DistrictAct in district.acts:
+	for act_index: int in range(district.acts.size()):
+		var act: DistrictAct = district.acts[act_index]
+		if act.hazard_pressure_budget > RuntimeBudget.HAZARD_PRESSURE:
+			errors.append("%s hazard pressure exceeds cap" % act.act_id)
+		if act.hazard_events_per_beat > RuntimeBudget.PENDING_HAZARDS:
+			errors.append("%s hazard events exceed pending cap" % act.act_id)
+		if act.hazard_events_per_beat > act.hazard_pressure_budget:
+			errors.append("%s cannot fund authored hazard events" % act.act_id)
+		if act_index < 3 and act.hazard_events_per_beat > 0:
+			errors.append("%s introduces hazards before late game" % act.act_id)
 		for beat: DistrictBeat in act.beats:
 			var counts: Dictionary[StringName, int] = {}
 			var elites: int = 0

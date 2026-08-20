@@ -28,12 +28,16 @@ var act_elapsed: float = 0.0
 var peak_pending_records: int = 0
 var elite_assignments: Array[Dictionary] = []
 var elite_roll_count: int = 0
+var hazard_runtime: HazardRuntime
+var hazard_pressure: HazardPressureController
+var peak_hazard_pending: int = 0
 var _elite_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _elite_seed: int = ELITE_SYSTEM_SALT
 var _chaos_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _chaos_seed: int = CHAOS_SYSTEM_SALT
 var _beat_reservation_id: int = 0
 var _beat_pending: Array[Dictionary] = []
+var _hazard_pending: Array[Dictionary] = []
 
 
 func setup(p_runtime: EncounterRuntime, p_waves: Array[EnemyWave]) -> void:
@@ -45,6 +49,14 @@ func setup_district(p_runtime: EncounterRuntime, p_district: DistrictDefinition)
 	runtime = p_runtime
 	district = p_district
 	configure_elite_affixes(0, 1)
+
+
+func configure_hazards(
+	p_hazard_runtime: HazardRuntime,
+	p_hazard_pressure: HazardPressureController
+) -> void:
+	hazard_runtime = p_hazard_runtime
+	hazard_pressure = p_hazard_pressure
 
 
 func configure_elite_affixes(run_seed: int, cycle: int) -> void:
@@ -69,8 +81,11 @@ func start() -> void:
 	act_elapsed = 0.0
 	_elite_rng.seed = _elite_seed
 	_chaos_rng.seed = _chaos_seed
+	if hazard_pressure != null:
+		hazard_pressure.reset_sequence()
 	elite_assignments.clear()
 	elite_roll_count = 0
+	peak_hazard_pending = 0
 	_advance_act()
 
 
@@ -83,6 +98,7 @@ func stop() -> void:
 	pressure_remaining = 0.0
 	recovery_remaining = 0.0
 	_beat_pending.clear()
+	_hazard_pending.clear()
 	if _beat_reservation_id != 0:
 		ledger.cancel(_beat_reservation_id)
 	_beat_reservation_id = 0
@@ -115,6 +131,7 @@ func advance(delta: float) -> void:
 			_try_start_next_beat()
 		STATE_PRESSURE:
 			_process_pending(delta)
+			_process_hazard_pending(delta)
 			pressure_remaining = maxf(pressure_remaining - delta, 0.0)
 			if is_zero_approx(pressure_remaining) and _beat_pending.is_empty():
 				_start_recovery()
@@ -137,6 +154,10 @@ func pending_count() -> int:
 	if district == null:
 		return super.pending_count()
 	return _beat_pending.size()
+
+
+func hazard_pending_count() -> int:
+	return _hazard_pending.size()
 
 
 func current_beat_id() -> StringName:
@@ -217,8 +238,19 @@ func _try_start_next_beat() -> void:
 				"trait_id": elite_plan.get(entry_index, entry.trait_id),
 				"spawn_anchor": spawn_anchor,
 				"offset": Vector2(copy_direction * float(copy_index) * HUMAN_COPY_SPACING, 0.0),
-			})
+				})
 			pending_index += 1
+	_hazard_pending.clear()
+	if hazard_pressure != null and hazard_runtime != null:
+		var robot_x: float = runtime.robot.global_position.x if runtime.robot != null else 760.0
+		_hazard_pending = hazard_pressure.plan_for_beat(
+			phase_index,
+			beat_index,
+			act,
+			next_beat,
+			robot_x
+		)
+		peak_hazard_pending = maxi(peak_hazard_pending, _hazard_pending.size())
 	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
 	pressure_remaining = next_beat.pressure_seconds
 	recovery_remaining = next_beat.recovery_seconds
@@ -257,6 +289,24 @@ func _process_pending(delta: float) -> void:
 			continue
 		ledger.consume_actor(_beat_reservation_id, kind)
 		_beat_pending.remove_at(index)
+
+
+func _process_hazard_pending(delta: float) -> void:
+	if hazard_runtime == null:
+		_hazard_pending.clear()
+		return
+	for index: int in range(_hazard_pending.size() - 1, -1, -1):
+		var record: Dictionary = _hazard_pending[index]
+		record.remaining = maxf(float(record.remaining) - delta, 0.0)
+		if not is_zero_approx(float(record.remaining)):
+			continue
+		if hazard_runtime.activate(
+			StringName(record.hazard_id),
+			record.position as Vector2,
+			int(record.facing)
+		) == null:
+			continue
+		_hazard_pending.remove_at(index)
 
 
 func _process_legacy(delta: float) -> void:

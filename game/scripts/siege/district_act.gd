@@ -12,3 +12,5 @@ extends Resource
 @export_range(0.0, 0.5, 0.01) var spawn_jitter_seconds: float = 0.0
 @export_range(0.0, 1.0, 0.05) var mirrored_flank_chance: float = 0.0
 @export_range(1, 3, 1) var elite_units_per_beat: int = 1
+@export_range(0, 6, 1) var hazard_pressure_budget: int = 0
+@export_range(0, 2, 1) var hazard_events_per_beat: int = 0

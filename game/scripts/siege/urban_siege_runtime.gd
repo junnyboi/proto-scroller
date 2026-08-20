@@ -11,6 +11,7 @@ const DIRECTOR_SCRIPT: Script = preload("res://scripts/siege/district_response_d
 const CATALYST_RUNTIME_SCRIPT: Script = preload(
 	"res://scripts/destruction/catalysts/catalyst_runtime.gd"
 )
+const HAZARD_RUNTIME_SCRIPT: Script = preload("res://scripts/hazards/hazard_runtime.gd")
 const BREACH_PROFILE: DirectiveProfile = preload(
 	"res://resources/directives/demolition_breach.tres"
 )
@@ -49,6 +50,8 @@ var base_district: DistrictDefinition
 var district: DistrictDefinition
 var director: DistrictResponseDirector
 var catalysts: CatalystRuntime
+var hazards: HazardRuntime
+var hazard_pressure: HazardPressureController
 var directives: DirectiveSession
 var pause_coordinator: RunPauseCoordinator
 var trait_runtime: EnemyTraitRuntime
@@ -75,6 +78,14 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	director.milestone_reached.connect(_on_milestone_reached)
 	director.district_completed.connect(_on_arc_completed)
 	add_child(director)
+	hazards = HAZARD_RUNTIME_SCRIPT.new() as HazardRuntime
+	hazards.name = "HazardRuntime"
+	hazards.setup(dependencies)
+	add_child(hazards)
+	hazard_pressure = HazardPressureController.new()
+	hazard_pressure.setup(hazards)
+	hazard_pressure.configure(0, 1)
+	director.configure_hazards(hazards, hazard_pressure)
 	catalysts = CATALYST_RUNTIME_SCRIPT.new() as CatalystRuntime
 	catalysts.name = "CatalystRuntime"
 	catalysts.setup(dependencies)
@@ -99,7 +110,7 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	add_child(boss_session)
 	pause_coordinator = RunPauseCoordinator.new()
 	pause_coordinator.name = "RunPauseCoordinator"
-	pause_coordinator.setup(dependencies, director, catalysts)
+	pause_coordinator.setup(dependencies, director, catalysts, hazards)
 	add_child(pause_coordinator)
 	directives.choices_offered.connect(_on_directive_choices_offered)
 	directives.selected.connect(_on_directive_selected)
@@ -127,6 +138,7 @@ func continue_cycle() -> bool:
 	dependencies.telegraphs.cancel_all()
 	dependencies.projectile_pool.release_all()
 	dependencies.encounter_runtime.release_all()
+	hazards.release_all()
 	trait_runtime.reset_all()
 	boss_session.reset_state()
 	_prepare_cycle()
@@ -162,6 +174,8 @@ func stop_run() -> void:
 		director.stop()
 	if catalysts != null:
 		catalysts.deactivate_all()
+	if hazards != null:
+		hazards.release_all()
 	if directives != null:
 		directives.stop()
 	if pause_coordinator != null:
@@ -227,6 +241,8 @@ func _on_boss_completed(_elapsed_seconds: float) -> void:
 func _prepare_cycle() -> void:
 	_select_configuration(true)
 	director.configure_elite_affixes(run_seed, cycle_count)
+	hazard_pressure.configure(run_seed, cycle_count)
+	hazards.release_all()
 	catalysts.deactivate_all()
 	var transformer: Catalyst2D = catalysts.activate(
 		0,

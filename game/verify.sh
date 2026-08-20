@@ -15,7 +15,12 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 rm -rf artifacts
-mkdir -p artifacts/title_screen artifacts/city_slice artifacts/enemy_variety artifacts/upgrades
+mkdir -p \
+  artifacts/title_screen \
+  artifacts/city_slice \
+  artifacts/enemy_variety \
+  artifacts/street_volatility \
+  artifacts/upgrades
 START_EPOCH="$(date +%s)"
 
 run_engine() {
@@ -83,6 +88,12 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/enemy_variety/report.json >/dev/null
 
+printf '%s\n' '[L4] street-volatility headless scenario'
+run_engine "$GODOT" --headless --fixed-fps 60 --path . \
+  -s selftest/street_volatility_scenario.gd
+jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
+  artifacts/street_volatility/report.json >/dev/null
+
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
   printf '%s\n' '[L5] windowed render scenario'
@@ -127,6 +138,15 @@ if [[ "$MODE" == "full" ]]; then
   test -s artifacts/enemy_variety/enemy-variety.png
   ENEMY_VARIETY_DIMENSIONS="$(file artifacts/enemy_variety/enemy-variety.png)"
   grep -Fq '1280 x 720' <<< "$ENEMY_VARIETY_DIMENSIONS"
+
+  printf '%s\n' '[L5] windowed street-volatility render scenario'
+  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+    -s selftest/street_volatility_scenario.gd
+  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+    artifacts/street_volatility/report.json >/dev/null
+  test -s artifacts/street_volatility/street-volatility.png
+  STREET_VOLATILITY_DIMENSIONS="$(file artifacts/street_volatility/street-volatility.png)"
+  grep -Fq '1280 x 720' <<< "$STREET_VOLATILITY_DIMENSIONS"
 
   printf '%s\n' '[L5] initial city-slice visual scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \

@@ -9,3 +9,5 @@ var result_limit: int = 0
 var structural_limit: int = 0
 var debris_limit: int = 0
 var damage_type: StringName = &"explosive"
+var player_damage_scale: float = 1.0
+var enemy_damage_scale: float = 1.0
