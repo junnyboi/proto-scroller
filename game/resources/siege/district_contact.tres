@@ -375,56 +375,59 @@ spawns = Array[ExtResource("4")]([SubResource("Mule"), SubResource("Basilisk"), 
 script = ExtResource("3")
 beat_id = &"COMMAND_SCREEN"
 pressure_seconds = 12.0
-recovery_seconds = 2.0
+recovery_seconds = 1.5
 spawns = Array[ExtResource("4")]([SubResource("VolatileKestrel"), SubResource("Bulwark"), SubResource("SoldierBehindLate")])
 
 [sub_resource type="Resource" id="Command02"]
 script = ExtResource("3")
 beat_id = &"COMMAND_REAR"
 pressure_seconds = 13.0
-recovery_seconds = 2.0
+recovery_seconds = 1.5
 spawns = Array[ExtResource("4")]([SubResource("Rainmaker"), SubResource("Jackal"), SubResource("Needle"), SubResource("SoldierAheadLate")])
 
 [sub_resource type="Resource" id="Command03"]
 script = ExtResource("3")
 beat_id = &"COMMAND_AIR"
 pressure_seconds = 13.0
-recovery_seconds = 2.0
+recovery_seconds = 1.5
 spawns = Array[ExtResource("4")]([SubResource("Shrike"), SubResource("Lancer"), SubResource("Jackal")])
 
 [sub_resource type="Resource" id="Command04"]
 script = ExtResource("3")
 beat_id = &"COMMAND_PINCER"
 pressure_seconds = 14.0
-recovery_seconds = 2.0
+recovery_seconds = 1.5
 spawns = Array[ExtResource("4")]([SubResource("Cinder"), SubResource("Sapper"), SubResource("Hound")])
 
 [sub_resource type="Resource" id="Command05"]
 script = ExtResource("3")
 beat_id = &"COMMAND_BREAK"
 pressure_seconds = 14.0
-recovery_seconds = 2.0
+recovery_seconds = 1.5
+maximum_threat = 16
 spawns = Array[ExtResource("4")]([SubResource("Static"), SubResource("Shrike"), SubResource("Lancer"), SubResource("SoldierAheadLate")])
 
 [sub_resource type="Resource" id="Retaliation01"]
 script = ExtResource("3")
 beat_id = &"RETALIATION_FRONT"
 pressure_seconds = 12.0
-recovery_seconds = 2.0
+recovery_seconds = 1.25
+maximum_threat = 13
 spawns = Array[ExtResource("4")]([SubResource("ShieldedAegis"), SubResource("Cinder"), SubResource("Needle"), SubResource("SoldierBehindLate")])
 
 [sub_resource type="Resource" id="Retaliation02"]
 script = ExtResource("3")
 beat_id = &"RETALIATION_REAR"
 pressure_seconds = 13.0
-recovery_seconds = 2.0
+recovery_seconds = 1.25
+maximum_threat = 13
 spawns = Array[ExtResource("4")]([SubResource("Longbow"), SubResource("Bulwark"), SubResource("Jackal"), SubResource("Hound")])
 
 [sub_resource type="Resource" id="Retaliation03"]
 script = ExtResource("3")
 beat_id = &"RETALIATION_AIR"
 pressure_seconds = 13.0
-recovery_seconds = 2.0
+recovery_seconds = 1.25
 maximum_threat = 16
 spawns = Array[ExtResource("4")]([SubResource("Hive"), SubResource("Cinder"), SubResource("Jackal"), SubResource("Hound")])
 
@@ -432,7 +435,7 @@ spawns = Array[ExtResource("4")]([SubResource("Hive"), SubResource("Cinder"), Su
 script = ExtResource("3")
 beat_id = &"RETALIATION_SQUEEZE"
 pressure_seconds = 14.0
-recovery_seconds = 2.0
+recovery_seconds = 1.25
 maximum_threat = 13
 spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("Shrike"), SubResource("Jackal")])
 
@@ -440,32 +443,48 @@ spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("Shrike"),
 script = ExtResource("3")
 beat_id = &"RETALIATION_PEAK"
 pressure_seconds = 15.0
-recovery_seconds = 2.0
-maximum_threat = 14
+recovery_seconds = 1.25
+maximum_threat = 17
 spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("Hound"), SubResource("Lancer"), SubResource("Needle")])
 
 [sub_resource type="Resource" id="CommandTest01"]
 script = ExtResource("3")
 beat_id = &"SIEGE_TEST"
 pressure_seconds = 12.0
-recovery_seconds = 2.0
+recovery_seconds = 1.0
 spawns = Array[ExtResource("4")]([SubResource("Nemesis"), SubResource("Needle"), SubResource("Jackal")])
 
 [sub_resource type="Resource" id="CommandTest02"]
 script = ExtResource("3")
 beat_id = &"ARMOR_TEST"
 pressure_seconds = 13.0
-recovery_seconds = 2.0
-maximum_threat = 14
+recovery_seconds = 1.0
+maximum_threat = 15
 spawns = Array[ExtResource("4")]([SubResource("Leviathan"), SubResource("Needle"), SubResource("SoldierBehindLate")])
 
 [sub_resource type="Resource" id="CommandTest03"]
 script = ExtResource("3")
 beat_id = &"COMMAND_TEST"
 pressure_seconds = 15.0
-recovery_seconds = 2.0
-maximum_threat = 16
+recovery_seconds = 1.0
+maximum_threat = 20
 spawns = Array[ExtResource("4")]([SubResource("Aegis"), SubResource("Kestrel"), SubResource("SoldierBehind"), SubResource("Hound"), SubResource("Lancer")])
+
+[sub_resource type="Resource" id="CommandTest04"]
+script = ExtResource("3")
+beat_id = &"COMMAND_GAUNTLET"
+pressure_seconds = 14.0
+recovery_seconds = 1.0
+maximum_threat = 19
+spawns = Array[ExtResource("4")]([SubResource("Goliath"), SubResource("Shrike"), SubResource("Lobber"), SubResource("Sapper")])
+
+[sub_resource type="Resource" id="CommandTest05"]
+script = ExtResource("3")
+beat_id = &"FINAL_SWARM"
+pressure_seconds = 15.0
+recovery_seconds = 1.0
+maximum_threat = 20
+spawns = Array[ExtResource("4")]([SubResource("Nemesis"), SubResource("Needle"), SubResource("Jackal"), SubResource("Lancer"), SubResource("Bulwark")])
 
 [sub_resource type="Resource" id="ContactAct"]
 script = ExtResource("2")
@@ -497,6 +516,10 @@ display_name = "encounter.command_response"
 target_duration = 85.0
 beats = Array[ExtResource("3")]([SubResource("Command01"), SubResource("Command02"), SubResource("Command03"), SubResource("Command04"), SubResource("Command05")])
 elite_allowed = true
+chaos_enabled = true
+spawn_stagger_seconds = 0.18
+spawn_jitter_seconds = 0.12
+mirrored_flank_chance = 0.2
 
 [sub_resource type="Resource" id="RetaliationAct"]
 script = ExtResource("2")
@@ -505,15 +528,24 @@ display_name = "encounter.retaliation"
 target_duration = 85.0
 beats = Array[ExtResource("3")]([SubResource("Retaliation01"), SubResource("Retaliation02"), SubResource("Retaliation03"), SubResource("Retaliation04"), SubResource("Retaliation05")])
 elite_allowed = true
+chaos_enabled = true
+spawn_stagger_seconds = 0.14
+spawn_jitter_seconds = 0.18
+mirrored_flank_chance = 0.35
 
 [sub_resource type="Resource" id="CommandTestAct"]
 script = ExtResource("2")
 act_id = &"COMMAND_TEST"
 display_name = "encounter.command_test"
 target_duration = 85.0
-beats = Array[ExtResource("3")]([SubResource("CommandTest01"), SubResource("CommandTest02"), SubResource("CommandTest03")])
+beats = Array[ExtResource("3")]([SubResource("CommandTest01"), SubResource("CommandTest02"), SubResource("CommandTest03"), SubResource("CommandTest04"), SubResource("CommandTest05")])
 milestone_after = &"DISTRICT_COMPLETE"
 elite_allowed = true
+chaos_enabled = true
+spawn_stagger_seconds = 0.1
+spawn_jitter_seconds = 0.22
+mirrored_flank_chance = 0.5
+elite_units_per_beat = 2
 
 [resource]
 script = ExtResource("1")

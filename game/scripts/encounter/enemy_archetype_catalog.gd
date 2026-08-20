@@ -2,6 +2,12 @@ class_name EnemyArchetypeCatalog
 extends RefCounted
 
 const BASE_KINDS: Array[StringName] = [&"soldier", &"tank", &"helicopter"]
+const HUMAN_KINDS: Array[StringName] = [
+	&"soldier", &"bulwark", &"lobber", &"sapper", &"lancer",
+]
+const HUMAN_SPAWN_MULTIPLIER: int = 2
+const HUMAN_RENDER_HEIGHT_PIXELS: float = 108.0
+const RANDOM_AFFIXES: Array[StringName] = [&"BLITZ", &"BRUTAL", &"PHASED"]
 const PROCEDURAL_IDS: Array[StringName] = [
 	&"needle", &"bulwark", &"jackal", &"lobber", &"sapper",
 	&"hound", &"mule", &"basilisk", &"lancer", &"static",
@@ -23,7 +29,7 @@ const PROFILES: Dictionary = {
 	&"bulwark": {
 		"display_name": "BULWARK RIOT TROOPER", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/02-bulwark-riot-trooper.png",
-		"display": Vector2(78.0, 118.0), "collision": Vector2(48.0, 100.0),
+		"display": Vector2(116.85, 108.0), "collision": Vector2(48.0, 100.0),
 		"spawn_y": 540.0, "health": 110.0, "speed": 64.0, "acceleration": 430.0,
 		"preferred_range": 230.0, "minimum_range": 120.0, "attack_interval": 1.45,
 		"projectile_kind": &"bullet", "projectile_speed": 690.0, "damage": 7.0,
@@ -43,7 +49,7 @@ const PROFILES: Dictionary = {
 	&"lobber": {
 		"display_name": "LOBBER GRENADIER", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/04-lobber-grenadier.png",
-		"display": Vector2(72.0, 112.0), "collision": Vector2(44.0, 96.0),
+		"display": Vector2(110.07, 108.0), "collision": Vector2(44.0, 96.0),
 		"spawn_y": 542.0, "health": 105.0, "speed": 82.0, "acceleration": 500.0,
 		"preferred_range": 500.0, "minimum_range": 300.0, "attack_interval": 1.9,
 		"projectile_kind": &"shell", "projectile_speed": 410.0, "damage": 14.0,
@@ -53,7 +59,7 @@ const PROFILES: Dictionary = {
 	&"sapper": {
 		"display_name": "SAPPER COMBAT ENGINEER", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/05-sapper-combat-engineer.png",
-		"display": Vector2(74.0, 114.0), "collision": Vector2(46.0, 98.0),
+		"display": Vector2(109.24, 108.0), "collision": Vector2(46.0, 98.0),
 		"spawn_y": 541.0, "health": 130.0, "speed": 76.0, "acceleration": 470.0,
 		"preferred_range": 420.0, "minimum_range": 240.0, "attack_interval": 2.1,
 		"projectile_kind": &"bullet", "projectile_speed": 670.0, "damage": 5.0,
@@ -94,7 +100,7 @@ const PROFILES: Dictionary = {
 	&"lancer": {
 		"display_name": "LANCER MISSILE TEAM", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/09-lancer-missile-team.png",
-		"display": Vector2(135.0, 105.0), "collision": Vector2(120.0, 85.0),
+		"display": Vector2(128.81, 108.0), "collision": Vector2(120.0, 85.0),
 		"spawn_y": 547.5, "health": 160.0, "speed": 58.0, "acceleration": 350.0,
 		"preferred_range": 650.0, "minimum_range": 390.0, "attack_interval": 2.45,
 		"projectile_kind": &"rocket", "projectile_speed": 520.0, "damage": 26.0,
@@ -262,3 +268,11 @@ static func xp_value(kind: StringName) -> int:
 
 static func is_valid_kind(kind: StringName) -> bool:
 	return kind in BASE_KINDS or has(kind)
+
+
+static func is_human_enemy(kind: StringName) -> bool:
+	return kind in HUMAN_KINDS
+
+
+static func spawn_multiplier(kind: StringName) -> int:
+	return HUMAN_SPAWN_MULTIPLIER if is_human_enemy(kind) else 1

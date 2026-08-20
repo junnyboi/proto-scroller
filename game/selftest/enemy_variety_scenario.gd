@@ -1,6 +1,6 @@
 extends SceneTree
 
-const MAX_FRAMES: int = 720
+const MAX_FRAMES: int = 1200
 const REPORT_PATH: String = "res://artifacts/enemy_variety/report.json"
 const SHOT_PATH: String = "res://artifacts/enemy_variety/enemy-variety.png"
 
@@ -79,14 +79,20 @@ func _run() -> void:
 		]
 		)
 	await _run_balanced_mixed_wave(city)
-	city.robot.global_position.x = 820.0
+	city.robot.global_position.x = 1300.0
+	city.camera_rig.global_position.x = 1300.0
+	city.gameplay_hud.first_run_tutorial.visible = false
 	var showcase: Array[Dictionary] = [
-		{"id": &"lancer", "trait": &"PHASED", "position": Vector2(650.0, 547.5)},
-		{"id": &"hound", "trait": &"BLITZ", "position": Vector2(760.0, 260.0)},
-		{"id": &"kestrel", "trait": &"BRUTAL", "position": Vector2(1220.0, 250.0)},
-		{"id": &"aegis", "trait": &"PHASED", "position": Vector2(1120.0, 544.0)},
-		{"id": &"jackal", "trait": &"BLITZ", "position": Vector2(1420.0, 554.0)},
+		{"id": &"lobber", "trait": &"PHASED", "position": Vector2(850.0, 542.0)},
+		{"id": &"lobber", "trait": &"BRUTAL", "position": Vector2(970.0, 542.0)},
+		{"id": &"sapper", "trait": &"BLITZ", "position": Vector2(1090.0, 541.0)},
+		{"id": &"sapper", "trait": &"PHASED", "position": Vector2(1510.0, 541.0)},
+		{"id": &"lancer", "trait": &"BRUTAL", "position": Vector2(1640.0, 547.5)},
+		{"id": &"lancer", "trait": &"BLITZ", "position": Vector2(1780.0, 547.5)},
+		{"id": &"hound", "trait": &"PHASED", "position": Vector2(1030.0, 240.0)},
+		{"id": &"shrike", "trait": &"BRUTAL", "position": Vector2(1650.0, 205.0)},
 	]
+	var showcase_count: int = 0
 	for item: Dictionary in showcase:
 		var actor: ProceduralEnemy = city.encounter_runtime.acquire(
 			item.id,
@@ -96,6 +102,13 @@ func _run() -> void:
 		) as ProceduralEnemy
 		if actor != null:
 			actor.set_physics_process(false)
+			showcase_count += 1
+	_check("chaos_showcase_acquires", showcase_count == 8, "count=%d" % showcase_count)
+	_check(
+		"elite_spawn_impacts_active",
+		city.encounter_runtime.elite_spawn_effect_pool.active_count() > 0,
+		"active=%d" % city.encounter_runtime.elite_spawn_effect_pool.active_count()
+	)
 	await process_frame
 	await physics_frame
 	var shot_status: String = "SKIP"
@@ -133,6 +146,9 @@ func _run_balanced_mixed_wave(city: CitySlice) -> void:
 		{"id": &"static", "trait": &"BLITZ", "position": Vector2(1320.0, 547.0)},
 		{"id": &"shrike", "trait": &"BRUTAL", "position": Vector2(1250.0, 195.0)},
 		{"id": &"lancer", "trait": &"PHASED", "position": Vector2(450.0, 547.5)},
+		{"id": &"lancer", "trait": &"BLITZ", "position": Vector2(540.0, 547.5)},
+		{"id": &"sapper", "trait": &"BRUTAL", "position": Vector2(1060.0, 541.0)},
+		{"id": &"sapper", "trait": &"PHASED", "position": Vector2(1150.0, 541.0)},
 	]
 	var actors: Array[ProceduralEnemy] = []
 	var families: Dictionary[StringName, bool] = {}
@@ -146,7 +162,7 @@ func _run_balanced_mixed_wave(city: CitySlice) -> void:
 		if actor != null:
 			actors.append(actor)
 			families[actor.family] = true
-	_check("mixed_wave_acquires", actors.size() == 3, "count=%d" % actors.size())
+	_check("mixed_wave_acquires", actors.size() == 6, "count=%d" % actors.size())
 	_check("mixed_wave_has_three_families", families.size() == 3, "count=%d" % families.size())
 	_check("late_loadout_has_max_armor", loadout_health == 1200.0, "health=%.1f" % loadout_health)
 	for frame_index: int in range(360):

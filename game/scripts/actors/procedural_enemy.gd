@@ -423,6 +423,8 @@ func _animate_visual(delta: float) -> void:
 				rotation_value += float(facing) * attack_envelope * 0.04
 			_:
 				offset.x -= float(facing) * attack_envelope * 5.0
+	if EnemyArchetypeCatalog.is_human_enemy(archetype_id):
+		scale_factor.y = 1.0
 	visual.position = _visual_rest_position + offset
 	visual.scale = _visual_rest_scale * scale_factor
 	visual.rotation = rotation_value

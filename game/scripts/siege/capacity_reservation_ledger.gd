@@ -73,7 +73,10 @@ func _counts_for_beat(beat: DistrictBeat) -> Dictionary[StringName, int]:
 		if not EnemyArchetypeCatalog.is_valid_kind(kind):
 			continue
 		var key: StringName = EnemyArchetypeCatalog.reservation_key(kind)
-		counts[key] = int(counts.get(key, 0)) + 1
+		counts[key] = (
+			int(counts.get(key, 0))
+			+ EnemyArchetypeCatalog.spawn_multiplier(kind)
+		)
 	return counts
 
 
