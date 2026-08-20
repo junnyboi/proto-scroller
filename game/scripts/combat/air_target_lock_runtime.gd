@@ -16,6 +16,8 @@ var _attacks: ContextualAttackController
 var _locked_target: EnemyActor2D
 var _locked_attack_id: int = 0
 var _monitoring: bool = false
+var _telegraph_elapsed: float = 0.0
+var _telegraph_duration: float = 0.0
 var _voice_player: AudioStreamPlayer
 var _reticle: AirTargetReticle2D
 
@@ -43,7 +45,7 @@ func _ready() -> void:
 		_attacks.attack_finished.connect(_on_attack_finished)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _monitoring:
 		return
 	if (
@@ -54,6 +56,13 @@ func _process(_delta: float) -> void:
 	):
 		_clear_lock()
 		return
+	_telegraph_elapsed = minf(
+		_telegraph_elapsed + maxf(delta, 0.0),
+		_telegraph_duration
+	)
+	_reticle.set_telegraph_progress(
+		_telegraph_elapsed / maxf(_telegraph_duration, 0.001)
+	)
 	var origin: Vector2 = _impact_origin()
 	if _locked_target != null and not AerialDebrisLauncher.is_valid_focused_target(
 		_locked_target,
@@ -73,6 +82,9 @@ func _process(_delta: float) -> void:
 		return
 	_locked_target = nearest
 	_reticle.acquire(nearest)
+	_reticle.set_telegraph_progress(
+		_telegraph_elapsed / maxf(_telegraph_duration, 0.001)
+	)
 	_play_voice(TARGET_ACQUIRED_SFX, &"air_target_acquired")
 
 
@@ -113,6 +125,8 @@ func _on_attack_started(spec: AttackSpec) -> void:
 	if spec == null or not spec.is_ground_smash():
 		return
 	_locked_attack_id = spec.attack_id
+	_telegraph_elapsed = 0.0
+	_telegraph_duration = spec.anticipation_seconds
 	_monitoring = true
 	set_process(true)
 	_process(0.0)
@@ -131,6 +145,8 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 func _clear_lock() -> void:
 	_locked_target = null
 	_locked_attack_id = 0
+	_telegraph_elapsed = 0.0
+	_telegraph_duration = 0.0
 	_monitoring = false
 	set_process(false)
 	if _reticle != null:
