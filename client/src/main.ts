@@ -44,11 +44,11 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "dfe0bce1";
-const REMOTE_ENGINE_PATH = "/manus-storage/game_4ce4eb3e";
-const REMOTE_PACK_PATH = `/manus-storage/game_d4ef2dac.pck?v=${GAME_PACK_VERSION}`;
+const GAME_PACK_VERSION = "017b4901-bgm";
+const REMOTE_ENGINE_PATH = "/manus-storage/game_7fa06ff5";
+const REMOTE_PACK_PATH = `/manus-storage/game_6520d403.pck?v=${GAME_PACK_VERSION}`;
 const ENGINE_WASM_BYTES = 39_513_091;
-const GAME_PACK_BYTES = 8_234_724;
+const GAME_PACK_BYTES = 8_368_372;
 const SLOW_LOAD_NOTICE_MS = 15_000;
 const RETRY_NOTICE_MS = 45_000;
 const searchParameters = new URLSearchParams(window.location.search);

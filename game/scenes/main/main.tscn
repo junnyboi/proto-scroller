@@ -1,6 +1,7 @@
-[gd_scene format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/main.gd" id="1_main"]
+[ext_resource type="AudioStream" path="res://audio/music/city_pressure_loop.ogg" id="2_bgm"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -8,5 +9,6 @@ script = ExtResource("1_main")
 [node name="BackgroundMusicPlayer" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
 process_mode = 3
+stream = ExtResource("2_bgm")
 bus = &"Music"
 autoplay = true
