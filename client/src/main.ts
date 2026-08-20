@@ -44,7 +44,7 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "595e4257";
+const GAME_PACK_VERSION = "595e4257-l1";
 const REMOTE_ENGINE_PATH = "/manus-storage/game_7fa06ff5";
 const REMOTE_PACK_PATH = `/manus-storage/game_a0865d1f.pck?v=${GAME_PACK_VERSION}`;
 const ENGINE_WASM_BYTES = 39_513_091;
