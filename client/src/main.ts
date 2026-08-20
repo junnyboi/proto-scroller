@@ -1,4 +1,9 @@
 import "./index.css";
+import {
+  calculateWebRenderResolution,
+  selectWebRenderTier,
+  type WebRenderResolution,
+} from "./lib/webRenderResolution";
 
 type GodotConfig = {
   args: string[];
@@ -29,11 +34,13 @@ type GodotEngineConstructor = {
 declare global {
   interface Window {
     Engine?: GodotEngineConstructor;
+    protoScrollerResolution?: WebRenderResolution;
   }
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
 const GAME_PACK_VERSION = "709022a1";
+const searchParameters = new URLSearchParams(window.location.search);
 const root = document.getElementById("root");
 
 if (!root) {
@@ -51,6 +58,37 @@ root.innerHTML = `
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const runtimeState = document.getElementById("runtime-state") as HTMLDivElement;
+const renderTier = selectWebRenderTier(
+  searchParameters.get("renderTier"),
+  navigator.maxTouchPoints
+);
+let resizeFrame = 0;
+
+function updateCanvasResolution(): void {
+  const bounds = canvas.getBoundingClientRect();
+  const resolution = calculateWebRenderResolution(
+    bounds.width || window.innerWidth,
+    bounds.height || window.innerHeight,
+    window.devicePixelRatio,
+    renderTier
+  );
+
+  if (canvas.width !== resolution.width) canvas.width = resolution.width;
+  if (canvas.height !== resolution.height) canvas.height = resolution.height;
+  canvas.dataset.renderTier = resolution.tier;
+  canvas.dataset.renderResolution = `${resolution.width}x${resolution.height}`;
+  window.protoScrollerResolution = resolution;
+}
+
+function queueCanvasResolutionUpdate(): void {
+  window.cancelAnimationFrame(resizeFrame);
+  resizeFrame = window.requestAnimationFrame(updateCanvasResolution);
+}
+
+updateCanvasResolution();
+window.addEventListener("resize", queueCanvasResolutionUpdate, {
+  passive: true,
+});
 
 function showError(message: string): void {
   runtimeState.classList.add("is-error");
@@ -67,19 +105,25 @@ async function startEngine(): Promise<void> {
     return;
   }
 
+  const useLocalGameFiles =
+    import.meta.env.DEV && searchParameters.has("localGame");
   const engine = new Engine({
     args: [],
     canvas,
-    canvasResizePolicy: 2,
+    canvasResizePolicy: 0,
     emscriptenPoolSize: 8,
     ensureCrossOriginIsolationHeaders: true,
-    executable: "/manus-storage/game_4a5a48f2",
+    executable: useLocalGameFiles
+      ? "/game/game"
+      : "/manus-storage/game_4a5a48f2",
     experimentalVK: false,
     fileSizes: {},
     focusCanvas: true,
     gdextensionLibs: [],
     godotPoolSize: 4,
-    mainPack: `/manus-storage/game_5827482a.pck?v=${GAME_PACK_VERSION}`,
+    mainPack: useLocalGameFiles
+      ? "/game/game.pck"
+      : `/manus-storage/game_5827482a.pck?v=${GAME_PACK_VERSION}`,
   });
 
   try {
@@ -97,7 +141,7 @@ async function startEngine(): Promise<void> {
     showError(
       runtimeError instanceof Error
         ? runtimeError.message
-        : "The Godot runtime failed to initialize.",
+        : "The Godot runtime failed to initialize."
     );
   }
 }
@@ -113,7 +157,7 @@ if (window.Engine) {
   script.addEventListener(
     "error",
     () => showError("The Godot engine loader could not be downloaded."),
-    { once: true },
+    { once: true }
   );
   document.head.appendChild(script);
 }
