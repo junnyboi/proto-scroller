@@ -91,5 +91,10 @@ func plan_for_beat(
 
 func _eligible_ids(act_index: int) -> Array[StringName]:
 	if act_index <= 3:
-		return [&"traffic_signal", &"steam_main", &"road_plate"]
-	return EnvironmentalHazardCatalog.MVP_IDS.duplicate()
+		return [&"traffic_signal", &"steam_main", &"road_plate", &"metro_vent"]
+	if act_index == 4:
+		return [
+			&"traffic_signal", &"steam_main", &"powerline", &"road_plate",
+			&"crane_drop", &"gas_fireline", &"metro_vent",
+		]
+	return EnvironmentalHazardCatalog.ACTIVE_IDS.duplicate()

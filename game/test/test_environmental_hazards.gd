@@ -7,6 +7,10 @@ const EXPECTED_DISPLAYS: Dictionary = {
 	&"steam_main": Vector2(150.0, 133.0),
 	&"powerline": Vector2(83.0, 320.0),
 	&"road_plate": Vector2(280.0, 55.0),
+	&"crane_drop": Vector2(185.0, 220.0),
+	&"gas_fireline": Vector2(200.0, 95.0),
+	&"facade_shear": Vector2(220.0, 315.0),
+	&"metro_vent": Vector2(235.0, 70.0),
 }
 
 var city: CitySlice
@@ -25,6 +29,9 @@ func before_each() -> void:
 func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 	assert_eq(EnvironmentalHazardCatalog.IDS.size(), 12)
 	assert_true(EnvironmentalHazardCatalog.mvp_profiles_valid())
+	assert_true(EnvironmentalHazardCatalog.active_profiles_valid())
+	assert_eq(EnvironmentalHazardCatalog.ACTIVE_IDS.size(), 8)
+	assert_eq(EnvironmentalHazardCatalog.TIER2_IDS.size(), 4)
 	var display_names: Dictionary[String, bool] = {}
 	var effect_signatures: Dictionary[String, bool] = {}
 	for hazard_id: StringName in EnvironmentalHazardCatalog.IDS:
@@ -46,8 +53,8 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 	assert_eq(effect_signatures.size(), 12)
 
 
-func test_mvp_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void:
-	for hazard_id: StringName in EnvironmentalHazardCatalog.MVP_IDS:
+func test_active_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void:
+	for hazard_id: StringName in EnvironmentalHazardCatalog.ACTIVE_IDS:
 		var profile: Dictionary = EnvironmentalHazardCatalog.profile(hazard_id)
 		var texture: Texture2D = load(String(profile.texture)) as Texture2D
 		assert_not_null(texture, hazard_id)
@@ -70,9 +77,9 @@ func test_mvp_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void:
 		runtime.release(actor)
 
 
-func test_each_mvp_hazard_triggers_animates_and_releases_without_growth() -> void:
+func test_each_active_hazard_triggers_animates_and_releases_without_growth() -> void:
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
-	for hazard_id: StringName in EnvironmentalHazardCatalog.MVP_IDS:
+	for hazard_id: StringName in EnvironmentalHazardCatalog.ACTIVE_IDS:
 		var actor: EnvironmentalHazard2D = runtime.activate(
 			hazard_id,
 			Vector2(820.0, CitySlice.LAND_VISUAL_BASELINE_Y),
@@ -88,8 +95,11 @@ func test_each_mvp_hazard_triggers_animates_and_releases_without_growth() -> voi
 			400.0
 		)), hazard_id)
 		assert_eq(actor.state, EnvironmentalHazard2D.STATE_TELEGRAPH, hazard_id)
+		var before_transform: Transform2D = actor.visual.transform
 		actor._process(float(actor.profile.telegraph) + 0.01)
 		assert_eq(actor.state, EnvironmentalHazard2D.STATE_ACTIVE, hazard_id)
+		await get_tree().process_frame
+		assert_ne(actor.visual.transform, before_transform, hazard_id)
 		assert_eq(actor.last_root_attack_id, 101, hazard_id)
 		assert_eq(runtime.last_hazard_id, hazard_id, hazard_id)
 		assert_gt(runtime.vfx_pool.play_count, 0, hazard_id)
@@ -111,8 +121,8 @@ func test_late_pressure_budget_is_seeded_bounded_and_escalating() -> void:
 	assert_eq(first_trace, replay_trace)
 	assert_ne(first_trace, alternate_trace)
 	assert_eq(DISTRICT.acts[3].hazard_pressure_budget, 2)
-	assert_eq(DISTRICT.acts[4].hazard_pressure_budget, 3)
-	assert_eq(DISTRICT.acts[5].hazard_pressure_budget, 4)
+	assert_eq(DISTRICT.acts[4].hazard_pressure_budget, 4)
+	assert_eq(DISTRICT.acts[5].hazard_pressure_budget, 5)
 	assert_eq(DISTRICT.acts[3].hazard_events_per_beat, 1)
 	assert_eq(DISTRICT.acts[4].hazard_events_per_beat, 2)
 	assert_eq(DISTRICT.acts[5].hazard_events_per_beat, 2)
@@ -121,6 +131,20 @@ func test_late_pressure_budget_is_seeded_bounded_and_escalating() -> void:
 		assert_lte(int(assignment.used_budget), act.hazard_pressure_budget)
 		assert_lte(int(assignment.event_count), act.hazard_events_per_beat)
 	assert_lte(controller.peak_used_budget, RuntimeBudget.HAZARD_PRESSURE)
+	assert_has(controller._eligible_ids(3), &"metro_vent")
+	assert_does_not_have(controller._eligible_ids(3), &"crane_drop")
+	assert_has(controller._eligible_ids(4), &"crane_drop")
+	assert_has(controller._eligible_ids(4), &"gas_fireline")
+	assert_does_not_have(controller._eligible_ids(4), &"facade_shear")
+	for hazard_id: StringName in EnvironmentalHazardCatalog.TIER2_IDS:
+		assert_has(controller._eligible_ids(5), hazard_id)
+	var scheduled_tier2: Dictionary[StringName, bool] = {}
+	for assignment: Dictionary in first_trace:
+		for record: Dictionary in assignment.plan:
+			var hazard_id: StringName = StringName(record.hazard_id)
+			if hazard_id in EnvironmentalHazardCatalog.TIER2_IDS:
+				scheduled_tier2[hazard_id] = true
+	assert_eq(scheduled_tier2.size(), EnvironmentalHazardCatalog.TIER2_IDS.size())
 
 
 func test_modal_pause_freezes_and_restores_hazard_processing() -> void:

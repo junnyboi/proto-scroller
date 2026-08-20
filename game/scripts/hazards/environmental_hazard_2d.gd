@@ -27,6 +27,7 @@ var _pulse_remaining: float = 0.0
 var _activation_event: DamageEvent
 var _visual_tween: Tween
 var _phase: float = 0.0
+var _rest_visual_position: Vector2 = Vector2.ZERO
 
 @onready var visual: Sprite2D = get_node(^"Visual") as Sprite2D
 @onready var collision_shape: CollisionShape2D = (
@@ -120,6 +121,10 @@ func impact_origin() -> Vector2:
 			return global_position + Vector2(150.0 * float(facing), -24.0)
 		&"electric":
 			return global_position + Vector2(72.0 * float(facing), -12.0)
+		&"fireline":
+			return global_position + Vector2(90.0 * float(facing), -12.0)
+		&"shear":
+			return global_position + Vector2(82.0 * float(facing), -28.0)
 		_:
 			return global_position + Vector2(0.0, -16.0)
 
@@ -140,7 +145,7 @@ func _begin_telegraph(event: DamageEvent) -> void:
 func _begin_impact() -> void:
 	state = STATE_ACTIVE
 	_state_remaining = float(profile.active)
-	_pulse_remaining = 0.0
+	_pulse_remaining = _pulse_interval(StringName(profile.behavior))
 	impact_count += 1
 	collision_layer = 0
 	monitorable = false
@@ -152,15 +157,22 @@ func _begin_impact() -> void:
 
 func _process_active_pulses(delta: float) -> void:
 	var behavior: StringName = StringName(profile.behavior)
-	if behavior not in [&"steam", &"electric"]:
+	if behavior not in [&"steam", &"electric", &"fireline", &"vent"]:
 		return
 	_pulse_remaining = maxf(_pulse_remaining - delta, 0.0)
 	if not is_zero_approx(_pulse_remaining):
 		return
-	_pulse_remaining = 0.36 if behavior == &"steam" else 0.48
+	_pulse_remaining = _pulse_interval(behavior)
 	if runtime != null:
 		runtime.resolve_impact(self, _activation_event, false)
 	queue_redraw()
+
+
+func _pulse_interval(behavior: StringName) -> float:
+	if behavior not in [&"steam", &"electric", &"fireline", &"vent"]:
+		return 0.0
+	var fallback_interval: float = 0.36 if behavior == &"steam" else 0.48
+	return float(profile.get("pulse_interval", fallback_interval))
 
 
 func _begin_aftermath() -> void:
@@ -183,6 +195,11 @@ func _configure_geometry() -> void:
 	visual.position = Vector2(0.0, -texture_size.y * fit_scale * 0.5)
 	if behavior == &"collapse":
 		visual.position.x = display.x * 0.5 - 18.0
+	elif behavior == &"drop":
+		visual.position.y -= 250.0
+	elif behavior == &"shear":
+		visual.position.x = 42.0 * float(facing)
+	_rest_visual_position = visual.position
 	var rectangle: RectangleShape2D = collision_shape.shape as RectangleShape2D
 	if rectangle != null:
 		rectangle.size = profile.collision as Vector2
@@ -208,6 +225,43 @@ func _play_procedural_animation() -> void:
 			_visual_tween.tween_property(visual, "position:x", 5.0, 0.05)
 			_visual_tween.tween_property(visual, "position:x", -5.0, 0.05)
 			_visual_tween.tween_property(visual, "position:x", 0.0, 0.04)
+		&"drop":
+			_visual_tween.tween_property(
+				visual,
+				"position:y",
+				_rest_visual_position.y + 250.0,
+				0.22
+			)
+			_visual_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		&"fireline":
+			_visual_tween.set_loops(10)
+			_visual_tween.tween_property(visual, "position:x", 7.0, 0.06)
+			_visual_tween.tween_property(visual, "position:x", -7.0, 0.06)
+			_visual_tween.tween_property(visual, "position:x", 0.0, 0.04)
+		&"shear":
+			_visual_tween.set_parallel(true)
+			_visual_tween.tween_property(
+				visual,
+				"rotation",
+				-float(facing) * 1.18,
+				0.48
+			)
+			_visual_tween.tween_property(
+				visual,
+				"position:y",
+				_rest_visual_position.y + 105.0,
+				0.48
+			)
+			_visual_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		&"vent":
+			_visual_tween.set_loops(3)
+			_visual_tween.tween_property(
+				visual,
+				"position:y",
+				_rest_visual_position.y - 12.0,
+				0.08
+			)
+			_visual_tween.tween_property(visual, "position:y", _rest_visual_position.y, 0.10)
 
 
 func _cancel_visual_tween() -> void:
@@ -232,9 +286,14 @@ func _draw() -> void:
 		draw_line(Vector2(-radius, 18.0), Vector2(radius, 18.0), warning_color, 4.0)
 	elif state == STATE_ACTIVE:
 		var behavior: StringName = StringName(profile.behavior)
-		if behavior in [&"steam", &"electric"]:
+		if behavior in [&"steam", &"electric", &"fireline", &"vent"]:
 			var active_color: Color = Color(impact_color, 0.20 + 0.08 * sin(_phase * 24.0))
-			draw_rect(Rect2(-radius, -20.0, radius * 2.0, 40.0), active_color, true)
+			var band_height: float = 68.0 if behavior == &"fireline" else 40.0
+			draw_rect(
+				Rect2(-radius, -band_height * 0.5, radius * 2.0, band_height),
+				active_color,
+				true
+			)
 	elif state == STATE_AFTERMATH:
 		draw_line(
 			Vector2(-radius * 0.55, 0.0),

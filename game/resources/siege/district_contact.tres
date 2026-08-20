@@ -534,7 +534,7 @@ chaos_enabled = true
 spawn_stagger_seconds = 0.14
 spawn_jitter_seconds = 0.18
 mirrored_flank_chance = 0.35
-hazard_pressure_budget = 3
+hazard_pressure_budget = 4
 hazard_events_per_beat = 2
 
 [sub_resource type="Resource" id="CommandTestAct"]
@@ -550,7 +550,7 @@ spawn_stagger_seconds = 0.1
 spawn_jitter_seconds = 0.22
 mirrored_flank_chance = 0.5
 elite_units_per_beat = 2
-hazard_pressure_budget = 4
+hazard_pressure_budget = 5
 hazard_events_per_beat = 2
 
 [resource]

@@ -30,7 +30,7 @@ func _ready() -> void:
 	vfx_pool = VFX_SCRIPT.new() as HazardVfxPool
 	vfx_pool.name = "HazardVfxPool"
 	add_child(vfx_pool)
-	for hazard_id: StringName in EnvironmentalHazardCatalog.MVP_IDS:
+	for hazard_id: StringName in EnvironmentalHazardCatalog.ACTIVE_IDS:
 		var actor: EnvironmentalHazard2D = _build_actor(hazard_id)
 		add_child(actor)
 		actor.reset_hazard()
@@ -42,7 +42,7 @@ func activate(
 	world_position: Vector2,
 	facing: int = 1
 ) -> EnvironmentalHazard2D:
-	if not EnvironmentalHazardCatalog.MVP_IDS.has(hazard_id):
+	if not EnvironmentalHazardCatalog.ACTIVE_IDS.has(hazard_id):
 		return null
 	var actor: EnvironmentalHazard2D = actor_for(hazard_id)
 	if actor == null:
@@ -160,15 +160,21 @@ func _build_actor(hazard_id: StringName) -> EnvironmentalHazard2D:
 
 
 func _impact_direction(hazard: EnvironmentalHazard2D) -> Vector2:
+	var result: Vector2 = Vector2(float(hazard.facing), -0.28)
 	match StringName(hazard.profile.behavior):
 		&"steam":
-			return Vector2(float(hazard.facing), -0.55).normalized()
+			result = Vector2(float(hazard.facing), -0.55)
 		&"electric":
-			return Vector2(float(hazard.facing), -0.10).normalized()
+			result = Vector2(float(hazard.facing), -0.10)
 		&"ramp":
-			return Vector2(float(hazard.facing), -0.82).normalized()
-		_:
-			return Vector2(float(hazard.facing), -0.28).normalized()
+			result = Vector2(float(hazard.facing), -0.82)
+		&"drop", &"shear":
+			result = Vector2(float(hazard.facing) * 0.18, 1.0)
+		&"fireline":
+			result = Vector2(float(hazard.facing), -0.16)
+		&"vent":
+			result = Vector2(float(hazard.facing) * 0.12, -1.0)
+	return result.normalized()
 
 
 func _apply_screen_shake(hazard: EnvironmentalHazard2D, primary: bool) -> void:

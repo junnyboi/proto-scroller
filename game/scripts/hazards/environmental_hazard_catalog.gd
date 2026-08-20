@@ -9,6 +9,13 @@ const IDS: Array[StringName] = [
 const MVP_IDS: Array[StringName] = [
 	&"traffic_signal", &"steam_main", &"powerline", &"road_plate",
 ]
+const TIER2_IDS: Array[StringName] = [
+	&"crane_drop", &"gas_fireline", &"facade_shear", &"metro_vent",
+]
+const ACTIVE_IDS: Array[StringName] = [
+	&"traffic_signal", &"steam_main", &"powerline", &"road_plate",
+	&"crane_drop", &"gas_fireline", &"facade_shear", &"metro_vent",
+]
 const PROFILES: Dictionary = {
 	&"traffic_signal": {
 		"display_name": "TRAFFIC SIGNAL KILLZONE", "cost": 1,
@@ -64,7 +71,12 @@ const PROFILES: Dictionary = {
 	},
 	&"crane_drop": {
 		"display_name": "CRANE COUNTERWEIGHT DROP", "cost": 3,
+		"texture": "res://art/city/hazards/crane_counterweight.png",
+		"display": Vector2(185.0, 220.0), "collision": Vector2(170.0, 205.0),
 		"telegraph": 1.25, "active": 0.24, "aftermath": 3.20,
+		"radius": 270.0, "enemy_damage": 185.0, "player_scale": 0.56,
+		"impulse": 1050.0, "behavior": &"drop", "damage_type": &"hazard_crush",
+		"warning": Color("ffca5a"),
 		"impact": Color("f4a64d"), "particles": 42, "particle_lifetime": 1.30,
 		"spread": 48.0, "gravity": Vector2(0.0, 920.0),
 		"particle_speed": Vector2(260.0, 690.0), "particle_scale": Vector2(0.44, 1.10),
@@ -72,7 +84,12 @@ const PROFILES: Dictionary = {
 	},
 	&"gas_fireline": {
 		"display_name": "GAS MAIN FIRELINE", "cost": 3,
+		"texture": "res://art/city/hazards/gas_fireline_manifold.png",
+		"display": Vector2(200.0, 95.0), "collision": Vector2(184.0, 78.0),
 		"telegraph": 0.45, "active": 3.50, "aftermath": 1.00,
+		"radius": 315.0, "enemy_damage": 27.0, "player_scale": 0.50,
+		"impulse": 190.0, "behavior": &"fireline", "damage_type": &"hazard_fire",
+		"pulse_interval": 0.38, "warning": Color("ffad3d"),
 		"impact": Color("ff7a35"), "particles": 46, "particle_lifetime": 1.10,
 		"spread": 72.0, "gravity": Vector2(0.0, -260.0),
 		"particle_speed": Vector2(170.0, 480.0), "particle_scale": Vector2(0.36, 1.26),
@@ -80,7 +97,12 @@ const PROFILES: Dictionary = {
 	},
 	&"facade_shear": {
 		"display_name": "FACADE SHEAR", "cost": 3,
+		"texture": "res://art/city/hazards/facade_shear_slab.png",
+		"display": Vector2(220.0, 315.0), "collision": Vector2(198.0, 286.0),
 		"telegraph": 1.40, "active": 0.55, "aftermath": 3.50,
+		"radius": 285.0, "enemy_damage": 165.0, "player_scale": 0.54,
+		"impulse": 940.0, "behavior": &"shear", "damage_type": &"hazard_crush",
+		"warning": Color("e0c49d"),
 		"impact": Color("c6aa87"), "particles": 54, "particle_lifetime": 1.45,
 		"spread": 38.0, "gravity": Vector2(0.0, 980.0),
 		"particle_speed": Vector2(240.0, 740.0), "particle_scale": Vector2(0.40, 1.24),
@@ -88,7 +110,12 @@ const PROFILES: Dictionary = {
 	},
 	&"metro_vent": {
 		"display_name": "METRO VENT SURGE", "cost": 2,
+		"texture": "res://art/city/hazards/metro_vent_grate.png",
+		"display": Vector2(235.0, 70.0), "collision": Vector2(220.0, 52.0),
 		"telegraph": 0.70, "active": 1.00, "aftermath": 0.60,
+		"radius": 190.0, "enemy_damage": 42.0, "player_scale": 0.48,
+		"impulse": 1220.0, "behavior": &"vent", "damage_type": &"hazard_launch",
+		"pulse_interval": 0.26, "warning": Color("f8dfac"),
 		"impact": Color("f2d1a2"), "particles": 40, "particle_lifetime": 1.25,
 		"spread": 18.0, "gravity": Vector2(0.0, -420.0),
 		"particle_speed": Vector2(260.0, 620.0), "particle_scale": Vector2(0.30, 0.84),
@@ -145,5 +172,17 @@ static func mvp_profiles_valid() -> bool:
 	for hazard_id: StringName in MVP_IDS:
 		var item: Dictionary = profile(hazard_id)
 		if item.is_empty() or not item.has("texture") or not item.has("behavior"):
+			return false
+	return true
+
+
+static func active_profiles_valid() -> bool:
+	for hazard_id: StringName in ACTIVE_IDS:
+		var item: Dictionary = profile(hazard_id)
+		if item.is_empty() or not item.has("texture") or not item.has("behavior"):
+			return false
+		if not item.has("display") or not item.has("collision"):
+			return false
+		if not item.has("radius") or not item.has("enemy_damage"):
 			return false
 	return true

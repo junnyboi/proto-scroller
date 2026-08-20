@@ -59,23 +59,23 @@ func _run() -> void:
 	_check("mixed_enemies_present", enemy_count == enemies.size(), "count=%d" % enemy_count)
 	var placements: Array[Dictionary] = [
 		{
-			"id": &"traffic_signal",
-			"position": Vector2(690.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+			"id": &"crane_drop",
+			"position": Vector2(920.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": 1,
 		},
 		{
-			"id": &"steam_main",
-			"position": Vector2(1080.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+			"id": &"gas_fireline",
+			"position": Vector2(1150.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": 1,
 		},
 		{
-			"id": &"road_plate",
+			"id": &"metro_vent",
 			"position": Vector2(1480.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": -1,
 		},
 		{
-			"id": &"powerline",
-			"position": Vector2(1770.0, CitySlice.LAND_VISUAL_BASELINE_Y),
+			"id": &"facade_shear",
+			"position": Vector2(1740.0, CitySlice.LAND_VISUAL_BASELINE_Y),
 			"facing": -1,
 		},
 	]
@@ -104,7 +104,7 @@ func _run() -> void:
 	city.destruction_director._physics_process(0.016)
 	for frame_index: int in range(12):
 		await process_frame
-	_check("four_hazards_active", hazards.size() == 4, "count=%d" % hazards.size())
+	_check("second_tier_active", hazards.size() == 4, "count=%d" % hazards.size())
 	_check(
 		"all_hazards_impact",
 		city.urban_siege.hazards.impact_count >= 4,

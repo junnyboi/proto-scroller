@@ -64,11 +64,11 @@ const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_COOLDOWN_INDICATORS: int = 1
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
-const HAZARD_ACTORS: int = 4
+const HAZARD_ACTORS: int = 8
 const HAZARD_VFX_SLOTS: int = 12
 const ACTIVE_HAZARDS: int = 4
 const PENDING_HAZARDS: int = 2
-const HAZARD_PRESSURE: int = 4
+const HAZARD_PRESSURE: int = 5
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
