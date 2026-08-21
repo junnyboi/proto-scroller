@@ -37,7 +37,7 @@ func cell_destroyed(
 	var cell: Destructible2D = building.get_cell(column, row)
 	var profile: StructuralMaterialProfile = building.get_material_profile(column, row)
 	var gameplay_event: GameplayEvent = GameplayEvent.new(
-		StringName("cell:%d:%d" % [column, row]),
+		StringName("%s:cell:%d:%d" % [_persistent_id(building), column, row]),
 		0,
 		GameplayEvent.Kind.CELL_DESTROYED,
 		GameplayEvent.CELL_BREACH,
@@ -57,7 +57,10 @@ func chain_started(
 	robot: GiantRobotController
 ) -> bool:
 	var gameplay_event: GameplayEvent = GameplayEvent.new(
-		StringName("chain:%d" % building.chain_reaction_count),
+		StringName(
+			"%s:chain:%s:%d"
+			% [_persistent_id(building), kind, building.chain_reaction_count]
+		),
 		0,
 		GameplayEvent.Kind.CHAIN_COLLAPSE,
 		GameplayEvent.CHAIN_COLLAPSE,
@@ -75,7 +78,7 @@ func building_destroyed(
 	robot: GiantRobotController
 ) -> bool:
 	var gameplay_event: GameplayEvent = GameplayEvent.new(
-		&"building_destroyed",
+		StringName("%s:destroyed" % _persistent_id(building)),
 		0,
 		GameplayEvent.Kind.DAMAGE_APPLIED,
 		&"",
@@ -95,7 +98,7 @@ func prop_destroyed(
 	_is_car: bool
 ) -> bool:
 	var gameplay_event: GameplayEvent = GameplayEvent.new(
-		StringName("prop:%d" % prop.get_instance_id()),
+		StringName("%s:broken" % _persistent_id(prop)),
 		0,
 		GameplayEvent.Kind.PROP_DESTROYED,
 		GameplayEvent.PROP_BREAK,
@@ -257,3 +260,9 @@ func _enemy_momentum_delta(enemy: EnemyActor2D) -> float:
 	if enemy is HelicopterEnemy:
 		return 0.0
 	return 8.0
+
+
+func _persistent_id(target: Node) -> String:
+	if target != null and target.has_meta(&"stream_object_id"):
+		return String(target.get_meta(&"stream_object_id"))
+	return "instance:%d" % (target.get_instance_id() if target != null else 0)

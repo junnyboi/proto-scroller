@@ -28,6 +28,8 @@ var act_elapsed: float = 0.0
 var peak_pending_records: int = 0
 var elite_assignments: Array[Dictionary] = []
 var elite_roll_count: int = 0
+var progression_peak_tier: int = 0
+var progression_copy_peak: int = 0
 var hazard_runtime: HazardRuntime
 var hazard_pressure: HazardPressureController
 var peak_hazard_pending: int = 0
@@ -85,6 +87,8 @@ func start() -> void:
 		hazard_pressure.reset_sequence()
 	elite_assignments.clear()
 	elite_roll_count = 0
+	progression_peak_tier = 0
+	progression_copy_peak = 0
 	peak_hazard_pending = 0
 	_advance_act()
 
@@ -210,23 +214,45 @@ func _try_start_next_beat() -> void:
 		_advance_act()
 		return
 	var next_beat: DistrictBeat = act.beats[beat_index + 1]
-	var reservation_id: int = ledger.reserve_beat(next_beat, runtime)
+	var progression_tier: int = _progression_tier()
+	var progression_copies: Dictionary[int, int] = _progression_copy_plan(
+		next_beat,
+		progression_tier
+	)
+	var counts: Dictionary[StringName, int] = ledger.counts_for_beat(next_beat)
+	for entry_index: int in progression_copies:
+		var extra_entry: EnemySpawnEntry = next_beat.spawns[entry_index]
+		var extra_kind: StringName = StringName(extra_entry.kind)
+		var key: StringName = EnemyArchetypeCatalog.reservation_key(extra_kind)
+		counts[key] = int(counts.get(key, 0)) + int(progression_copies[entry_index])
+	var reservation_id: int = ledger.reserve_counts(counts, runtime)
 	if reservation_id == 0:
 		return
+	progression_peak_tier = maxi(progression_peak_tier, progression_tier)
+	progression_copy_peak = maxi(progression_copy_peak, _dictionary_total(progression_copies))
 	beat_index += 1
 	_beat_reservation_id = reservation_id
 	_beat_pending.clear()
-	var elite_plan: Dictionary[int, StringName] = _roll_elite_plan(act, next_beat)
+	var elite_plan: Dictionary[int, StringName] = _roll_elite_plan(
+		act,
+		next_beat,
+		progression_tier
+	)
 	var pending_index: int = 0
 	for entry_index: int in range(next_beat.spawns.size()):
 		var entry: EnemySpawnEntry = next_beat.spawns[entry_index]
 		var kind: StringName = StringName(entry.kind)
-		for copy_index: int in range(EnemyArchetypeCatalog.spawn_multiplier(kind)):
+		var spawn_count: int = (
+			EnemyArchetypeCatalog.spawn_multiplier(kind)
+			+ int(progression_copies.get(entry_index, 0))
+		)
+		for copy_index: int in range(spawn_count):
 			if _beat_pending.size() >= MAX_PENDING_RECORDS:
 				break
-			var stagger: float = float(copy_index) * HUMAN_COPY_STAGGER
+			var cadence_scale: float = maxf(0.68, 1.0 - float(progression_tier) * 0.08)
+			var stagger: float = float(copy_index) * HUMAN_COPY_STAGGER * cadence_scale
 			if act.chaos_enabled:
-				stagger += float(pending_index) * act.spawn_stagger_seconds
+				stagger += float(pending_index) * act.spawn_stagger_seconds * cadence_scale
 				stagger += _chaos_rng.randf_range(0.0, act.spawn_jitter_seconds)
 			var spawn_anchor: String = entry.spawn_anchor
 			if act.chaos_enabled and _chaos_rng.randf() < act.mirrored_flank_chance:
@@ -248,12 +274,16 @@ func _try_start_next_beat() -> void:
 			beat_index,
 			act,
 			next_beat,
-			robot_x
+			robot_x,
+			progression_tier
 		)
 		peak_hazard_pending = maxi(peak_hazard_pending, _hazard_pending.size())
 	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
 	pressure_remaining = next_beat.pressure_seconds
-	recovery_remaining = next_beat.recovery_seconds
+	recovery_remaining = maxf(
+		1.0,
+		next_beat.recovery_seconds * (1.0 - float(progression_tier) * 0.08)
+	)
 	runtime.set_attack_gate(true)
 	state = STATE_PRESSURE
 	beat_changed.emit(phase_index, beat_index, next_beat.beat_id)
@@ -358,7 +388,11 @@ func rebase_cached_world_state(offset: Vector2) -> void:
 		record.position = (record.position as Vector2) + offset
 
 
-func _roll_elite_plan(act: DistrictAct, beat: DistrictBeat) -> Dictionary[int, StringName]:
+func _roll_elite_plan(
+	act: DistrictAct,
+	beat: DistrictBeat,
+	progression_tier: int = 0
+) -> Dictionary[int, StringName]:
 	var plan: Dictionary[int, StringName] = {}
 	if not act.elite_allowed:
 		return plan
@@ -368,7 +402,10 @@ func _roll_elite_plan(act: DistrictAct, beat: DistrictBeat) -> Dictionary[int, S
 			eligible.append(entry_index)
 	if eligible.is_empty():
 		return plan
-	var elite_count: int = mini(act.elite_units_per_beat, eligible.size())
+	var elite_count: int = mini(
+		act.elite_units_per_beat + floori(float(progression_tier) / 2.0),
+		mini(eligible.size(), 3)
+	)
 	for elite_index: int in range(elite_count):
 		var eligible_draw: int = _elite_rng.randi_range(0, eligible.size() - 1)
 		var entry_index: int = eligible.pop_at(eligible_draw)
@@ -415,3 +452,34 @@ func _threat_weight() -> int:
 			kind = &"helicopter"
 		weight += EnemyArchetypeCatalog.threat_cost(kind)
 	return weight
+
+
+func _progression_tier() -> int:
+	if runtime == null or runtime.world_stream == null:
+		return 0
+	return runtime.world_stream.progression_tier()
+
+
+func _progression_copy_plan(
+	beat: DistrictBeat,
+	progression_tier: int
+) -> Dictionary[int, int]:
+	var plan: Dictionary[int, int] = {}
+	if beat == null or beat.spawns.is_empty() or progression_tier <= 0:
+		return plan
+	var extra_count: int = mini(progression_tier, beat.spawns.size())
+	var start_index: int = wrapi(
+		absi(runtime.world_stream.current_logical_chunk) + beat_index + 1,
+		0,
+		beat.spawns.size()
+	)
+	for offset: int in range(extra_count):
+		plan[wrapi(start_index + offset, 0, beat.spawns.size())] = 1
+	return plan
+
+
+func _dictionary_total(values: Dictionary) -> int:
+	var total: int = 0
+	for value: int in values.values():
+		total += value
+	return total

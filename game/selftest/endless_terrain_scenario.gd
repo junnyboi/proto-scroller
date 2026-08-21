@@ -40,6 +40,10 @@ func _run() -> void:
 	city.gameplay_hud.first_run_tutorial.visible = false
 	city.encounter_runtime.release_all()
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
+	var origin_cell: Destructible2D = city.building.get_cell(0, 1)
+	origin_cell.receive_damage(_fatal_event(city, origin_cell, 51_001))
+	city.car.current_health = 1.0
+	city.car.receive_damage(_fatal_event(city, city.car, 51_002))
 	for logical_index: int in range(-12, 49):
 		_move_to_logical_chunk(city, logical_index)
 	for logical_index: int in range(48, 39, -1):
@@ -66,13 +70,32 @@ func _run() -> void:
 	_check(
 		"no_stream_growth",
 		RuntimeBudget.snapshot(city).node_count == baseline_nodes
-		and city.world_stream.post_warm_creation_count == 0,
-		"nodes=%d baseline=%d creations=%d"
+		and city.world_stream.post_warm_creation_count == 0
+		and city.streamed_destructibles.post_warm_creation_count == 0,
+		"nodes=%d baseline=%d terrain_creations=%d content_creations=%d"
 		% [
 			RuntimeBudget.snapshot(city).node_count,
 			baseline_nodes,
 			city.world_stream.post_warm_creation_count,
+			city.streamed_destructibles.post_warm_creation_count,
 		]
+	)
+	_move_to_logical_chunk(city, 0)
+	_check(
+		"destruction_state_persisted",
+		city.building.is_cell_destroyed(0, 1) and city.car.is_broken,
+		"cell=%s car=%s mutations=%d"
+		% [
+			city.building.is_cell_destroyed(0, 1),
+			city.car.is_broken,
+			city.streamed_destructibles.mutation_count(),
+		]
+	)
+	_check(
+		"progression_pressure_scaled",
+		city.world_stream.progression_tier() == CityWorldStream.MAX_PROGRESSION_TIER,
+		"tier=%d max_chunk=%d"
+		% [city.world_stream.progression_tier(), city.world_stream.maximum_visited_chunk]
 	)
 	city.robot.global_position.x = (
 		city.world_stream.runtime_x_for_logical_index(40)
@@ -145,6 +168,19 @@ func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
 		+ CityWorldStream.CHUNK_WIDTH * 0.5
 	)
 	city.world_stream.advance_stream()
+
+
+func _fatal_event(city: CitySlice, target: Node2D, attack_id: int) -> DamageEvent:
+	var event: DamageEvent = DamageEvent.new(
+		attack_id,
+		city.robot,
+		10_000.0,
+		&"jab_cross"
+	)
+	event.hit_position = target.global_position
+	event.direction = Vector2.RIGHT
+	event.impulse_per_mass = 900.0
+	return event
 
 
 func _check(check_name: String, passed: bool, detail: String) -> void:

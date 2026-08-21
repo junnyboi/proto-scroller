@@ -35,6 +35,7 @@ var _last_destruction_event: DamageEvent
 var _chain_reaction_active: bool = false
 var _steel_chain_triggered: bool = false
 var _triggered_floor_rows: Dictionary[int, bool] = {}
+var _stream_generation: int = 0
 
 
 func _ready() -> void:
@@ -98,6 +99,44 @@ func is_destroyed() -> bool:
 
 func is_chain_reaction_active() -> bool:
 	return _chain_reaction_active
+
+
+func capture_stream_state() -> Dictionary:
+	var cells: Array[Dictionary] = []
+	var pristine: bool = true
+	for cell: Destructible2D in _cells:
+		var cell_state: Dictionary = cell.capture_stream_state()
+		cells.append(cell_state)
+		pristine = pristine and bool(cell_state.pristine)
+	return {
+		"cells": cells,
+		"chain_count": chain_reaction_count,
+		"last_chain": last_chain_reaction_kind,
+		"steel_chain": _steel_chain_triggered,
+		"floor_rows": _triggered_floor_rows.duplicate(),
+		"pristine": pristine,
+	}
+
+
+func restore_stream_state(state: Dictionary) -> void:
+	_stream_generation += 1
+	_chain_reaction_active = false
+	_last_destruction_event = null
+	_destroyed_cells = 0
+	chain_reaction_count = int(state.get("chain_count", 0))
+	last_chain_reaction_kind = StringName(state.get("last_chain", &""))
+	_steel_chain_triggered = bool(state.get("steel_chain", false))
+	_triggered_floor_rows.clear()
+	var floor_rows: Dictionary = state.get("floor_rows", {}) as Dictionary
+	for row_value: Variant in floor_rows:
+		_triggered_floor_rows[int(row_value)] = bool(floor_rows[row_value])
+	var cell_states: Array = state.get("cells", []) as Array
+	for cell_index: int in range(_cells.size()):
+		var cell_state: Dictionary = {}
+		if cell_index < cell_states.size():
+			cell_state = cell_states[cell_index] as Dictionary
+		_cells[cell_index].restore_stream_state(cell_state)
+		_destroyed_cells += 1 if _cells[cell_index].is_destroyed() else 0
 
 
 func _build_cells() -> void:
@@ -342,10 +381,14 @@ func _start_chain_reaction(kind: StringName, destroyed_floor: int) -> void:
 	last_chain_reaction_kind = kind
 	chain_reaction_count += 1
 	chain_reaction_started.emit(kind, _last_destruction_event)
-	_run_chain_reaction(kind, destroyed_floor)
+	_run_chain_reaction(kind, destroyed_floor, _stream_generation)
 
 
-func _run_chain_reaction(kind: StringName, destroyed_floor: int) -> void:
+func _run_chain_reaction(
+	kind: StringName,
+	destroyed_floor: int,
+	stream_generation: int
+) -> void:
 	var impulse_per_mass: float = 340.0
 	var step_delay: float = 0.11
 	if kind == &"steel_support_chain":
@@ -361,6 +404,8 @@ func _run_chain_reaction(kind: StringName, destroyed_floor: int) -> void:
 			if cell == null or cell.is_destroyed():
 				continue
 			await get_tree().create_timer(step_delay, false).timeout
+			if stream_generation != _stream_generation:
+				return
 			var event: DamageEvent = _chain_event(
 				cell,
 				kind,
@@ -369,6 +414,8 @@ func _run_chain_reaction(kind: StringName, destroyed_floor: int) -> void:
 			)
 			if cell.receive_damage(event):
 				chain_reaction_step.emit(kind, column, row, event)
+	if stream_generation != _stream_generation:
+		return
 	_chain_reaction_active = false
 	chain_reaction_completed.emit(kind)
 	call_deferred("_evaluate_chain_reactions")

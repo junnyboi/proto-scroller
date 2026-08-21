@@ -8,10 +8,16 @@ var _next_id: int = 1
 
 
 func reserve_beat(beat: DistrictBeat, runtime: EncounterRuntime) -> int:
-	if beat == null or runtime == null or not can_commit(beat, runtime):
+	return reserve_counts(counts_for_beat(beat), runtime)
+
+
+func reserve_counts(
+	counts: Dictionary[StringName, int],
+	runtime: EncounterRuntime
+) -> int:
+	if runtime == null or not can_commit_counts(counts, runtime):
 		denial_count += 1
 		return 0
-	var counts: Dictionary[StringName, int] = _counts_for_beat(beat)
 	var reservation_id: int = _next_id
 	_next_id += 1
 	_reservations[reservation_id] = counts
@@ -55,8 +61,16 @@ func reservation_count() -> int:
 func can_commit(beat: DistrictBeat, runtime: EncounterRuntime) -> bool:
 	if beat == null or runtime == null:
 		return false
-	var counts: Dictionary[StringName, int] = _counts_for_beat(beat)
-	if counts.is_empty() and not beat.spawns.is_empty():
+	return can_commit_counts(counts_for_beat(beat), runtime)
+
+
+func can_commit_counts(
+	counts: Dictionary[StringName, int],
+	runtime: EncounterRuntime
+) -> bool:
+	if runtime == null:
+		return false
+	if counts.is_empty():
 		return false
 	for key: StringName in counts:
 		var requested: int = int(counts.get(key, 0))
@@ -66,8 +80,10 @@ func can_commit(beat: DistrictBeat, runtime: EncounterRuntime) -> bool:
 	return true
 
 
-func _counts_for_beat(beat: DistrictBeat) -> Dictionary[StringName, int]:
+func counts_for_beat(beat: DistrictBeat) -> Dictionary[StringName, int]:
 	var counts: Dictionary[StringName, int] = {}
+	if beat == null:
+		return counts
 	for entry: EnemySpawnEntry in beat.spawns:
 		var kind: StringName = StringName(entry.kind)
 		if not EnemyArchetypeCatalog.is_valid_kind(kind):

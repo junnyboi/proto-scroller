@@ -17,6 +17,7 @@ var assignments: Array[Dictionary] = []
 var roll_count: int = 0
 var last_used_budget: int = 0
 var peak_used_budget: int = 0
+var last_progression_tier: int = 0
 var _seed: int = SYSTEM_SALT
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -32,6 +33,7 @@ func configure(run_seed: int, cycle: int) -> void:
 	roll_count = 0
 	last_used_budget = 0
 	peak_used_budget = 0
+	last_progression_tier = 0
 
 
 func reset_sequence() -> void:
@@ -52,15 +54,25 @@ func plan_for_beat(
 	beat_index: int,
 	act: DistrictAct,
 	beat: DistrictBeat,
-	robot_x: float
+	robot_x: float,
+	progression_tier: int = 0
 ) -> Array[Dictionary]:
 	var plan: Array[Dictionary] = []
 	last_used_budget = 0
+	last_progression_tier = clampi(progression_tier, 0, CityWorldStream.MAX_PROGRESSION_TIER)
+	var budget_limit: int = mini(
+		RuntimeBudget.HAZARD_PRESSURE,
+		act.hazard_pressure_budget + last_progression_tier
+	)
+	var event_limit: int = mini(
+		RuntimeBudget.PENDING_HAZARDS,
+		act.hazard_events_per_beat + floori(float(last_progression_tier) / 2.0)
+	)
 	if (
 		runtime == null
 		or not act.chaos_enabled
-		or act.hazard_pressure_budget <= 0
-		or act.hazard_events_per_beat <= 0
+		or budget_limit <= 0
+		or event_limit <= 0
 	):
 		return plan
 	var candidates: Array[StringName] = _eligible_ids(act_index)
@@ -90,18 +102,22 @@ func plan_for_beat(
 			assignments.append(record.duplicate())
 			last_used_budget += int(record.cost)
 			candidates.erase(tier2_id)
-	elif act_index >= 5 and act.hazard_events_per_beat >= 2:
-		var pair_plan: Array[Dictionary] = _plan_apex_pair(beat_index, act, robot_x)
+	elif act_index >= 5 and event_limit >= 2:
+		var pair_plan: Array[Dictionary] = _plan_apex_pair(
+			beat_index,
+			budget_limit,
+			robot_x
+		)
 		for record: Dictionary in pair_plan:
 			plan.append(record)
 			assignments.append(record.duplicate())
 			last_used_budget += int(record.cost)
 			candidates.erase(StringName(record.hazard_id))
-	for event_index: int in range(plan.size(), act.hazard_events_per_beat):
+	for event_index: int in range(plan.size(), event_limit):
 		var affordable: Array[StringName] = []
 		for hazard_id: StringName in candidates:
 			var candidate_cost: int = EnvironmentalHazardCatalog.pressure_cost(hazard_id)
-			if last_used_budget + candidate_cost <= act.hazard_pressure_budget:
+			if last_used_budget + candidate_cost <= budget_limit:
 				affordable.append(hazard_id)
 		if affordable.is_empty():
 			break
@@ -134,7 +150,7 @@ func plan_for_beat(
 
 func _plan_apex_pair(
 	beat_index: int,
-	act: DistrictAct,
+	budget_limit: int,
 	robot_x: float
 ) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -145,7 +161,7 @@ func _plan_apex_pair(
 		EnvironmentalHazardCatalog.pressure_cost(source_id)
 		+ EnvironmentalHazardCatalog.pressure_cost(target_id)
 	)
-	if pair_cost > act.hazard_pressure_budget:
+	if pair_cost > budget_limit:
 		return result
 	var side: int = -1 if beat_index % 2 == 0 else 1
 	var source_x: float = robot_x + float(side) * 320.0

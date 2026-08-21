@@ -69,6 +69,33 @@ func is_destroyed() -> bool:
 	return _destroyed
 
 
+func capture_stream_state() -> Dictionary:
+	var state: Dictionary = {
+		"health": current_health,
+		"destroyed": _destroyed,
+		"pristine": not _destroyed and is_equal_approx(current_health, max_health),
+	}
+	var damage_pattern: BuildingDamagePattern2D = _damaged_visual as BuildingDamagePattern2D
+	if damage_pattern != null and not bool(state.pristine):
+		state.pattern = damage_pattern.capture_stream_state()
+	return state
+
+
+func restore_stream_state(state: Dictionary) -> void:
+	_seen_attacks.clear()
+	_destroyed = bool(state.get("destroyed", false))
+	current_health = clampf(float(state.get("health", max_health)), 0.0, max_health)
+	if _destroyed:
+		current_health = 0.0
+	var damage_pattern: BuildingDamagePattern2D = _damaged_visual as BuildingDamagePattern2D
+	if damage_pattern != null:
+		damage_pattern.restore_stream_state(state.get("pattern", {}) as Dictionary)
+	_apply_stage(
+		current_health <= max_health * damaged_stage_ratio and not _destroyed,
+		_destroyed
+	)
+
+
 func _break(event: DamageEvent) -> void:
 	if _destroyed:
 		return

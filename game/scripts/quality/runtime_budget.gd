@@ -21,7 +21,12 @@ const SHELLS: int = 4
 const ROCKETS: int = 4
 const PLAYER_BULLETS: int = 8
 const STRUCTURAL_DEBRIS: int = 24
-const BUILDING_DAMAGE_PATTERNS: int = StructuralBuilding2D.CELL_COUNT
+const STREAMED_BUILDINGS: int = CityWorldStream.CHUNK_CAPACITY
+const STREAMED_PROPS: int = CityWorldStream.CHUNK_CAPACITY * 2
+const WORLD_MUTATION_LEDGERS: int = 1
+const BUILDING_DAMAGE_PATTERNS: int = (
+	STREAMED_BUILDINGS * StructuralBuilding2D.CELL_COUNT
+)
 const ENEMY_SCRAP: int = 32
 const SOLDIER_DEFEATS: int = 8
 const WRECKS: int = 4
@@ -123,6 +128,10 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"street_chunks": city.world_stream.active_chunk_count(),
 		"street_post_warm_creations": city.world_stream.post_warm_creation_count,
 		"floating_origin_runtimes": 1 if city.world_stream.floating_origin != null else 0,
+		"streamed_buildings": city.streamed_destructibles.active_building_count(),
+		"streamed_props": city.streamed_destructibles.active_prop_count(),
+		"streamed_post_warm_creations": city.streamed_destructibles.post_warm_creation_count,
+		"world_mutation_ledgers": 1 if city.streamed_destructibles.ledger != null else 0,
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
@@ -225,6 +234,10 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "street_chunks", STREET_CHUNKS)
 	_check_equal(errors, data, "street_post_warm_creations", 0)
 	_check_equal(errors, data, "floating_origin_runtimes", FLOATING_ORIGIN_RUNTIMES)
+	_check_equal(errors, data, "streamed_buildings", STREAMED_BUILDINGS)
+	_check_equal(errors, data, "streamed_props", STREAMED_PROPS)
+	_check_equal(errors, data, "streamed_post_warm_creations", 0)
+	_check_equal(errors, data, "world_mutation_ledgers", WORLD_MUTATION_LEDGERS)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)
@@ -316,11 +329,12 @@ static func _count_nodes(root: Node) -> int:
 
 static func _building_damage_pattern_count(city: CitySlice) -> int:
 	var count: int = 0
-	for row: int in range(StructuralBuilding2D.ROWS):
-		for column: int in range(StructuralBuilding2D.COLUMNS):
-			var cell: Destructible2D = city.building.get_cell(column, row)
-			if cell.get_node_or_null(^"DamagedVisual") is BuildingDamagePattern2D:
-				count += 1
+	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
+		for row: int in range(StructuralBuilding2D.ROWS):
+			for column: int in range(StructuralBuilding2D.COLUMNS):
+				var cell: Destructible2D = building.get_cell(column, row)
+				if cell.get_node_or_null(^"DamagedVisual") is BuildingDamagePattern2D:
+					count += 1
 	return count
 
 

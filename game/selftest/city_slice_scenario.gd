@@ -51,6 +51,9 @@ func _run() -> void:
 	for pooled_enemy: EnemyActor2D in city.encounter_runtime.all_actors():
 		pooled_enemy.set_physics_process(false)
 	city.robot.set_physics_process(false)
+	var target_building: StructuralBuilding2D = city.building
+	var target_car: DestructibleProp2D = city.car
+	var target_lamp: DestructibleProp2D = city.streetlamp
 	var initial_x: float = city.robot.position.x
 	for frame_index: int in range(90):
 		await physics_frame
@@ -64,8 +67,8 @@ func _run() -> void:
 		await physics_frame
 		city.robot.physics_step(-1.0, 1.0 / 60.0)
 	_check("robot_turns", city.robot.facing == -1, "facing=%s" % city.robot.facing)
-	city.car.current_health = 1.0
-	city.streetlamp.current_health = 1.0
+	target_car.current_health = 1.0
+	target_lamp.current_health = 1.0
 	city.robot.position = Vector2(1150.0, 460.0)
 	city.robot.stomp_radius = 500.0
 	city.robot.stomp_damage = 200.0
@@ -75,8 +78,8 @@ func _run() -> void:
 	await physics_frame
 	_check(
 		"ground_smash_damages_building",
-		city.building.destroyed_cell_count() == 1,
-		"cells=%d" % city.building.destroyed_cell_count()
+		target_building.destroyed_cell_count() == 1,
+		"cells=%d" % target_building.destroyed_cell_count()
 	)
 	await _resolve_upgrade_choices(city)
 	var jab_cross_columns: Array[int] = [1, 1, 2, 2]
@@ -100,16 +103,16 @@ func _run() -> void:
 		await _resolve_upgrade_choices(city)
 		await create_timer(spec.active_seconds + spec.recovery_seconds + 0.10).timeout
 	for wait_frame: int in range(90):
-		if city.building.is_destroyed():
+		if target_building.is_destroyed():
 			break
 		await process_frame
-	_check("car_breaks", city.car.is_broken, "broken=%s" % city.car.is_broken)
-	_check("lamp_breaks", city.streetlamp.is_broken, "broken=%s" % city.streetlamp.is_broken)
+	_check("car_breaks", target_car.is_broken, "broken=%s" % target_car.is_broken)
+	_check("lamp_breaks", target_lamp.is_broken, "broken=%s" % target_lamp.is_broken)
 	_check(
 		"building_breaks",
-		city.building.is_destroyed(),
+		target_building.is_destroyed(),
 		"destroyed=%s cells=%d"
-		% [city.building.is_destroyed(), city.building.destroyed_cell_count()]
+		% [target_building.is_destroyed(), target_building.destroyed_cell_count()]
 	)
 	_check(
 		"debris_activates",

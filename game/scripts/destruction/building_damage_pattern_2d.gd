@@ -73,6 +73,38 @@ func pattern_signature() -> String:
 	return "|".join(parts)
 
 
+func reset_pattern() -> void:
+	_contour.clear()
+	_cracks.clear()
+	if _patch != null:
+		_patch.polygon = PackedVector2Array()
+		_patch.uv = PackedVector2Array()
+	queue_redraw()
+
+
+func capture_stream_state() -> Dictionary:
+	var cracks: Array[PackedVector2Array] = []
+	for crack: PackedVector2Array in _cracks:
+		cracks.append(crack.duplicate())
+	return {
+		"contour": _contour.duplicate(),
+		"cracks": cracks,
+	}
+
+
+func restore_stream_state(state: Dictionary) -> void:
+	reset_pattern()
+	if state.is_empty() or _patch == null:
+		return
+	_contour = (state.get("contour", PackedVector2Array()) as PackedVector2Array).duplicate()
+	var cracks: Array = state.get("cracks", []) as Array
+	for crack_value: Variant in cracks:
+		_cracks.append((crack_value as PackedVector2Array).duplicate())
+	_patch.polygon = _contour
+	_patch.uv = _texture_uvs(_contour)
+	queue_redraw()
+
+
 func _generate(center: Vector2, severity: float, event_seed: int) -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = event_seed

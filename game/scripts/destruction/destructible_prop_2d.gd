@@ -22,6 +22,9 @@ var current_health: float
 var is_broken: bool = false
 var is_fully_destroyed: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
+var _base_collision_layer: int = 0
+var _base_collision_mask: int = 0
+var _base_collision_size: Vector2 = Vector2.ZERO
 
 @onready var visual: Sprite2D = get_node(^"Visual") as Sprite2D
 @onready var collision_shape: CollisionShape2D = get_node(^"CollisionShape2D") as CollisionShape2D
@@ -29,6 +32,11 @@ var _seen_attacks: Dictionary[int, bool] = {}
 
 
 func _ready() -> void:
+	_base_collision_layer = collision_layer
+	_base_collision_mask = collision_mask
+	var rectangle: RectangleShape2D = collision_shape.shape as RectangleShape2D
+	if rectangle != null:
+		_base_collision_size = rectangle.size
 	current_health = max_health
 	freeze_mode = RigidBody2D.FREEZE_MODE_STATIC
 	freeze = true
@@ -56,6 +64,53 @@ func receive_damage(event: DamageEvent) -> bool:
 
 func is_destroyed() -> bool:
 	return is_fully_destroyed
+
+
+func capture_stream_state() -> Dictionary:
+	return {
+		"health": current_health,
+		"broken": is_broken,
+		"fully_destroyed": is_fully_destroyed,
+		"pristine": (
+			not is_broken
+			and not is_fully_destroyed
+			and is_equal_approx(current_health, max_health)
+		),
+	}
+
+
+func restore_stream_state(spawn_position: Vector2, state: Dictionary) -> void:
+	freeze = true
+	sleeping = true
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	rotation = 0.0
+	position = spawn_position
+	_seen_attacks.clear()
+	is_broken = bool(state.get("broken", false))
+	is_fully_destroyed = bool(state.get("fully_destroyed", false))
+	current_health = clampf(float(state.get("health", max_health)), 0.0, max_health)
+	visual.visible = not is_fully_destroyed
+	collision_shape.set_deferred("disabled", is_fully_destroyed)
+	if is_fully_destroyed:
+		current_health = 0.0
+		collision_layer = 0
+		collision_mask = 0
+		return
+	if is_broken:
+		visual.texture = destroyed_texture
+		_fit_visual(destroyed_display_size)
+		collision_layer = REMAINS_LAYER
+		collision_mask = WORLD_LAYER
+		set_meta(&"enemy_remains", &"destroyed_prop")
+		_apply_collision_size(destroyed_collision_size)
+		return
+	visual.texture = intact_texture
+	_fit_visual(intact_display_size)
+	collision_layer = _base_collision_layer
+	collision_mask = _base_collision_mask
+	remove_meta(&"enemy_remains")
+	_apply_collision_size(_base_collision_size)
 
 
 func _break_prop(event: DamageEvent) -> void:
@@ -127,9 +182,13 @@ func _release_fragments(event: DamageEvent) -> void:
 func _apply_destroyed_collision() -> void:
 	if is_fully_destroyed:
 		return
+	_apply_collision_size(destroyed_collision_size)
+
+
+func _apply_collision_size(size: Vector2) -> void:
 	var rectangle: RectangleShape2D = collision_shape.shape as RectangleShape2D
 	if rectangle != null:
-		rectangle.size = destroyed_collision_size
+		rectangle.size = size
 
 
 func _fit_visual(display_size: Vector2) -> void:

@@ -22,10 +22,9 @@ const RUN_LIFECYCLE_SCRIPT: Script = preload(
 	"res://scripts/gameplay/city_run_lifecycle.gd"
 )
 const WORLD_STREAM_SCRIPT: Script = preload("res://scripts/world/city_world_stream.gd")
-const STRUCTURAL_BUILDING_SCRIPT: Script = preload(
-	"res://scripts/destruction/structural_building_2d.gd"
+const STREAMED_DESTRUCTIBLES_SCRIPT: Script = preload(
+	"res://scripts/world/streamed_destructible_runtime.gd"
 )
-const PROP_SCRIPT: Script = preload("res://scripts/destruction/destructible_prop_2d.gd")
 const ENCOUNTER_RUNTIME_SCRIPT: Script = preload(
 	"res://scripts/encounter/encounter_runtime.gd"
 )
@@ -36,13 +35,6 @@ const TELEGRAPH_SCRIPT: Script = preload(
 const CONTACT_DISTRICT: DistrictDefinition = preload(
 	"res://resources/siege/district_contact.tres"
 )
-const BUILDING_INTACT: Texture2D = preload("res://art/city/destructibles/building_intact.png")
-const BUILDING_DAMAGED: Texture2D = preload("res://art/city/destructibles/building_damaged.png")
-const BUILDING_RUBBLE: Texture2D = preload("res://art/city/destructibles/building_rubble.png")
-const LAMP_INTACT: Texture2D = preload("res://art/city/destructibles/streetlamp_intact.png")
-const LAMP_BROKEN: Texture2D = preload("res://art/city/destructibles/streetlamp_broken.png")
-const CAR_INTACT: Texture2D = preload("res://art/city/destructibles/car_intact.png")
-const CAR_WRECK: Texture2D = preload("res://art/city/destructibles/car_wreck.png")
 const GLASS_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/glass_shatter.wav"
 )
@@ -75,6 +67,7 @@ var music_duck_controller: MusicDuckController
 var contextual_attacks: ContextualAttackController
 var air_target_lock_runtime: AirTargetLockRuntime
 var world_stream: CityWorldStream
+var streamed_destructibles: StreamedDestructibleRuntime
 var landmark_root: Node2D
 var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
@@ -163,7 +156,14 @@ func trigger_test_stomp() -> int:
 
 
 func all_destructibles_broken() -> bool:
-	return building.is_destroyed() and streetlamp.is_broken and car.is_broken
+	return (
+		building != null
+		and car != null
+		and streetlamp != null
+		and building.is_destroyed()
+		and streetlamp.is_broken
+		and car.is_broken
+	)
 
 
 func _build_services() -> void:
@@ -194,98 +194,31 @@ func _build_destructibles() -> void:
 	landmark_root = Node2D.new()
 	landmark_root.name = "LandmarkRoot"
 	add_child(landmark_root)
-	building = _create_building(Vector2(1450.0, LAND_VISUAL_BASELINE_Y))
-	building.damage_applied.connect(_on_building_damage_applied)
-	building.cell_destroyed.connect(_on_building_cell_destroyed)
-	building.chain_reaction_started.connect(_on_building_chain_reaction_started)
-	building.chain_reaction_step.connect(_on_building_chain_reaction_step)
-	building.chain_reaction_completed.connect(_on_building_chain_reaction_completed)
-	building.destroyed.connect(_on_building_destroyed)
-	streetlamp = _create_prop(
-		"Streetlamp",
-		Vector2(1220.0, 480.0),
-		LAMP_INTACT,
-		LAMP_BROKEN,
-		Vector2(70.0, 235.0),
-		Vector2(185.0, 90.0),
-		Vector2(42.0, 220.0),
-		Vector2(170.0, 55.0),
-		{"health": 160.0, "wreck_health": 95.0, "chunks": 3, "mass": 4.0}
-	)
-	streetlamp.destroyed.connect(_on_prop_destroyed.bind(150))
-	car = _create_prop(
-		"Car",
-		Vector2(930.0, 559.0),
-		CAR_INTACT,
-		CAR_WRECK,
-		Vector2(165.0, 78.0),
-		Vector2(175.0, 76.0),
-		Vector2(150.0, 62.0),
-		Vector2(160.0, 58.0),
-		{"health": 260.0, "wreck_health": 165.0, "chunks": 5, "mass": 12.0}
-	)
-	car.destroyed.connect(_on_prop_destroyed.bind(300))
 	world_stream.set_landmark_root(landmark_root)
-
-
-func _create_building(position_value: Vector2) -> StructuralBuilding2D:
-	var node: StructuralBuilding2D = (
-		STRUCTURAL_BUILDING_SCRIPT.new() as StructuralBuilding2D
+	streamed_destructibles = (
+		STREAMED_DESTRUCTIBLES_SCRIPT.new() as StreamedDestructibleRuntime
 	)
-	node.name = "DestructibleBuilding"
-	node.position = position_value
-	node.z_index = 5
-	node.intact_texture = BUILDING_INTACT
-	node.damaged_texture = BUILDING_DAMAGED
-	node.rubble_texture = BUILDING_RUBBLE
-	node.display_size = Vector2(500.0, 445.0)
-	node.collision_layer_value = BUILDING_LAYER
-	node.collision_mask_value = ROBOT_LAYER
-	node.hurtbox_layer_value = HURTBOX_LAYER
-	node.debris_pool_path = NodePath("../../BuildingDebrisPool")
-	landmark_root.add_child(node)
-	return node
-
-
-func _create_prop(
-	prop_name: String,
-	position_value: Vector2,
-	intact_texture: Texture2D,
-	broken_texture: Texture2D,
-	intact_size: Vector2,
-	broken_size: Vector2,
-	collision_size: Vector2,
-	broken_collision_size: Vector2,
-	settings: Dictionary
-) -> DestructibleProp2D:
-	var prop: DestructibleProp2D = PROP_SCRIPT.new() as DestructibleProp2D
-	prop.name = prop_name
-	prop.position = position_value
-	prop.z_index = 25
-	prop.max_health = float(settings.health)
-	prop.wreck_health = float(settings.wreck_health)
-	prop.gameplay_chunk_count = int(settings.chunks)
-	prop.debris_pool_path = ^"../../BuildingDebrisPool"
-	prop.mass = float(settings.mass)
-	prop.collision_layer = PROP_LAYER
-	prop.collision_mask = WORLD_LAYER | ROBOT_LAYER
-	prop.intact_texture = intact_texture
-	prop.destroyed_texture = broken_texture
-	prop.intact_display_size = intact_size
-	prop.destroyed_display_size = broken_size
-	prop.destroyed_collision_size = broken_collision_size
-	prop.visual_ground_offset = LAND_VISUAL_BASELINE_Y - position_value.y
-	var visual: Sprite2D = Sprite2D.new()
-	visual.name = "Visual"
-	prop.add_child(visual)
-	var collision: CollisionShape2D = CollisionShape2D.new()
-	collision.name = "CollisionShape2D"
-	var rectangle: RectangleShape2D = RectangleShape2D.new()
-	rectangle.size = collision_size
-	collision.shape = rectangle
-	prop.add_child(collision)
-	landmark_root.add_child(prop)
-	return prop
+	streamed_destructibles.name = "StreamedDestructibleRuntime"
+	streamed_destructibles.setup(world_stream)
+	streamed_destructibles.building_damage_applied.connect(
+		_on_streamed_building_damage_applied
+	)
+	streamed_destructibles.building_cell_destroyed.connect(
+		_on_streamed_building_cell_destroyed
+	)
+	streamed_destructibles.building_chain_started.connect(
+		_on_streamed_building_chain_started
+	)
+	streamed_destructibles.building_chain_step.connect(
+		_on_streamed_building_chain_step
+	)
+	streamed_destructibles.building_chain_completed.connect(
+		_on_streamed_building_chain_completed
+	)
+	streamed_destructibles.building_destroyed.connect(_on_streamed_building_destroyed)
+	streamed_destructibles.prop_destroyed.connect(_on_streamed_prop_destroyed)
+	add_child(streamed_destructibles)
+	_refresh_primary_destructibles()
 
 
 func _build_world_stream() -> void:
@@ -350,10 +283,21 @@ func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
 
 
 func _on_stream_window_changed(_logical_index: int) -> void:
-	var target: StructuralBuilding2D = building if landmark_root.visible else null
+	_refresh_primary_destructibles()
+	var target: StructuralBuilding2D = building
+	if target != null and target.is_destroyed():
+		target = streamed_destructibles.nearest_intact_building(robot.global_position.x)
 	encounter_runtime.structural_target = target
 	for enemy: EnemyActor2D in encounter_runtime.all_actors():
 		enemy.structural_target = target
+
+
+func _refresh_primary_destructibles() -> void:
+	if streamed_destructibles == null:
+		return
+	building = streamed_destructibles.primary_building()
+	car = streamed_destructibles.primary_car()
+	streetlamp = streamed_destructibles.primary_streetlamp()
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
 	gameplay_hud.setup(robot, contextual_attacks)
@@ -434,12 +378,16 @@ func _material_for_target(
 	return StructuralMaterialProfile.concrete()
 
 
-func _on_building_damage_applied(amount: float, event: DamageEvent) -> void:
-	rampage_events.building_damage(amount, event, building, robot)
+func _on_streamed_building_damage_applied(
+	streamed_building: StructuralBuilding2D,
+	amount: float,
+	event: DamageEvent
+) -> void:
+	rampage_events.building_damage(amount, event, streamed_building, robot)
 	if event.damage_type in [&"floor_chain", &"steel_support_chain"]:
 		return
 	var material_profile: StructuralMaterialProfile = _material_for_target(
-		building,
+		streamed_building,
 		event.hit_position
 	)
 	impact_feedback_pool.play_audio(
@@ -455,29 +403,37 @@ func _on_building_damage_applied(amount: float, event: DamageEvent) -> void:
 	)
 
 
-func _on_building_cell_destroyed(
+func _on_streamed_building_cell_destroyed(
+	streamed_building: StructuralBuilding2D,
 	column: int,
 	row: int,
 	event: DamageEvent
 ) -> void:
-	rampage_events.cell_destroyed(column, row, event, building, robot)
+	rampage_events.cell_destroyed(column, row, event, streamed_building, robot)
 
 
-func _on_building_chain_reaction_started(kind: StringName, event: DamageEvent) -> void:
-	rampage_events.chain_started(kind, event, building, robot)
-	if kind == &"steel_support_chain":
-		gameplay_hud.set_objective("objective.steel_failure")
-	else:
-		gameplay_hud.set_objective("objective.floor_lost")
+func _on_streamed_building_chain_started(
+	streamed_building: StructuralBuilding2D,
+	kind: StringName,
+	event: DamageEvent
+) -> void:
+	rampage_events.chain_started(kind, event, streamed_building, robot)
+	gameplay_hud.set_objective(
+		"objective.steel_failure" if kind == &"steel_support_chain" else "objective.floor_lost"
+	)
 
 
-func _on_building_chain_reaction_step(
+func _on_streamed_building_chain_step(
+	streamed_building: StructuralBuilding2D,
 	_kind: StringName,
 	column: int,
 	row: int,
 	event: DamageEvent
 ) -> void:
-	var profile: StructuralMaterialProfile = building.get_material_profile(column, row)
+	var profile: StructuralMaterialProfile = streamed_building.get_material_profile(
+		column,
+		row
+	)
 	impact_feedback_pool.play_audio(profile, event.hit_position, event.impulse_per_mass, true)
 	impact_feedback_pool.spawn_particles(
 		event.hit_position,
@@ -487,8 +443,11 @@ func _on_building_chain_reaction_step(
 	)
 
 
-func _on_building_chain_reaction_completed(kind: StringName) -> void:
-	if building.is_destroyed():
+func _on_streamed_building_chain_completed(
+	streamed_building: StructuralBuilding2D,
+	kind: StringName
+) -> void:
+	if streamed_building.is_destroyed():
 		return
 	gameplay_hud.set_objective(
 		"objective.steel_cascade_complete"
@@ -497,12 +456,20 @@ func _on_building_chain_reaction_completed(kind: StringName) -> void:
 	)
 
 
-func _on_building_destroyed(event: DamageEvent) -> void:
-	rampage_events.building_destroyed(event, building, robot)
+func _on_streamed_building_destroyed(
+	streamed_building: StructuralBuilding2D,
+	event: DamageEvent
+) -> void:
+	rampage_events.building_destroyed(event, streamed_building, robot)
 
 
-func _on_prop_destroyed(prop: DestructibleProp2D, event: DamageEvent, points: int) -> void:
-	rampage_events.prop_destroyed(prop, event, points, robot, prop == car)
+func _on_streamed_prop_destroyed(
+	prop: DestructibleProp2D,
+	event: DamageEvent,
+	points: int,
+	is_car: bool
+) -> void:
+	rampage_events.prop_destroyed(prop, event, points, robot, is_car)
 
 
 func _on_enemy_died(enemy: EnemyActor2D, event: DamageEvent, points: int) -> void:
@@ -512,12 +479,19 @@ func _on_enemy_died(enemy: EnemyActor2D, event: DamageEvent, points: int) -> voi
 		_spawn_soldier_defeat_body(enemy, event)
 		encounter_runtime.release_deferred(enemy)
 		return
+	if urban_siege.boss_session.boss == enemy:
+		_spawn_enemy_wreck(enemy, event)
+	else:
+		call_deferred("_spawn_enemy_wreck", enemy, event)
+	encounter_runtime.release_deferred(enemy)
+
+
+func _spawn_enemy_wreck(enemy: EnemyActor2D, event: DamageEvent) -> void:
 	var wreck: EnemyWreck2D = enemy_remains_factory.spawn_wreck(enemy, event)
 	if enemy is TankEnemy:
 		tank_wreck = wreck
 	else:
 		helicopter_wreck = wreck
-	encounter_runtime.release_deferred(enemy)
 
 
 func _spawn_soldier_defeat_body(enemy: EnemyActor2D, event: DamageEvent) -> void:

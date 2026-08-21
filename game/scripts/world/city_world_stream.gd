@@ -3,11 +3,21 @@ extends Node2D
 
 signal origin_shift_requested(offset: Vector2, chunk_delta: int)
 signal window_changed(current_chunk: int)
+signal chunk_reassigning(chunk: CityStreetChunk, previous_index: int, next_index: int)
+signal chunk_reassigned(
+	chunk: CityStreetChunk,
+	previous_index: int,
+	next_index: int,
+	blueprint: CityChunkBlueprint
+)
+signal run_configured(run_seed: int)
 
 const CHUNK_WIDTH: float = CityStreetChunk.CHUNK_WIDTH
 const CHUNK_CAPACITY: int = 6
 const BEHIND_CHUNKS: int = 2
 const AHEAD_CHUNKS: int = 3
+const PROGRESSION_CHUNKS_PER_TIER: int = 8
+const MAX_PROGRESSION_TIER: int = 4
 const CHUNK_SCRIPT: Script = preload("res://scripts/world/city_street_chunk.gd")
 
 var robot: GiantRobotController
@@ -69,6 +79,7 @@ func advance_stream() -> void:
 
 func configure_run(p_run_seed: int) -> void:
 	run_seed = p_run_seed
+	run_configured.emit(run_seed)
 	_refresh_window()
 
 
@@ -107,6 +118,20 @@ func logical_distance_x(runtime_x: float) -> float:
 	return float(floating_origin.origin_chunk) * CHUNK_WIDTH + runtime_x
 
 
+func progression_distance_chunks() -> int:
+	return maxi(absi(current_logical_chunk), maximum_visited_chunk)
+
+
+func progression_tier() -> int:
+	return mini(
+		floori(
+			float(progression_distance_chunks())
+			/ float(PROGRESSION_CHUNKS_PER_TIER)
+		),
+		MAX_PROGRESSION_TIER
+	)
+
+
 func reset_stream(p_run_seed: int = 0) -> void:
 	run_seed = p_run_seed
 	floating_origin.reset()
@@ -116,6 +141,7 @@ func reset_stream(p_run_seed: int = 0) -> void:
 	minimum_visited_chunk = current_logical_chunk
 	maximum_visited_chunk = current_logical_chunk
 	transition_count = 0
+	run_configured.emit(run_seed)
 	_refresh_window()
 
 
@@ -141,7 +167,12 @@ func _refresh_window() -> void:
 			run_seed,
 			logical_index
 		)
+		var previous_index: int = chunk.logical_index
+		if previous_index != logical_index:
+			chunk_reassigning.emit(chunk, previous_index, logical_index)
 		chunk.configure(blueprint, runtime_x_for_logical_index(logical_index))
+		if previous_index != logical_index:
+			chunk_reassigned.emit(chunk, previous_index, logical_index, blueprint)
 	_update_landmark_root()
 
 
