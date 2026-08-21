@@ -101,26 +101,12 @@ func active_beam_count() -> int:
 
 
 func _nearest_target() -> EnemyActor2D:
-	var best: EnemyActor2D = null
-	var best_distance: float = INF
-	for enemy: EnemyActor2D in arsenal.actors:
-		if enemy == null or not enemy.active or enemy.dead:
-			continue
-		var distance_squared: float = emitter.global_position.distance_squared_to(
-			enemy.global_position
-		)
-		if distance_squared > RANGE * RANGE:
-			continue
-		if (
-			distance_squared < best_distance
-			or (
-				is_equal_approx(distance_squared, best_distance)
-				and (best == null or enemy.get_instance_id() < best.get_instance_id())
-			)
-		):
-			best = enemy
-			best_distance = distance_squared
-	return best
+	return arsenal.acquire_target(
+		RANGE,
+		0.0,
+		PlayerArsenalRuntime.TargetClass.AIR,
+		false
+	)
 
 
 func _fire(direction: Vector2) -> void:

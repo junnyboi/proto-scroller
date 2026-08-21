@@ -357,6 +357,7 @@ func _prewarm_audio() -> void:
 	for index: int in range(audio_capacity):
 		var player: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
 		player.name = "ImpactAudio%02d" % index
+		player.bus = MusicVolumeSettings.SFX_BUS
 		player.max_distance = 1500.0
 		player.attenuation = 0.55
 		player.set_meta(&"priority", 0)

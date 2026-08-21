@@ -147,7 +147,10 @@ func flush_explosions() -> void:
 func ordered_targets() -> Array[EnemyActor2D]:
 	var candidates: Array[EnemyActor2D] = []
 	for enemy: EnemyActor2D in arsenal.actors:
-		if enemy == null or not enemy.active or enemy.dead:
+		if not arsenal.target_matches_class(
+			enemy,
+			PlayerArsenalRuntime.TargetClass.ANY
+		):
 			continue
 		var distance: float = arsenal.robot.global_position.distance_to(enemy.global_position)
 		if distance < MIN_RANGE or distance > MAX_RANGE:

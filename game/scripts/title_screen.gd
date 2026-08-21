@@ -42,7 +42,13 @@ var audio_preference_path: String = MusicVolumeSettings.PREFERENCE_PATH
 @onready var music_volume_label: Label = %MusicVolumeLabel
 @onready var music_volume_value: Label = %MusicVolumeValue
 @onready var music_volume_slider: HSlider = %MusicVolumeSlider
-@onready var music_volume_hint: Label = %MusicVolumeHint
+@onready var sfx_volume_label: Label = %SfxVolumeLabel
+@onready var sfx_volume_value: Label = %SfxVolumeValue
+@onready var sfx_volume_slider: HSlider = %SfxVolumeSlider
+@onready var voice_volume_label: Label = %VoiceVolumeLabel
+@onready var voice_volume_value: Label = %VoiceVolumeValue
+@onready var voice_volume_slider: HSlider = %VoiceVolumeSlider
+@onready var audio_volume_hint: Label = %AudioVolumeHint
 @onready var settings_close_button: Button = %SettingsCloseButton
 @onready var language_selector: HBoxContainer = %LanguageSelector
 @onready var language_label: Label = %LanguageLabel
@@ -62,13 +68,18 @@ func _ready() -> void:
 	settings_backdrop.pressed.connect(close_settings)
 	settings_close_button.pressed.connect(close_settings)
 	music_volume_slider.value_changed.connect(_on_music_volume_changed)
+	sfx_volume_slider.value_changed.connect(_on_sfx_volume_changed)
+	voice_volume_slider.value_changed.connect(_on_voice_volume_changed)
 	automatic_button.pressed.connect(_on_automatic_pressed)
 	english_button.pressed.connect(_on_english_pressed)
 	chinese_button.pressed.connect(_on_chinese_pressed)
-	music_volume_slider.set_value_no_signal(
-		MusicVolumeSettings.apply_saved(audio_preference_path)
+	var saved_volumes: Dictionary[StringName, float] = (
+		MusicVolumeSettings.apply_all_saved(audio_preference_path)
 	)
-	_update_music_volume_value()
+	music_volume_slider.set_value_no_signal(saved_volumes[MusicVolumeSettings.MUSIC_BUS])
+	sfx_volume_slider.set_value_no_signal(saved_volumes[MusicVolumeSettings.SFX_BUS])
+	voice_volume_slider.set_value_no_signal(saved_volumes[MusicVolumeSettings.VOICE_BUS])
+	_update_audio_volume_values()
 	initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_localized_text()
@@ -205,11 +216,23 @@ func _on_chinese_pressed() -> void:
 
 func _on_music_volume_changed(value: float) -> void:
 	MusicVolumeSettings.set_and_save(value, audio_preference_path)
-	_update_music_volume_value()
+	_update_audio_volume_values()
 
 
-func _update_music_volume_value() -> void:
+func _on_sfx_volume_changed(value: float) -> void:
+	MusicVolumeSettings.set_sfx_and_save(value, audio_preference_path)
+	_update_audio_volume_values()
+
+
+func _on_voice_volume_changed(value: float) -> void:
+	MusicVolumeSettings.set_voice_and_save(value, audio_preference_path)
+	_update_audio_volume_values()
+
+
+func _update_audio_volume_values() -> void:
 	music_volume_value.text = "%d%%" % int(round(music_volume_slider.value))
+	sfx_volume_value.text = "%d%%" % int(round(sfx_volume_slider.value))
+	voice_volume_value.text = "%d%%" % int(round(voice_volume_slider.value))
 
 
 func is_portrait_layout() -> bool:
@@ -253,9 +276,11 @@ func _apply_localized_text() -> void:
 	settings_button.text = L10n.t("title.settings")
 	settings_heading.text = L10n.t("title.settings_heading")
 	music_volume_label.text = L10n.t("title.music_volume")
-	music_volume_hint.text = L10n.t("title.music_volume_hint")
+	sfx_volume_label.text = L10n.t("title.sfx_volume")
+	voice_volume_label.text = L10n.t("title.voice_volume")
+	audio_volume_hint.text = L10n.t("title.audio_volume_hint")
 	settings_close_button.text = L10n.t("title.settings_close")
-	_update_music_volume_value()
+	_update_audio_volume_values()
 	language_label.text = L10n.t("title.language")
 	automatic_button.text = L10n.t(
 		"title.language_auto_resolved",
@@ -305,7 +330,7 @@ func _apply_landscape_layout() -> void:
 	_set_rect($SmashChip, Rect2(236.0, 590.0, 178.0, 48.0))
 	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
 	_set_rect(settings_button, Rect2(1052.0, 118.0, 196.0, 48.0))
-	_set_rect(settings_panel, Rect2(360.0, 170.0, 560.0, 380.0))
+	_set_rect(settings_panel, Rect2(310.0, 72.0, 660.0, 576.0))
 	_set_font_sizes(24, 56, 24)
 
 
@@ -323,7 +348,7 @@ func _apply_portrait_layout() -> void:
 	_set_rect($SmashChip, Rect2(372.0, 1114.0, 228.0, 58.0))
 	_set_rect(briefing_toggle, Rect2(174.0, 1180.0, 372.0, 70.0))
 	_set_rect(settings_button, Rect2(466.0, 376.0, 200.0, 56.0))
-	_set_rect(settings_panel, Rect2(54.0, 410.0, 612.0, 410.0))
+	_set_rect(settings_panel, Rect2(54.0, 370.0, 612.0, 620.0))
 	_set_font_sizes(24, 48, 24)
 
 

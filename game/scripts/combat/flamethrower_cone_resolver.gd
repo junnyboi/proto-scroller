@@ -55,6 +55,11 @@ func resolve_tick(
 		var receiver: Node = DamageReceiverLookup.find(collider)
 		if receiver == null or receiver == robot:
 			continue
+		if (
+			receiver is EnemyActor2D
+			and (receiver as EnemyActor2D).is_in_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+		):
+			continue
 		var receiver_id: int = receiver.get_instance_id()
 		if seen.has(receiver_id):
 			continue
@@ -86,7 +91,10 @@ func has_actor_target(
 ) -> bool:
 	var cosine_limit: float = cos(half_angle)
 	for enemy: EnemyActor2D in arsenal.actors:
-		if enemy == null or not enemy.active or enemy.dead:
+		if not arsenal.target_matches_class(
+			enemy,
+			PlayerArsenalRuntime.TargetClass.GROUND
+		):
 			continue
 		var offset: Vector2 = enemy.global_position - origin
 		if offset.length_squared() > flame_range * flame_range:
