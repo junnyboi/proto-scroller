@@ -36,6 +36,7 @@ func _ready() -> void:
 	add_child(_reticle)
 	_voice_player = AudioStreamPlayer.new()
 	_voice_player.name = "AirTargetVoice"
+	_voice_player.bus = MusicVolumeSettings.VOICE_BUS
 	_voice_player.volume_db = -3.0
 	add_child(_voice_player)
 	set_process(false)

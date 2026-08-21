@@ -40,6 +40,7 @@ func _init() -> void:
 		scorches.append(scorch)
 	loop_audio = AudioStreamPlayer2D.new()
 	loop_audio.name = "FlamethrowerLoopAudio"
+	loop_audio.bus = MusicVolumeSettings.SFX_BUS
 	add_child(loop_audio)
 
 

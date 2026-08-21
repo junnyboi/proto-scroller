@@ -110,6 +110,8 @@ func _run() -> void:
 		screen.close_briefing()
 		screen.open_settings()
 		(screen.get_node("%MusicVolumeSlider") as HSlider).value = 35.0
+		(screen.get_node("%SfxVolumeSlider") as HSlider).value = 55.0
+		(screen.get_node("%VoiceVolumeSlider") as HSlider).value = 75.0
 		await RenderingServer.frame_post_draw
 		var settings_image: Image = root.get_texture().get_image()
 		var settings_save_error: Error = settings_image.save_png(
@@ -121,9 +123,16 @@ func _run() -> void:
 			"error=%s size=%s" % [settings_save_error, settings_image.get_size()]
 		)
 		_check(
-			"settings_volume_applied",
-			(screen.get_node("%MusicVolumeValue") as Label).text == "35%",
-			"value=%s" % [(screen.get_node("%MusicVolumeValue") as Label).text]
+			"settings_volumes_applied",
+			(screen.get_node("%MusicVolumeValue") as Label).text == "35%"
+			and (screen.get_node("%SfxVolumeValue") as Label).text == "55%"
+			and (screen.get_node("%VoiceVolumeValue") as Label).text == "75%",
+			"values=%s/%s/%s"
+			% [
+				(screen.get_node("%MusicVolumeValue") as Label).text,
+				(screen.get_node("%SfxVolumeValue") as Label).text,
+				(screen.get_node("%VoiceVolumeValue") as Label).text,
+			]
 		)
 		screen.close_settings(false)
 		button.grab_focus()

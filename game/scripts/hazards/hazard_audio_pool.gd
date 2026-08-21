@@ -32,6 +32,7 @@ func _ready() -> void:
 	for index: int in range(voice_capacity):
 		var voice: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
 		voice.name = "HazardVoice%02d" % index
+		voice.bus = MusicVolumeSettings.SFX_BUS
 		voice.max_distance = MAX_DISTANCE
 		voice.attenuation = ATTENUATION
 		voice.set_meta(&"priority", 0)

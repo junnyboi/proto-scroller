@@ -30,7 +30,9 @@ func after_each() -> void:
 	L10n.set_locale("en")
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 	MusicVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
-	MusicVolumeSettings.apply_percent(MusicVolumeSettings.DEFAULT_PERCENT)
+	MusicVolumeSettings.apply_percent(MusicVolumeSettings.DEFAULT_MUSIC_PERCENT)
+	MusicVolumeSettings.apply_sfx_percent(MusicVolumeSettings.DEFAULT_SFX_PERCENT)
+	MusicVolumeSettings.apply_voice_percent(MusicVolumeSettings.DEFAULT_VOICE_PERCENT)
 
 
 func test_launch_scene_contract() -> void:
@@ -142,23 +144,29 @@ func test_initialize_seam_transitions_once() -> void:
 	_record_test_execution()
 
 
-func test_settings_menu_applies_and_persists_background_music_volume() -> void:
+func test_settings_menu_applies_and_persists_three_audio_bus_volumes() -> void:
 	var settings_layer: Control = screen.get_node("%SettingsLayer") as Control
-	var slider: HSlider = screen.get_node("%MusicVolumeSlider") as HSlider
-	var value_label: Label = screen.get_node("%MusicVolumeValue") as Label
+	var music_slider: HSlider = screen.get_node("%MusicVolumeSlider") as HSlider
+	var sfx_slider: HSlider = screen.get_node("%SfxVolumeSlider") as HSlider
+	var voice_slider: HSlider = screen.get_node("%VoiceVolumeSlider") as HSlider
 	assert_false(settings_layer.visible)
-	assert_almost_eq(slider.value, MusicVolumeSettings.DEFAULT_PERCENT, 0.01)
+	assert_almost_eq(music_slider.value, MusicVolumeSettings.DEFAULT_MUSIC_PERCENT, 0.01)
+	assert_almost_eq(sfx_slider.value, MusicVolumeSettings.DEFAULT_SFX_PERCENT, 0.01)
+	assert_almost_eq(voice_slider.value, MusicVolumeSettings.DEFAULT_VOICE_PERCENT, 0.01)
 	assert_true(screen.open_settings())
 	assert_true(settings_layer.visible)
-	slider.value = 35.0
-	assert_eq(value_label.text, "35%")
-	var music_bus_index: int = AudioServer.get_bus_index(MusicVolumeSettings.MUSIC_BUS)
-	assert_almost_eq(
-		AudioServer.get_bus_volume_db(music_bus_index),
-		MusicVolumeSettings.percent_to_db(35.0),
-		0.01
-	)
+	music_slider.value = 35.0
+	sfx_slider.value = 42.0
+	voice_slider.value = 58.0
+	assert_eq((screen.get_node("%MusicVolumeValue") as Label).text, "35%")
+	assert_eq((screen.get_node("%SfxVolumeValue") as Label).text, "42%")
+	assert_eq((screen.get_node("%VoiceVolumeValue") as Label).text, "58%")
+	_assert_bus_percent(MusicVolumeSettings.MUSIC_BUS, 35.0)
+	_assert_bus_percent(MusicVolumeSettings.SFX_BUS, 42.0)
+	_assert_bus_percent(MusicVolumeSettings.VOICE_BUS, 58.0)
 	assert_almost_eq(MusicVolumeSettings.load_percent(AUDIO_PREFERENCE_PATH), 35.0, 0.01)
+	assert_almost_eq(MusicVolumeSettings.load_sfx_percent(AUDIO_PREFERENCE_PATH), 42.0, 0.01)
+	assert_almost_eq(MusicVolumeSettings.load_voice_percent(AUDIO_PREFERENCE_PATH), 58.0, 0.01)
 	assert_true(screen.close_settings())
 	assert_false(settings_layer.visible)
 	var restored_screen: TitleScreen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
@@ -168,6 +176,16 @@ func test_settings_menu_applies_and_persists_background_music_volume() -> void:
 	assert_almost_eq(
 		(restored_screen.get_node("%MusicVolumeSlider") as HSlider).value,
 		35.0,
+		0.01
+	)
+	assert_almost_eq(
+		(restored_screen.get_node("%SfxVolumeSlider") as HSlider).value,
+		42.0,
+		0.01
+	)
+	assert_almost_eq(
+		(restored_screen.get_node("%VoiceVolumeSlider") as HSlider).value,
+		58.0,
 		0.01
 	)
 	_record_test_execution()
@@ -241,6 +259,15 @@ func _rendered_line_height(control: Control) -> float:
 	var font: Font = control.get_theme_font(&"font")
 	var font_size: int = control.get_theme_font_size(&"font_size")
 	return font.get_height(font_size)
+
+
+func _assert_bus_percent(bus_name: StringName, percent: float) -> void:
+	var bus_index: int = AudioServer.get_bus_index(bus_name)
+	assert_almost_eq(
+		AudioServer.get_bus_volume_db(bus_index),
+		MusicVolumeSettings.percent_to_db(percent),
+		0.01
+	)
 
 
 func _expected_automatic_label() -> String:

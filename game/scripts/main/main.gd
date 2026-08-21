@@ -14,7 +14,7 @@ var responsive_viewport: ResponsiveViewport
 
 
 func _ready() -> void:
-	MusicVolumeSettings.apply_saved()
+	MusicVolumeSettings.apply_all_saved()
 	responsive_viewport = RESPONSIVE_VIEWPORT_SCRIPT.new() as ResponsiveViewport
 	responsive_viewport.name = "ResponsiveViewport"
 	add_child(responsive_viewport)

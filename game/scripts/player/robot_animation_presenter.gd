@@ -263,12 +263,14 @@ func _prewarm_audio() -> void:
 	for index: int in range(AUDIO_VOICE_CAPACITY):
 		var player: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
 		player.name = "RobotMechanicsAudio%02d" % index
+		player.bus = MusicVolumeSettings.SFX_BUS
 		player.max_distance = 1500.0
 		player.attenuation = 0.45
 		add_child(player)
 		_audio_players.append(player)
 	_status_voice_player = AudioStreamPlayer.new()
 	_status_voice_player.name = "RobotStatusVoice"
+	_status_voice_player.bus = MusicVolumeSettings.VOICE_BUS
 	add_child(_status_voice_player)
 
 
