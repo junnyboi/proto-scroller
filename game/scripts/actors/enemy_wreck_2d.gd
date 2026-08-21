@@ -3,9 +3,17 @@ extends RigidBody2D
 
 signal scrapped(wreck: EnemyWreck2D, event: DamageEvent)
 signal crash_landed(wreck: EnemyWreck2D)
+signal crash_impact_accepted(wreck: EnemyWreck2D, event: DamageEvent, target: Node)
 
+const ENEMY_LAYER: int = 1 << 2
+const PROP_LAYER: int = 1 << 7
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
+const MIN_CRASH_IMPACT_SPEED: float = 220.0
+const MAX_CRASH_IMPACT_DAMAGE: float = 180.0
+const CRASH_IMPACT_DAMAGE_SCALE: float = 0.12
+
+static var _next_crash_attack_id: int = 2_000_000
 
 @export var scrap_health: float = 120.0
 @export var wreck_kind: StringName = &"machinery"
@@ -18,8 +26,12 @@ var wreck_texture: Texture2D
 var fatal_event: DamageEvent
 var airborne_crash: bool = false
 var crash_landing_count: int = 0
+var crash_impact_count: int = 0
 var finisher_requires_ground_smash: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
+var _crash_attack_id: int = 0
+var _crash_impact_targets: Dictionary[int, bool] = {}
+var _last_crash_velocity: Vector2 = Vector2.ZERO
 var _steel_profile: StructuralMaterialProfile
 
 
@@ -60,8 +72,12 @@ func activate(
 	fatal_event = p_fatal_event
 	airborne_crash = p_airborne_crash
 	crash_landing_count = 0
+	crash_impact_count = 0
 	finisher_requires_ground_smash = false
 	_seen_attacks.clear()
+	_crash_impact_targets.clear()
+	_crash_attack_id = _allocate_crash_attack_id() if airborne_crash else 0
+	_last_crash_velocity = Vector2.ZERO
 	scrapped_state = false
 	visible = true
 	freeze = false
@@ -76,6 +92,8 @@ func activate(
 	angular_velocity = 0.0
 	collision_layer = REMAINS_LAYER
 	collision_mask = REMAINS_GROUND_LAYER | REMAINS_LAYER
+	if airborne_crash:
+		collision_mask |= ENEMY_LAYER | PROP_LAYER
 	set_meta(&"enemy_remains", wreck_kind)
 	var collision: CollisionShape2D = get_node(^"WreckCollision") as CollisionShape2D
 	(collision.shape as RectangleShape2D).size = collision_size
@@ -93,7 +111,11 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	airborne_crash = false
+	crash_impact_count = 0
 	finisher_requires_ground_smash = false
+	_crash_attack_id = 0
+	_crash_impact_targets.clear()
+	_last_crash_velocity = Vector2.ZERO
 	gravity_scale = 1.0
 	linear_damp = 0.9
 	angular_damp = 1.5
@@ -136,6 +158,11 @@ func is_scrapped() -> bool:
 
 func is_crashing() -> bool:
 	return airborne_crash
+
+
+func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
+	if airborne_crash and state.linear_velocity.length() >= MIN_CRASH_IMPACT_SPEED:
+		_last_crash_velocity = state.linear_velocity
 
 
 func _build_collision() -> void:
@@ -199,15 +226,96 @@ func _on_body_entered(body: Node) -> void:
 	if not airborne_crash or not body is CollisionObject2D:
 		return
 	var collision_body: CollisionObject2D = body as CollisionObject2D
-	if collision_body.collision_layer & REMAINS_GROUND_LAYER == 0:
+	if collision_body.collision_layer & REMAINS_GROUND_LAYER != 0:
+		_finish_crash_landing()
 		return
+	if collision_body.collision_layer & (ENEMY_LAYER | PROP_LAYER) != 0:
+		_queue_crash_damage(body)
+
+
+func _queue_crash_damage(body: Node) -> void:
+	var receiver: Node = _find_damage_receiver(body)
+	if receiver == null or receiver == self:
+		return
+	var target_id: int = receiver.get_instance_id()
+	if _crash_impact_targets.has(target_id):
+		return
+	var target_velocity: Vector2 = (
+		(receiver as EnemyActor2D).velocity if receiver is EnemyActor2D else Vector2.ZERO
+	)
+	var impact_velocity: Vector2 = _last_crash_velocity - target_velocity
+	var impact_speed: float = impact_velocity.length()
+	if impact_speed < MIN_CRASH_IMPACT_SPEED:
+		return
+	_crash_impact_targets[target_id] = true
+	call_deferred("_apply_crash_damage", receiver, impact_velocity)
+
+
+func _apply_crash_damage(receiver: Node, impact_velocity: Vector2) -> void:
+	if not is_instance_valid(receiver):
+		return
+	var impact_speed: float = impact_velocity.length()
+	var mass_scale: float = clampf(sqrt(mass / 38.0), 0.7, 2.3)
+	var damage: float = clampf(
+		35.0
+		+ (impact_speed - MIN_CRASH_IMPACT_SPEED)
+		* CRASH_IMPACT_DAMAGE_SCALE
+		* mass_scale,
+		35.0,
+		MAX_CRASH_IMPACT_DAMAGE
+	)
+	var direction: Vector2 = impact_velocity.normalized()
+	if direction.is_zero_approx():
+		direction = Vector2.DOWN
+	var root_attack_id: int = (
+		fatal_event.root_attack_id if fatal_event != null else _crash_attack_id
+	)
+	var causal_depth: int = (
+		mini(fatal_event.causal_depth + 1, DamageEvent.MAX_CAUSAL_DEPTH)
+		if fatal_event != null
+		else 1
+	)
+	var event: DamageEvent = DamageEvent.new(
+		_crash_attack_id,
+		self,
+		damage,
+		&"crash_impact",
+		global_position,
+		direction,
+		impact_speed * 0.55,
+		root_attack_id,
+		causal_depth,
+		DamageEvent.FLAG_HAZARD
+	)
+	if bool(receiver.call("receive_damage", event)):
+		crash_impact_count += 1
+		crash_impact_accepted.emit(self, event, receiver)
+
+
+func _finish_crash_landing() -> void:
 	airborne_crash = false
 	crash_landing_count += 1
 	gravity_scale = 1.0
 	linear_damp = 1.1
 	angular_damp = 1.8
 	can_sleep = true
+	collision_mask = REMAINS_GROUND_LAYER | REMAINS_LAYER
+	_last_crash_velocity = Vector2.ZERO
 	crash_landed.emit(self)
+
+
+func _find_damage_receiver(start_node: Node) -> Node:
+	var receiver: Node = start_node
+	while receiver != null:
+		if receiver.has_method("receive_damage"):
+			return receiver
+		receiver = receiver.get_parent()
+	return null
+
+
+static func _allocate_crash_attack_id() -> int:
+	_next_crash_attack_id += 1
+	return _next_crash_attack_id
 
 
 func _turn_to_scrap(event: DamageEvent) -> void:
