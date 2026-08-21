@@ -83,6 +83,52 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 		assert_eq((voice_node as AudioStreamPlayer2D).bus, GameAudioBus.THREAT)
 
 
+func test_critical_warnings_preempt_low_hazard_voices_and_reject_low_pulses() -> void:
+	var pool: HazardAudioPool = runtime.audio_pool
+	var oldest_low_voice: AudioStreamPlayer2D
+	for index: int in range(pool.voice_capacity):
+		var low_voice: AudioStreamPlayer2D = pool._play(
+			&"pulse",
+			StringName("low_%02d" % index),
+			HazardAudioPool.WARNING_SFX,
+			Vector2.ZERO,
+			-12.0,
+			1.0,
+			AudioVoicePriority.ORDINARY,
+			0,
+			true
+		)
+		assert_not_null(low_voice)
+		if index == 0:
+			oldest_low_voice = low_voice
+	for index: int in range(pool.voice_capacity):
+		var warning: AudioStreamPlayer2D = pool.play_warning(
+			EnvironmentalHazardCatalog.ACTIVE_IDS[index],
+			Vector2.ZERO
+		)
+		assert_not_null(warning)
+		if index == 0:
+			assert_same(warning, oldest_low_voice)
+		assert_eq(
+			AudioVoicePriority.priority_of(warning),
+			AudioVoicePriority.CRITICAL
+		)
+	assert_eq(pool.preemption_count, pool.voice_capacity)
+	assert_eq(pool.last_preempted_priority, AudioVoicePriority.ORDINARY)
+	var first_hazard: StringName = EnvironmentalHazardCatalog.ACTIVE_IDS[0]
+	var warning_voice: AudioStreamPlayer2D = pool._warning_voice_for(first_hazard)
+	var impact_voice: AudioStreamPlayer2D = pool.play_impact(
+		first_hazard,
+		Vector2.ZERO,
+		true
+	)
+	assert_same(impact_voice, warning_voice)
+	assert_eq(impact_voice.get_meta(&"phase", &""), &"impact")
+	assert_null(pool.play_impact(&"steam_main", Vector2.ZERO, false))
+	assert_eq(pool.drop_count, 1)
+	assert_eq(pool.voice_count(), RuntimeBudget.HAZARD_AUDIO_VOICES)
+
+
 func test_active_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void:
 	for hazard_id: StringName in EnvironmentalHazardCatalog.ACTIVE_IDS:
 		var profile: Dictionary = EnvironmentalHazardCatalog.profile(hazard_id)

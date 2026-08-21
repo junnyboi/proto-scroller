@@ -203,4 +203,4 @@ func _on_upgrade_acquired(
 	if now_msec - _last_upgrade_audio_msec < 180:
 		return
 	_last_upgrade_audio_msec = now_msec
-	feedback.play_cue(AudioCueRegistry.Cue.UPGRADE_CONFIRM, robot.global_position, 6)
+	feedback.play_cue(AudioCueRegistry.Cue.UPGRADE_CONFIRM, robot.global_position)

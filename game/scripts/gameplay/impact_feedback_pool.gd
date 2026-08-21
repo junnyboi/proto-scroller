@@ -34,6 +34,8 @@ var particle_recycle_count: int = 0
 var particle_drop_count: int = 0
 var audio_recycle_count: int = 0
 var audio_drop_count: int = 0
+var audio_preemption_count: int = 0
+var last_preempted_priority: int = AudioVoicePriority.UNUSED
 var _particle_root: Node2D
 var _audio_root: Node2D
 var _particles: Array[CPUParticles2D] = []
@@ -42,6 +44,7 @@ var _material_audio_cooldowns: Dictionary[StringName, int] = {}
 var _debris_spark_profile: StructuralMaterialProfile
 var _debris_audio_next_msec: int = 0
 var _debris_audio_player: AudioStreamPlayer2D
+var _voice_started_order: int = 0
 
 
 func setup(particle_root: Node2D, audio_root: Node2D) -> void:
@@ -99,7 +102,7 @@ func play_audio(
 	origin: Vector2,
 	impact_speed: float,
 	force_play: bool = false,
-	priority: int = 1
+	priority: int = AudioVoicePriority.ORDINARY
 ) -> AudioStreamPlayer2D:
 	if profile == null or _audio_players.is_empty():
 		return null
@@ -120,8 +123,7 @@ func play_audio(
 	player.volume_db = clampf(-8.0 + impact_speed / 90.0, -8.0, -2.0)
 	player.pitch_scale = pitch_for_material(profile.material_id, impact_speed)
 	player.set_meta(&"structural_material", profile.material_id)
-	player.set_meta(&"priority", priority)
-	player.set_meta(&"started_msec", now_msec)
+	_stamp_audio_voice(player, priority)
 	last_material_audio = profile.material_id
 	material_audio_play_count += 1
 	player.play()
@@ -140,13 +142,13 @@ func audio_stream_for_material(material_id: StringName) -> AudioStream:
 
 func play_cue(
 	cue: AudioCueRegistry.Cue,
-	origin: Vector2,
-	priority: int = 6
+	origin: Vector2
 ) -> AudioStreamPlayer2D:
 	var profile: Dictionary = AudioCueRegistry.profile(cue)
 	if profile.is_empty():
 		invalid_cue_count += 1
 		return null
+	var priority: int = int(profile.priority)
 	var player: AudioStreamPlayer2D = _acquire_audio_slot(priority)
 	if player == null:
 		audio_drop_count += 1
@@ -158,8 +160,7 @@ func play_cue(
 	player.global_position = origin
 	player.volume_db = float(profile.volume_db)
 	player.pitch_scale = 1.0
-	player.set_meta(&"priority", priority)
-	player.set_meta(&"started_msec", Time.get_ticks_msec())
+	_stamp_audio_voice(player, priority)
 	last_cue = cue
 	cue_play_count += 1
 	player.play()
@@ -192,12 +193,12 @@ func play_debris_enemy_impact(
 	if (
 		replacing_lighter_thud
 		and is_instance_valid(_debris_audio_player)
-		and int(_debris_audio_player.get_meta(&"priority", 0)) == 4
+		and AudioVoicePriority.priority_of(_debris_audio_player) == AudioVoicePriority.DEFEAT
 		and _debris_audio_player.stream == DEBRIS_ENEMY_THUD_SFX
 	):
 		player = _debris_audio_player
 	else:
-		player = _acquire_audio_slot(4)
+		player = _acquire_audio_slot(AudioVoicePriority.DEFEAT)
 	if player == null:
 		audio_drop_count += 1
 		return null
@@ -209,8 +210,7 @@ func play_debris_enemy_impact(
 	player.pitch_scale = debris_pitch_for_mass(body_mass, impact_speed)
 	player.volume_db = debris_volume_for_mass(body_mass, impact_speed)
 	player.set_meta(&"debris_mass", body_mass)
-	player.set_meta(&"priority", 4)
-	player.set_meta(&"started_msec", now_msec)
+	_stamp_audio_voice(player, AudioVoicePriority.DEFEAT)
 	_debris_audio_next_msec = now_msec + DEBRIS_AUDIO_COOLDOWN_MSEC
 	_debris_audio_player = player
 	last_debris_mass = body_mass
@@ -258,12 +258,14 @@ func reset_runtime_state() -> void:
 		particles.set_meta(&"priority", 0)
 	for player: AudioStreamPlayer2D in _audio_players:
 		player.stop()
-		player.set_meta(&"priority", 0)
+		AudioVoicePriority.stamp(player, AudioVoicePriority.UNUSED, 0)
 	_material_audio_cooldowns.clear()
 	particle_recycle_count = 0
 	particle_drop_count = 0
 	audio_recycle_count = 0
 	audio_drop_count = 0
+	audio_preemption_count = 0
+	last_preempted_priority = AudioVoicePriority.UNUSED
 	cue_play_count = 0
 	invalid_cue_count = 0
 	last_cue = AudioCueRegistry.Cue.INVALID
@@ -274,6 +276,7 @@ func reset_runtime_state() -> void:
 	last_debris_volume_db = 0.0
 	_debris_audio_next_msec = 0
 	_debris_audio_player = null
+	_voice_started_order = 0
 
 
 func particle_child_count() -> int:
@@ -304,17 +307,24 @@ func _acquire_particle_slot(priority: int) -> CPUParticles2D:
 
 
 func _acquire_audio_slot(priority: int) -> AudioStreamPlayer2D:
-	for player: AudioStreamPlayer2D in _audio_players:
-		if not player.playing:
-			return player
-	var candidate: AudioStreamPlayer2D = _audio_players[0]
-	for player: AudioStreamPlayer2D in _audio_players:
-		if _slot_precedes(player, candidate):
-			candidate = player
-	if int(candidate.get_meta(&"priority", 0)) > priority:
+	var candidate: AudioStreamPlayer2D = AudioVoicePriority.select_2d(
+		_audio_players,
+		priority
+	)
+	if candidate == null:
 		return null
-	audio_recycle_count += 1
+	if candidate.playing:
+		var existing_priority: int = AudioVoicePriority.priority_of(candidate)
+		audio_recycle_count += 1
+		if existing_priority < priority:
+			audio_preemption_count += 1
+			last_preempted_priority = existing_priority
 	return candidate
+
+
+func _stamp_audio_voice(player: AudioStreamPlayer2D, priority: int) -> void:
+	_voice_started_order += 1
+	AudioVoicePriority.stamp(player, priority, _voice_started_order)
 
 
 func _slot_precedes(a: Node, b: Node) -> bool:
@@ -357,6 +367,6 @@ func _prewarm_audio() -> void:
 		player.max_distance = 1500.0
 		player.attenuation = 0.55
 		player.bus = GameAudioBus.SFX
-		player.set_meta(&"priority", 0)
+		AudioVoicePriority.stamp(player, AudioVoicePriority.UNUSED, 0)
 		_audio_root.add_child(player)
 		_audio_players.append(player)

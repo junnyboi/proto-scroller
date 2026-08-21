@@ -36,13 +36,16 @@ var dodge_servo_play_count: int = 0
 var dodge_ready_voice_play_count: int = 0
 var attack_impact_play_count: int = 0
 var audio_recycle_count: int = 0
+var audio_drop_count: int = 0
+var audio_preemption_count: int = 0
+var last_preempted_priority: int = AudioVoicePriority.UNUSED
 var last_audio_cue: StringName = &""
 var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
 var dust_intensity_scale: float = 1.0
 var _audio_players: Array[AudioStreamPlayer2D] = []
 var _status_voice_player: AudioStreamPlayer
-var _audio_cursor: int = 0
+var _voice_started_order: int = 0
 var _afterimage_root: Node2D
 var _afterimages: Array[Sprite2D] = []
 var _afterimage_remaining: Array[float] = []
@@ -266,6 +269,7 @@ func _prewarm_audio() -> void:
 		player.max_distance = 1500.0
 		player.attenuation = 0.45
 		player.bus = GameAudioBus.MECHANICS
+		AudioVoicePriority.stamp(player, AudioVoicePriority.UNUSED, 0)
 		add_child(player)
 		_audio_players.append(player)
 	_status_voice_player = AudioStreamPlayer.new()
@@ -345,11 +349,17 @@ func _play_mechanics(
 ) -> void:
 	if stream == null or _audio_players.is_empty():
 		return
-	var player: AudioStreamPlayer2D = _acquire_audio_voice()
+	var priority: int = _priority_for_mechanics(cue)
+	var player: AudioStreamPlayer2D = _acquire_audio_voice(priority)
+	if player == null:
+		audio_drop_count += 1
+		return
 	player.stop()
 	player.stream = stream
 	player.volume_db = volume_db
 	player.pitch_scale = pitch_scale
+	_voice_started_order += 1
+	AudioVoicePriority.stamp(player, priority, _voice_started_order)
 	player.play()
 	audio_play_count += 1
 	last_audio_cue = cue
@@ -363,11 +373,29 @@ func _play_mechanics(
 			dodge_servo_play_count += 1
 
 
-func _acquire_audio_voice() -> AudioStreamPlayer2D:
-	for player: AudioStreamPlayer2D in _audio_players:
-		if not player.playing:
-			return player
-	var player: AudioStreamPlayer2D = _audio_players[_audio_cursor]
-	_audio_cursor = (_audio_cursor + 1) % _audio_players.size()
-	audio_recycle_count += 1
+func _acquire_audio_voice(priority: int) -> AudioStreamPlayer2D:
+	var player: AudioStreamPlayer2D = AudioVoicePriority.select_2d(
+		_audio_players,
+		priority
+	)
+	if player == null:
+		return null
+	if player.playing:
+		var existing_priority: int = AudioVoicePriority.priority_of(player)
+		audio_recycle_count += 1
+		if existing_priority < priority:
+			audio_preemption_count += 1
+			last_preempted_priority = existing_priority
 	return player
+
+
+func _priority_for_mechanics(cue: StringName) -> int:
+	match cue:
+		&"attack_piston", &"dodge_servo":
+			return AudioVoicePriority.SIGNATURE
+		&"attack_windup":
+			return AudioVoicePriority.MAJOR
+		&"walk_footstep":
+			return AudioVoicePriority.UI_NAVIGATION
+		_:
+			return AudioVoicePriority.LOCOMOTION

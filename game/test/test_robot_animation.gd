@@ -168,6 +168,53 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
+func test_robot_mechanics_priority_stealing_protects_signature_cues() -> void:
+	var city: CitySlice = await _spawn_city()
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	for index: int in range(RobotAnimationPresenter.AUDIO_VOICE_CAPACITY):
+		presenter._play_mechanics(
+			RobotAnimationPresenter.SERVO_SFX,
+			&"walk_servo",
+			-7.0,
+			1.0
+		)
+	for player: AudioStreamPlayer2D in presenter._audio_players:
+		assert_eq(
+			AudioVoicePriority.priority_of(player),
+			AudioVoicePriority.LOCOMOTION
+		)
+	for index: int in range(RobotAnimationPresenter.AUDIO_VOICE_CAPACITY):
+		presenter._play_mechanics(
+			RobotAnimationPresenter.FOOTSTEP_SFX,
+			&"attack_piston",
+			2.0,
+			1.0
+		)
+	assert_eq(
+		presenter.audio_preemption_count,
+		RobotAnimationPresenter.AUDIO_VOICE_CAPACITY
+	)
+	assert_eq(presenter.last_preempted_priority, AudioVoicePriority.LOCOMOTION)
+	for player: AudioStreamPlayer2D in presenter._audio_players:
+		assert_eq(
+			AudioVoicePriority.priority_of(player),
+			AudioVoicePriority.SIGNATURE
+		)
+	var accepted_count: int = presenter.audio_play_count
+	presenter._play_mechanics(
+		RobotAnimationPresenter.SERVO_SFX,
+		&"walk_servo",
+		-7.0,
+		1.0
+	)
+	assert_eq(presenter.audio_play_count, accepted_count)
+	assert_eq(presenter.audio_drop_count, 1)
+	assert_eq(presenter.last_audio_cue, &"attack_piston")
+	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
+
+
 func test_dodge_ready_voice_plays_once_when_cooldown_completes() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot

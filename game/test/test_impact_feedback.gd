@@ -48,27 +48,68 @@ func test_pool_stays_at_eight_and_tracks_drop_and_recycle() -> void:
 	root.add_child(pool)
 	await get_tree().process_frame
 	var profile: StructuralMaterialProfile = StructuralMaterialProfile.concrete()
+	var oldest_audio: AudioStreamPlayer2D
 	for request_index: int in range(8):
-		assert_not_null(pool.spawn_particles(Vector2.ZERO, Vector2.RIGHT, 300.0, profile, 5))
-		assert_not_null(pool.play_audio(profile, Vector2.ZERO, 300.0, true, 5))
-	assert_null(pool.spawn_particles(Vector2.ZERO, Vector2.RIGHT, 300.0, profile, 1))
-	assert_null(pool.play_audio(profile, Vector2.ZERO, 300.0, true, 1))
+		assert_not_null(pool.spawn_particles(
+			Vector2.ZERO,
+			Vector2.RIGHT,
+			300.0,
+			profile,
+			AudioVoicePriority.DEFEAT
+		))
+		var audio: AudioStreamPlayer2D = pool.play_audio(
+			profile,
+			Vector2.ZERO,
+			300.0,
+			true,
+			AudioVoicePriority.DEFEAT
+		)
+		assert_not_null(audio)
+		if request_index == 0:
+			oldest_audio = audio
+	assert_null(pool.spawn_particles(
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		300.0,
+		profile,
+		AudioVoicePriority.ORDINARY
+	))
+	assert_null(pool.play_audio(
+		profile,
+		Vector2.ZERO,
+		300.0,
+		true,
+		AudioVoicePriority.ORDINARY
+	))
 	var normalized_spark: CPUParticles2D = pool.spawn_particles(
 		Vector2.ZERO,
 		Vector2.RIGHT,
 		300.0,
 		profile,
-		6
+		AudioVoicePriority.MAJOR
 	)
 	assert_not_null(normalized_spark)
 	assert_lte(normalized_spark.scale_amount_max, 0.5)
-	assert_not_null(pool.play_audio(profile, Vector2.ZERO, 300.0, true, 6))
+	var priority_audio: AudioStreamPlayer2D = pool.play_audio(
+		profile,
+		Vector2.ZERO,
+		300.0,
+		true,
+		AudioVoicePriority.SIGNATURE
+	)
+	assert_same(priority_audio, oldest_audio)
+	assert_eq(
+		AudioVoicePriority.priority_of(priority_audio),
+		AudioVoicePriority.SIGNATURE
+	)
 	assert_eq(pool.particle_child_count(), 8)
 	assert_eq(pool.audio_child_count(), 8)
 	assert_eq(pool.particle_drop_count, 1)
 	assert_eq(pool.audio_drop_count, 1)
 	assert_eq(pool.particle_recycle_count, 1)
 	assert_eq(pool.audio_recycle_count, 1)
+	assert_eq(pool.audio_preemption_count, 1)
+	assert_eq(pool.last_preempted_priority, AudioVoicePriority.DEFEAT)
 
 
 func test_accepted_events_coalesce_to_one_strongest_feedback_transaction() -> void:
@@ -216,6 +257,14 @@ func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 		AudioCueRegistry.OVERDRIVE_ACTIVATION_SFX as AudioStreamWAV
 	)
 	var combo_stream: AudioStreamWAV = AudioCueRegistry.COMBO_BREAK_SFX as AudioStreamWAV
+	assert_eq(
+		int(AudioCueRegistry.profile(AudioCueRegistry.Cue.OVERDRIVE_ACTIVATION).priority),
+		AudioVoicePriority.SIGNATURE
+	)
+	assert_eq(
+		int(AudioCueRegistry.profile(AudioCueRegistry.Cue.COMBO_BREAK).priority),
+		AudioVoicePriority.MAJOR
+	)
 	assert_eq(overdrive_stream.mix_rate, 48000)
 	assert_eq(combo_stream.mix_rate, 48000)
 	assert_eq(overdrive_stream.format, AudioStreamWAV.FORMAT_16_BITS)

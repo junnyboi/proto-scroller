@@ -89,13 +89,16 @@ func test_upgrade_audio_is_original_48khz_pcm16_and_uses_fixed_pool() -> void:
 	await get_tree().process_frame
 	var player: AudioStreamPlayer2D = pool.play_cue(
 		AudioCueRegistry.Cue.UPGRADE_CONFIRM,
-		Vector2.ZERO,
-		6
+		Vector2.ZERO
 	)
 	assert_not_null(player)
 	if player != null:
 		assert_same(player.stream, UPGRADE_CONFIRM)
 		assert_eq(player.bus, GameAudioBus.UI)
+		assert_eq(
+			AudioVoicePriority.priority_of(player),
+			AudioVoicePriority.MAJOR
+		)
 	assert_eq(pool.audio_child_count(), RuntimeBudget.AUDIO_VOICES)
 	assert_eq(pool.last_cue, AudioCueRegistry.Cue.UPGRADE_CONFIRM)
 

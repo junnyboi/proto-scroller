@@ -434,7 +434,13 @@ func _on_streamed_building_chain_step(
 		column,
 		row
 	)
-	impact_feedback_pool.play_audio(profile, event.hit_position, event.impulse_per_mass, true)
+	impact_feedback_pool.play_audio(
+		profile,
+		event.hit_position,
+		event.impulse_per_mass,
+		true,
+		AudioVoicePriority.MAJOR
+	)
 	impact_feedback_pool.spawn_particles(
 		event.hit_position,
 		event.direction,
@@ -518,7 +524,8 @@ func _on_enemy_wreck_scrapped(
 		profile,
 		wreck.global_position,
 		maxf(event.impulse_per_mass, 220.0),
-		true
+		true,
+		AudioVoicePriority.MAJOR
 	)
 	impact_feedback_pool.spawn_particles(
 		wreck.global_position,

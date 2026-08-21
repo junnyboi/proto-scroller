@@ -17,12 +17,15 @@ var pulse_play_count: int = 0
 var chain_play_count: int = 0
 var recycle_count: int = 0
 var drop_count: int = 0
+var preemption_count: int = 0
+var last_preempted_priority: int = AudioVoicePriority.UNUSED
 var last_hazard_id: StringName = &""
 var last_phase: StringName = &""
 var _voices: Array[AudioStreamPlayer2D] = []
 var _streams: Dictionary[StringName, AudioStream] = {}
 var _cooldowns: Dictionary[StringName, int] = {}
 var _paused: bool = false
+var _voice_started_order: int = 0
 
 
 func _ready() -> void:
@@ -35,8 +38,7 @@ func _ready() -> void:
 		voice.max_distance = MAX_DISTANCE
 		voice.attenuation = ATTENUATION
 		voice.bus = GameAudioBus.THREAT
-		voice.set_meta(&"priority", 0)
-		voice.set_meta(&"started_msec", 0)
+		AudioVoicePriority.stamp(voice, AudioVoicePriority.UNUSED, 0)
 		add_child(voice)
 		_voices.append(voice)
 
@@ -50,7 +52,7 @@ func play_warning(hazard_id: StringName, origin: Vector2) -> AudioStreamPlayer2D
 		origin,
 		float(profile.warning_gain_db),
 		float(profile.warning_pitch),
-		maxi(int(profile.priority) - 2, 2),
+		AudioVoicePriority.CRITICAL,
 		0,
 		true
 	)
@@ -129,8 +131,7 @@ func reset_all() -> void:
 	for voice: AudioStreamPlayer2D in _voices:
 		voice.stop()
 		voice.stream_paused = false
-		voice.set_meta(&"priority", 0)
-		voice.set_meta(&"started_msec", 0)
+		AudioVoicePriority.stamp(voice, AudioVoicePriority.UNUSED, 0)
 	_cooldowns.clear()
 	warning_play_count = 0
 	impact_play_count = 0
@@ -138,8 +139,11 @@ func reset_all() -> void:
 	chain_play_count = 0
 	recycle_count = 0
 	drop_count = 0
+	preemption_count = 0
+	last_preempted_priority = AudioVoicePriority.UNUSED
 	last_hazard_id = &""
 	last_phase = &""
+	_voice_started_order = 0
 
 
 func voice_count() -> int:
@@ -174,7 +178,11 @@ func _play(
 	var now_msec: int = Time.get_ticks_msec()
 	if not force_play and now_msec < _cooldowns.get(cooldown_key, 0):
 		return null
-	var voice: AudioStreamPlayer2D = _acquire_voice(priority)
+	var voice: AudioStreamPlayer2D = (
+		_warning_voice_for(hazard_id) if phase == &"impact" else null
+	)
+	if voice == null:
+		voice = _acquire_voice(priority)
 	if voice == null:
 		drop_count += 1
 		return null
@@ -186,8 +194,8 @@ func _play(
 	voice.pitch_scale = pitch
 	voice.set_meta(&"hazard_id", hazard_id)
 	voice.set_meta(&"phase", phase)
-	voice.set_meta(&"priority", priority)
-	voice.set_meta(&"started_msec", now_msec)
+	_voice_started_order += 1
+	AudioVoicePriority.stamp(voice, priority, _voice_started_order)
 	_cooldowns[cooldown_key] = now_msec + retrigger_ms
 	last_hazard_id = hazard_id
 	last_phase = phase
@@ -195,23 +203,28 @@ func _play(
 	return voice
 
 
-func _acquire_voice(priority: int) -> AudioStreamPlayer2D:
+func _warning_voice_for(hazard_id: StringName) -> AudioStreamPlayer2D:
 	for voice: AudioStreamPlayer2D in _voices:
-		if not voice.playing:
+		if (
+			voice.playing
+			and voice.get_meta(&"hazard_id", &"") == hazard_id
+			and voice.get_meta(&"phase", &"") == &"warning"
+		):
 			return voice
-	var candidate: AudioStreamPlayer2D = _voices[0]
-	for voice: AudioStreamPlayer2D in _voices:
-		if _voice_precedes(voice, candidate):
-			candidate = voice
-	if int(candidate.get_meta(&"priority", 0)) > priority:
+	return null
+
+
+func _acquire_voice(priority: int) -> AudioStreamPlayer2D:
+	var candidate: AudioStreamPlayer2D = AudioVoicePriority.select_2d(
+		_voices,
+		priority
+	)
+	if candidate == null:
 		return null
-	recycle_count += 1
+	if candidate.playing:
+		var existing_priority: int = AudioVoicePriority.priority_of(candidate)
+		recycle_count += 1
+		if existing_priority < priority:
+			preemption_count += 1
+			last_preempted_priority = existing_priority
 	return candidate
-
-
-func _voice_precedes(a: AudioStreamPlayer2D, b: AudioStreamPlayer2D) -> bool:
-	var a_priority: int = int(a.get_meta(&"priority", 0))
-	var b_priority: int = int(b.get_meta(&"priority", 0))
-	if a_priority != b_priority:
-		return a_priority < b_priority
-	return int(a.get_meta(&"started_msec", 0)) < int(b.get_meta(&"started_msec", 0))

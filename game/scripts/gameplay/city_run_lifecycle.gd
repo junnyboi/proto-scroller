@@ -58,9 +58,8 @@ func _on_overdrive_activated(_attack_id: int) -> void:
 	_apply_movement_modifier()
 	city.impact_feedback_pool.play_cue(
 		AudioCueRegistry.Cue.OVERDRIVE_ACTIVATION,
-			city.robot.global_position,
-			7
-		)
+		city.robot.global_position
+	)
 	city.gameplay_hud.set_overdrive(true, city.overdrive_session.remaining)
 	city.gameplay_hud.set_objective("objective.overdrive_breakthrough")
 
@@ -92,8 +91,7 @@ func _on_rare_tags_changed(tags: PackedStringArray) -> void:
 func _on_combo_broken() -> void:
 	city.impact_feedback_pool.play_cue(
 		AudioCueRegistry.Cue.COMBO_BREAK,
-		city.robot.global_position,
-		6
+		city.robot.global_position
 	)
 
 

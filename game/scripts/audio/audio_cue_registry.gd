@@ -23,18 +23,21 @@ const PROFILES: Dictionary = {
 		&"stream": OVERDRIVE_ACTIVATION_SFX,
 		&"bus": &"SFX",
 		&"volume_db": -3.0,
+		&"priority": AudioVoicePriority.SIGNATURE,
 	},
 	Cue.COMBO_BREAK: {
 		&"id": &"combo_break",
 		&"stream": COMBO_BREAK_SFX,
 		&"bus": &"SFX",
 		&"volume_db": -5.0,
+		&"priority": AudioVoicePriority.MAJOR,
 	},
 	Cue.UPGRADE_CONFIRM: {
 		&"id": &"upgrade",
 		&"stream": UPGRADE_CONFIRM_SFX,
 		&"bus": &"UI",
 		&"volume_db": -5.0,
+		&"priority": AudioVoicePriority.MAJOR,
 	},
 }
 
