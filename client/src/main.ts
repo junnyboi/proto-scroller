@@ -47,11 +47,11 @@ declare global {
 }
 
 const ENGINE_SCRIPT_ID = "proto-scroller-godot-engine";
-const GAME_PACK_VERSION = "8148fb56-audio-engine";
+const GAME_PACK_VERSION = "2950316b-channel-mutes";
 const REMOTE_ENGINE_PATH = "/manus-storage/game_c0ba14b6";
-const REMOTE_PACK_PATH = `/manus-storage/game_097c2059.pck?v=${GAME_PACK_VERSION}`;
+const REMOTE_PACK_PATH = `/manus-storage/game_7e462214.pck?v=${GAME_PACK_VERSION}`;
 const ENGINE_WASM_BYTES = 39_513_091;
-const GAME_PACK_BYTES = 7_712_220;
+const GAME_PACK_BYTES = 7_715_372;
 const SLOW_LOAD_NOTICE_MS = 15_000;
 const RETRY_NOTICE_MS = 45_000;
 const searchParameters = new URLSearchParams(window.location.search);

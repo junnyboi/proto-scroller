@@ -51,16 +51,21 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 		_inside_viewport(settings_panel, PORTRAIT_SIZE),
 		"Portrait settings panel escaped viewport: %s" % settings_panel.get_global_rect()
 	)
-	for slider_name: StringName in [
+	for control_name: StringName in [
+		&"MasterVolumeSlider",
 		&"MusicVolumeSlider",
 		&"SfxVolumeSlider",
 		&"VoiceVolumeSlider",
+		&"MasterMuteButton",
+		&"MusicMuteButton",
+		&"SfxMuteButton",
+		&"VoiceMuteButton",
 	]:
 		assert_true(
 			settings_panel.get_global_rect().encloses(
-				(screen.get_node("%%%s" % slider_name) as Control).get_global_rect()
+				(screen.get_node("%%%s" % control_name) as Control).get_global_rect()
 			),
-			"Portrait %s escaped the settings panel." % slider_name
+			"Portrait %s escaped the settings panel." % control_name
 		)
 	assert_false(
 		initialize_button.get_global_rect().intersects(briefing_toggle.get_global_rect())
@@ -76,16 +81,21 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 		_inside_viewport(settings_panel, LANDSCAPE_SIZE),
 		"Landscape settings panel escaped viewport: %s" % settings_panel.get_global_rect()
 	)
-	for slider_name: StringName in [
+	for control_name: StringName in [
+		&"MasterVolumeSlider",
 		&"MusicVolumeSlider",
 		&"SfxVolumeSlider",
 		&"VoiceVolumeSlider",
+		&"MasterMuteButton",
+		&"MusicMuteButton",
+		&"SfxMuteButton",
+		&"VoiceMuteButton",
 	]:
 		assert_true(
 			settings_panel.get_global_rect().encloses(
-				(screen.get_node("%%%s" % slider_name) as Control).get_global_rect()
+				(screen.get_node("%%%s" % control_name) as Control).get_global_rect()
 			),
-			"Landscape %s escaped the settings panel." % slider_name
+			"Landscape %s escaped the settings panel." % control_name
 		)
 
 

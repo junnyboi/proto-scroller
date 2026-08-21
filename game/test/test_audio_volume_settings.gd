@@ -100,6 +100,41 @@ func test_volume_conversion_and_all_channel_preferences_are_bounded() -> void:
 	)
 
 
+func test_each_channel_mute_is_persistent_and_preserves_its_volume() -> void:
+	for channel: int in CONTROLLED_CHANNELS:
+		var percent: float = 25.0 + float(channel) * 10.0
+		assert_eq(
+			AudioVolumeSettings.set_and_save(channel, percent, TEST_PREFERENCE_PATH),
+			OK
+		)
+		assert_eq(
+			AudioVolumeSettings.set_muted_and_save(channel, true, TEST_PREFERENCE_PATH),
+			OK
+		)
+		var bus_index: int = AudioServer.get_bus_index(AudioVolumeSettings.bus_name(channel))
+		assert_true(AudioServer.is_bus_mute(bus_index), AudioVolumeSettings.bus_name(channel))
+		assert_true(
+			AudioVolumeSettings.load_muted(channel, TEST_PREFERENCE_PATH),
+			AudioVolumeSettings.bus_name(channel)
+		)
+		assert_almost_eq(
+			AudioVolumeSettings.load_percent(channel, TEST_PREFERENCE_PATH),
+			percent,
+			0.001
+		)
+		assert_eq(
+			AudioVolumeSettings.set_muted_and_save(channel, false, TEST_PREFERENCE_PATH),
+			OK
+		)
+		assert_false(AudioServer.is_bus_mute(bus_index), AudioVolumeSettings.bus_name(channel))
+	AudioVolumeSettings.apply_saved(TEST_PREFERENCE_PATH)
+	for channel: int in CONTROLLED_CHANNELS:
+		assert_false(
+			AudioVolumeSettings.load_muted(channel, TEST_PREFERENCE_PATH),
+			AudioVolumeSettings.bus_name(channel)
+		)
+
+
 func test_duck_controller_uses_saved_music_volume_as_restoration_baseline() -> void:
 	assert_eq(
 		AudioVolumeSettings.set_and_save(
@@ -127,3 +162,4 @@ func _reset_defaults() -> void:
 			channel,
 			AudioVolumeSettings.default_percent(channel)
 		)
+		AudioVolumeSettings.apply_muted(channel, false)

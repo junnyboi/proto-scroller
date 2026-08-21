@@ -29,6 +29,12 @@ const PREFERENCE_KEYS: Dictionary = {
 	Channel.SFX: "sfx_volume_percent",
 	Channel.VOICE: "voice_volume_percent",
 }
+const MUTE_PREFERENCE_KEYS: Dictionary = {
+	Channel.MASTER: "master_muted",
+	Channel.MUSIC: "music_muted",
+	Channel.SFX: "sfx_muted",
+	Channel.VOICE: "voice_muted",
+}
 const DEFAULT_PERCENTS: Dictionary = {
 	Channel.MASTER: 100.0,
 	Channel.MUSIC: 70.0,
@@ -48,11 +54,21 @@ static func load_percent(channel: int, path: String = PREFERENCE_PATH) -> float:
 	return clampf(float(config.get_value(SECTION, key, fallback)), 0.0, 100.0)
 
 
+static func load_muted(channel: int, path: String = PREFERENCE_PATH) -> bool:
+	if not _channel_valid(channel):
+		return false
+	var config: ConfigFile = ConfigFile.new()
+	if config.load(path) != OK:
+		return false
+	return bool(config.get_value(SECTION, String(MUTE_PREFERENCE_KEYS[channel]), false))
+
+
 static func apply_saved(path: String = PREFERENCE_PATH) -> Dictionary:
 	ensure_bus_hierarchy()
 	var values: Dictionary = {}
 	for channel: int in CHANNELS:
 		values[channel] = apply_percent(channel, load_percent(channel, path))
+		apply_muted(channel, load_muted(channel, path))
 	return values
 
 
@@ -70,6 +86,20 @@ static func set_and_save(
 	return config.save(path)
 
 
+static func set_muted_and_save(
+	channel: int,
+	muted: bool,
+	path: String = PREFERENCE_PATH
+) -> Error:
+	if not _channel_valid(channel):
+		return ERR_INVALID_PARAMETER
+	apply_muted(channel, muted)
+	var config: ConfigFile = ConfigFile.new()
+	config.load(path)
+	config.set_value(SECTION, String(MUTE_PREFERENCE_KEYS[channel]), muted)
+	return config.save(path)
+
+
 static func apply_percent(channel: int, percent: float) -> float:
 	if not _channel_valid(channel):
 		return 0.0
@@ -78,6 +108,15 @@ static func apply_percent(channel: int, percent: float) -> float:
 	var bus_index: int = AudioServer.get_bus_index(bus_name(channel))
 	AudioServer.set_bus_volume_db(bus_index, percent_to_db(clamped_percent))
 	return clamped_percent
+
+
+static func apply_muted(channel: int, muted: bool) -> bool:
+	if not _channel_valid(channel):
+		return false
+	ensure_bus_hierarchy()
+	var bus_index: int = AudioServer.get_bus_index(bus_name(channel))
+	AudioServer.set_bus_mute(bus_index, muted)
+	return muted
 
 
 static func percent_to_db(percent: float) -> float:

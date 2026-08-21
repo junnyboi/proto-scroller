@@ -42,15 +42,19 @@ var audio_preference_path: String = AudioVolumeSettings.PREFERENCE_PATH
 @onready var master_volume_label: Label = %MasterVolumeLabel
 @onready var master_volume_value: Label = %MasterVolumeValue
 @onready var master_volume_slider: HSlider = %MasterVolumeSlider
+@onready var master_mute_button: Button = %MasterMuteButton
 @onready var music_volume_label: Label = %MusicVolumeLabel
 @onready var music_volume_value: Label = %MusicVolumeValue
 @onready var music_volume_slider: HSlider = %MusicVolumeSlider
+@onready var music_mute_button: Button = %MusicMuteButton
 @onready var sfx_volume_label: Label = %SfxVolumeLabel
 @onready var sfx_volume_value: Label = %SfxVolumeValue
 @onready var sfx_volume_slider: HSlider = %SfxVolumeSlider
+@onready var sfx_mute_button: Button = %SfxMuteButton
 @onready var voice_volume_label: Label = %VoiceVolumeLabel
 @onready var voice_volume_value: Label = %VoiceVolumeValue
 @onready var voice_volume_slider: HSlider = %VoiceVolumeSlider
+@onready var voice_mute_button: Button = %VoiceMuteButton
 @onready var audio_volume_hint: Label = %AudioVolumeHint
 @onready var settings_close_button: Button = %SettingsCloseButton
 @onready var language_selector: HBoxContainer = %LanguageSelector
@@ -74,6 +78,10 @@ func _ready() -> void:
 	music_volume_slider.value_changed.connect(_on_music_volume_changed)
 	sfx_volume_slider.value_changed.connect(_on_sfx_volume_changed)
 	voice_volume_slider.value_changed.connect(_on_voice_volume_changed)
+	master_mute_button.toggled.connect(_on_master_mute_toggled)
+	music_mute_button.toggled.connect(_on_music_mute_toggled)
+	sfx_mute_button.toggled.connect(_on_sfx_mute_toggled)
+	voice_mute_button.toggled.connect(_on_voice_mute_toggled)
 	automatic_button.pressed.connect(_on_automatic_pressed)
 	english_button.pressed.connect(_on_english_pressed)
 	chinese_button.pressed.connect(_on_chinese_pressed)
@@ -82,7 +90,20 @@ func _ready() -> void:
 	music_volume_slider.set_value_no_signal(float(volume_values[AudioVolumeSettings.Channel.MUSIC]))
 	sfx_volume_slider.set_value_no_signal(float(volume_values[AudioVolumeSettings.Channel.SFX]))
 	voice_volume_slider.set_value_no_signal(float(volume_values[AudioVolumeSettings.Channel.VOICE]))
+	master_mute_button.set_pressed_no_signal(
+		AudioVolumeSettings.load_muted(AudioVolumeSettings.Channel.MASTER, audio_preference_path)
+	)
+	music_mute_button.set_pressed_no_signal(
+		AudioVolumeSettings.load_muted(AudioVolumeSettings.Channel.MUSIC, audio_preference_path)
+	)
+	sfx_mute_button.set_pressed_no_signal(
+		AudioVolumeSettings.load_muted(AudioVolumeSettings.Channel.SFX, audio_preference_path)
+	)
+	voice_mute_button.set_pressed_no_signal(
+		AudioVolumeSettings.load_muted(AudioVolumeSettings.Channel.VOICE, audio_preference_path)
+	)
 	_update_audio_volume_values()
+	_update_mute_button_texts()
 	initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_localized_text()
@@ -233,9 +254,30 @@ func _on_voice_volume_changed(value: float) -> void:
 	_save_volume(AudioVolumeSettings.Channel.VOICE, value)
 
 
+func _on_master_mute_toggled(muted: bool) -> void:
+	_save_mute(AudioVolumeSettings.Channel.MASTER, muted)
+
+
+func _on_music_mute_toggled(muted: bool) -> void:
+	_save_mute(AudioVolumeSettings.Channel.MUSIC, muted)
+
+
+func _on_sfx_mute_toggled(muted: bool) -> void:
+	_save_mute(AudioVolumeSettings.Channel.SFX, muted)
+
+
+func _on_voice_mute_toggled(muted: bool) -> void:
+	_save_mute(AudioVolumeSettings.Channel.VOICE, muted)
+
+
 func _save_volume(channel: AudioVolumeSettings.Channel, value: float) -> void:
 	AudioVolumeSettings.set_and_save(channel, value, audio_preference_path)
 	_update_audio_volume_values()
+
+
+func _save_mute(channel: AudioVolumeSettings.Channel, muted: bool) -> void:
+	AudioVolumeSettings.set_muted_and_save(channel, muted, audio_preference_path)
+	_update_mute_button_texts()
 
 
 func _update_audio_volume_values() -> void:
@@ -243,6 +285,22 @@ func _update_audio_volume_values() -> void:
 	music_volume_value.text = "%d%%" % int(round(music_volume_slider.value))
 	sfx_volume_value.text = "%d%%" % int(round(sfx_volume_slider.value))
 	voice_volume_value.text = "%d%%" % int(round(voice_volume_slider.value))
+
+
+func _update_mute_button_texts() -> void:
+	for mute_button: Button in _mute_buttons():
+		mute_button.text = L10n.t(
+			"title.audio_muted" if mute_button.button_pressed else "title.audio_mute"
+		)
+
+
+func _mute_buttons() -> Array[Button]:
+	return [
+		master_mute_button,
+		music_mute_button,
+		sfx_mute_button,
+		voice_mute_button,
+	]
 
 
 func is_portrait_layout() -> bool:
@@ -292,6 +350,7 @@ func _apply_localized_text() -> void:
 	audio_volume_hint.text = L10n.t("title.audio_volume_hint")
 	settings_close_button.text = L10n.t("title.settings_close")
 	_update_audio_volume_values()
+	_update_mute_button_texts()
 	language_label.text = L10n.t("title.language")
 	automatic_button.text = L10n.t(
 		"title.language_auto_resolved",
@@ -378,6 +437,8 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
 	settings_button.add_theme_font_size_override(&"font_size", body_size)
 	settings_close_button.add_theme_font_size_override(&"font_size", body_size)
+	for mute_button: Button in _mute_buttons():
+		mute_button.add_theme_font_size_override(&"font_size", body_size)
 	language_label.add_theme_font_size_override(&"font_size", body_size)
 	automatic_button.add_theme_font_size_override(&"font_size", body_size)
 	english_button.add_theme_font_size_override(&"font_size", body_size)

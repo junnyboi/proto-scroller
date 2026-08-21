@@ -52,6 +52,8 @@
   "title.music_volume": "MUSIC",
   "title.sfx_volume": "SFX",
   "title.voice_volume": "VOICE",
+  "title.audio_mute": "MUTE",
+  "title.audio_muted": "MUTED",
   "title.audio_volume_hint": "AUTO SAVE",
   "title.settings_close": "关闭",
 

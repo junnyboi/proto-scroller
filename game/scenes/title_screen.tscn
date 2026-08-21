@@ -521,6 +521,23 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="MasterMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 44)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_pressed_color = Color(0.945098, 0.701961, 0.435294, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = "MUTE"
+
 [node name="MusicVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12
@@ -553,6 +570,23 @@ theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
 text = "70%"
 horizontal_alignment = 2
 vertical_alignment = 1
+
+[node name="MusicMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 44)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_pressed_color = Color(0.945098, 0.701961, 0.435294, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = "MUTE"
 
 [node name="SfxVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
 layout_mode = 2
@@ -587,6 +621,23 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="SfxMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 44)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_pressed_color = Color(0.945098, 0.701961, 0.435294, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = "MUTE"
+
 [node name="VoiceVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12
@@ -619,6 +670,23 @@ theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
 text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
+
+[node name="VoiceMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 44)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_pressed_color = Color(0.945098, 0.701961, 0.435294, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = "MUTE"
 
 [node name="AudioVolumeHint" type="Label" parent="SettingsLayer/SettingsPanel/Content"]
 unique_name_in_owner = true
