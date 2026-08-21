@@ -6,6 +6,9 @@ const SCORCH_CAPACITY: int = 8
 const LOOP_AUDIO_VOICES: int = 1
 const DAMAGE_PER_TICK: Array[float] = [0.0, 12.0, 14.0, 15.0, 15.0, 18.0]
 const MAXIMUM_TARGETS: Array[int] = [0, 4, 5, 5, 6, 6]
+const MOUNT_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/flamethrower_nozzle.png"
+)
 
 var arsenal: PlayerArsenalRuntime
 var emitter: Node2D
@@ -22,6 +25,7 @@ var tick_remaining: float = 0.0
 var bursts_started: int = 0
 var ticks_delivered: int = 0
 var loop_audio_active: bool = false
+var mount: WeaponMountVisual2D
 var _flame_cursor: int = 0
 var _scorch_cursor: int = 0
 
@@ -44,9 +48,20 @@ func _init() -> void:
 	add_child(loop_audio)
 
 
-func setup_arsenal(p_arsenal: PlayerArsenalRuntime, p_emitter: Node2D) -> void:
+func setup_arsenal(p_arsenal: PlayerArsenalRuntime, _p_emitter: Node2D) -> void:
 	arsenal = p_arsenal
-	emitter = p_emitter
+	mount = WeaponMountVisual2D.new()
+	mount.name = "FlamethrowerMount"
+	arsenal.robot.get_node(^"VisualRoot").add_child(mount)
+	mount.setup(
+		arsenal.robot,
+		MOUNT_TEXTURE,
+		Vector2(70.0, 48.0),
+		Vector2(51.0, -8.0),
+		38.0,
+		5
+	)
+	emitter = mount.muzzle
 
 
 func _process(delta: float) -> void:
@@ -80,6 +95,8 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 	if current_rank == next_rank:
 		return false
 	current_rank = next_rank
+	if mount != null:
+		mount.set_armed(current_rank > 0)
 	return true
 
 
@@ -89,6 +106,8 @@ func set_paused(value: bool) -> void:
 		flame.paused = value
 	for scorch: ScorchVisualSlot2D in scorches:
 		scorch.paused = value
+	if mount != null:
+		mount.paused = value
 	if value:
 		_stop_loop_audio()
 	elif burst_active:
@@ -103,6 +122,8 @@ func stop_and_release() -> void:
 		flame.deactivate()
 	for scorch: ScorchVisualSlot2D in scorches:
 		scorch.deactivate()
+	if mount != null:
+		mount.set_armed(false)
 
 
 func reset_run() -> void:
@@ -118,6 +139,8 @@ func reset_run() -> void:
 	_flame_cursor = 0
 	_scorch_cursor = 0
 	_stop_loop_audio()
+	if mount != null:
+		mount.set_armed(false)
 
 
 func flame_range() -> float:
@@ -175,6 +198,8 @@ func _start_burst(direction: Vector2) -> void:
 	ticks_remaining = tick_count()
 	tick_remaining = 0.0
 	bursts_started += 1
+	if mount != null:
+		mount.aim_at(direction)
 	_start_loop_audio()
 
 

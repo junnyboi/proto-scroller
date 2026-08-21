@@ -157,6 +157,12 @@ func test_settings_menu_applies_and_persists_the_complete_audio_mix() -> void:
 		AudioVolumeSettings.Channel.SFX: screen.get_node("%SfxVolumeValue"),
 		AudioVolumeSettings.Channel.VOICE: screen.get_node("%VoiceVolumeValue"),
 	}
+	var mute_buttons: Dictionary = {
+		AudioVolumeSettings.Channel.MASTER: screen.get_node("%MasterMuteButton"),
+		AudioVolumeSettings.Channel.MUSIC: screen.get_node("%MusicMuteButton"),
+		AudioVolumeSettings.Channel.SFX: screen.get_node("%SfxMuteButton"),
+		AudioVolumeSettings.Channel.VOICE: screen.get_node("%VoiceMuteButton"),
+	}
 	var requested: Dictionary = {
 		AudioVolumeSettings.Channel.MASTER: 82.0,
 		AudioVolumeSettings.Channel.MUSIC: 35.0,
@@ -185,6 +191,11 @@ func test_settings_menu_applies_and_persists_the_complete_audio_mix() -> void:
 			percent,
 			0.01
 		)
+		var mute_button: Button = mute_buttons[channel] as Button
+		mute_button.button_pressed = true
+		assert_eq(mute_button.text, L10n.t("title.audio_muted"))
+		assert_true(AudioServer.is_bus_mute(bus_index))
+		assert_true(AudioVolumeSettings.load_muted(channel, AUDIO_PREFERENCE_PATH))
 	assert_true(screen.close_settings())
 	assert_false(settings_layer.visible)
 	var restored_screen: TitleScreen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
@@ -203,6 +214,17 @@ func test_settings_menu_applies_and_persists_the_complete_audio_mix() -> void:
 			float(requested[channel]),
 			0.01
 		)
+		var mute_button_name: String = {
+			AudioVolumeSettings.Channel.MASTER: "%MasterMuteButton",
+			AudioVolumeSettings.Channel.MUSIC: "%MusicMuteButton",
+			AudioVolumeSettings.Channel.SFX: "%SfxMuteButton",
+			AudioVolumeSettings.Channel.VOICE: "%VoiceMuteButton",
+		}[channel]
+		var restored_mute_button: Button = (
+			restored_screen.get_node(mute_button_name) as Button
+		)
+		assert_true(restored_mute_button.button_pressed)
+		assert_eq(restored_mute_button.text, L10n.t("title.audio_muted"))
 	_record_test_execution()
 
 
@@ -297,6 +319,7 @@ func _reset_audio_settings() -> void:
 			channel,
 			AudioVolumeSettings.default_percent(channel)
 		)
+		AudioVolumeSettings.apply_muted(channel, false)
 
 
 func _record_test_execution() -> void:

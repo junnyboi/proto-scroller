@@ -2,6 +2,16 @@ class_name Projectile2D
 extends CharacterBody2D
 
 signal recycle_requested(projectile: Projectile2D)
+signal impact_requested(
+	projectile: Projectile2D,
+	world_position: Vector2,
+	direction: Vector2,
+	kind: StringName
+)
+
+const MACHINE_GUN_ROUND_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/machine_gun_round.png"
+)
 
 static var _next_attack_id: int = 10000
 
@@ -114,11 +124,21 @@ func _physics_process(delta: float) -> void:
 	var collision: KinematicCollision2D = move_and_collide(velocity * delta)
 	if collision == null:
 		return
-	_deliver_damage(collision.get_collider() as Object, collision.get_position())
+	var hit_position: Vector2 = collision.get_position()
+	_deliver_damage(collision.get_collider() as Object, hit_position)
+	impact_requested.emit(self, hit_position, velocity.normalized(), damage_type)
 	recycle_requested.emit(self)
 
 
 func _draw() -> void:
+	if damage_type == &"machine_gun":
+		draw_set_transform(Vector2.ZERO, velocity.angle(), Vector2.ONE)
+		draw_texture_rect(
+			MACHINE_GUN_ROUND_TEXTURE,
+			Rect2(Vector2(-18.0, -6.0), Vector2(36.0, 12.0)),
+			false
+		)
+		return
 	var trail: float = maxf(14.0, projectile_radius * 3.0)
 	var backward: Vector2 = -velocity.normalized() * trail
 	draw_line(Vector2.ZERO, backward, projectile_color.darkened(0.35), projectile_radius)

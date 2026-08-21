@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://kvx44y5cs7vi"
-path="res://.godot/imported/laser_emitter.png-9cd43fa98abd33653f8baaff21484a9b.ctex"
+uid="uid://e7ynnebg7qj7"
+path="res://.godot/imported/missile_explosion_flash.png-a0e86eeb69ce6d13ded30f5dff035b71.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/robot/weapons/laser_emitter.png"
-dest_files=["res://.godot/imported/laser_emitter.png-9cd43fa98abd33653f8baaff21484a9b.ctex"]
+source_file="res://art/player/weapons/missile_explosion_flash.png"
+dest_files=["res://.godot/imported/missile_explosion_flash.png-a0e86eeb69ce6d13ded30f5dff035b71.ctex"]
 
 [params]
 

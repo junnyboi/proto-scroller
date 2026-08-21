@@ -1,6 +1,10 @@
 class_name LaserBeamVisual2D
 extends Node2D
 
+const BEAM_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/anti_air_beam_core.png"
+)
+
 var active: bool = false
 var paused: bool = false
 var age: float = 0.0
@@ -45,6 +49,10 @@ func _draw() -> void:
 	if not active:
 		return
 	var alpha: float = clampf(1.0 - age / lifetime, 0.0, 1.0)
-	draw_line(Vector2.ZERO, Vector2(beam_length, 0.0), Color(0.18, 0.72, 1.0, alpha * 0.30), 14.0)
-	draw_line(Vector2.ZERO, Vector2(beam_length, 0.0), Color(0.68, 0.96, 1.0, alpha), 5.0)
+	draw_texture_rect(
+		BEAM_TEXTURE,
+		Rect2(Vector2(0.0, -9.0), Vector2(beam_length, 18.0)),
+		false,
+		Color(1.0, 1.0, 1.0, alpha)
+	)
 	draw_circle(Vector2.ZERO, 8.0, Color(0.86, 1.0, 1.0, alpha))

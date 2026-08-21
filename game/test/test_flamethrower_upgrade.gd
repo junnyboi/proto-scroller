@@ -45,6 +45,23 @@ func test_flamethrower_rank_five_tuning_and_visual_caps_are_exact() -> void:
 	var flame: FlamethrowerRuntime = _flame(city)
 	flame.set_process(false)
 	flame.apply_rank(5)
+	assert_true(flame.mount.visible)
+	assert_same(
+		FlameVisualSlot2D.PLUME_TEXTURE,
+		load("res://art/presentation/flame_plume.png")
+	)
+	assert_same(
+		FlameVisualSlot2D.IGNITION_TEXTURE,
+		load("res://art/presentation/flame_ignition.png")
+	)
+	assert_same(
+		ScorchVisualSlot2D.CONTACT_TEXTURE,
+		load("res://art/presentation/flame_contact.png")
+	)
+	assert_same(
+		ScorchVisualSlot2D.SCORCH_TEXTURE,
+		load("res://art/presentation/scorch_decal.png")
+	)
 	assert_eq(flame.flame_range(), 255.0)
 	assert_almost_eq(rad_to_deg(flame.half_angle()), 40.0, 0.001)
 	assert_eq(flame.damage_per_tick(), 18.0)

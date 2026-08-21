@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cib8kqxadynky"
-path="res://.godot/imported/flame_ignition_atlas.png-79ebfec22a95273185e620df36ac16d1.ctex"
+uid="uid://dakw7ryaee7mc"
+path="res://.godot/imported/flame_ignition.png-1fe6c09d3070a4e006aaebe694323192.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/presentation/flame_ignition_atlas.png"
-dest_files=["res://.godot/imported/flame_ignition_atlas.png-79ebfec22a95273185e620df36ac16d1.ctex"]
+source_file="res://art/presentation/flame_ignition.png"
+dest_files=["res://.godot/imported/flame_ignition.png-1fe6c09d3070a4e006aaebe694323192.ctex"]
 
 [params]
 

@@ -91,6 +91,50 @@ func test_airborne_wreck_falls_and_lands_on_the_remains_ground_layer() -> void:
 	assert_false(wreck.is_crashing())
 	assert_eq(wreck.crash_landing_count, 1)
 	assert_true(wreck.can_sleep)
+	assert_eq(
+		wreck.collision_mask & (EnemyWreck2D.ENEMY_LAYER | EnemyWreck2D.PROP_LAYER),
+		0
+	)
+
+
+func test_falling_wreck_damages_an_enemy_body_once() -> void:
+	var enemy: EnemyActor2D = _damageable_enemy(Vector2(680.0, 390.0), 240.0)
+	add_child_autofree(enemy)
+	var wreck: EnemyWreck2D = EnemyWreck2D.new()
+	add_child_autofree(wreck)
+	await get_tree().process_frame
+	_activate_crashing_wreck(wreck, Vector2(640.0, 100.0), 38.0)
+
+	for frame: int in range(90):
+		await get_tree().physics_frame
+		if wreck.crash_impact_count > 0:
+			break
+
+	assert_eq(wreck.crash_impact_count, 1)
+	assert_lt(enemy.current_health, enemy.max_health)
+	var health_after_impact: float = enemy.current_health
+	for frame: int in range(10):
+		await get_tree().physics_frame
+	assert_eq(wreck.crash_impact_count, 1)
+	assert_eq(enemy.current_health, health_after_impact)
+
+
+func test_falling_wreck_damages_a_destructible_prop() -> void:
+	var prop: DestructibleProp2D = _damageable_prop(Vector2(680.0, 390.0), 320.0)
+	add_child_autofree(prop)
+	var wreck: EnemyWreck2D = EnemyWreck2D.new()
+	add_child_autofree(wreck)
+	await get_tree().process_frame
+	_activate_crashing_wreck(wreck, Vector2(640.0, 100.0), 38.0)
+
+	for frame: int in range(90):
+		await get_tree().physics_frame
+		if wreck.crash_impact_count > 0:
+			break
+
+	assert_eq(wreck.crash_impact_count, 1)
+	assert_lt(prop.current_health, prop.max_health)
+	assert_false(prop.is_fully_destroyed)
 
 
 func _airborne_enemy(archetype_id: StringName, profile: Dictionary) -> ProceduralEnemy:
@@ -100,3 +144,62 @@ func _airborne_enemy(archetype_id: StringName, profile: Dictionary) -> Procedura
 	enemy.add_child(visual)
 	enemy.configure_archetype(archetype_id, profile)
 	return enemy
+
+
+func _activate_crashing_wreck(
+	wreck: EnemyWreck2D,
+	spawn_position: Vector2,
+	body_mass: float
+) -> void:
+	wreck.activate(
+		&"helicopter",
+		null,
+		Vector2(100.0, 60.0),
+		Vector2(90.0, 50.0),
+		body_mass,
+		85.0,
+		spawn_position,
+		DamageEvent.new(
+			9300,
+			null,
+			999.0,
+			&"impact",
+			spawn_position,
+			Vector2.RIGHT,
+			240.0
+		),
+		true
+	)
+
+
+func _damageable_enemy(spawn_position: Vector2, health: float) -> EnemyActor2D:
+	var enemy: EnemyActor2D = EnemyActor2D.new()
+	enemy.max_health = health
+	enemy.collision_layer = EnemyWreck2D.ENEMY_LAYER
+	enemy.collision_mask = 0
+	enemy.position = spawn_position
+	var collision: CollisionShape2D = CollisionShape2D.new()
+	var rectangle: RectangleShape2D = RectangleShape2D.new()
+	rectangle.size = Vector2(120.0, 100.0)
+	collision.shape = rectangle
+	enemy.add_child(collision)
+	return enemy
+
+
+func _damageable_prop(spawn_position: Vector2, health: float) -> DestructibleProp2D:
+	var prop: DestructibleProp2D = DestructibleProp2D.new()
+	prop.max_health = health
+	prop.wreck_health = health
+	prop.collision_layer = EnemyWreck2D.PROP_LAYER
+	prop.collision_mask = 0
+	prop.position = spawn_position
+	var visual: Sprite2D = Sprite2D.new()
+	visual.name = "Visual"
+	prop.add_child(visual)
+	var collision: CollisionShape2D = CollisionShape2D.new()
+	collision.name = "CollisionShape2D"
+	var rectangle: RectangleShape2D = RectangleShape2D.new()
+	rectangle.size = Vector2(120.0, 100.0)
+	collision.shape = rectangle
+	prop.add_child(collision)
+	return prop

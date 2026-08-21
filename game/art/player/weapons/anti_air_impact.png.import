@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cw14mmo5gu7ng"
-path="res://.godot/imported/player_missile_explosion_atlas.png-4adb8141bfd6352eacb840daaf7053a7.ctex"
+uid="uid://8r8sawkclh4n"
+path="res://.godot/imported/anti_air_impact.png-f16a4df95e75ef18d7cc95af1a6bb947.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/player/weapons/player_missile_explosion_atlas.png"
-dest_files=["res://.godot/imported/player_missile_explosion_atlas.png-4adb8141bfd6352eacb840daaf7053a7.ctex"]
+source_file="res://art/player/weapons/anti_air_impact.png"
+dest_files=["res://.godot/imported/anti_air_impact.png-f16a4df95e75ef18d7cc95af1a6bb947.ctex"]
 
 [params]
 

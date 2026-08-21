@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "model": "gpt-image-2",
-  "master_directory": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1",
+  "master_directory": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2",
   "carrier": "#FF00FF",
-  "processor": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/process_assets.py",
+  "processor": "/home/ubuntu/proto-scroller-art-masters/weapon-system/process_assets_v2.py",
   "assets": [
     {
       "asset_id": "armor_plating_icon",
@@ -78,24 +78,6 @@
       "reviewer": "pending-human-release-review"
     },
     {
-      "asset_id": "machine_gun_mount",
-      "subject": "Machine Gun mount",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/machine_gun_mount_master.png",
-      "master_sha256": "914be83947ce9230a45a384d97c6208af4b6947e7cb9cd4561fd55fed9aaf6af",
-      "shipping_path": "res://art/player/weapons/machine_gun_mount.png",
-      "dimensions": [
-        512,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 34051,
-      "shipping_sha256": "9925c2c348fab24b5602083da5e389c0844c54dfe31da1f1179c54dd935e2ae1",
-      "reviewer": "pending-human-release-review"
-    },
-    {
       "asset_id": "machine_gun_icon",
       "subject": "Machine Gun icon",
       "model": "gpt-image-2",
@@ -111,78 +93,6 @@
       "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
       "encoded_bytes": 9258,
       "shipping_sha256": "52ca8c8b64f1e11133cdbb705465fe1afeb0c1da887c21dde9c13f47ed314f9f",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "machine_gun_muzzle_flash",
-      "subject": "Muzzle flash",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/machine_gun_muzzle_flash_master.png",
-      "master_sha256": "51326ef6f8e0407239cd7b9061a1aaa8571877ad8b257825dd5cb35f7f921649",
-      "shipping_path": "res://art/player/weapons/machine_gun_muzzle_flash.png",
-      "dimensions": [
-        128,
-        128
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 3739,
-      "shipping_sha256": "f8d697c2a55b6865281c04d9fa388e18ee1451736010c00e6a8359fe4a095f34",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "machine_gun_impact",
-      "subject": "Ricochet impact",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/machine_gun_impact_master.png",
-      "master_sha256": "b63d7d4e8c3d03979604d345be8c454c30cfafa64341cb1991309a7d7005f8d8",
-      "shipping_path": "res://art/player/weapons/machine_gun_impact.png",
-      "dimensions": [
-        128,
-        128
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 1745,
-      "shipping_sha256": "d6bc92deabd0ea98884809c1d5a929c4714c2512452713bb4c182bd80fcda828",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "player_missile_body",
-      "subject": "Missile body",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/player_missile_body_master.png",
-      "master_sha256": "822f6940d8c1e2b6d53c29062321dbfb7bac8e9f06725a7077e9c556fd1c6a39",
-      "shipping_path": "res://art/player/weapons/player_missile_body.png",
-      "dimensions": [
-        512,
-        256
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 10985,
-      "shipping_sha256": "73e46b6ca21def2e30951572467b8ea583d8734532a891d71d56e87b30489077",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "player_missile_explosion_atlas",
-      "subject": "4x2 explosion atlas",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/player_missile_explosion_atlas_master.png",
-      "master_sha256": "cc6f4455e4849df4127e7037bfaef84265c8286b24c3c22288de0a09024039cb",
-      "shipping_path": "res://art/player/weapons/player_missile_explosion_atlas.png",
-      "dimensions": [
-        1024,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 57388,
-      "shipping_sha256": "77ba87ff8a21c161123df842f0785603e8fbddcabfa26f3727d77465c912a1b4",
       "reviewer": "pending-human-release-review"
     },
     {
@@ -204,24 +114,6 @@
       "reviewer": "pending-human-release-review"
     },
     {
-      "asset_id": "laser_emitter",
-      "subject": "Laser emitter",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/laser_emitter_master.png",
-      "master_sha256": "3a1b6567cdedaef07e01eb8efe379416f6785bb8a7850d0e7467b00111c720a1",
-      "shipping_path": "res://art/robot/weapons/laser_emitter.png",
-      "dimensions": [
-        512,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 43683,
-      "shipping_sha256": "7cebce9ed5240d5408233a76073c55fc6df1013a6c973814245a5326f6bc2db9",
-      "reviewer": "pending-human-release-review"
-    },
-    {
       "asset_id": "laser_icon",
       "subject": "Laser icon",
       "model": "gpt-image-2",
@@ -237,96 +129,6 @@
       "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
       "encoded_bytes": 33351,
       "shipping_sha256": "517889042ccd1b162cf822c550623c57a037f9fb06285951e92688ac4f2e2274",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "flamethrower_nozzle",
-      "subject": "Flamethrower nozzle",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flamethrower_nozzle_master.png",
-      "master_sha256": "3a901653ea3016d7e867a21293d022bca837173109997dad8123d6590ca366d3",
-      "shipping_path": "res://art/player/weapons/flamethrower_nozzle.png",
-      "dimensions": [
-        512,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 33778,
-      "shipping_sha256": "55af339fb355a30c7bb4e46be6383552f6e67739bd8ed5226aece258912ea031",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "flame_plume_atlas",
-      "subject": "4x2 flame plume atlas",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flame_plume_atlas_master.png",
-      "master_sha256": "05803713b9be06caf1af31d7a69df4e050d672996551c1e3fd91850826b50891",
-      "shipping_path": "res://art/presentation/flame_plume_atlas.png",
-      "dimensions": [
-        1024,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 41843,
-      "shipping_sha256": "8a74fe149bb4bdfd78581ba065403aac518d2769f55cf8d8f678337a6de5a83f",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "flame_ignition_atlas",
-      "subject": "3x2 ignition atlas",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flame_ignition_atlas_master.png",
-      "master_sha256": "b7f50ccb535c09ace8a7d8e63cd5f87b8af11f37a2f50e85f53aaf33a665f34d",
-      "shipping_path": "res://art/presentation/flame_ignition_atlas.png",
-      "dimensions": [
-        768,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 25770,
-      "shipping_sha256": "54092e23f6d7582f7429d772896f72b6b9db2495be80dc9001a5a5d69587cb91",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "flame_contact_atlas",
-      "subject": "4x1 contact atlas",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/flame_contact_atlas_master.png",
-      "master_sha256": "5c8a9cb64d24a84abef660175ef76d7d6ce319832ce9cb30cae3597b50ca914e",
-      "shipping_path": "res://art/presentation/flame_contact_atlas.png",
-      "dimensions": [
-        1024,
-        256
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 9087,
-      "shipping_sha256": "a22f23299fae58833d33e4790d0d3a5a8fcad86e52a45675e30817b55b935fc2",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "scorch_decals",
-      "subject": "2x2 scorch atlas",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/scorch_decals_master.png",
-      "master_sha256": "3a7259c848568c0163459ad275d6ce0f1ab8897e0a42a334c9460a42a674f353",
-      "shipping_path": "res://art/presentation/scorch_decals.png",
-      "dimensions": [
-        512,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 37500,
-      "shipping_sha256": "683d72e2f7be1962b6ff15716d123124a7cac2192eb658ad6ac478c300fca7ea",
       "reviewer": "pending-human-release-review"
     },
     {
@@ -454,11 +256,334 @@
       "encoded_bytes": 34898,
       "shipping_sha256": "1b7cdf0bf6783b07d11c32aec6978413f2a9a022a1d882e2cb81b73de0f8cef2",
       "reviewer": "agent-visual-review-pass"
+    },
+    {
+      "asset_id": "machine_gun_mount",
+      "subject": "Machine Gun robot mount",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/machine_gun_mount.png",
+      "master_sha256": "22b77f2a1baebb6f5e97ab950ec59a8b79be0f73b7148d53cbbc2be5a40e9783",
+      "shipping_path": "res://art/player/weapons/machine_gun_mount.png",
+      "dimensions": [
+        128,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 2962,
+      "shipping_sha256": "e4313704ca1164efe12a517dd349dfb402016f510693b6661e71acb4721448a2",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "machine_gun_round",
+      "subject": "Machine Gun tracer projectile",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/machine_gun_round.png",
+      "master_sha256": "b017ff9ca9560d227afaf2b416a702f988d0570f699512cd9adfc769b60db0c2",
+      "shipping_path": "res://art/player/weapons/machine_gun_round.png",
+      "dimensions": [
+        96,
+        32
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 1090,
+      "shipping_sha256": "2949d4f22e9574cd4ff1218f30447ad1ad8f7180adb97cd25a24ed4945a60a64",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "machine_gun_muzzle_flash",
+      "subject": "Machine Gun muzzle flash",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/machine_gun_muzzle_flash.png",
+      "master_sha256": "843b91c4f2ae293ec557ae6d2d519b08c2dd7e714ed4d57b9cdbc31f6fbee332",
+      "shipping_path": "res://art/player/weapons/machine_gun_muzzle_flash.png",
+      "dimensions": [
+        96,
+        64
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 2359,
+      "shipping_sha256": "d55466012d260de1fb88a6f8b8e18a2bfc03217fe96bc017621a654eb7a06a58",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "machine_gun_impact",
+      "subject": "Machine Gun impact spark",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/machine_gun_impact.png",
+      "master_sha256": "4f9f5159371b2bffadd2d8e728929ca5829177ba777c74cf4d7c8ff83a83d200",
+      "shipping_path": "res://art/player/weapons/machine_gun_impact.png",
+      "dimensions": [
+        96,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 3969,
+      "shipping_sha256": "28aaa3c42b333822a4993aee6273a2b3a94c7c2c9f07e8e00d080eda1db750ae",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "missile_pod_mount",
+      "subject": "Missile pod robot mount",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/missile_pod_mount.png",
+      "master_sha256": "97c3b9c043bfd855043e07b411947c28c094b81c56ad9e311c0f0c2e74eb2a3e",
+      "shipping_path": "res://art/player/weapons/missile_pod_mount.png",
+      "dimensions": [
+        128,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 4796,
+      "shipping_sha256": "1f7fcb407118e8a161a68e15c6e14a14f1bca3e248fbeed72b9a2b922139a7e8",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "player_missile_body",
+      "subject": "Guided missile projectile",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/player_missile_body.png",
+      "master_sha256": "981c2793fd93a439f504eb7006a5c1acb834bb05edc0c26063850791a0f3ad5b",
+      "shipping_path": "res://art/player/weapons/player_missile_body.png",
+      "dimensions": [
+        160,
+        64
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 3283,
+      "shipping_sha256": "7b3aa8f79eb528cef76e0cfcf6e8317364963e22c41dc449fec7c01fef07975e",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "missile_exhaust",
+      "subject": "Guided missile exhaust",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/missile_exhaust.png",
+      "master_sha256": "77b3905d5527744fc2601fa14abc074e9d2826b07b2562820da2b4fb1c2ebab2",
+      "shipping_path": "res://art/player/weapons/missile_exhaust.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 1086,
+      "shipping_sha256": "a8486832c272fbbc13a577eebc1567be07be73e9a23c067c3dcecf6064bab294",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "missile_explosion_flash",
+      "subject": "Missile explosion flash",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/missile_explosion_flash.png",
+      "master_sha256": "00ad8b6ecbe8520068b02a07e639223a56e5d7060704dfd80dcb185fc376e08f",
+      "shipping_path": "res://art/player/weapons/missile_explosion_flash.png",
+      "dimensions": [
+        96,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 3497,
+      "shipping_sha256": "0ecc9e600226c97ce5ed22ca287c27cc04383e10a4a9843e7b790b99aeadc87e",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "missile_explosion_fire",
+      "subject": "Missile explosion fireball",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/missile_explosion_fire.png",
+      "master_sha256": "15a70da79af347dede5b543e240de4fe124414fd106902ca344982368a72b5e2",
+      "shipping_path": "res://art/player/weapons/missile_explosion_fire.png",
+      "dimensions": [
+        160,
+        160
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 10477,
+      "shipping_sha256": "fd9c1366cda59533f657184253d4a0062c911859b9f1f260056b83c306e51442",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "missile_explosion_smoke",
+      "subject": "Missile explosion smoke",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/missile_explosion_smoke.png",
+      "master_sha256": "62faf836d7abb0471225df12ec5aa43c8143db2d65f960a53769ee178f9409ad",
+      "shipping_path": "res://art/player/weapons/missile_explosion_smoke.png",
+      "dimensions": [
+        160,
+        160
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 7659,
+      "shipping_sha256": "1826ac0646281b7131b2963d9b9edd3c6d4d32d2ded60492660e022d8a71aa1d",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "anti_air_emitter",
+      "subject": "Anti-Air robot emitter",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/anti_air_emitter.png",
+      "master_sha256": "2a970fbb53d46c8289261b240be86adf24c2304a3f86fa911c80c6cf3073f143",
+      "shipping_path": "res://art/player/weapons/anti_air_emitter.png",
+      "dimensions": [
+        128,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 4203,
+      "shipping_sha256": "93b825e6a91ba5e72bbaa193132c3a6f80e899e91d20d1026cf4ec6946d5102d",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "anti_air_beam_core",
+      "subject": "Anti-Air beam core",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/anti_air_beam_core.png",
+      "master_sha256": "72f701c0c4da203e02434f4148013cf2cf8e0e52689ca40e7f5d0b39ced13c20",
+      "shipping_path": "res://art/player/weapons/anti_air_beam_core.png",
+      "dimensions": [
+        128,
+        32
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 712,
+      "shipping_sha256": "07cf4ae96d138daf0bd33c002035f23ec691eb3ab69dfe1674d95f997f6fd712",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "anti_air_impact",
+      "subject": "Anti-Air ion impact",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/anti_air_impact.png",
+      "master_sha256": "a8e8eda5f5ca4e292748911fc2ebf6a3a5679942f686f88ab7e18ced22038e28",
+      "shipping_path": "res://art/player/weapons/anti_air_impact.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 6795,
+      "shipping_sha256": "6458fb0317f27aef6bea1e79620b283c6fd94b40fbbfb7ba2557d87715f9434e",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flamethrower_nozzle",
+      "subject": "Flamethrower robot nozzle",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/flamethrower_nozzle.png",
+      "master_sha256": "96ca7a369bec40a17dbe28420726f5f86878f3113908e029d9ec9c79ef113efe",
+      "shipping_path": "res://art/player/weapons/flamethrower_nozzle.png",
+      "dimensions": [
+        128,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 3448,
+      "shipping_sha256": "0a397f40037543dc947203eca8e025b99c6795b49da05865665bf33b13c53c74",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flame_plume",
+      "subject": "Flamethrower plume",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/flame_plume.png",
+      "master_sha256": "55a2fa99b421a0cca2a15758165d3bd90ac0057439f7883d2c30ff1f8cc315bb",
+      "shipping_path": "res://art/presentation/flame_plume.png",
+      "dimensions": [
+        256,
+        128
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 9838,
+      "shipping_sha256": "de2658db82fe180bd35ef27038adc68c9d7005c46aee185c2a00277c56f2769c",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flame_ignition",
+      "subject": "Flamethrower ignition",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/flame_ignition.png",
+      "master_sha256": "720fb48fe8e8b7f19ef292f7010a0b9147a9f8cdd1c678ad7a813678628f2fc6",
+      "shipping_path": "res://art/presentation/flame_ignition.png",
+      "dimensions": [
+        96,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 2985,
+      "shipping_sha256": "63f52cd08c43942bbb99e315ef7b4468cf4dd7e704b9f30f1a7b425bf9e18734",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "flame_contact",
+      "subject": "Flamethrower contact flame",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/flame_contact.png",
+      "master_sha256": "fa51a2e90b8abd3db7a6c916b7ce4876f8ae5b8294e86dd59bb6575e2feb2902",
+      "shipping_path": "res://art/presentation/flame_contact.png",
+      "dimensions": [
+        96,
+        96
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 3144,
+      "shipping_sha256": "23489fc4c56e357dba7616270eaf14e053f6c56570babb381a15901a2b863934",
+      "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "scorch_decal",
+      "subject": "Organic flamethrower scorch decal",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Phase B weapon visual integration task prompt, 2026-08-21",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/weapon-system/v2/scorch_decal.png",
+      "master_sha256": "7a998f074f960ee5c8f563de193978930e640c2a99ec39003aa13a3a16bb24c0",
+      "shipping_path": "res://art/presentation/scorch_decal.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "derivative": "magenta carrier cleanup; alpha trim; LANCZOS contain; 4px padding; 96-color RGBA palette; PNG level 9",
+      "encoded_bytes": 5649,
+      "shipping_sha256": "a50563619aca4ac509695ec5ec7ed4f87e270ad374c0fe864d711e53e5e014c7",
+      "reviewer": "pending-human-release-review"
     }
   ],
   "optional_assets_omitted": [
     "urban_prop_fragments",
-    "laser_impact_atlas",
     "engine_rank_pips",
     "kinetic_field_rank_pip"
   ]

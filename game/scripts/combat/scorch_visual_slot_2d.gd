@@ -1,6 +1,13 @@
 class_name ScorchVisualSlot2D
 extends Node2D
 
+const CONTACT_TEXTURE: Texture2D = preload(
+	"res://art/presentation/flame_contact.png"
+)
+const SCORCH_TEXTURE: Texture2D = preload(
+	"res://art/presentation/scorch_decal.png"
+)
+
 var active: bool = false
 var paused: bool = false
 var age: float = 0.0
@@ -10,7 +17,6 @@ var lifetime: float = 0.8
 func _ready() -> void:
 	z_index = 29
 	visible = false
-	scale = Vector2(1.8, 0.55)
 	set_process(false)
 
 
@@ -43,5 +49,16 @@ func _draw() -> void:
 	if not active:
 		return
 	var alpha: float = clampf(1.0 - age / lifetime, 0.0, 1.0)
-	draw_circle(Vector2.ZERO, 14.0, Color(0.08, 0.055, 0.04, alpha * 0.62))
-	draw_arc(Vector2.ZERO, 11.0, 0.0, TAU, 16, Color(1.0, 0.24, 0.04, alpha * 0.24), 2.0)
+	draw_texture_rect(
+		SCORCH_TEXTURE,
+		Rect2(Vector2(-34.0, -13.0), Vector2(68.0, 26.0)),
+		false,
+		Color(1.0, 1.0, 1.0, alpha * 0.68)
+	)
+	var contact_alpha: float = clampf(1.0 - age / 0.36, 0.0, 1.0)
+	draw_texture_rect(
+		CONTACT_TEXTURE,
+		Rect2(Vector2(-22.0, -48.0), Vector2(44.0, 48.0)),
+		false,
+		Color(1.0, 1.0, 1.0, contact_alpha)
+	)

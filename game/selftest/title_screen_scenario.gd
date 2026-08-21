@@ -113,6 +113,8 @@ func _run() -> void:
 		(screen.get_node("%MusicVolumeSlider") as HSlider).value = 35.0
 		(screen.get_node("%SfxVolumeSlider") as HSlider).value = 64.0
 		(screen.get_node("%VoiceVolumeSlider") as HSlider).value = 46.0
+		(screen.get_node("%MusicMuteButton") as Button).button_pressed = true
+		(screen.get_node("%VoiceMuteButton") as Button).button_pressed = true
 		await RenderingServer.frame_post_draw
 		var settings_image: Image = root.get_texture().get_image()
 		var settings_save_error: Error = settings_image.save_png(
@@ -134,6 +136,19 @@ func _run() -> void:
 				(screen.get_node("%MusicVolumeValue") as Label).text,
 				(screen.get_node("%SfxVolumeValue") as Label).text,
 				(screen.get_node("%VoiceVolumeValue") as Label).text,
+			]
+		)
+		_check(
+			"settings_mute_states_applied",
+			(screen.get_node("%MasterMuteButton") as Button).text == L10n.t("title.audio_mute")
+			and (screen.get_node("%MusicMuteButton") as Button).text == L10n.t("title.audio_muted")
+			and (screen.get_node("%SfxMuteButton") as Button).text == L10n.t("title.audio_mute")
+			and (screen.get_node("%VoiceMuteButton") as Button).text == L10n.t("title.audio_muted"),
+			"master=%s music=%s sfx=%s voice=%s" % [
+				(screen.get_node("%MasterMuteButton") as Button).text,
+				(screen.get_node("%MusicMuteButton") as Button).text,
+				(screen.get_node("%SfxMuteButton") as Button).text,
+				(screen.get_node("%VoiceMuteButton") as Button).text,
 			]
 		)
 		screen.close_settings(false)
