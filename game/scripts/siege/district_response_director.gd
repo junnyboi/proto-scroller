@@ -346,22 +346,16 @@ func _resolve_position(
 	extra_offset: Vector2 = Vector2.ZERO
 ) -> Vector2:
 	var resolved_anchor: String = entry.spawn_anchor if spawn_anchor.is_empty() else spawn_anchor
-	if resolved_anchor == "WORLD":
-		return entry.position + entry.offset + extra_offset
-	var robot_x: float = runtime.robot.global_position.x if runtime.robot != null else 760.0
-	var position_value: Vector2 = entry.position
-	match resolved_anchor:
-		"AHEAD":
-			position_value.x = robot_x + 620.0
-		"BEHIND":
-			position_value.x = robot_x - 620.0
-		"CAMERA_LEFT":
-			position_value.x = robot_x - 720.0
-		"CAMERA_RIGHT":
-			position_value.x = robot_x + 720.0
-	position_value += entry.offset + extra_offset
-	position_value.x = clampf(position_value.x, 80.0, 2480.0)
-	return position_value
+	return runtime.resolve_spawn_position(
+		entry.position,
+		StringName(resolved_anchor),
+		entry.offset + extra_offset
+	)
+
+
+func rebase_cached_world_state(offset: Vector2) -> void:
+	for record: Dictionary in _hazard_pending:
+		record.position = (record.position as Vector2) + offset
 
 
 func _roll_elite_plan(act: DistrictAct, beat: DistrictBeat) -> Dictionary[int, StringName]:

@@ -88,6 +88,11 @@ func request_explosion() -> bool:
 	return true
 
 
+func rebase_cached_world_state(offset: Vector2) -> void:
+	if active:
+		last_known_point += offset
+
+
 func _physics_process(delta: float) -> void:
 	if not active or paused:
 		return

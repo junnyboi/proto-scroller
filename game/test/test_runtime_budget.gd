@@ -36,6 +36,9 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.hazard_audio_voices, RuntimeBudget.HAZARD_AUDIO_VOICES)
 	assert_eq(snapshot.hazard_active, 0)
 	assert_eq(snapshot.hazard_post_warm_creations, 0)
+	assert_eq(snapshot.street_chunks, RuntimeBudget.STREET_CHUNKS)
+	assert_eq(snapshot.street_post_warm_creations, 0)
+	assert_eq(snapshot.floating_origin_runtimes, 1)
 	assert_eq(snapshot.rare_rows, 3)
 	assert_eq(snapshot.upgrade_sessions, 1)
 	assert_eq(snapshot.upgrade_overlays, 1)
@@ -119,6 +122,8 @@ func test_three_retry_generations_have_identical_clean_runtime_shape() -> void:
 		assert_eq(snapshot.enemy_post_warm_creations, 0)
 		assert_eq(snapshot.hazard_active, 0)
 		assert_eq(snapshot.hazard_post_warm_creations, 0)
+		assert_eq(snapshot.street_chunks, RuntimeBudget.STREET_CHUNKS)
+		assert_eq(snapshot.street_post_warm_creations, 0)
 		assert_eq(snapshot.player_bullet_active, 0)
 		for runtime: UpgradeRuntime in main.city_slice.upgrade_assembler.runtimes.values():
 			assert_eq(runtime.current_rank, 0)

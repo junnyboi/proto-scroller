@@ -48,6 +48,11 @@ func receive_damage(event: DamageEvent) -> bool:
 	return cell.receive_damage(event)
 
 
+func rebase_cached_world_state(offset: Vector2) -> void:
+	if _last_destruction_event != null:
+		_last_destruction_event.hit_position += offset
+
+
 func cell_at_world_point(world_point: Vector2) -> Destructible2D:
 	var local_point: Vector2 = to_local(world_point)
 	var cell_size: Vector2 = _cell_size()

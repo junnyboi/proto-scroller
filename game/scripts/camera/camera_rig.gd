@@ -6,6 +6,7 @@ extends Node2D
 @export var follow_speed: float = 850.0
 @export var fixed_y: float = 360.0
 @export var portrait_fixed_y: float = 427.0
+@export var horizontal_limits_enabled: bool = false
 @export var minimum_x: float = 640.0
 @export var maximum_x: float = 2560.0
 @export var impact_spring_strength: float = 145.0
@@ -38,11 +39,9 @@ func _physics_process(delta: float) -> void:
 		desired_look_ahead,
 		look_ahead_speed * delta
 	)
-	var desired_x: float = clampf(
-		target.global_position.x + _current_look_ahead,
-		minimum_x,
-		maximum_x
-	)
+	var desired_x: float = target.global_position.x + _current_look_ahead
+	if horizontal_limits_enabled:
+		desired_x = clampf(desired_x, minimum_x, maximum_x)
 	global_position.x = move_toward(global_position.x, desired_x, follow_speed * delta)
 	global_position.y = portrait_fixed_y if is_portrait_framing() else fixed_y
 
@@ -57,6 +56,11 @@ func reset_presentation() -> void:
 	impact_velocity = Vector2.ZERO
 	if _camera != null:
 		_camera.offset = Vector2.ZERO
+
+
+func reset_after_origin_shift() -> void:
+	if _camera != null:
+		_camera.reset_smoothing()
 
 
 func is_portrait_framing() -> bool:

@@ -37,7 +37,10 @@ func start() -> bool:
 	dependencies.encounter_runtime.release_all()
 	boss = dependencies.encounter_runtime.acquire(
 		&"tank",
-		Vector2(clampf(dependencies.robot.global_position.x + 610.0, 250.0, 2350.0), 551.0),
+		dependencies.encounter_runtime.resolve_spawn_position(
+			Vector2(0.0, 551.0),
+			&"AHEAD"
+		),
 		&"ANCHOR_TANK",
 		&"COMMAND"
 	) as TankEnemy

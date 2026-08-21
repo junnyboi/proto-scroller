@@ -53,6 +53,11 @@ func cancel_effect_flags(effect_flags: int) -> void:
 			_queue.remove_at(index)
 
 
+func rebase_cached_world_state(offset: Vector2) -> void:
+	for record: Dictionary in _queue:
+		record.origin = (record.origin as Vector2) + offset
+
+
 func _physics_process(_delta: float) -> void:
 	var count: int = mini(max_explosions_per_tick, _queue.size())
 	for explosion_index: int in range(count):

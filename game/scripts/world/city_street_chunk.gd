@@ -1,0 +1,121 @@
+class_name CityStreetChunk
+extends Node2D
+
+const CHUNK_WIDTH: float = 1344.0
+const WORLD_LAYER: int = 1 << 0
+const ROBOT_LAYER: int = 1 << 1
+const ENEMY_LAYER: int = 1 << 2
+const PROP_LAYER: int = 1 << 7
+const DEBRIS_LAYER: int = 1 << 8
+const REMAINS_LAYER: int = 1 << 9
+const REMAINS_GROUND_LAYER: int = 1 << 10
+const LAND_VISUAL_BASELINE_Y: float = 655.0
+const UNUSED_INDEX: int = -2_147_483_648
+
+var logical_index: int = UNUSED_INDEX
+var generation_seed: int = 0
+var road_surface: Polygon2D
+var lower_asphalt: Polygon2D
+var lane_marks: Array[Line2D] = []
+var ground: StaticBody2D
+var remains_ground: StaticBody2D
+
+
+func _ready() -> void:
+	_build_visuals()
+	_build_collision()
+
+
+func configure(blueprint: CityChunkBlueprint, runtime_x: float) -> void:
+	logical_index = blueprint.logical_index
+	generation_seed = blueprint.generation_seed
+	position = Vector2(runtime_x, 0.0)
+	road_surface.color = blueprint.asphalt_color
+	lower_asphalt.color = blueprint.asphalt_color
+	for mark_index: int in range(lane_marks.size()):
+		var segment_x: float = blueprint.lane_phase + float(mark_index) * 336.0
+		lane_marks[mark_index].points = PackedVector2Array([
+			Vector2(segment_x, 694.0),
+			Vector2(segment_x + 170.0, 694.0),
+		])
+	visible = true
+
+
+func contains_runtime_x(runtime_x: float) -> bool:
+	return runtime_x >= global_position.x and runtime_x < global_position.x + CHUNK_WIDTH
+
+
+func _build_visuals() -> void:
+	road_surface = Polygon2D.new()
+	road_surface.name = "RoadSurface"
+	road_surface.z_index = -10
+	road_surface.polygon = PackedVector2Array([
+		Vector2(0.0, 590.0),
+		Vector2(CHUNK_WIDTH + 1.0, 590.0),
+		Vector2(CHUNK_WIDTH + 1.0, 760.0),
+		Vector2(0.0, 760.0),
+	])
+	add_child(road_surface)
+	lower_asphalt = Polygon2D.new()
+	lower_asphalt.name = "LowerAsphalt"
+	lower_asphalt.z_index = -9
+	lower_asphalt.polygon = PackedVector2Array([
+		Vector2(0.0, 670.0),
+		Vector2(CHUNK_WIDTH + 1.0, 670.0),
+		Vector2(CHUNK_WIDTH + 1.0, 760.0),
+		Vector2(0.0, 760.0),
+	])
+	add_child(lower_asphalt)
+	for mark_index: int in range(4):
+		var lane_mark: Line2D = Line2D.new()
+		lane_mark.name = "LaneMark%02d" % mark_index
+		lane_mark.width = 5.0
+		lane_mark.default_color = Color(0.72, 0.67, 0.54, 0.32)
+		lane_mark.z_index = -8
+		lane_marks.append(lane_mark)
+		add_child(lane_mark)
+	var curb: Line2D = Line2D.new()
+	curb.name = "Curb"
+	curb.width = 8.0
+	curb.default_color = Color("8f8175")
+	curb.points = PackedVector2Array([
+		Vector2(0.0, 590.0),
+		Vector2(CHUNK_WIDTH + 1.0, 590.0),
+	])
+	curb.z_index = -9
+	add_child(curb)
+
+
+func _build_collision() -> void:
+	ground = _make_ground(
+		"Ground",
+		WORLD_LAYER,
+		ROBOT_LAYER | ENEMY_LAYER | PROP_LAYER | DEBRIS_LAYER,
+		625.0
+	)
+	remains_ground = _make_ground(
+		"RemainsGround",
+		REMAINS_GROUND_LAYER,
+		REMAINS_LAYER,
+		LAND_VISUAL_BASELINE_Y + 35.0
+	)
+
+
+func _make_ground(
+	body_name: String,
+	layer: int,
+	mask: int,
+	y_position: float
+) -> StaticBody2D:
+	var body: StaticBody2D = StaticBody2D.new()
+	body.name = body_name
+	body.collision_layer = layer
+	body.collision_mask = mask
+	body.position = Vector2(CHUNK_WIDTH * 0.5, y_position)
+	var collision: CollisionShape2D = CollisionShape2D.new()
+	var rectangle: RectangleShape2D = RectangleShape2D.new()
+	rectangle.size = Vector2(CHUNK_WIDTH + 4.0, 70.0)
+	collision.shape = rectangle
+	body.add_child(collision)
+	add_child(body)
+	return body

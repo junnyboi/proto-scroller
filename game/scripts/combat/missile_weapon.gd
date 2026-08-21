@@ -133,6 +133,13 @@ func pending_explosion_count() -> int:
 	return _explosion_queue.size()
 
 
+func rebase_cached_world_state(offset: Vector2) -> void:
+	for index: int in range(salvo_points.size()):
+		salvo_points[index] += offset
+	for record: Dictionary in _explosion_queue:
+		record.position = (record.position as Vector2) + offset
+
+
 func flush_explosions() -> void:
 	_flush_explosions()
 

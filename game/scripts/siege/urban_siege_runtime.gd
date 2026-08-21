@@ -120,6 +120,8 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 func start_run(p_seed: int = 0) -> void:
 	run_seed = p_seed
 	cycle_count = 1
+	if dependencies.city.world_stream != null:
+		dependencies.city.world_stream.configure_run(run_seed)
 	_prepare_cycle()
 
 
@@ -214,7 +216,10 @@ func _on_milestone_reached(milestone: StringName) -> void:
 		var gas_main: Catalyst2D = catalysts.activate(
 			1,
 			GAS_MAIN_PROFILE,
-			selected_recipe.gas_main_position
+			dependencies.encounter_runtime.resolve_spawn_position(
+				selected_recipe.gas_main_position,
+				&"WORLD"
+			)
 		)
 		dependencies.encounter_runtime.set_catalyst_target(gas_main)
 
@@ -247,7 +252,10 @@ func _prepare_cycle() -> void:
 	var transformer: Catalyst2D = catalysts.activate(
 		0,
 		preload("res://resources/catalysts/transformer.tres"),
-		selected_recipe.transformer_position
+		dependencies.encounter_runtime.resolve_spawn_position(
+			selected_recipe.transformer_position,
+			&"WORLD"
+		)
 	)
 	dependencies.encounter_runtime.set_catalyst_target(transformer)
 	director.start()

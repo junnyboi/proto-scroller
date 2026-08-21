@@ -91,8 +91,13 @@ func _process_pending(delta: float) -> void:
 		if not is_zero_approx(float(record.remaining)):
 			continue
 		var entry: EnemySpawnEntry = record.entry
+		var spawn_position: Vector2 = runtime.resolve_spawn_position(
+			entry.position,
+			StringName(entry.spawn_anchor),
+			record.offset as Vector2
+		)
 		if runtime.acquire(
 			StringName(entry.kind),
-			entry.position + (record.offset as Vector2)
+			spawn_position
 		) != null:
 			_pending.remove_at(index)

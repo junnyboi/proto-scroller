@@ -45,6 +45,7 @@ var procedural_pools: Dictionary[StringName, Array] = {}
 var post_warm_creation_count: int = 0
 var attack_gate_enabled: bool = true
 var structural_target: StructuralBuilding2D
+var world_stream: CityWorldStream
 var role_profiles: Dictionary[StringName, EnemyRoleProfile] = {}
 var trait_profiles: Dictionary[StringName, EnemyTraitProfile] = {}
 var target_mark_remaining: float = 0.0
@@ -55,12 +56,14 @@ func setup(
 	p_robot: GiantRobotController,
 	p_telegraphs: TelegraphPresenter2D,
 	p_projectile_pool: ProjectilePool,
-	p_structural_target: StructuralBuilding2D = null
+	p_structural_target: StructuralBuilding2D = null,
+	p_world_stream: CityWorldStream = null
 ) -> void:
 	robot = p_robot
 	telegraphs = p_telegraphs
 	projectile_pool = p_projectile_pool
 	structural_target = p_structural_target
+	world_stream = p_world_stream
 
 
 func configure_profiles(
@@ -216,6 +219,31 @@ func available_reservation_capacity(key: StringName) -> int:
 	if key_string.begins_with(prefix):
 		return available_family_count(StringName(key_string.trim_prefix(prefix)))
 	return 0
+
+
+func resolve_spawn_position(
+	authored_position: Vector2,
+	spawn_anchor: StringName,
+	extra_offset: Vector2 = Vector2.ZERO
+) -> Vector2:
+	if world_stream == null or robot == null:
+		return authored_position + extra_offset
+	var position_value: Vector2 = authored_position
+	match spawn_anchor:
+		&"AHEAD":
+			position_value.x = robot.global_position.x + 620.0
+		&"BEHIND":
+			position_value.x = robot.global_position.x - 620.0
+		&"CAMERA_RIGHT":
+			position_value.x = robot.global_position.x + 720.0
+		&"CAMERA_LEFT":
+			position_value.x = robot.global_position.x - 720.0
+		_:
+			position_value.x = robot.global_position.x + authored_position.x - 760.0
+	position_value += extra_offset
+	var bounds: Vector2 = world_stream.resident_bounds()
+	position_value.x = clampf(position_value.x, bounds.x + 100.0, bounds.y - 100.0)
+	return position_value
 
 
 func total_count(kind: StringName = &"") -> int:

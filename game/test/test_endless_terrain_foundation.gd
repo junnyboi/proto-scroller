@@ -1,0 +1,191 @@
+extends GutTest
+
+const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+const EPSILON: float = 0.5
+
+
+func test_six_chunk_window_reuses_fixed_nodes_across_long_bidirectional_travel() -> void:
+	var city: CitySlice = await _spawn_city()
+	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
+	assert_eq(city.world_stream.active_chunk_count(), CityWorldStream.CHUNK_CAPACITY)
+	for logical_index: int in range(-48, 49):
+		_move_to_logical_chunk(city, logical_index)
+		_assert_contiguous_window(city.world_stream)
+	for logical_index: int in range(48, -49, -1):
+		_move_to_logical_chunk(city, logical_index)
+		_assert_contiguous_window(city.world_stream)
+	assert_eq(RuntimeBudget.snapshot(city).node_count, baseline_nodes)
+	assert_eq(city.world_stream.post_warm_creation_count, 0)
+	assert_gte(city.world_stream.floating_origin.shift_count, 2)
+	assert_eq(city.world_stream.minimum_visited_chunk, -48)
+	assert_eq(city.world_stream.maximum_visited_chunk, 48)
+	_record_test_execution()
+
+
+func test_blueprints_are_seeded_by_run_and_logical_chunk_not_pool_slot() -> void:
+	var first: CityChunkBlueprint = CityChunkBlueprint.generate(7331, 19)
+	var repeated: CityChunkBlueprint = CityChunkBlueprint.generate(7331, 19)
+	var neighbor: CityChunkBlueprint = CityChunkBlueprint.generate(7331, 20)
+	assert_eq(first.generation_seed, repeated.generation_seed)
+	assert_eq(first.lane_phase, repeated.lane_phase)
+	assert_eq(first.asphalt_color, repeated.asphalt_color)
+	assert_ne(first.generation_seed, neighbor.generation_seed)
+	_record_test_execution()
+
+
+func test_robot_crosses_a_streamed_ground_seam_without_falling() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.robot.set_physics_process(false)
+	_move_to_logical_chunk(city, 5)
+	city.robot.global_position = Vector2(
+		city.world_stream.runtime_x_for_logical_index(5)
+		+ CityWorldStream.CHUNK_WIDTH
+		- 90.0,
+		460.0
+	)
+	var initial_x: float = city.robot.global_position.x
+	var maximum_y: float = city.robot.global_position.y
+	for movement_frame: int in range(90):
+		await get_tree().physics_frame
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		city.world_stream.advance_stream()
+		maximum_y = maxf(maximum_y, city.robot.global_position.y)
+	assert_gt(city.robot.global_position.x, initial_x + 180.0)
+	assert_eq(city.world_stream.current_logical_chunk, 6)
+	assert_lt(maximum_y, 530.0)
+	_record_test_execution()
+
+
+func test_floating_origin_preserves_live_relative_positions_and_telegraphs() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	city.robot.global_position.x = CityWorldStream.CHUNK_WIDTH * 32.0 + 240.0
+	var enemy: EnemyActor2D = city.encounter_runtime.acquire(
+		&"soldier",
+		city.robot.global_position + Vector2(420.0, 75.0)
+	)
+	assert_not_null(enemy)
+	var began: bool = enemy.begin_telegraph(
+		&"bullet",
+		0.8,
+		enemy.global_position,
+		city.robot.global_position
+	)
+	assert_true(began)
+	var relative_before: Vector2 = enemy.global_position - city.robot.global_position
+	var record_before: Dictionary = city.telegraph_presenter.snapshot(enemy._telegraph_id)
+	var target_delta_before: Vector2 = (
+		(record_before.target as Vector2) - city.robot.global_position
+	)
+	city.world_stream.advance_stream()
+	var record_after: Dictionary = city.telegraph_presenter.snapshot(enemy._telegraph_id)
+	assert_eq(city.world_stream.floating_origin.origin_chunk, 32)
+	assert_almost_eq(city.robot.global_position.x, 240.0, EPSILON)
+	assert_almost_eq(
+		(enemy.global_position - city.robot.global_position).x,
+		relative_before.x,
+		EPSILON
+	)
+	assert_almost_eq(
+		((record_after.target as Vector2) - city.robot.global_position).x,
+		target_delta_before.x,
+		EPSILON
+	)
+	var far_band: Parallax2D = city.get_node(^"ParallaxCity/FarSkyline") as Parallax2D
+	assert_almost_eq(
+		fposmod(far_band.scroll_offset.x, 1344.0),
+		fposmod(-CityWorldStream.CHUNK_WIDTH * 32.0 * 0.18, 1344.0),
+		EPSILON
+	)
+	_record_test_execution()
+
+
+func test_camera_and_enemy_spawns_follow_player_beyond_former_map_edge() -> void:
+	var city: CitySlice = await _spawn_city()
+	_move_to_logical_chunk(city, 10)
+	city.camera_rig.follow_speed = 10000.0
+	city.camera_rig._physics_process(1.0)
+	assert_gt(city.camera_rig.global_position.x, 2560.0)
+	var spawn: Vector2 = city.encounter_runtime.resolve_spawn_position(
+		Vector2(0.0, 542.5),
+		&"AHEAD"
+	)
+	assert_gt(spawn.x, 12000.0)
+	var bounds: Vector2 = city.world_stream.resident_bounds()
+	assert_between(spawn.x, bounds.x, bounds.y)
+	var final_act: DistrictAct = city.urban_siege.director.district.acts[5]
+	var hazard_plan: Array[Dictionary] = city.urban_siege.hazard_pressure.plan_for_beat(
+		5,
+		0,
+		final_act,
+		final_act.beats[0],
+		city.robot.global_position.x
+	)
+	assert_gt(hazard_plan.size(), 0)
+	for record: Dictionary in hazard_plan:
+		var hazard_x: float = (record.position as Vector2).x
+		assert_between(
+			absf(hazard_x - city.robot.global_position.x),
+			HazardPressureController.MINIMUM_DISTANCE - 1.0,
+			HazardPressureController.MAXIMUM_DISTANCE + 1.0
+		)
+	_record_test_execution()
+
+
+func test_origin_landmarks_are_disabled_outside_the_resident_window() -> void:
+	var city: CitySlice = await _spawn_city()
+	_move_to_logical_chunk(city, 5)
+	assert_false(city.landmark_root.visible)
+	assert_eq(city.landmark_root.process_mode, Node.PROCESS_MODE_DISABLED)
+	assert_null(city.encounter_runtime.structural_target)
+	_move_to_logical_chunk(city, 0)
+	assert_true(city.landmark_root.visible)
+	assert_eq(city.landmark_root.process_mode, Node.PROCESS_MODE_INHERIT)
+	assert_eq(city.encounter_runtime.structural_target, city.building)
+	_record_test_execution()
+
+
+func _spawn_city() -> CitySlice:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.set_physics_process(false)
+	return city
+
+
+func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
+	city.robot.global_position.x = (
+		city.world_stream.runtime_x_for_logical_index(logical_index)
+		+ CityWorldStream.CHUNK_WIDTH * 0.5
+	)
+	city.world_stream.advance_stream()
+
+
+func _assert_contiguous_window(stream: CityWorldStream) -> void:
+	var indices: Array[int] = []
+	var positions: Array[float] = []
+	for chunk: CityStreetChunk in stream.chunks:
+		indices.append(chunk.logical_index)
+		positions.append(chunk.position.x)
+	indices.sort()
+	positions.sort()
+	assert_eq(indices.size(), CityWorldStream.CHUNK_CAPACITY)
+	for offset: int in range(indices.size()):
+		assert_eq(indices[offset], stream.current_logical_chunk - 2 + offset)
+		if offset > 0:
+			assert_almost_eq(
+				positions[offset] - positions[offset - 1],
+				CityWorldStream.CHUNK_WIDTH,
+				EPSILON
+			)
+
+
+func _record_test_execution() -> void:
+	var path: String = "res://artifacts/unit-tests-ran.txt"
+	var count: int = 0
+	if FileAccess.file_exists(path):
+		var input: FileAccess = FileAccess.open(path, FileAccess.READ)
+		count = int(input.get_as_text().strip_edges())
+	var output: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	output.store_string(str(count + 1))

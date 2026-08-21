@@ -138,6 +138,11 @@ func impact_origin() -> Vector2:
 	return global_position + offset
 
 
+func rebase_cached_world_state(offset: Vector2) -> void:
+	if _activation_event != null:
+		_activation_event.hit_position += offset
+
+
 func _begin_telegraph(event: DamageEvent) -> void:
 	if state == STATE_TELEGRAPH or state == STATE_ACTIVE:
 		return

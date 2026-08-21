@@ -72,6 +72,8 @@ const HAZARD_AUDIO_VOICES: int = 6
 const ACTIVE_HAZARDS: int = 6
 const PENDING_HAZARDS: int = 3
 const HAZARD_PRESSURE: int = 10
+const STREET_CHUNKS: int = 6
+const FLOATING_ORIGIN_RUNTIMES: int = 1
 const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
 
 
@@ -118,6 +120,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"hazard_audio_voices": city.urban_siege.hazards.audio_pool.voice_count(),
 		"hazard_pending_peak": city.urban_siege.director.peak_hazard_pending,
 		"hazard_pressure_peak": city.urban_siege.hazard_pressure.peak_used_budget,
+		"street_chunks": city.world_stream.active_chunk_count(),
+		"street_post_warm_creations": city.world_stream.post_warm_creation_count,
+		"floating_origin_runtimes": 1 if city.world_stream.floating_origin != null else 0,
 		"telegraph_active": city.telegraph_presenter.active_count(),
 		"telegraph_peak": city.telegraph_presenter.peak_active_count,
 		"rare_rows": city.gameplay_hud.rare_labels.size(),
@@ -217,6 +222,9 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "hazard_vfx_slots", HAZARD_VFX_SLOTS)
 	_check_equal(errors, data, "hazard_audio_voices", HAZARD_AUDIO_VOICES)
 	_check_equal(errors, data, "hazard_post_warm_creations", 0)
+	_check_equal(errors, data, "street_chunks", STREET_CHUNKS)
+	_check_equal(errors, data, "street_post_warm_creations", 0)
+	_check_equal(errors, data, "floating_origin_runtimes", FLOATING_ORIGIN_RUNTIMES)
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)

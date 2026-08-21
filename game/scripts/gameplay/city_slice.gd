@@ -21,6 +21,7 @@ const OVERDRIVE_SCRIPT: Script = preload("res://scripts/rampage/overdrive_sessio
 const RUN_LIFECYCLE_SCRIPT: Script = preload(
 	"res://scripts/gameplay/city_run_lifecycle.gd"
 )
+const WORLD_STREAM_SCRIPT: Script = preload("res://scripts/world/city_world_stream.gd")
 const STRUCTURAL_BUILDING_SCRIPT: Script = preload(
 	"res://scripts/destruction/structural_building_2d.gd"
 )
@@ -73,6 +74,8 @@ var upgrade_assembler: PlayerUpgradeAssembler
 var music_duck_controller: MusicDuckController
 var contextual_attacks: ContextualAttackController
 var air_target_lock_runtime: AirTargetLockRuntime
+var world_stream: CityWorldStream
+var landmark_root: Node2D
 var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
 var encounter_director: EncounterDirector
@@ -116,6 +119,7 @@ func _ready() -> void:
 		_on_robot_damage_received,
 		_on_robot_defeated
 	)
+	_build_world_stream()
 	contextual_attacks = ContextualAttackController.new()
 	contextual_attacks.name = "ContextualAttackController"
 	contextual_attacks.setup(robot)
@@ -187,6 +191,9 @@ func _build_services() -> void:
 	enemy_remains_factory = runtime_services.enemy_remains_factory
 	music_duck_controller = runtime_services.music_duck_controller
 func _build_destructibles() -> void:
+	landmark_root = Node2D.new()
+	landmark_root.name = "LandmarkRoot"
+	add_child(landmark_root)
 	building = _create_building(Vector2(1450.0, LAND_VISUAL_BASELINE_Y))
 	building.damage_applied.connect(_on_building_damage_applied)
 	building.cell_destroyed.connect(_on_building_cell_destroyed)
@@ -218,6 +225,7 @@ func _build_destructibles() -> void:
 		{"health": 260.0, "wreck_health": 165.0, "chunks": 5, "mass": 12.0}
 	)
 	car.destroyed.connect(_on_prop_destroyed.bind(300))
+	world_stream.set_landmark_root(landmark_root)
 
 
 func _create_building(position_value: Vector2) -> StructuralBuilding2D:
@@ -234,8 +242,8 @@ func _create_building(position_value: Vector2) -> StructuralBuilding2D:
 	node.collision_layer_value = BUILDING_LAYER
 	node.collision_mask_value = ROBOT_LAYER
 	node.hurtbox_layer_value = HURTBOX_LAYER
-	node.debris_pool_path = NodePath("../BuildingDebrisPool")
-	add_child(node)
+	node.debris_pool_path = NodePath("../../BuildingDebrisPool")
+	landmark_root.add_child(node)
 	return node
 
 
@@ -257,7 +265,7 @@ func _create_prop(
 	prop.max_health = float(settings.health)
 	prop.wreck_health = float(settings.wreck_health)
 	prop.gameplay_chunk_count = int(settings.chunks)
-	prop.debris_pool_path = ^"../BuildingDebrisPool"
+	prop.debris_pool_path = ^"../../BuildingDebrisPool"
 	prop.mass = float(settings.mass)
 	prop.collision_layer = PROP_LAYER
 	prop.collision_mask = WORLD_LAYER | ROBOT_LAYER
@@ -276,8 +284,17 @@ func _create_prop(
 	rectangle.size = collision_size
 	collision.shape = rectangle
 	prop.add_child(collision)
-	add_child(prop)
+	landmark_root.add_child(prop)
 	return prop
+
+
+func _build_world_stream() -> void:
+	world_stream = WORLD_STREAM_SCRIPT.new() as CityWorldStream
+	world_stream.name = "CityWorldStream"
+	world_stream.setup(robot)
+	world_stream.origin_shift_requested.connect(_on_origin_shift_requested)
+	world_stream.window_changed.connect(_on_stream_window_changed)
+	add_child(world_stream)
 
 
 func _build_enemies() -> void:
@@ -286,7 +303,7 @@ func _build_enemies() -> void:
 	add_child(telegraph_presenter)
 	encounter_runtime = ENCOUNTER_RUNTIME_SCRIPT.new() as EncounterRuntime
 	encounter_runtime.name = "EncounterRuntime"
-	encounter_runtime.setup(robot, telegraph_presenter, projectile_root, building)
+	encounter_runtime.setup(robot, telegraph_presenter, projectile_root, building, world_stream)
 	encounter_runtime.projectile_requested.connect(_on_projectile_requested)
 	encounter_runtime.enemy_died.connect(_on_enemy_died)
 	add_child(encounter_runtime)
@@ -319,6 +336,24 @@ func _build_urban_siege() -> void:
 	encounter_director = urban_siege.director
 	if DisplayServer.get_name() != "headless":
 		urban_siege.start_run()
+
+
+func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
+	var parallax: Node = get_node_or_null(^"ParallaxCity")
+	var excluded: Array[Node] = [world_stream, landmark_root, parallax]
+	world_stream.floating_origin.apply_to_scene(self, offset, excluded)
+	CityWorldBuilder.compensate_parallax(self, offset)
+	if urban_siege != null and urban_siege.hazard_pressure != null:
+		urban_siege.hazard_pressure.rebase_cached_world_state(offset)
+	if camera_rig != null:
+		camera_rig.reset_after_origin_shift()
+
+
+func _on_stream_window_changed(_logical_index: int) -> void:
+	var target: StructuralBuilding2D = building if landmark_root.visible else null
+	encounter_runtime.structural_target = target
+	for enemy: EnemyActor2D in encounter_runtime.all_actors():
+		enemy.structural_target = target
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
 	gameplay_hud.setup(robot, contextual_attacks)

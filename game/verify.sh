@@ -18,6 +18,7 @@ rm -rf artifacts
 mkdir -p \
   artifacts/title_screen \
   artifacts/city_slice \
+  artifacts/endless_terrain \
   artifacts/enemy_variety \
   artifacts/street_volatility \
   artifacts/upgrades
@@ -95,6 +96,12 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/street_volatility/report.json >/dev/null
 
+printf '%s\n' '[L4] endless-terrain headless scenario'
+run_engine "$GODOT" --headless --fixed-fps 60 --path . \
+  -s selftest/endless_terrain_scenario.gd
+jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
+  artifacts/endless_terrain/report.json >/dev/null
+
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
   printf '%s\n' '[L5] windowed render scenario'
@@ -148,6 +155,14 @@ if [[ "$MODE" == "full" ]]; then
   test -s artifacts/street_volatility/street-volatility.png
   STREET_VOLATILITY_DIMENSIONS="$(file artifacts/street_volatility/street-volatility.png)"
   grep -Fq '1280 x 720' <<< "$STREET_VOLATILITY_DIMENSIONS"
+
+  printf '%s\n' '[L5] windowed endless-terrain render scenario'
+  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+    -s selftest/endless_terrain_scenario.gd
+  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+    artifacts/endless_terrain/report.json >/dev/null
+  test -s artifacts/endless_terrain/endless-terrain.png
+  grep -Fq '1280 x 720' <<< "$(file artifacts/endless_terrain/endless-terrain.png)"
 
   printf '%s\n' '[L5] initial city-slice visual scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \

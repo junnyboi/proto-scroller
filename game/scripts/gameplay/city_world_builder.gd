@@ -28,7 +28,16 @@ const ROBOT_ANIMATION_PRESENTER: Script = preload(
 
 static func build_environment(parent: Node2D) -> void:
 	_build_parallax(parent)
-	_build_street(parent)
+
+
+static func compensate_parallax(parent: Node2D, offset: Vector2) -> void:
+	var backdrop: Node2D = parent.get_node_or_null(^"ParallaxCity") as Node2D
+	if backdrop == null:
+		return
+	for child: Node in backdrop.get_children():
+		var band: Parallax2D = child as Parallax2D
+		if band != null:
+			band.scroll_offset += offset * band.scroll_scale
 
 
 static func build_robot(
@@ -157,67 +166,3 @@ static func _create_parallax_band(
 	sprite.position = Vector2(0.0, y_offset)
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	band.add_child(sprite)
-
-
-static func _build_street(parent: Node2D) -> void:
-	var road_surface: Polygon2D = Polygon2D.new()
-	road_surface.name = "RoadSurface"
-	road_surface.z_index = -10
-	road_surface.polygon = PackedVector2Array([
-		Vector2(-800.0, 590.0),
-		Vector2(3600.0, 590.0),
-		Vector2(3600.0, 760.0),
-		Vector2(-800.0, 760.0),
-	])
-	road_surface.color = Color("353b44")
-	parent.add_child(road_surface)
-	var lower_asphalt: Polygon2D = Polygon2D.new()
-	lower_asphalt.name = "LowerAsphalt"
-	lower_asphalt.z_index = -9
-	lower_asphalt.polygon = PackedVector2Array([
-		Vector2(-800.0, 670.0),
-		Vector2(3600.0, 670.0),
-		Vector2(3600.0, 760.0),
-		Vector2(-800.0, 760.0),
-	])
-	lower_asphalt.color = road_surface.color
-	parent.add_child(lower_asphalt)
-	for segment_index: int in range(12):
-		var lane_mark: Line2D = Line2D.new()
-		var segment_x: float = -620.0 + float(segment_index) * 360.0
-		lane_mark.width = 5.0
-		lane_mark.default_color = Color(0.72, 0.67, 0.54, 0.32)
-		lane_mark.points = PackedVector2Array([
-			Vector2(segment_x, 694.0),
-			Vector2(segment_x + 170.0, 694.0),
-		])
-		lane_mark.z_index = -8
-		parent.add_child(lane_mark)
-	var curb: Line2D = Line2D.new()
-	curb.width = 8.0
-	curb.default_color = Color("8f8175")
-	curb.points = PackedVector2Array([Vector2(-800.0, 590.0), Vector2(3600.0, 590.0)])
-	curb.z_index = -9
-	parent.add_child(curb)
-	var ground: StaticBody2D = StaticBody2D.new()
-	ground.name = "Ground"
-	ground.collision_layer = WORLD_LAYER
-	ground.collision_mask = ROBOT_LAYER | ENEMY_LAYER | PROP_LAYER | DEBRIS_LAYER
-	ground.position = Vector2(1400.0, 625.0)
-	var collision: CollisionShape2D = CollisionShape2D.new()
-	var rectangle: RectangleShape2D = RectangleShape2D.new()
-	rectangle.size = Vector2(4400.0, 70.0)
-	collision.shape = rectangle
-	ground.add_child(collision)
-	parent.add_child(ground)
-	var remains_ground: StaticBody2D = StaticBody2D.new()
-	remains_ground.name = "RemainsGround"
-	remains_ground.collision_layer = REMAINS_GROUND_LAYER
-	remains_ground.collision_mask = REMAINS_LAYER
-	remains_ground.position = Vector2(1400.0, LAND_VISUAL_BASELINE_Y + 35.0)
-	var remains_collision: CollisionShape2D = CollisionShape2D.new()
-	var remains_rectangle: RectangleShape2D = RectangleShape2D.new()
-	remains_rectangle.size = Vector2(4400.0, 70.0)
-	remains_collision.shape = remains_rectangle
-	remains_ground.add_child(remains_collision)
-	parent.add_child(remains_ground)

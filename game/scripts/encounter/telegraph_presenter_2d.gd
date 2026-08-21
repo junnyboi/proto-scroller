@@ -78,6 +78,13 @@ func available_count() -> int:
 	return capacity - _records.size()
 
 
+func rebase_cached_world_state(offset: Vector2) -> void:
+	for record: Dictionary in _records:
+		record.origin = (record.origin as Vector2) + offset
+		record.target = (record.target as Vector2) + offset
+	queue_redraw()
+
+
 func snapshot(record_id: int) -> Dictionary:
 	for record: Dictionary in _records:
 		if int(record.id) == record_id:

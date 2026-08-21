@@ -41,6 +41,12 @@ func reset_sequence() -> void:
 	last_used_budget = 0
 
 
+func rebase_cached_world_state(offset: Vector2) -> void:
+	for record: Dictionary in assignments:
+		if record.has("position"):
+			record.position = (record.position as Vector2) + offset
+
+
 func plan_for_beat(
 	act_index: int,
 	beat_index: int,
@@ -69,7 +75,7 @@ func plan_for_beat(
 		)
 		if candidates.has(tier2_id):
 			var side: int = -1 if beat_index % 2 == 0 else 1
-			var world_x: float = clampf(robot_x + float(side) * 390.0, 140.0, 2420.0)
+			var world_x: float = robot_x + float(side) * 390.0
 			var record: Dictionary = {
 				"hazard_id": tier2_id,
 				"remaining": 0.55,
@@ -105,7 +111,7 @@ func plan_for_beat(
 		candidates.erase(hazard_id)
 		var side: int = -1 if _rng.randf() < 0.5 else 1
 		var distance: float = _rng.randf_range(MINIMUM_DISTANCE, MAXIMUM_DISTANCE)
-		var world_x: float = clampf(robot_x + float(side) * distance, 140.0, 2420.0)
+		var world_x: float = robot_x + float(side) * distance
 		var delay: float = 0.55 + float(event_index) * 0.88 + _rng.randf_range(0.0, 0.38)
 		roll_count += 3
 		var selected_cost: int = EnvironmentalHazardCatalog.pressure_cost(hazard_id)
@@ -142,12 +148,8 @@ func _plan_apex_pair(
 	if pair_cost > act.hazard_pressure_budget:
 		return result
 	var side: int = -1 if beat_index % 2 == 0 else 1
-	var source_x: float = clampf(robot_x + float(side) * 320.0, 160.0, 2400.0)
-	var target_x: float = clampf(
-		source_x + float(side) * CHAIN_PAIR_SPACING,
-		140.0,
-		2420.0
-	)
+	var source_x: float = robot_x + float(side) * 320.0
+	var target_x: float = source_x + float(side) * CHAIN_PAIR_SPACING
 	var delay: float = 0.52 + _rng.randf_range(0.0, 0.18)
 	roll_count += 1
 	result.append(_record(source_id, delay, source_x, -side, beat_index, true))

@@ -63,7 +63,6 @@ func activate(
 		recycle_count += 1
 		actor.reset_hazard()
 	var position_value: Vector2 = world_position
-	position_value.x = clampf(position_value.x, 120.0, 2440.0)
 	position_value.y = CitySlice.LAND_VISUAL_BASELINE_Y
 	actor.activate(
 		hazard_id,

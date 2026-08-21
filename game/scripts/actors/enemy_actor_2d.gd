@@ -420,6 +420,13 @@ func telegraph_direction() -> Vector2:
 	return _telegraph_origin.direction_to(_telegraph_target)
 
 
+func _rebase_cached_world_state(offset: Vector2) -> void:
+	if _telegraph_id == 0:
+		return
+	_telegraph_origin += offset
+	_telegraph_target += offset
+
+
 func fire_telegraphed_projectile(speed: float, damage: float) -> Projectile2D:
 	var projectile: Projectile2D
 	if projectile_pool != null and _projectile_reservation_id != 0:
