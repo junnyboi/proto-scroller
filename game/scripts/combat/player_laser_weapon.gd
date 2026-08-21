@@ -11,15 +11,25 @@ const STRUCTURAL_DAMAGE: Array[float] = [0.0, 12.0, 13.5, 15.0, 16.5, 18.0]
 const COOLDOWNS: Array[float] = [0.0, 1.35, 1.25, 1.15, 1.05, 0.95]
 const TARGET_COUNTS: Array[int] = [0, 3, 3, 4, 4, 5]
 const BEAM_CAPACITY: int = 2
+const IMPACT_CAPACITY: int = 5
+const MOUNT_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/anti_air_emitter.png"
+)
+const IMPACT_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/anti_air_impact.png"
+)
 
 var arsenal: PlayerArsenalRuntime
 var emitter: Node2D
 var beams: Array[LaserBeamVisual2D] = []
+var impacts: Array[WeaponImpactEffect2D] = []
+var mount: WeaponMountVisual2D
 var cooldown_remaining: float = 0.0
 var shots_fired: int = 0
 var last_query_count: int = 0
 var last_accepted_count: int = 0
 var _beam_cursor: int = 0
+var _impact_cursor: int = 0
 var _shape: RectangleShape2D = RectangleShape2D.new()
 var _parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
 
@@ -36,11 +46,28 @@ func _init() -> void:
 		beam.name = "LaserBeam%02d" % index
 		add_child(beam)
 		beams.append(beam)
+	for index: int in range(IMPACT_CAPACITY):
+		var impact: WeaponImpactEffect2D = WeaponImpactEffect2D.new()
+		impact.name = "AntiAirImpact%02d" % index
+		add_child(impact)
+		impact.setup(IMPACT_TEXTURE, Vector2(74.0, 74.0), 0.28, 85, 8)
+		impacts.append(impact)
 
 
-func setup_arsenal(p_arsenal: PlayerArsenalRuntime, p_emitter: Node2D) -> void:
+func setup_arsenal(p_arsenal: PlayerArsenalRuntime, _p_emitter: Node2D) -> void:
 	arsenal = p_arsenal
-	emitter = p_emitter
+	mount = WeaponMountVisual2D.new()
+	mount.name = "AntiAirMount"
+	arsenal.robot.get_node(^"VisualRoot").add_child(mount)
+	mount.setup(
+		arsenal.robot,
+		MOUNT_TEXTURE,
+		Vector2(58.0, 56.0),
+		Vector2(22.0, -78.0),
+		31.0,
+		4
+	)
+	emitter = mount.muzzle
 	_parameters.exclude = [arsenal.robot.get_rid()]
 
 
@@ -65,6 +92,8 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 	if current_rank == next_rank:
 		return false
 	current_rank = next_rank
+	if mount != null:
+		mount.set_armed(current_rank > 0)
 	return true
 
 
@@ -72,12 +101,20 @@ func set_paused(value: bool) -> void:
 	super.set_paused(value)
 	for beam: LaserBeamVisual2D in beams:
 		beam.paused = value
+	for impact: WeaponImpactEffect2D in impacts:
+		impact.paused = value
+	if mount != null:
+		mount.paused = value
 
 
 func stop_and_release() -> void:
 	super.stop_and_release()
 	for beam: LaserBeamVisual2D in beams:
 		beam.deactivate()
+	for impact: WeaponImpactEffect2D in impacts:
+		impact.deactivate()
+	if mount != null:
+		mount.set_armed(false)
 
 
 func reset_run() -> void:
@@ -87,15 +124,29 @@ func reset_run() -> void:
 	last_query_count = 0
 	last_accepted_count = 0
 	_beam_cursor = 0
+	_impact_cursor = 0
 	for beam: LaserBeamVisual2D in beams:
 		beam.paused = false
 		beam.deactivate()
+	for impact: WeaponImpactEffect2D in impacts:
+		impact.paused = false
+		impact.deactivate()
+	if mount != null:
+		mount.set_armed(false)
 
 
 func active_beam_count() -> int:
 	var total: int = 0
 	for beam: LaserBeamVisual2D in beams:
 		if beam.active:
+			total += 1
+	return total
+
+
+func active_impact_count() -> int:
+	var total: int = 0
+	for impact: WeaponImpactEffect2D in impacts:
+		if impact.active:
 			total += 1
 	return total
 
@@ -110,6 +161,8 @@ func _nearest_target() -> EnemyActor2D:
 
 
 func _fire(direction: Vector2) -> void:
+	if mount != null:
+		mount.aim_at(direction)
 	var origin: Vector2 = emitter.global_position
 	_parameters.transform = Transform2D(
 		direction.angle(),
@@ -149,6 +202,11 @@ func _fire(direction: Vector2) -> void:
 		)
 		if bool(receiver.call("receive_damage", event)):
 			last_accepted_count += 1
+			impacts[_impact_cursor].activate(
+				(collider as Node2D).global_position,
+				direction
+			)
+			_impact_cursor = (_impact_cursor + 1) % impacts.size()
 		if last_accepted_count >= TARGET_COUNTS[current_rank]:
 			break
 	beams[_beam_cursor].activate(origin, direction, RANGE)

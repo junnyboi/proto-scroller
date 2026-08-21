@@ -1,6 +1,13 @@
 class_name FlameVisualSlot2D
 extends Node2D
 
+const PLUME_TEXTURE: Texture2D = preload(
+	"res://art/presentation/flame_plume.png"
+)
+const IGNITION_TEXTURE: Texture2D = preload(
+	"res://art/presentation/flame_ignition.png"
+)
+
 var active: bool = false
 var paused: bool = false
 var age: float = 0.0
@@ -52,11 +59,17 @@ func _draw() -> void:
 	if not active:
 		return
 	var alpha: float = clampf(1.0 - age / lifetime, 0.0, 1.0)
-	var points: PackedVector2Array = PackedVector2Array([
-		Vector2.ZERO,
-		Vector2.RIGHT.rotated(-half_angle) * flame_range,
-		Vector2.RIGHT * flame_range * 0.82,
-		Vector2.RIGHT.rotated(half_angle) * flame_range,
-	])
-	draw_colored_polygon(points, Color(1.0, 0.30, 0.06, alpha * 0.28))
-	draw_polyline(points, Color(1.0, 0.78, 0.18, alpha * 0.84), 4.0, true)
+	var half_width: float = minf(tan(half_angle) * flame_range, flame_range * 0.42)
+	draw_texture_rect(
+		PLUME_TEXTURE,
+		Rect2(Vector2(0.0, -half_width), Vector2(flame_range, half_width * 2.0)),
+		false,
+		Color(1.0, 1.0, 1.0, alpha * 0.90)
+	)
+	var ignition_alpha: float = alpha * clampf(1.0 - age / 0.12, 0.0, 1.0)
+	draw_texture_rect(
+		IGNITION_TEXTURE,
+		Rect2(Vector2(-10.0, -24.0), Vector2(54.0, 48.0)),
+		false,
+		Color(1.0, 1.0, 1.0, ignition_alpha)
+	)

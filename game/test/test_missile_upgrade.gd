@@ -8,6 +8,11 @@ func test_missile_rank_four_launches_one_shared_root_salvo_into_four_slots() -> 
 	var missile_weapon: MissileWeapon = _missiles(city)
 	missile_weapon.set_process(false)
 	missile_weapon.apply_rank(4)
+	assert_true(missile_weapon.mount.visible)
+	assert_same(
+		MissileProjectile2D.BODY_TEXTURE,
+		load("res://art/player/weapons/player_missile_body.png")
+	)
 	var target: EnemyActor2D = city.encounter_runtime.acquire(
 		&"tank",
 		city.robot.global_position + Vector2(520.0, 0.0)
@@ -98,6 +103,8 @@ func test_missile_stale_target_uses_last_known_and_explodes_once() -> void:
 	assert_eq(missile_weapon.pool.active_count(), 0)
 	missile_weapon.flush_explosions()
 	assert_eq(missile_weapon.blast_count, 1)
+	assert_eq(missile_weapon.active_explosion_visual_count(), 1)
+	assert_eq(missile_weapon.explosion_visuals[0].activation_count, 1)
 	assert_eq(missile_weapon.pending_explosion_count(), 0)
 
 

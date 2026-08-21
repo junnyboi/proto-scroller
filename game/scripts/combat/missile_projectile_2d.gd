@@ -12,6 +12,12 @@ const SPEED: float = 560.0
 const LIFETIME: float = 1.65
 const TURN_SPEED: float = 5.5
 const FUSE_RADIUS: float = 24.0
+const BODY_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/player_missile_body.png"
+)
+const EXHAUST_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/missile_exhaust.png"
+)
 
 var active: bool = false
 var paused: bool = false
@@ -115,14 +121,16 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var points: PackedVector2Array = PackedVector2Array([
-		Vector2(11.0, 0.0),
-		Vector2(-8.0, -6.0),
-		Vector2(-5.0, 0.0),
-		Vector2(-8.0, 6.0),
-	])
-	draw_colored_polygon(points, Color("ffbd55"))
-	draw_line(Vector2(-7.0, 0.0), Vector2(-18.0, 0.0), Color("ff5a36"), 5.0)
+	draw_texture_rect(
+		EXHAUST_TEXTURE,
+		Rect2(Vector2(-36.0, -9.0), Vector2(20.0, 18.0)),
+		false
+	)
+	draw_texture_rect(
+		BODY_TEXTURE,
+		Rect2(Vector2(-22.0, -10.0), Vector2(44.0, 20.0)),
+		false
+	)
 
 
 func _update_target_point() -> void:

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ggckvyxc8288"
-path="res://.godot/imported/flame_plume_atlas.png-b7d6a5741befda778bbb84b6c79a12d7.ctex"
+uid="uid://c3qnh1b7uilde"
+path="res://.godot/imported/anti_air_beam_core.png-e3ac62cb9e25f3f3b3302c3696f72298.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/presentation/flame_plume_atlas.png"
-dest_files=["res://.godot/imported/flame_plume_atlas.png-b7d6a5741befda778bbb84b6c79a12d7.ctex"]
+source_file="res://art/player/weapons/anti_air_beam_core.png"
+dest_files=["res://.godot/imported/anti_air_beam_core.png-e3ac62cb9e25f3f3b3302c3696f72298.ctex"]
 
 [params]
 

@@ -14,11 +14,17 @@ const ACCEPTED_LIMIT: int = 6
 const STRUCTURAL_LIMIT: int = 2
 const EXPLOSION_QUEUE_CAPACITY: int = 8
 const EXPLOSIONS_PER_FRAME: int = 2
+const EXPLOSION_VISUAL_CAPACITY: int = 4
 const TARGET_MASK: int = (1 << 2) | (1 << 3) | (1 << 6) | (1 << 7)
+const MOUNT_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/missile_pod_mount.png"
+)
 
 var arsenal: PlayerArsenalRuntime
 var emitter: Node2D
 var pool: MissileProjectilePool
+var explosion_visuals: Array[MissileExplosionVisual2D] = []
+var mount: WeaponMountVisual2D
 var cooldown_remaining: float = 0.0
 var salvo_remaining: int = 0
 var salvo_spacing_remaining: float = 0.0
@@ -36,12 +42,18 @@ var last_blast_structural: int = 0
 var _explosion_queue: Array[Dictionary] = []
 var _blast_shape: CircleShape2D = CircleShape2D.new()
 var _blast_parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+var _explosion_visual_cursor: int = 0
 
 
 func _init() -> void:
 	setup(&"MISSILE", 4)
 	pool = MissileProjectilePool.new()
 	add_child(pool)
+	for index: int in range(EXPLOSION_VISUAL_CAPACITY):
+		var visual: MissileExplosionVisual2D = MissileExplosionVisual2D.new()
+		visual.name = "MissileExplosion%02d" % index
+		add_child(visual)
+		explosion_visuals.append(visual)
 	_blast_shape.radius = BLAST_RADIUS
 	_blast_parameters.shape = _blast_shape
 	_blast_parameters.collision_mask = TARGET_MASK
@@ -49,9 +61,20 @@ func _init() -> void:
 	_blast_parameters.collide_with_bodies = true
 
 
-func setup_arsenal(p_arsenal: PlayerArsenalRuntime, p_emitter: Node2D) -> void:
+func setup_arsenal(p_arsenal: PlayerArsenalRuntime, _p_emitter: Node2D) -> void:
 	arsenal = p_arsenal
-	emitter = p_emitter
+	mount = WeaponMountVisual2D.new()
+	mount.name = "MissilePodMount"
+	arsenal.robot.get_node(^"VisualRoot").add_child(mount)
+	mount.setup(
+		arsenal.robot,
+		MOUNT_TEXTURE,
+		Vector2(56.0, 44.0),
+		Vector2(18.0, -64.0),
+		32.0,
+		2
+	)
+	emitter = mount.muzzle
 	_blast_parameters.exclude = [arsenal.robot.get_rid()]
 
 
@@ -78,12 +101,18 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 	if current_rank == next_rank:
 		return false
 	current_rank = next_rank
+	if mount != null:
+		mount.set_armed(current_rank > 0)
 	return true
 
 
 func set_paused(value: bool) -> void:
 	super.set_paused(value)
 	pool.set_paused(value)
+	for visual: MissileExplosionVisual2D in explosion_visuals:
+		visual.paused = value
+	if mount != null:
+		mount.paused = value
 
 
 func stop_and_release() -> void:
@@ -91,6 +120,10 @@ func stop_and_release() -> void:
 	pool.release_all()
 	_explosion_queue.clear()
 	salvo_remaining = 0
+	for visual: MissileExplosionVisual2D in explosion_visuals:
+		visual.deactivate()
+	if mount != null:
+		mount.set_armed(false)
 
 
 func reset_run() -> void:
@@ -111,6 +144,12 @@ func reset_run() -> void:
 	last_blast_accepted = 0
 	last_blast_structural = 0
 	_explosion_queue.clear()
+	_explosion_visual_cursor = 0
+	for visual: MissileExplosionVisual2D in explosion_visuals:
+		visual.paused = false
+		visual.deactivate()
+	if mount != null:
+		mount.set_armed(false)
 
 
 func enqueue_explosion(
@@ -131,6 +170,14 @@ func enqueue_explosion(
 
 func pending_explosion_count() -> int:
 	return _explosion_queue.size()
+
+
+func active_explosion_visual_count() -> int:
+	var total: int = 0
+	for visual: MissileExplosionVisual2D in explosion_visuals:
+		if visual.active:
+			total += 1
+	return total
 
 
 func rebase_cached_world_state(offset: Vector2) -> void:
@@ -187,6 +234,10 @@ func _launch_next_missile() -> void:
 		return
 	var target_index: int = salvo_cursor % salvo_targets.size()
 	var attack_id: int = arsenal.reserve_attack_id()
+	if mount != null:
+		mount.aim_at(
+			emitter.global_position.direction_to(salvo_points[target_index])
+		)
 	var missile: MissileProjectile2D = pool.acquire(
 		emitter.global_position,
 		salvo_targets[target_index],
@@ -213,6 +264,10 @@ func _flush_explosions() -> void:
 
 
 func _resolve_blast(origin: Vector2, attack_id: int, root_attack_id: int) -> void:
+	explosion_visuals[_explosion_visual_cursor].activate(origin)
+	_explosion_visual_cursor = (
+		(_explosion_visual_cursor + 1) % explosion_visuals.size()
+	)
 	_blast_parameters.transform = Transform2D(0.0, origin)
 	var results: Array[Dictionary] = (
 		arsenal.robot.get_world_2d().direct_space_state.intersect_shape(

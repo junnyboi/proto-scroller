@@ -18,6 +18,7 @@ func test_machine_gun_targets_nearest_stably_and_uses_player_partition() -> void
 	var machine: MachineGunRuntime = _machine(city)
 	machine.set_process(false)
 	assert_true(machine.apply_rank(1))
+	assert_true(machine.mount.visible)
 	var hostile_before: int = (
 		city.projectile_root.active_count(&"bullet")
 		+ city.projectile_root.active_count(&"shell")
@@ -36,6 +37,11 @@ func test_machine_gun_targets_nearest_stably_and_uses_player_partition() -> void
 		&"player_bullet"
 	)
 	assert_eq(city.projectile_root.last_acquired.source, city.robot)
+	assert_same(
+		Projectile2D.MACHINE_GUN_ROUND_TEXTURE,
+		load("res://art/player/weapons/machine_gun_round.png")
+	)
+	assert_eq(machine.mount.flash_count, 1)
 	assert_eq(
 		city.projectile_root.last_acquired.attack_id(),
 		city.projectile_root.last_acquired.root_attack_id()
@@ -46,6 +52,17 @@ func test_machine_gun_targets_nearest_stably_and_uses_player_partition() -> void
 		+ city.projectile_root.active_count(&"rocket")
 	)
 	assert_eq(hostile_after, hostile_before)
+	var bullet: Projectile2D = city.projectile_root.last_acquired
+	bullet.impact_requested.emit(
+		bullet,
+		tank.global_position,
+		Vector2.RIGHT,
+		&"machine_gun"
+	)
+	assert_eq(city.projectile_root.active_machine_gun_impact_count(), 1)
+	assert_eq(city.projectile_root.last_machine_gun_impact_position, tank.global_position)
+	city.projectile_root.release_partition(&"player_bullet")
+	assert_eq(city.projectile_root.active_machine_gun_impact_count(), 0)
 
 
 func test_machine_gun_rank_five_tuning_and_pool_saturation_are_exact() -> void:

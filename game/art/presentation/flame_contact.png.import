@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bmfhi30pq0law"
-path="res://.godot/imported/scorch_decals.png-ee3d951f0c29f4bdd35c567defb7a511.ctex"
+uid="uid://dovri3j8iqah6"
+path="res://.godot/imported/flame_contact.png-7e29094c81aa2d4e37fab7dcebc25dc9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/presentation/scorch_decals.png"
-dest_files=["res://.godot/imported/scorch_decals.png-ee3d951f0c29f4bdd35c567defb7a511.ctex"]
+source_file="res://art/presentation/flame_contact.png"
+dest_files=["res://.godot/imported/flame_contact.png-7e29094c81aa2d4e37fab7dcebc25dc9.ctex"]
 
 [params]
 

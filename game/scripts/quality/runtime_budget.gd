@@ -55,11 +55,15 @@ const WEAPON_STATUS_STRIPS: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
 const PLAYER_ARSENALS: int = 1
+const WEAPON_MOUNTS: int = 4
+const MACHINE_GUN_IMPACT_SLOTS: int = ProjectilePool.MACHINE_GUN_IMPACT_CAPACITY
 const LASER_BEAM_SLOTS: int = 2
+const ANTI_AIR_IMPACT_SLOTS: int = PlayerLaserWeapon.IMPACT_CAPACITY
 const FLAME_VISUAL_SLOTS: int = 6
 const SCORCH_VISUAL_SLOTS: int = 8
 const FLAMETHROWER_LOOP_VOICES: int = 1
 const PLAYER_MISSILES: int = 4
+const MISSILE_EXPLOSION_VISUAL_SLOTS: int = MissileWeapon.EXPLOSION_VISUAL_CAPACITY
 const MISSILE_EXPLOSION_QUEUE: int = 8
 const PLAYER_STRIKE_FLASHES: int = 1
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
@@ -166,11 +170,15 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			if city.upgrade_assembler.get_node_or_null(^"PlayerArsenalRuntime") != null
 			else 0
 		),
+		"weapon_mounts": _weapon_mount_count(city),
+		"machine_gun_impact_slots": city.projectile_root.machine_gun_impacts.size(),
 		"laser_beam_slots": PlayerLaserWeapon.BEAM_CAPACITY,
+		"anti_air_impact_slots": _anti_air_impact_slot_count(city),
 		"flame_visual_slots": FlamethrowerRuntime.FLAME_CAPACITY,
 		"scorch_visual_slots": FlamethrowerRuntime.SCORCH_CAPACITY,
 		"flamethrower_loop_voices": FlamethrowerRuntime.LOOP_AUDIO_VOICES,
 		"player_missiles": MissileProjectilePool.CAPACITY,
+		"missile_explosion_visual_slots": _missile_explosion_visual_slot_count(city),
 		"missile_explosion_queue": MissileWeapon.EXPLOSION_QUEUE_CAPACITY,
 		"player_strike_flashes": (
 			1 if city.impact_feedback_director.flash_rect != null else 0
@@ -250,11 +258,25 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "cosmetic_debris_instances", COSMETIC_DEBRIS_INSTANCES)
 	_check_equal(errors, data, "shockwave_ring_slots", SHOCKWAVE_RING_SLOTS)
 	_check_equal(errors, data, "player_arsenals", PLAYER_ARSENALS)
+	_check_equal(errors, data, "weapon_mounts", WEAPON_MOUNTS)
+	_check_equal(
+		errors,
+		data,
+		"machine_gun_impact_slots",
+		MACHINE_GUN_IMPACT_SLOTS
+	)
 	_check_equal(errors, data, "laser_beam_slots", LASER_BEAM_SLOTS)
+	_check_equal(errors, data, "anti_air_impact_slots", ANTI_AIR_IMPACT_SLOTS)
 	_check_equal(errors, data, "flame_visual_slots", FLAME_VISUAL_SLOTS)
 	_check_equal(errors, data, "scorch_visual_slots", SCORCH_VISUAL_SLOTS)
 	_check_equal(errors, data, "flamethrower_loop_voices", FLAMETHROWER_LOOP_VOICES)
 	_check_equal(errors, data, "player_missiles", PLAYER_MISSILES)
+	_check_equal(
+		errors,
+		data,
+		"missile_explosion_visual_slots",
+		MISSILE_EXPLOSION_VISUAL_SLOTS
+	)
 	_check_equal(errors, data, "missile_explosion_queue", MISSILE_EXPLOSION_QUEUE)
 	_check_equal(errors, data, "player_strike_flashes", PLAYER_STRIKE_FLASHES)
 	_check_equal(
@@ -343,3 +365,28 @@ static func _robot_dust_slot_count(city: CitySlice) -> int:
 		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
 	return presenter.dust_slot_count() if presenter != null else 0
+
+
+static func _weapon_mount_count(city: CitySlice) -> int:
+	var visual_root: Node = city.robot.get_node_or_null(^"VisualRoot")
+	if visual_root == null:
+		return 0
+	var total: int = 0
+	for child: Node in visual_root.get_children():
+		if child is WeaponMountVisual2D:
+			total += 1
+	return total
+
+
+static func _anti_air_impact_slot_count(city: CitySlice) -> int:
+	var runtime: PlayerLaserWeapon = (
+		city.upgrade_assembler.runtimes.get(&"LASER") as PlayerLaserWeapon
+	)
+	return runtime.impacts.size() if runtime != null else 0
+
+
+static func _missile_explosion_visual_slot_count(city: CitySlice) -> int:
+	var runtime: MissileWeapon = (
+		city.upgrade_assembler.runtimes.get(&"MISSILE") as MissileWeapon
+	)
+	return runtime.explosion_visuals.size() if runtime != null else 0

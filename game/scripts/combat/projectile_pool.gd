@@ -2,6 +2,10 @@ class_name ProjectilePool
 extends Node2D
 
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd")
+const MACHINE_GUN_IMPACT_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/machine_gun_impact.png"
+)
+const MACHINE_GUN_IMPACT_CAPACITY: int = 4
 
 @export_range(1, 64, 1) var capacity: int = 24
 @export_range(1, 32, 1) var bullet_capacity: int = RuntimeBudget.BULLETS
@@ -12,10 +16,13 @@ const PROJECTILE_SCRIPT: Script = preload("res://scripts/combat/projectile_2d.gd
 var recycle_count: int = 0
 var denial_count: int = 0
 var last_acquired: Projectile2D
+var machine_gun_impacts: Array[WeaponImpactEffect2D] = []
+var last_machine_gun_impact_position: Vector2 = Vector2.ZERO
 var _projectiles: Array[Projectile2D] = []
 var _active_order: Array[Projectile2D] = []
 var _reservations: Dictionary[int, StringName] = {}
 var _next_reservation_id: int = 1
+var _machine_gun_impact_cursor: int = 0
 
 
 func _ready() -> void:
@@ -24,6 +31,12 @@ func _ready() -> void:
 	_prewarm_partition(&"shell", shell_capacity)
 	_prewarm_partition(&"rocket", rocket_capacity)
 	_prewarm_partition(&"player_bullet", player_bullet_capacity)
+	for index: int in range(MACHINE_GUN_IMPACT_CAPACITY):
+		var impact: WeaponImpactEffect2D = WeaponImpactEffect2D.new()
+		impact.name = "MachineGunImpact%02d" % index
+		add_child(impact)
+		impact.setup(MACHINE_GUN_IMPACT_TEXTURE, Vector2(54.0, 54.0), 0.20, 84, 7)
+		machine_gun_impacts.append(impact)
 
 
 func acquire(
@@ -115,6 +128,7 @@ func release_all() -> void:
 	for projectile: Projectile2D in active_copy:
 		release(projectile)
 	_reservations.clear()
+	_release_machine_gun_impacts()
 
 
 func release_partition(kind: StringName) -> void:
@@ -123,6 +137,8 @@ func release_partition(kind: StringName) -> void:
 	for projectile: Projectile2D in active_copy:
 		if projectile.get_meta(&"partition", &"bullet") == partition:
 			release(projectile)
+	if partition == &"player_bullet":
+		_release_machine_gun_impacts()
 
 
 func active_count(kind: StringName = &"") -> int:
@@ -169,12 +185,21 @@ func total_count() -> int:
 	return _projectiles.size()
 
 
+func active_machine_gun_impact_count() -> int:
+	var total: int = 0
+	for impact: WeaponImpactEffect2D in machine_gun_impacts:
+		if impact.active:
+			total += 1
+	return total
+
+
 func _prewarm_partition(partition: StringName, count: int) -> void:
 	for partition_index: int in range(count):
 		var projectile: Projectile2D = PROJECTILE_SCRIPT.new() as Projectile2D
 		projectile.name = "%s_%02d" % [partition.capitalize(), partition_index]
 		projectile.set_meta(&"partition", partition)
 		projectile.recycle_requested.connect(_on_recycle_requested)
+		projectile.impact_requested.connect(_on_impact_requested)
 		add_child(projectile)
 		projectile.deactivate()
 		_projectiles.append(projectile)
@@ -194,6 +219,12 @@ func _oldest_active(partition: StringName) -> Projectile2D:
 	return null
 
 
+func _release_machine_gun_impacts() -> void:
+	for impact: WeaponImpactEffect2D in machine_gun_impacts:
+		impact.deactivate()
+	_machine_gun_impact_cursor = 0
+
+
 func _partition_for_kind(kind: StringName) -> StringName:
 	if kind == &"shell":
 		return &"shell"
@@ -206,3 +237,18 @@ func _partition_for_kind(kind: StringName) -> StringName:
 
 func _on_recycle_requested(projectile: Projectile2D) -> void:
 	release(projectile)
+
+
+func _on_impact_requested(
+	_projectile: Projectile2D,
+	world_position: Vector2,
+	direction: Vector2,
+	kind: StringName
+) -> void:
+	if kind != &"machine_gun" or machine_gun_impacts.is_empty():
+		return
+	machine_gun_impacts[_machine_gun_impact_cursor].activate(world_position, direction)
+	_machine_gun_impact_cursor = (
+		(_machine_gun_impact_cursor + 1) % machine_gun_impacts.size()
+	)
+	last_machine_gun_impact_position = world_position

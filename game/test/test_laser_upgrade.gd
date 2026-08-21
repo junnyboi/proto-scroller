@@ -8,6 +8,11 @@ func test_laser_penetrates_three_sorted_receivers_and_uses_no_projectiles() -> v
 	var laser: PlayerLaserWeapon = _laser(city)
 	laser.set_process(false)
 	laser.apply_rank(1)
+	assert_true(laser.mount.visible)
+	assert_same(
+		LaserBeamVisual2D.BEAM_TEXTURE,
+		load("res://art/player/weapons/anti_air_beam_core.png")
+	)
 	var beam_y: float = laser.emitter.global_position.y
 	var enemies: Array[EnemyActor2D] = []
 	for index: int in range(4):
@@ -26,6 +31,11 @@ func test_laser_penetrates_three_sorted_receivers_and_uses_no_projectiles() -> v
 	assert_eq(enemies[2].current_health, enemies[2].max_health - 18.0)
 	assert_eq(enemies[3].current_health, enemies[3].max_health)
 	assert_eq(laser.active_beam_count(), 1)
+	assert_eq(laser.active_impact_count(), 3)
+	var impact_activations: int = 0
+	for impact: WeaponImpactEffect2D in laser.impacts:
+		impact_activations += impact.activation_count
+	assert_eq(impact_activations, 3)
 	assert_eq(city.projectile_root.active_count(), projectile_count)
 
 

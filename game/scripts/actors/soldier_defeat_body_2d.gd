@@ -54,8 +54,8 @@ func activate(
 	process_mode = Node.PROCESS_MODE_INHERIT
 	set_physics_process(true)
 	reset_physics_interpolation()
-	freeze = false
 	_apply_fatal_impact(facing, impact_event)
+	set_deferred(&"freeze", false)
 
 
 func deactivate() -> void:
