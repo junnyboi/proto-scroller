@@ -642,6 +642,10 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_between(acquired_stream.get_length(), 0.85, 0.93)
 	assert_between(lost_stream.get_length(), 0.65, 0.80)
 	assert_eq(city.air_target_lock_runtime.voice_player_count(), 1)
+	assert_eq(
+		(city.air_target_lock_runtime.get_node(^"AirTargetVoice") as AudioStreamPlayer).bus,
+		GameAudioBus.VOICE
+	)
 	assert_eq(city.air_target_lock_runtime.reticle_count(), 1)
 	assert_false(city.air_target_lock_runtime.reticle_visible())
 	var lock_reticle: AirTargetReticle2D = city.air_target_lock_runtime.get_node(

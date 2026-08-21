@@ -14,13 +14,6 @@ const DEBRIS_ENEMY_THUD_SFX: AudioStream = preload(
 	"res://audio/sfx/debris/debris_enemy_thud.wav"
 )
 const IMPACT_SPARK: Texture2D = preload("res://art/presentation/impact_spark.png")
-const OVERDRIVE_ACTIVATION_SFX: AudioStream = preload(
-	"res://audio/sfx/rampage/overdrive_activation.wav"
-)
-const COMBO_BREAK_SFX: AudioStream = preload("res://audio/sfx/rampage/combo_break.wav")
-const UPGRADE_CONFIRM_SFX: AudioStream = preload(
-	"res://audio/sfx/upgrades/upgrade_confirm.wav"
-)
 const SPARK_SCALE_NORMALIZER: float = 1.0 / 16.0
 const DEBRIS_AUDIO_COOLDOWN_MSEC: int = 55
 
@@ -29,8 +22,9 @@ const DEBRIS_AUDIO_COOLDOWN_MSEC: int = 55
 
 var last_material_audio: StringName = &""
 var material_audio_play_count: int = 0
-var semantic_audio_play_count: int = 0
-var last_semantic_audio: StringName = &""
+var cue_play_count: int = 0
+var invalid_cue_count: int = 0
+var last_cue: AudioCueRegistry.Cue = AudioCueRegistry.Cue.INVALID
 var debris_audio_play_count: int = 0
 var debris_spark_play_count: int = 0
 var last_debris_mass: float = 0.0
@@ -121,6 +115,7 @@ func play_audio(
 	player.stop()
 	player.name = "%sImpact" % profile.display_name
 	player.stream = audio_stream_for_material(profile.material_id)
+	player.bus = GameAudioBus.SFX
 	player.global_position = origin
 	player.volume_db = clampf(-8.0 + impact_speed / 90.0, -8.0, -2.0)
 	player.pitch_scale = pitch_for_material(profile.material_id, impact_speed)
@@ -143,30 +138,30 @@ func audio_stream_for_material(material_id: StringName) -> AudioStream:
 			return CONCRETE_IMPACT_SFX
 
 
-func play_semantic(
-	cue: StringName,
+func play_cue(
+	cue: AudioCueRegistry.Cue,
 	origin: Vector2,
 	priority: int = 6
 ) -> AudioStreamPlayer2D:
-	var stream: AudioStream = COMBO_BREAK_SFX
-	if cue == &"overdrive":
-		stream = OVERDRIVE_ACTIVATION_SFX
-	elif cue == &"upgrade":
-		stream = UPGRADE_CONFIRM_SFX
+	var profile: Dictionary = AudioCueRegistry.profile(cue)
+	if profile.is_empty():
+		invalid_cue_count += 1
+		return null
 	var player: AudioStreamPlayer2D = _acquire_audio_slot(priority)
 	if player == null:
 		audio_drop_count += 1
 		return null
 	player.stop()
-	player.name = "%sCue" % String(cue).capitalize()
-	player.stream = stream
+	player.name = "%sCue" % String(profile.id).capitalize()
+	player.stream = profile.stream as AudioStream
+	player.bus = profile.bus as StringName
 	player.global_position = origin
-	player.volume_db = -3.0 if cue == &"overdrive" else -5.0
+	player.volume_db = float(profile.volume_db)
 	player.pitch_scale = 1.0
 	player.set_meta(&"priority", priority)
 	player.set_meta(&"started_msec", Time.get_ticks_msec())
-	last_semantic_audio = cue
-	semantic_audio_play_count += 1
+	last_cue = cue
+	cue_play_count += 1
 	player.play()
 	return player
 
@@ -209,6 +204,7 @@ func play_debris_enemy_impact(
 	player.stop()
 	player.name = "DebrisEnemyThud"
 	player.stream = DEBRIS_ENEMY_THUD_SFX
+	player.bus = GameAudioBus.SFX
 	player.global_position = origin
 	player.pitch_scale = debris_pitch_for_mass(body_mass, impact_speed)
 	player.volume_db = debris_volume_for_mass(body_mass, impact_speed)
@@ -268,8 +264,9 @@ func reset_runtime_state() -> void:
 	particle_drop_count = 0
 	audio_recycle_count = 0
 	audio_drop_count = 0
-	semantic_audio_play_count = 0
-	last_semantic_audio = &""
+	cue_play_count = 0
+	invalid_cue_count = 0
+	last_cue = AudioCueRegistry.Cue.INVALID
 	debris_audio_play_count = 0
 	debris_spark_play_count = 0
 	last_debris_mass = 0.0
@@ -357,9 +354,9 @@ func _prewarm_audio() -> void:
 	for index: int in range(audio_capacity):
 		var player: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
 		player.name = "ImpactAudio%02d" % index
-		player.bus = MusicVolumeSettings.SFX_BUS
 		player.max_distance = 1500.0
 		player.attenuation = 0.55
+		player.bus = GameAudioBus.SFX
 		player.set_meta(&"priority", 0)
 		_audio_root.add_child(player)
 		_audio_players.append(player)

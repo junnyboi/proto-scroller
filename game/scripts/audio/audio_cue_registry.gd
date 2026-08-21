@@ -1,0 +1,47 @@
+class_name AudioCueRegistry
+extends RefCounted
+
+enum Cue {
+	INVALID,
+	OVERDRIVE_ACTIVATION,
+	COMBO_BREAK,
+	UPGRADE_CONFIRM,
+}
+
+const OVERDRIVE_ACTIVATION_SFX: AudioStream = preload(
+	"res://audio/sfx/rampage/overdrive_activation.wav"
+)
+const COMBO_BREAK_SFX: AudioStream = preload(
+	"res://audio/sfx/rampage/combo_break.wav"
+)
+const UPGRADE_CONFIRM_SFX: AudioStream = preload(
+	"res://audio/sfx/upgrades/upgrade_confirm.wav"
+)
+const PROFILES: Dictionary = {
+	Cue.OVERDRIVE_ACTIVATION: {
+		&"id": &"overdrive",
+		&"stream": OVERDRIVE_ACTIVATION_SFX,
+		&"bus": &"SFX",
+		&"volume_db": -3.0,
+	},
+	Cue.COMBO_BREAK: {
+		&"id": &"combo_break",
+		&"stream": COMBO_BREAK_SFX,
+		&"bus": &"SFX",
+		&"volume_db": -5.0,
+	},
+	Cue.UPGRADE_CONFIRM: {
+		&"id": &"upgrade",
+		&"stream": UPGRADE_CONFIRM_SFX,
+		&"bus": &"UI",
+		&"volume_db": -5.0,
+	},
+}
+
+
+static func profile(cue: Cue) -> Dictionary:
+	return PROFILES.get(cue, {}) as Dictionary
+
+
+static func is_valid(cue: Cue) -> bool:
+	return PROFILES.has(cue)

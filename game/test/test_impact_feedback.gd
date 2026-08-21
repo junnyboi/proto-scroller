@@ -213,9 +213,9 @@ func test_dodge_through_light_enemies_triggers_one_non_damaging_wheel_slip() -> 
 
 func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 	var overdrive_stream: AudioStreamWAV = (
-		ImpactFeedbackPool.OVERDRIVE_ACTIVATION_SFX as AudioStreamWAV
+		AudioCueRegistry.OVERDRIVE_ACTIVATION_SFX as AudioStreamWAV
 	)
-	var combo_stream: AudioStreamWAV = ImpactFeedbackPool.COMBO_BREAK_SFX as AudioStreamWAV
+	var combo_stream: AudioStreamWAV = AudioCueRegistry.COMBO_BREAK_SFX as AudioStreamWAV
 	assert_eq(overdrive_stream.mix_rate, 48000)
 	assert_eq(combo_stream.mix_rate, 48000)
 	assert_eq(overdrive_stream.format, AudioStreamWAV.FORMAT_16_BITS)
@@ -236,7 +236,10 @@ func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 		100.0
 	))
 	assert_gt(city.contextual_attacks.request_attack(), 0)
-	assert_eq(city.impact_feedback_pool.last_semantic_audio, &"overdrive")
+	assert_eq(
+		city.impact_feedback_pool.last_cue,
+		AudioCueRegistry.Cue.OVERDRIVE_ACTIVATION
+	)
 	city.rampage_session.combo_tracker.register_event(GameplayEvent.new(
 		&"audio_combo",
 		0,
@@ -247,6 +250,14 @@ func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 		true
 	))
 	city.rampage_session.combo_tracker.advance(4.0)
-	assert_eq(city.impact_feedback_pool.last_semantic_audio, &"combo_break")
-	assert_eq(city.impact_feedback_pool.semantic_audio_play_count, 2)
+	assert_eq(city.impact_feedback_pool.last_cue, AudioCueRegistry.Cue.COMBO_BREAK)
+	assert_eq(city.impact_feedback_pool.cue_play_count, 2)
 	assert_eq(city.impact_feedback_pool.audio_child_count(), 8)
+	var invalid_count: int = city.impact_feedback_pool.invalid_cue_count
+	assert_null(city.impact_feedback_pool.play_cue(
+		AudioCueRegistry.Cue.INVALID,
+		city.robot.global_position
+	))
+	assert_eq(city.impact_feedback_pool.invalid_cue_count, invalid_count + 1)
+	assert_eq(city.impact_feedback_pool.cue_play_count, 2)
+	assert_eq(city.impact_feedback_pool.last_cue, AudioCueRegistry.Cue.COMBO_BREAK)

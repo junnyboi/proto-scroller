@@ -17,7 +17,8 @@ func before_all() -> void:
 
 func before_each() -> void:
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
-	MusicVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	_reset_audio_settings()
 	L10n.set_locale("en")
 	screen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
@@ -29,10 +30,8 @@ func before_each() -> void:
 func after_each() -> void:
 	L10n.set_locale("en")
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
-	MusicVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
-	MusicVolumeSettings.apply_percent(MusicVolumeSettings.DEFAULT_MUSIC_PERCENT)
-	MusicVolumeSettings.apply_sfx_percent(MusicVolumeSettings.DEFAULT_SFX_PERCENT)
-	MusicVolumeSettings.apply_voice_percent(MusicVolumeSettings.DEFAULT_VOICE_PERCENT)
+	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	_reset_audio_settings()
 
 
 func test_launch_scene_contract() -> void:
@@ -144,50 +143,66 @@ func test_initialize_seam_transitions_once() -> void:
 	_record_test_execution()
 
 
-func test_settings_menu_applies_and_persists_three_audio_bus_volumes() -> void:
+func test_settings_menu_applies_and_persists_the_complete_audio_mix() -> void:
 	var settings_layer: Control = screen.get_node("%SettingsLayer") as Control
-	var music_slider: HSlider = screen.get_node("%MusicVolumeSlider") as HSlider
-	var sfx_slider: HSlider = screen.get_node("%SfxVolumeSlider") as HSlider
-	var voice_slider: HSlider = screen.get_node("%VoiceVolumeSlider") as HSlider
+	var sliders: Dictionary = {
+		AudioVolumeSettings.Channel.MASTER: screen.get_node("%MasterVolumeSlider"),
+		AudioVolumeSettings.Channel.MUSIC: screen.get_node("%MusicVolumeSlider"),
+		AudioVolumeSettings.Channel.SFX: screen.get_node("%SfxVolumeSlider"),
+		AudioVolumeSettings.Channel.VOICE: screen.get_node("%VoiceVolumeSlider"),
+	}
+	var labels: Dictionary = {
+		AudioVolumeSettings.Channel.MASTER: screen.get_node("%MasterVolumeValue"),
+		AudioVolumeSettings.Channel.MUSIC: screen.get_node("%MusicVolumeValue"),
+		AudioVolumeSettings.Channel.SFX: screen.get_node("%SfxVolumeValue"),
+		AudioVolumeSettings.Channel.VOICE: screen.get_node("%VoiceVolumeValue"),
+	}
+	var requested: Dictionary = {
+		AudioVolumeSettings.Channel.MASTER: 82.0,
+		AudioVolumeSettings.Channel.MUSIC: 35.0,
+		AudioVolumeSettings.Channel.SFX: 64.0,
+		AudioVolumeSettings.Channel.VOICE: 46.0,
+	}
 	assert_false(settings_layer.visible)
-	assert_almost_eq(music_slider.value, MusicVolumeSettings.DEFAULT_MUSIC_PERCENT, 0.01)
-	assert_almost_eq(sfx_slider.value, MusicVolumeSettings.DEFAULT_SFX_PERCENT, 0.01)
-	assert_almost_eq(voice_slider.value, MusicVolumeSettings.DEFAULT_VOICE_PERCENT, 0.01)
 	assert_true(screen.open_settings())
 	assert_true(settings_layer.visible)
-	music_slider.value = 35.0
-	sfx_slider.value = 42.0
-	voice_slider.value = 58.0
-	assert_eq((screen.get_node("%MusicVolumeValue") as Label).text, "35%")
-	assert_eq((screen.get_node("%SfxVolumeValue") as Label).text, "42%")
-	assert_eq((screen.get_node("%VoiceVolumeValue") as Label).text, "58%")
-	_assert_bus_percent(MusicVolumeSettings.MUSIC_BUS, 35.0)
-	_assert_bus_percent(MusicVolumeSettings.SFX_BUS, 42.0)
-	_assert_bus_percent(MusicVolumeSettings.VOICE_BUS, 58.0)
-	assert_almost_eq(MusicVolumeSettings.load_percent(AUDIO_PREFERENCE_PATH), 35.0, 0.01)
-	assert_almost_eq(MusicVolumeSettings.load_sfx_percent(AUDIO_PREFERENCE_PATH), 42.0, 0.01)
-	assert_almost_eq(MusicVolumeSettings.load_voice_percent(AUDIO_PREFERENCE_PATH), 58.0, 0.01)
+	for channel: int in AudioVolumeSettings.CHANNELS:
+		var slider: HSlider = sliders[channel] as HSlider
+		var value_label: Label = labels[channel] as Label
+		var percent: float = float(requested[channel])
+		slider.value = percent
+		assert_eq(value_label.text, "%d%%" % int(percent))
+		var bus_index: int = AudioServer.get_bus_index(
+			AudioVolumeSettings.bus_name(channel)
+		)
+		assert_almost_eq(
+			AudioServer.get_bus_volume_db(bus_index),
+			AudioVolumeSettings.percent_to_db(percent),
+			0.01
+		)
+		assert_almost_eq(
+			AudioVolumeSettings.load_percent(channel, AUDIO_PREFERENCE_PATH),
+			percent,
+			0.01
+		)
 	assert_true(screen.close_settings())
 	assert_false(settings_layer.visible)
 	var restored_screen: TitleScreen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
 	restored_screen.audio_preference_path = AUDIO_PREFERENCE_PATH
 	add_child_autofree(restored_screen)
 	await get_tree().process_frame
-	assert_almost_eq(
-		(restored_screen.get_node("%MusicVolumeSlider") as HSlider).value,
-		35.0,
-		0.01
-	)
-	assert_almost_eq(
-		(restored_screen.get_node("%SfxVolumeSlider") as HSlider).value,
-		42.0,
-		0.01
-	)
-	assert_almost_eq(
-		(restored_screen.get_node("%VoiceVolumeSlider") as HSlider).value,
-		58.0,
-		0.01
-	)
+	for channel: int in AudioVolumeSettings.CHANNELS:
+		var slider_name: String = {
+			AudioVolumeSettings.Channel.MASTER: "%MasterVolumeSlider",
+			AudioVolumeSettings.Channel.MUSIC: "%MusicVolumeSlider",
+			AudioVolumeSettings.Channel.SFX: "%SfxVolumeSlider",
+			AudioVolumeSettings.Channel.VOICE: "%VoiceVolumeSlider",
+		}[channel]
+		assert_almost_eq(
+			(restored_screen.get_node(slider_name) as HSlider).value,
+			float(requested[channel]),
+			0.01
+		)
 	_record_test_execution()
 
 
@@ -261,15 +276,6 @@ func _rendered_line_height(control: Control) -> float:
 	return font.get_height(font_size)
 
 
-func _assert_bus_percent(bus_name: StringName, percent: float) -> void:
-	var bus_index: int = AudioServer.get_bus_index(bus_name)
-	assert_almost_eq(
-		AudioServer.get_bus_volume_db(bus_index),
-		MusicVolumeSettings.percent_to_db(percent),
-		0.01
-	)
-
-
 func _expected_automatic_label() -> String:
 	var resolved_key: String = (
 		"title.language_resolved_zh_cn"
@@ -283,6 +289,14 @@ func _expected_automatic_label() -> String:
 			"resolved": L10n.t(resolved_key),
 		}
 	)
+
+
+func _reset_audio_settings() -> void:
+	for channel: int in AudioVolumeSettings.CHANNELS:
+		AudioVolumeSettings.apply_percent(
+			channel,
+			AudioVolumeSettings.default_percent(channel)
+		)
 
 
 func _record_test_execution() -> void:

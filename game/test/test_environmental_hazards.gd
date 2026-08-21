@@ -79,6 +79,8 @@ func test_catalog_has_twelve_custom_vfx_and_shake_profiles() -> void:
 	_assert_hazard_source_master("res://audio/sfx/hazards/hazard_warning.wav")
 	_assert_hazard_source_master("res://audio/sfx/hazards/hazard_chain_reaction.wav")
 	assert_eq(runtime.audio_pool.voice_count(), RuntimeBudget.HAZARD_AUDIO_VOICES)
+	for voice_node: Node in runtime.audio_pool.find_children("HazardVoice*", "AudioStreamPlayer2D"):
+		assert_eq((voice_node as AudioStreamPlayer2D).bus, GameAudioBus.THREAT)
 
 
 func test_active_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void:

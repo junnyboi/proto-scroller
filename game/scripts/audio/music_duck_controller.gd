@@ -1,7 +1,7 @@
 class_name MusicDuckController
 extends Node
 
-const DEFAULT_BUS_NAME: StringName = &"Music"
+const DEFAULT_BUS_NAME: StringName = GameAudioBus.MUSIC
 const DEFAULT_DUCK_DB: float = -12.0
 const SILENCE_FLOOR_DB: float = -80.0
 
@@ -84,5 +84,5 @@ func _ensure_bus(target_name: StringName) -> int:
 	AudioServer.add_bus()
 	index = AudioServer.bus_count - 1
 	AudioServer.set_bus_name(index, target_name)
-	AudioServer.set_bus_send(index, &"Master")
+	AudioServer.set_bus_send(index, GameAudioBus.MASTER)
 	return index

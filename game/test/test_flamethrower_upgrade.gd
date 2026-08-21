@@ -81,6 +81,7 @@ func test_flamethrower_rank_five_tuning_and_visual_caps_are_exact() -> void:
 func test_flamethrower_pause_freezes_burst_and_loop_audio_policy() -> void:
 	var city: CitySlice = await _spawn_isolated_city()
 	var flame: FlamethrowerRuntime = _flame(city)
+	assert_eq(flame.loop_audio.bus, GameAudioBus.SFX)
 	flame.set_process(false)
 	flame.apply_rank(4)
 	var target: EnemyActor2D = city.encounter_runtime.acquire(

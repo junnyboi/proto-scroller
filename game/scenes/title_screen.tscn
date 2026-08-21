@@ -472,15 +472,15 @@ flat = true
 [node name="SettingsPanel" type="PanelContainer" parent="SettingsLayer"]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 310.0
-offset_top = 72.0
-offset_right = 970.0
-offset_bottom = 648.0
+offset_left = 330.0
+offset_top = 100.0
+offset_right = 950.0
+offset_bottom = 620.0
 theme_override_styles/panel = SubResource("StyleSettingsPanel")
 
 [node name="Content" type="VBoxContainer" parent="SettingsLayer/SettingsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 18
+theme_override_constants/separation = 12
 
 [node name="SettingsHeading" type="Label" parent="SettingsLayer/SettingsPanel/Content"]
 unique_name_in_owner = true
@@ -488,27 +488,55 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.352941, 1, 0.827451, 1)
 text = ""
 
-[node name="VolumeHeader" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="MasterVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
 layout_mode = 2
+theme_override_constants/separation = 12
 
-[node name="MusicVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/VolumeHeader"]
+[node name="MasterVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="MasterVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = ""
+focus_mode = 2
+mouse_default_cursor_shape = 2
+max_value = 100.0
+step = 1.0
+value = 100.0
+tick_count = 11
+ticks_on_borders = true
 
-[node name="MusicVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/VolumeHeader"]
+[node name="MasterVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(96, 0)
+custom_minimum_size = Vector2(80, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
-text = "70%"
+text = "100%"
 horizontal_alignment = 2
+vertical_alignment = 1
 
-[node name="MusicVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+[node name="MusicVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
 layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="MusicVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
 focus_mode = 2
 mouse_default_cursor_shape = 2
 max_value = 100.0
@@ -517,27 +545,31 @@ value = 70.0
 tick_count = 11
 ticks_on_borders = true
 
-[node name="SfxVolumeHeader" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
-layout_mode = 2
-
-[node name="SfxVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeHeader"]
+[node name="MusicVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = ""
-
-[node name="SfxVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeHeader"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(96, 0)
+custom_minimum_size = Vector2(80, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
-text = "100%"
+text = "70%"
 horizontal_alignment = 2
+vertical_alignment = 1
 
-[node name="SfxVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+[node name="SfxVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
 layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SfxVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="SfxVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
 focus_mode = 2
 mouse_default_cursor_shape = 2
 max_value = 100.0
@@ -546,27 +578,31 @@ value = 100.0
 tick_count = 11
 ticks_on_borders = true
 
-[node name="VoiceVolumeHeader" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
-layout_mode = 2
-
-[node name="VoiceVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeHeader"]
+[node name="SfxVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = ""
-
-[node name="VoiceVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeHeader"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(96, 0)
+custom_minimum_size = Vector2(80, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
 text = "100%"
 horizontal_alignment = 2
+vertical_alignment = 1
 
-[node name="VoiceVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+[node name="VoiceVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
 layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="VoiceVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="VoiceVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
 focus_mode = 2
 mouse_default_cursor_shape = 2
 max_value = 100.0
@@ -574,6 +610,15 @@ step = 1.0
 value = 100.0
 tick_count = 11
 ticks_on_borders = true
+
+[node name="VoiceVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
 
 [node name="AudioVolumeHint" type="Label" parent="SettingsLayer/SettingsPanel/Content"]
 unique_name_in_owner = true

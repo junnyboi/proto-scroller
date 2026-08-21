@@ -70,16 +70,17 @@ func test_upgrade_audio_is_original_48khz_pcm16_and_uses_fixed_pool() -> void:
 	pool.setup(particle_root, audio_root)
 	add_child_autofree(pool)
 	await get_tree().process_frame
-	var player: AudioStreamPlayer2D = pool.play_semantic(
-		&"upgrade",
+	var player: AudioStreamPlayer2D = pool.play_cue(
+		AudioCueRegistry.Cue.UPGRADE_CONFIRM,
 		Vector2.ZERO,
 		6
 	)
 	assert_not_null(player)
 	if player != null:
 		assert_same(player.stream, UPGRADE_CONFIRM)
+		assert_eq(player.bus, GameAudioBus.UI)
 	assert_eq(pool.audio_child_count(), RuntimeBudget.AUDIO_VOICES)
-	assert_eq(pool.last_semantic_audio, &"upgrade")
+	assert_eq(pool.last_cue, AudioCueRegistry.Cue.UPGRADE_CONFIRM)
 
 
 func _assert_gutters(path: String, columns: int, rows: int) -> void:

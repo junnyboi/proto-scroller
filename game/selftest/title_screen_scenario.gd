@@ -35,7 +35,7 @@ func _on_process_frame() -> void:
 
 func _run() -> void:
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
-	MusicVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
 	var target_size: Vector2i = _target_size()
 	root.get_window().content_scale_size = target_size
 	root.size = target_size
@@ -109,9 +109,10 @@ func _run() -> void:
 		)
 		screen.close_briefing()
 		screen.open_settings()
+		(screen.get_node("%MasterVolumeSlider") as HSlider).value = 82.0
 		(screen.get_node("%MusicVolumeSlider") as HSlider).value = 35.0
-		(screen.get_node("%SfxVolumeSlider") as HSlider).value = 55.0
-		(screen.get_node("%VoiceVolumeSlider") as HSlider).value = 75.0
+		(screen.get_node("%SfxVolumeSlider") as HSlider).value = 64.0
+		(screen.get_node("%VoiceVolumeSlider") as HSlider).value = 46.0
 		await RenderingServer.frame_post_draw
 		var settings_image: Image = root.get_texture().get_image()
 		var settings_save_error: Error = settings_image.save_png(
@@ -123,12 +124,13 @@ func _run() -> void:
 			"error=%s size=%s" % [settings_save_error, settings_image.get_size()]
 		)
 		_check(
-			"settings_volumes_applied",
-			(screen.get_node("%MusicVolumeValue") as Label).text == "35%"
-			and (screen.get_node("%SfxVolumeValue") as Label).text == "55%"
-			and (screen.get_node("%VoiceVolumeValue") as Label).text == "75%",
-			"values=%s/%s/%s"
-			% [
+			"settings_mix_applied",
+			(screen.get_node("%MasterVolumeValue") as Label).text == "82%"
+			and (screen.get_node("%MusicVolumeValue") as Label).text == "35%"
+			and (screen.get_node("%SfxVolumeValue") as Label).text == "64%"
+			and (screen.get_node("%VoiceVolumeValue") as Label).text == "46%",
+			"master=%s music=%s sfx=%s voice=%s" % [
+				(screen.get_node("%MasterVolumeValue") as Label).text,
 				(screen.get_node("%MusicVolumeValue") as Label).text,
 				(screen.get_node("%SfxVolumeValue") as Label).text,
 				(screen.get_node("%VoiceVolumeValue") as Label).text,

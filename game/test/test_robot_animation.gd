@@ -124,6 +124,12 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_SERVO_SFX)
 	_assert_compact_voice_cue(RobotAnimationPresenter.DODGE_READY_VOICE)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
+	for audio_node: Node in presenter.find_children("RobotMechanicsAudio*", "AudioStreamPlayer2D"):
+		assert_eq((audio_node as AudioStreamPlayer2D).bus, GameAudioBus.MECHANICS)
+	assert_eq(
+		(presenter.get_node(^"RobotStatusVoice") as AudioStreamPlayer).bus,
+		GameAudioBus.VOICE
+	)
 	var frame_callable: Callable = presenter._on_sprite_frame_changed
 	sprite.frame_changed.disconnect(frame_callable)
 	robot.locomotion_state = GiantRobotController.LocomotionState.WALK
