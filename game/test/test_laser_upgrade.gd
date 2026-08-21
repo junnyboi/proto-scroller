@@ -12,7 +12,7 @@ func test_laser_penetrates_three_sorted_receivers_and_uses_no_projectiles() -> v
 	var enemies: Array[EnemyActor2D] = []
 	for index: int in range(4):
 		var enemy: EnemyActor2D = city.encounter_runtime.acquire(
-			&"soldier",
+			&"hound",
 			Vector2(920.0 + 100.0 * float(index), beam_y)
 		)
 		enemy.set_physics_process(false)

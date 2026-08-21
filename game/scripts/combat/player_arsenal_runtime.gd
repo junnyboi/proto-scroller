@@ -1,9 +1,14 @@
 class_name PlayerArsenalRuntime
 extends Node
 
-const MIN_RANGE: float = 180.0
+enum TargetClass {
+	ANY,
+	GROUND,
+	AIR,
+}
+
 const MAX_RANGE: float = 700.0
-const RELEASE_RANGE: float = 740.0
+const RELEASE_PADDING: float = 40.0
 const OBSTRUCTION_MASK: int = (1 << 0) | (1 << 3)
 
 var robot: GiantRobotController
@@ -19,25 +24,28 @@ func setup(
 	robot = p_robot
 	projectile_pool = p_projectile_pool
 	actors.clear()
-	actors.append_array(encounters.soldiers)
-	actors.append_array(encounters.tanks)
-	actors.append_array(encounters.helicopters)
+	actors.append_array(encounters.all_actors())
 
 
-func acquire_target(maximum_range: float = MAX_RANGE) -> EnemyActor2D:
+func acquire_target(
+	maximum_range: float = MAX_RANGE,
+	minimum_range: float = 0.0,
+	target_class: TargetClass = TargetClass.ANY,
+	require_line_of_sight: bool = true
+) -> EnemyActor2D:
 	var best: EnemyActor2D = null
 	var best_distance: float = INF
-	var minimum_squared: float = MIN_RANGE * MIN_RANGE
+	var minimum_squared: float = minimum_range * minimum_range
 	var maximum_squared: float = maximum_range * maximum_range
 	for enemy: EnemyActor2D in actors:
-		if enemy == null or not enemy.active or enemy.dead:
+		if not target_matches_class(enemy, target_class):
 			continue
 		var distance_squared: float = robot.global_position.distance_squared_to(
 			enemy.global_position
 		)
 		if distance_squared < minimum_squared or distance_squared > maximum_squared:
 			continue
-		if not _has_line_of_sight(enemy):
+		if require_line_of_sight and not _has_line_of_sight(enemy):
 			continue
 		if (
 			distance_squared < best_distance
@@ -51,14 +59,38 @@ func acquire_target(maximum_range: float = MAX_RANGE) -> EnemyActor2D:
 	return best
 
 
-func target_is_current(target: EnemyActor2D, generation: int) -> bool:
-	if target == null or not target.active or target.dead:
+func target_is_current(
+	target: EnemyActor2D,
+	generation: int,
+	maximum_range: float = MAX_RANGE,
+	minimum_range: float = 0.0,
+	target_class: TargetClass = TargetClass.ANY,
+	require_line_of_sight: bool = false
+) -> bool:
+	if not target_matches_class(target, target_class):
 		return false
 	if target.activation_generation != generation:
 		return false
-	return robot.global_position.distance_squared_to(target.global_position) <= (
-		RELEASE_RANGE * RELEASE_RANGE
+	var distance_squared: float = robot.global_position.distance_squared_to(
+		target.global_position
 	)
+	if distance_squared < minimum_range * minimum_range:
+		return false
+	var release_range: float = maximum_range + RELEASE_PADDING
+	if distance_squared > release_range * release_range:
+		return false
+	return not require_line_of_sight or _has_line_of_sight(target)
+
+
+func target_matches_class(target: EnemyActor2D, target_class: TargetClass) -> bool:
+	if target == null or not is_instance_valid(target) or not target.active or target.dead:
+		return false
+	var airborne: bool = target.is_in_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+	if target_class == TargetClass.AIR:
+		return airborne
+	if target_class == TargetClass.GROUND:
+		return not airborne
+	return true
 
 
 func reserve_attack_id() -> int:

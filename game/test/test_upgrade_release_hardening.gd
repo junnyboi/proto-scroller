@@ -33,8 +33,14 @@ func test_all_37_ranks_survive_mixed_combat_pause_and_pool_saturation() -> void:
 		&"soldier",
 		city.robot.global_position + Vector2(300.0, 0.0)
 	)
+	var air_target: EnemyActor2D = _durable_target(
+		city,
+		&"needle",
+		city.robot.global_position + Vector2(420.0, -180.0)
+	)
 	assert_not_null(near_target)
 	assert_not_null(missile_target)
+	assert_not_null(air_target)
 	await get_tree().physics_frame
 	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
 	for step: int in range(SOAK_STEPS):
