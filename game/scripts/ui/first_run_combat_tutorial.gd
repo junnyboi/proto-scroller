@@ -202,7 +202,10 @@ func _update_copy() -> void:
 		Step.COMPLETE:
 			key = "complete"
 	title_label.text = L10n.t("tutorial.%s.title" % key)
-	body_label.text = L10n.t("tutorial.%s.body" % key)
+	body_label.text = L10n.t(
+		"tutorial.%s.body" % key,
+		InputBindingSettings.display_placeholders()
+	)
 	skip_button.text = L10n.t("tutorial.skip")
 	skip_button.visible = current_step != Step.COMPLETE
 	progress_label.modulate = COMPLETE_COLOR if current_step == Step.COMPLETE else ACCENT_COLOR

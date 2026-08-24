@@ -9,6 +9,7 @@ const BRIEFING_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-br
 const SETTINGS_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-settings.png"
 const LANGUAGE_PREFERENCE_PATH: String = "user://title-scenario-language.cfg"
 const AUDIO_PREFERENCE_PATH: String = "user://title-scenario-audio.cfg"
+const INPUT_PREFERENCE_PATH: String = "user://title-scenario-input.cfg"
 
 var checks: Array[Dictionary] = []
 var completed: bool = false
@@ -36,6 +37,8 @@ func _on_process_frame() -> void:
 func _run() -> void:
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	InputBindingSettings.reset_to_defaults(INPUT_PREFERENCE_PATH, false)
+	_clear_input_preference()
 	var target_size: Vector2i = _target_size()
 	root.get_window().content_scale_size = target_size
 	root.size = target_size
@@ -48,6 +51,7 @@ func _run() -> void:
 	var screen: TitleScreen = scene_resource.instantiate() as TitleScreen
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	screen.audio_preference_path = AUDIO_PREFERENCE_PATH
+	screen.input_preference_path = INPUT_PREFERENCE_PATH
 	root.add_child(screen)
 	await process_frame
 	await process_frame
@@ -115,6 +119,9 @@ func _run() -> void:
 		(screen.get_node("%VoiceVolumeSlider") as HSlider).value = 46.0
 		(screen.get_node("%MusicMuteButton") as Button).button_pressed = true
 		(screen.get_node("%VoiceMuteButton") as Button).button_pressed = true
+		var settings_scroll: ScrollContainer = screen.get_node("%SettingsScroll") as ScrollContainer
+		await process_frame
+		settings_scroll.scroll_vertical = roundi(settings_scroll.get_v_scroll_bar().max_value)
 		await RenderingServer.frame_post_draw
 		var settings_image: Image = root.get_texture().get_image()
 		var settings_save_error: Error = settings_image.save_png(
@@ -137,6 +144,13 @@ func _run() -> void:
 				(screen.get_node("%SfxVolumeValue") as Label).text,
 				(screen.get_node("%VoiceVolumeValue") as Label).text,
 			]
+		)
+		_check(
+			"settings_input_controls_visible",
+			(screen.get_node("%MoveLeftKeyboardButton") as Button).is_visible_in_tree()
+			and (screen.get_node("%ControllerVibrationToggle") as CheckButton).is_visible_in_tree()
+			and (screen.get_node("%ResetBindingsButton") as Button).is_visible_in_tree(),
+			"scroll=%s" % [settings_scroll.scroll_vertical]
 		)
 		_check(
 			"settings_mute_states_applied",
@@ -234,8 +248,14 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 	)
 	_check(
 		"tutorial_present",
-		controls == L10n.t("title.controls_body")
-		and field_note == L10n.t("title.field_note"),
+			controls == L10n.t(
+				"title.controls_body",
+				InputBindingSettings.display_placeholders()
+			)
+			and field_note == L10n.t(
+				"title.field_note",
+				InputBindingSettings.display_placeholders()
+			),
 		"controls=%s note=%s" % [controls, field_note]
 	)
 	_check(
@@ -339,6 +359,11 @@ func _rendered_line_height(control: Control) -> float:
 	return font.get_height(font_size)
 
 
+func _clear_input_preference() -> void:
+	if FileAccess.file_exists(INPUT_PREFERENCE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(INPUT_PREFERENCE_PATH))
+
+
 func _frame_budget_detail() -> String:
 	return "frames=%s max_frames=%s" % [elapsed_frames, MAX_FRAMES]
 
@@ -366,6 +391,8 @@ func _check(check_name: String, passed: bool, detail: String) -> void:
 func _finish(shot_status: String, shot_path: String) -> void:
 	completed = true
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
+	InputBindingSettings.reset_to_defaults(INPUT_PREFERENCE_PATH, false)
+	_clear_input_preference()
 	var all_passed: bool = true
 	for item: Dictionary in checks:
 		if not bool(item["passed"]):

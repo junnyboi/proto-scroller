@@ -27,6 +27,9 @@ var briefing_open: bool = false
 var settings_open: bool = false
 var locale_preference_path: String = L10n.PREFERENCE_PATH
 var audio_preference_path: String = AudioVolumeSettings.PREFERENCE_PATH
+var input_preference_path: String = InputBindingSettings.PREFERENCE_PATH
+var _capture_action: StringName = &""
+var _capture_gamepad: bool = false
 
 @onready var background_art: TextureRect = %BackgroundArt
 @onready var briefing_art: TextureRect = %BriefingArt
@@ -56,7 +59,28 @@ var audio_preference_path: String = AudioVolumeSettings.PREFERENCE_PATH
 @onready var voice_volume_slider: HSlider = %VoiceVolumeSlider
 @onready var voice_mute_button: Button = %VoiceMuteButton
 @onready var audio_volume_hint: Label = %AudioVolumeHint
+@onready var settings_scroll: ScrollContainer = %SettingsScroll
+@onready var controls_heading: Label = %ControlsHeading
+@onready var move_left_binding_label: Label = %MoveLeftBindingLabel
+@onready var move_right_binding_label: Label = %MoveRightBindingLabel
+@onready var smash_binding_label: Label = %SmashBindingLabel
+@onready var dodge_binding_label: Label = %DodgeBindingLabel
+@onready var binding_hint: Label = %BindingHint
+@onready var controller_vibration_toggle: CheckButton = %ControllerVibrationToggle
+@onready var reset_bindings_button: Button = %ResetBindingsButton
 @onready var settings_close_button: Button = %SettingsCloseButton
+@onready var keyboard_binding_buttons: Dictionary[StringName, Button] = {
+	&"move_left": %MoveLeftKeyboardButton,
+	&"move_right": %MoveRightKeyboardButton,
+	&"stomp": %SmashKeyboardButton,
+	&"dodge": %DodgeKeyboardButton,
+}
+@onready var gamepad_binding_buttons: Dictionary[StringName, Button] = {
+	&"move_left": %MoveLeftGamepadButton,
+	&"move_right": %MoveRightGamepadButton,
+	&"stomp": %SmashGamepadButton,
+	&"dodge": %DodgeGamepadButton,
+}
 @onready var language_selector: HBoxContainer = %LanguageSelector
 @onready var language_label: Label = %LanguageLabel
 @onready var automatic_button: Button = %AutomaticButton
@@ -74,6 +98,15 @@ func _ready() -> void:
 	settings_button.pressed.connect(open_settings)
 	settings_backdrop.pressed.connect(close_settings)
 	settings_close_button.pressed.connect(close_settings)
+	for action: StringName in InputBindingSettings.ACTIONS:
+		keyboard_binding_buttons[action].pressed.connect(
+			_begin_binding_capture.bind(action, false)
+		)
+		gamepad_binding_buttons[action].pressed.connect(
+			_begin_binding_capture.bind(action, true)
+		)
+	controller_vibration_toggle.toggled.connect(_on_controller_vibration_toggled)
+	reset_bindings_button.pressed.connect(_on_reset_bindings_pressed)
 	master_volume_slider.value_changed.connect(_on_master_volume_changed)
 	music_volume_slider.value_changed.connect(_on_music_volume_changed)
 	sfx_volume_slider.value_changed.connect(_on_sfx_volume_changed)
@@ -85,6 +118,7 @@ func _ready() -> void:
 	automatic_button.pressed.connect(_on_automatic_pressed)
 	english_button.pressed.connect(_on_english_pressed)
 	chinese_button.pressed.connect(_on_chinese_pressed)
+	InputBindingSettings.apply_saved(input_preference_path)
 	var volume_values: Dictionary = AudioVolumeSettings.apply_saved(audio_preference_path)
 	master_volume_slider.set_value_no_signal(float(volume_values[AudioVolumeSettings.Channel.MASTER]))
 	music_volume_slider.set_value_no_signal(float(volume_values[AudioVolumeSettings.Channel.MUSIC]))
@@ -102,7 +136,11 @@ func _ready() -> void:
 	voice_mute_button.set_pressed_no_signal(
 		AudioVolumeSettings.load_muted(AudioVolumeSettings.Channel.VOICE, audio_preference_path)
 	)
+	controller_vibration_toggle.set_pressed_no_signal(
+		InputBindingSettings.controller_vibration_enabled()
+	)
 	_update_audio_volume_values()
+	_refresh_binding_labels()
 	_update_mute_button_texts()
 	initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
@@ -110,6 +148,40 @@ func _ready() -> void:
 	L10n.apply_locale_font(self)
 	L10n.apply_cjk_font(chinese_button)
 	_apply_responsive_layout()
+
+
+func _input(event: InputEvent) -> void:
+	if _capture_action.is_empty():
+		return
+	if not _capture_gamepad and event is InputEventKey:
+		var key_event: InputEventKey = event as InputEventKey
+		if not key_event.pressed or key_event.echo:
+			return
+		var keycode: Key = key_event.physical_keycode
+		if keycode == KEY_NONE:
+			keycode = key_event.keycode
+		if keycode == KEY_ESCAPE:
+			_cancel_binding_capture()
+		else:
+			InputBindingSettings.set_keyboard_binding(
+				_capture_action,
+				keycode,
+				input_preference_path
+			)
+			_complete_binding_capture()
+		get_viewport().set_input_as_handled()
+		return
+	if _capture_gamepad and event is InputEventJoypadButton:
+		var button_event: InputEventJoypadButton = event as InputEventJoypadButton
+		if not button_event.pressed:
+			return
+		InputBindingSettings.set_gamepad_binding(
+			_capture_action,
+			button_event.button_index,
+			input_preference_path
+		)
+		_complete_binding_capture()
+		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -192,6 +264,7 @@ func open_settings() -> bool:
 func close_settings(restore_focus: bool = true) -> bool:
 	if not settings_open:
 		return false
+	_cancel_binding_capture()
 	settings_open = false
 	settings_layer.visible = false
 	if restore_focus and not initialized:
@@ -236,6 +309,49 @@ func _on_english_pressed() -> void:
 
 func _on_chinese_pressed() -> void:
 	select_language("zh-CN")
+
+
+func _begin_binding_capture(action: StringName, gamepad: bool) -> void:
+	_capture_action = action
+	_capture_gamepad = gamepad
+	_refresh_binding_labels()
+
+
+func _complete_binding_capture() -> void:
+	var completed_action: StringName = _capture_action
+	var completed_gamepad: bool = _capture_gamepad
+	_capture_action = &""
+	_capture_gamepad = false
+	_refresh_binding_labels()
+	_refresh_control_copy()
+	var completed_button: Button = (
+		gamepad_binding_buttons[completed_action]
+		if completed_gamepad
+		else keyboard_binding_buttons[completed_action]
+	)
+	completed_button.call_deferred("grab_focus")
+
+
+func _cancel_binding_capture() -> void:
+	if _capture_action.is_empty():
+		return
+	_capture_action = &""
+	_capture_gamepad = false
+	_refresh_binding_labels()
+
+
+func _on_controller_vibration_toggled(enabled: bool) -> void:
+	InputBindingSettings.set_controller_vibration_enabled(
+		enabled,
+		input_preference_path
+	)
+
+
+func _on_reset_bindings_pressed() -> void:
+	InputBindingSettings.reset_to_defaults(input_preference_path)
+	controller_vibration_toggle.set_pressed_no_signal(true)
+	_refresh_binding_labels()
+	_refresh_control_copy()
 
 
 func _on_master_volume_changed(value: float) -> void:
@@ -294,6 +410,24 @@ func _update_mute_button_texts() -> void:
 		)
 
 
+func _refresh_binding_labels() -> void:
+	for action: StringName in InputBindingSettings.ACTIONS:
+		keyboard_binding_buttons[action].text = InputBindingSettings.keyboard_label(action)
+		gamepad_binding_buttons[action].text = InputBindingSettings.gamepad_label(action)
+	if _capture_action.is_empty():
+		binding_hint.text = L10n.t("title.input_remap_hint")
+		return
+	var target_button: Button = (
+		gamepad_binding_buttons[_capture_action]
+		if _capture_gamepad
+		else keyboard_binding_buttons[_capture_action]
+	)
+	target_button.text = L10n.t(
+		"title.input_press_button" if _capture_gamepad else "title.input_press_key"
+	)
+	binding_hint.text = L10n.t("title.input_remap_waiting")
+
+
 func _mute_buttons() -> Array[Button]:
 	return [
 		master_mute_button,
@@ -336,8 +470,7 @@ func _apply_localized_text() -> void:
 		else ">  %s" % L10n.t("title.begin")
 	)
 	($HintLabel as Label).text = L10n.t("title.input_hint")
-	($MoveChip/Label as Label).text = L10n.t("title.move_chip")
-	($SmashChip/Label as Label).text = L10n.t("title.smash_chip")
+	_refresh_control_copy()
 	briefing_toggle.text = L10n.t(
 		"title.briefing_close" if briefing_open else "title.briefing_available"
 	)
@@ -348,7 +481,15 @@ func _apply_localized_text() -> void:
 	sfx_volume_label.text = L10n.t("title.sfx_volume")
 	voice_volume_label.text = L10n.t("title.voice_volume")
 	audio_volume_hint.text = L10n.t("title.audio_volume_hint")
+	controls_heading.text = L10n.t("title.controls_settings_heading")
+	move_left_binding_label.text = L10n.t("title.control_move_left")
+	move_right_binding_label.text = L10n.t("title.control_move_right")
+	smash_binding_label.text = L10n.t("title.control_smash")
+	dodge_binding_label.text = L10n.t("title.control_dodge")
+	controller_vibration_toggle.text = L10n.t("title.controller_vibration")
+	reset_bindings_button.text = L10n.t("title.reset_bindings")
 	settings_close_button.text = L10n.t("title.settings_close")
+	_refresh_binding_labels()
 	_update_audio_volume_values()
 	_update_mute_button_texts()
 	language_label.text = L10n.t("title.language")
@@ -366,8 +507,6 @@ func _apply_localized_text() -> void:
 	status_label.text = L10n.t(
 		"title.expedition_active" if initialized else "title.mission_briefing"
 	)
-	(%ControlsLabel as Label).text = L10n.t("title.controls_body")
-	($SemanticContract/FieldNote as Label).text = L10n.t("title.field_note")
 	(%EnemyIntel as Label).text = L10n.t("title.enemy_intel")
 	(%RunRule as Label).text = L10n.t("title.run_protocol")
 	system_value.text = L10n.t("title.deploying" if initialized else "title.awaiting_pilot")
@@ -377,6 +516,14 @@ func _apply_localized_text() -> void:
 	($SemanticContract/ObjectiveOne as Label).text = L10n.t("title.objective_one")
 	($SemanticContract/ObjectiveTwo as Label).text = L10n.t("title.objective_two")
 	($SemanticContract/ObjectiveThree as Label).text = L10n.t("title.objective_three")
+
+
+func _refresh_control_copy() -> void:
+	var bindings: Dictionary = InputBindingSettings.display_placeholders()
+	($MoveChip/Label as Label).text = L10n.t("title.move_chip", bindings)
+	($SmashChip/Label as Label).text = L10n.t("title.smash_chip", bindings)
+	(%ControlsLabel as Label).text = L10n.t("title.controls_body", bindings)
+	($SemanticContract/FieldNote as Label).text = L10n.t("title.field_note", bindings)
 
 
 func _apply_responsive_layout() -> void:
@@ -439,6 +586,11 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	settings_close_button.add_theme_font_size_override(&"font_size", body_size)
 	for mute_button: Button in _mute_buttons():
 		mute_button.add_theme_font_size_override(&"font_size", body_size)
+	for action: StringName in InputBindingSettings.ACTIONS:
+		keyboard_binding_buttons[action].add_theme_font_size_override(&"font_size", body_size)
+		gamepad_binding_buttons[action].add_theme_font_size_override(&"font_size", body_size)
+	controller_vibration_toggle.add_theme_font_size_override(&"font_size", body_size)
+	reset_bindings_button.add_theme_font_size_override(&"font_size", body_size)
 	language_label.add_theme_font_size_override(&"font_size", body_size)
 	automatic_button.add_theme_font_size_override(&"font_size", body_size)
 	english_button.add_theme_font_size_override(&"font_size", body_size)

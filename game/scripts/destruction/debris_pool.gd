@@ -15,15 +15,21 @@ signal ground_impact_accepted(
 
 @export var debris_scene: PackedScene
 @export_range(1, 128, 1) var capacity: int = 48
+@export var cull_margin: Vector2 = Vector2(192.0, 160.0)
+@export_range(0.02, 1.0, 0.02) var cull_interval: float = 0.10
 
 var recycle_count: int = 0
+var offscreen_recycle_count: int = 0
 var peak_active_count: int = 0
 var kinetic_field_runtime: KineticFieldRuntime
 var _free: Array[DebrisBody2D] = []
 var _active: Array[DebrisBody2D] = []
+var _culling_camera: CameraRig
+var _cull_elapsed: float = 0.0
 
 
 func _ready() -> void:
+	set_physics_process(false)
 	for index: int in range(capacity):
 		var body: DebrisBody2D
 		if debris_scene != null:
@@ -40,6 +46,16 @@ func _ready() -> void:
 		add_child(body)
 		body.deactivate()
 		_free.append(body)
+
+
+func _physics_process(delta: float) -> void:
+	if _culling_camera == null or _active.is_empty():
+		return
+	_cull_elapsed += delta
+	if _cull_elapsed < cull_interval:
+		return
+	_cull_elapsed = 0.0
+	cull_offscreen_now()
 
 
 func acquire(
@@ -89,6 +105,26 @@ func active_count() -> int:
 
 func active_bodies() -> Array[DebrisBody2D]:
 	return _active.duplicate()
+
+
+func set_culling_camera(camera: CameraRig) -> void:
+	_culling_camera = camera
+	_cull_elapsed = 0.0
+	set_physics_process(_culling_camera != null)
+
+
+func cull_offscreen_now() -> int:
+	if _culling_camera == null or _active.is_empty():
+		return 0
+	var culling_rect: Rect2 = _culling_camera.visible_world_rect(cull_margin)
+	var culled_count: int = 0
+	for body: DebrisBody2D in _active.duplicate():
+		if culling_rect.has_point(body.global_position):
+			continue
+		release(body)
+		culled_count += 1
+	offscreen_recycle_count += culled_count
+	return culled_count
 
 
 func set_kinetic_field_runtime(runtime: KineticFieldRuntime) -> void:
