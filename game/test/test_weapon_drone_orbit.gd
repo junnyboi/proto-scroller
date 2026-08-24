@@ -49,6 +49,28 @@ func test_chassis_flips_with_orbit_travel_while_weapon_aims_independently() -> v
 	assert_eq(drone.chassis_facing, -1)
 
 
+func test_rear_arc_drones_render_behind_robot_and_front_arc_above() -> void:
+	var city: CitySlice = await _spawn_city()
+	var orbit: WeaponDroneOrbit2D = city.upgrade_assembler.drone_orbit
+	var machine: MachineGunRuntime = _machine(city)
+	machine.apply_rank(1)
+	var drone: WeaponDroneVisual2D = machine.drones[0]
+	orbit.set_process(false)
+	orbit.orbit_angle = -PI * 0.5
+	orbit._process(0.0)
+	assert_true(drone.behind_robot)
+	assert_eq(
+		drone.z_index,
+		drone.base_z_index + WeaponDroneVisual2D.REAR_ORBIT_Z_OFFSET
+	)
+	assert_lt(orbit.z_index + drone.z_index, 0)
+	orbit.orbit_angle = PI * 0.5
+	orbit._process(0.0)
+	assert_false(drone.behind_robot)
+	assert_eq(drone.z_index, drone.base_z_index)
+	assert_gt(orbit.z_index + drone.z_index, 0)
+
+
 func test_orbit_slots_are_deterministic_and_separated() -> void:
 	var city: CitySlice = await _spawn_city()
 	var orbit: WeaponDroneOrbit2D = city.upgrade_assembler.drone_orbit

@@ -41,6 +41,8 @@ func _run() -> void:
 	await process_frame
 	city.robot.set_physics_process(false)
 	city.encounter_runtime.release_all()
+	city.gameplay_hud.visible = false
+	city.gameplay_hud.first_run_tutorial.visible = false
 	var orbit: WeaponDroneOrbit2D = city.upgrade_assembler.drone_orbit
 	orbit.set_process(false)
 	orbit.orbit_angle = -PI * 0.5

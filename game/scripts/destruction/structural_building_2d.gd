@@ -16,6 +16,7 @@ signal destroyed(event: DamageEvent)
 const COLUMNS: int = 3
 const ROWS: int = 2
 const CELL_COUNT: int = COLUMNS * ROWS
+const UPPER_SUPPORT_DAMAGE_RATIO: float = 0.5
 const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.gd")
 
 @export var intact_texture: Texture2D
@@ -137,6 +138,7 @@ func restore_stream_state(state: Dictionary) -> void:
 			cell_state = cell_states[cell_index] as Dictionary
 		_cells[cell_index].restore_stream_state(cell_state)
 		_destroyed_cells += 1 if _cells[cell_index].is_destroyed() else 0
+	_refresh_rubble_edges()
 
 
 func _build_cells() -> void:
@@ -148,6 +150,7 @@ func _build_cells() -> void:
 			var cell: Destructible2D = _create_cell(column, row)
 			_cells.append(cell)
 			add_child(cell)
+	_refresh_rubble_edges()
 
 
 func _create_cell(column: int, row: int) -> Destructible2D:
@@ -176,6 +179,7 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 		_create_damage_pattern(column, row, profile)
 	)
 	cell.add_child(_create_rubble_sprite(column, row, profile))
+	cell.add_child(_create_rubble_edge(column, row, profile))
 	cell.add_child(_create_intact_body(row))
 	cell.add_child(_create_hurtbox())
 	return cell
@@ -233,6 +237,32 @@ func _create_rubble_sprite(
 	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
 	sprite.modulate = profile.visual_tint
 	return sprite
+
+
+func _create_rubble_edge(
+	column: int,
+	row: int,
+	profile: StructuralMaterialProfile
+) -> BuildingRubbleEdge2D:
+	var edge: BuildingRubbleEdge2D = BuildingRubbleEdge2D.new()
+	edge.name = "RubbleEdgeVisual"
+	edge.z_index = 3
+	var source_size: Vector2 = intact_texture.get_size()
+	var source_cell_size: Vector2 = Vector2(
+		source_size.x / float(COLUMNS),
+		source_size.y / float(ROWS)
+	)
+	edge.configure(
+		_cell_size(),
+		1 + row * COLUMNS + column,
+		intact_texture,
+		Rect2(
+			Vector2(source_cell_size.x * float(column), source_cell_size.y * float(row)),
+			source_cell_size
+		),
+		profile.visual_tint
+	)
+	return edge
 
 
 func _create_damage_pattern(
@@ -335,11 +365,65 @@ func _on_cell_damage_applied(amount: float, event: DamageEvent) -> void:
 func _on_cell_destroyed(event: DamageEvent, column: int, row: int) -> void:
 	_destroyed_cells += 1
 	_last_destruction_event = event
+	if row == ROWS - 1:
+		_damage_cell_above(column, row, event)
+	_refresh_rubble_edges()
 	cell_destroyed.emit(column, row, event)
 	if is_destroyed():
 		destroyed.emit(event)
 		return
 	call_deferred("_evaluate_chain_reactions")
+
+
+func _refresh_rubble_edges() -> void:
+	for row: int in range(ROWS):
+		for column: int in range(COLUMNS):
+			var cell: Destructible2D = get_cell(column, row)
+			if cell == null:
+				continue
+			var edge: BuildingRubbleEdge2D = cell.get_node_or_null(
+				^"RubbleEdgeVisual"
+			) as BuildingRubbleEdge2D
+			if edge == null or not cell.is_destroyed():
+				if edge != null:
+					edge.set_exposed_edges(false, false, false, false)
+				continue
+			edge.set_exposed_edges(
+				_neighbor_is_intact(column, row - 1),
+				_neighbor_is_intact(column + 1, row),
+				row < ROWS - 1 and _neighbor_is_intact(column, row + 1),
+				_neighbor_is_intact(column - 1, row)
+			)
+
+
+func _damage_cell_above(
+	column: int,
+	destroyed_row: int,
+	source_event: DamageEvent
+) -> void:
+	var upper_row: int = destroyed_row - 1
+	var upper_cell: Destructible2D = get_cell(column, upper_row)
+	if upper_cell == null or upper_cell.is_destroyed():
+		return
+	var source: Node = source_event.source if source_event != null else null
+	var attack_id: int = source_event.attack_id if source_event != null else 0
+	var support_event: DamageEvent = DamageEvent.new(
+		attack_id,
+		source,
+		upper_cell.max_health * UPPER_SUPPORT_DAMAGE_RATIO,
+		&"support_failure",
+		upper_cell.global_position + Vector2(0.0, _cell_size().y * 0.34),
+		Vector2.UP,
+		260.0
+	)
+	upper_cell.receive_damage(support_event)
+
+
+func _neighbor_is_intact(column: int, row: int) -> bool:
+	if column < 0 or column >= COLUMNS or row < 0 or row >= ROWS:
+		return true
+	var neighbor: Destructible2D = get_cell(column, row)
+	return neighbor != null and not neighbor.is_destroyed()
 
 
 func _evaluate_chain_reactions() -> void:

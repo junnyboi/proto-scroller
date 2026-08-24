@@ -6,6 +6,16 @@ const BASE_CRACK_COUNT: int = 5
 const EDGE_MARGIN: float = 8.0
 const CRACK_SHADOW: Color = Color(0.015, 0.012, 0.012, 0.78)
 const CRACK_HIGHLIGHT: Color = Color(0.34, 0.27, 0.22, 0.58)
+const CABLE_DETAIL_BIT: int = 1
+const PIPE_DETAIL_BIT: int = 2
+const CABLE_DISPLAY_SIZE: Vector2 = Vector2(46.0, 68.0)
+const PIPE_DISPLAY_SIZE: Vector2 = Vector2(31.5, 57.0)
+const CABLE_TEXTURE: Texture2D = preload(
+	"res://art/destruction/damage_details/dangling_cables.png"
+)
+const PIPE_TEXTURE: Texture2D = preload(
+	"res://art/destruction/damage_details/broken_water_pipe.png"
+)
 
 var _texture: Texture2D
 var _region_rect: Rect2
@@ -15,6 +25,9 @@ var _material_id: StringName = &"concrete"
 var _contour: PackedVector2Array = PackedVector2Array()
 var _cracks: Array[PackedVector2Array] = []
 var _patch: Polygon2D
+var _cable_detail: BuildingDamageAttachment2D
+var _pipe_detail: BuildingDamageAttachment2D
+var _detail_mask: int = 0
 
 
 func configure(
@@ -38,6 +51,18 @@ func configure(
 	_patch.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_patch.z_index = -1
 	add_child(_patch)
+	_cable_detail = _create_detail_attachment(
+		"DanglingCables",
+		BuildingDamageAttachment2D.Kind.CABLE,
+		CABLE_TEXTURE,
+		CABLE_DISPLAY_SIZE
+	)
+	_pipe_detail = _create_detail_attachment(
+		"BrokenWaterPipe",
+		BuildingDamageAttachment2D.Kind.PIPE,
+		PIPE_TEXTURE,
+		PIPE_DISPLAY_SIZE
+	)
 	visible = false
 
 
@@ -54,7 +79,9 @@ func record_damage(event: DamageEvent, health_ratio: float) -> void:
 		^ int(roundf(event.hit_position.x * 17.0))
 		^ int(roundf(event.hit_position.y * 31.0))
 	)
-	_generate(local_hit, clampf(1.0 - health_ratio, 0.0, 1.0), event_seed)
+	var severity: float = clampf(1.0 - health_ratio, 0.0, 1.0)
+	_generate(local_hit, severity, event_seed)
+	_emit_attachment_effects(event, severity)
 	queue_redraw()
 
 
@@ -64,6 +91,48 @@ func contour() -> PackedVector2Array:
 
 func crack_count() -> int:
 	return _cracks.size()
+
+
+func damage_detail_count() -> int:
+	var total: int = 0
+	if _cable_detail != null and _cable_detail.visible:
+		total += 1
+	if _pipe_detail != null and _pipe_detail.visible:
+		total += 1
+	return total
+
+
+func damage_detail_mask() -> int:
+	return _detail_mask
+
+
+func damage_effect_activation_count() -> int:
+	var total: int = 0
+	if _cable_detail != null:
+		total += _cable_detail.activation_count
+	if _pipe_detail != null:
+		total += _pipe_detail.activation_count
+	return total
+
+
+func active_damage_effect_count() -> int:
+	var total: int = 0
+	if _cable_detail != null:
+		total += _cable_detail.active_effect_count()
+	if _pipe_detail != null:
+		total += _pipe_detail.active_effect_count()
+	return total
+
+
+func cable_sway_offset() -> float:
+	return _cable_detail.sway_rotation_offset if _cable_detail != null else 0.0
+
+
+func cull_damage_details() -> void:
+	if _cable_detail != null:
+		_cable_detail.set_attachment_visible(false)
+	if _pipe_detail != null:
+		_pipe_detail.set_attachment_visible(false)
 
 
 func pattern_signature() -> String:
@@ -76,9 +145,11 @@ func pattern_signature() -> String:
 func reset_pattern() -> void:
 	_contour.clear()
 	_cracks.clear()
+	_detail_mask = 0
 	if _patch != null:
 		_patch.polygon = PackedVector2Array()
 		_patch.uv = PackedVector2Array()
+	cull_damage_details()
 	queue_redraw()
 
 
@@ -89,6 +160,7 @@ func capture_stream_state() -> Dictionary:
 	return {
 		"contour": _contour.duplicate(),
 		"cracks": cracks,
+		"detail_mask": _detail_mask,
 	}
 
 
@@ -102,6 +174,10 @@ func restore_stream_state(state: Dictionary) -> void:
 		_cracks.append((crack_value as PackedVector2Array).duplicate())
 	_patch.polygon = _contour
 	_patch.uv = _texture_uvs(_contour)
+	_apply_detail_mask(
+		int(state.get("detail_mask", 0)),
+		_contour_center()
+	)
 	queue_redraw()
 
 
@@ -162,6 +238,89 @@ func _generate(center: Vector2, severity: float, event_seed: int) -> void:
 			edge,
 		])
 		_cracks.append(crack)
+	_apply_detail_mask(_detail_mask_for_severity(severity), center)
+
+
+func _detail_mask_for_severity(severity: float) -> int:
+	if severity < 0.28:
+		return 0
+	if severity >= 0.62:
+		return CABLE_DETAIL_BIT | PIPE_DETAIL_BIT
+	if _material_id == &"steel":
+		return PIPE_DETAIL_BIT
+	if _material_id == &"glass":
+		return CABLE_DETAIL_BIT
+	return CABLE_DETAIL_BIT if _pattern_seed % 2 == 0 else PIPE_DETAIL_BIT
+
+
+func _apply_detail_mask(mask: int, center: Vector2) -> void:
+	_detail_mask = mask
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = _pattern_seed * 32452843 + mask * 49979687
+	_position_detail(
+		_cable_detail,
+		center,
+		Vector2(rng.randf_range(-28.0, 16.0), 30.0),
+		rng
+	)
+	_position_detail(
+		_pipe_detail,
+		center,
+		Vector2(rng.randf_range(-12.0, 28.0), 34.0),
+		rng
+	)
+	if _cable_detail != null:
+		_cable_detail.set_attachment_visible((mask & CABLE_DETAIL_BIT) != 0)
+	if _pipe_detail != null:
+		_pipe_detail.set_attachment_visible((mask & PIPE_DETAIL_BIT) != 0)
+
+
+func _position_detail(
+	attachment: BuildingDamageAttachment2D,
+	center: Vector2,
+	offset: Vector2,
+	rng: RandomNumberGenerator
+) -> void:
+	if attachment == null:
+		return
+	var half_size: Vector2 = _cell_size * 0.5
+	var visual_center: Vector2 = center + offset
+	visual_center.x = clampf(visual_center.x, -half_size.x + 26.0, half_size.x - 26.0)
+	visual_center.y = clampf(visual_center.y, -half_size.y + 34.0, half_size.y - 34.0)
+	attachment.configure_transform(
+		visual_center,
+		rng.randf_range(-0.11, 0.11),
+		rng.randi_range(0, 1) == 1
+	)
+
+
+func _create_detail_attachment(
+	attachment_name: String,
+	kind: BuildingDamageAttachment2D.Kind,
+	texture: Texture2D,
+	display_size: Vector2
+) -> BuildingDamageAttachment2D:
+	var attachment: BuildingDamageAttachment2D = BuildingDamageAttachment2D.new()
+	attachment.name = attachment_name
+	attachment.setup(kind, texture, display_size, _pattern_seed)
+	add_child(attachment)
+	return attachment
+
+
+func _emit_attachment_effects(event: DamageEvent, severity: float) -> void:
+	if _cable_detail != null and _cable_detail.visible:
+		_cable_detail.emit_damage_effect(event.direction, severity)
+	if _pipe_detail != null and _pipe_detail.visible:
+		_pipe_detail.emit_damage_effect(event.direction, severity)
+
+
+func _contour_center() -> Vector2:
+	if _contour.is_empty():
+		return Vector2.ZERO
+	var center: Vector2 = Vector2.ZERO
+	for point: Vector2 in _contour:
+		center += point
+	return center / float(_contour.size())
 
 
 func _texture_uvs(points: PackedVector2Array) -> PackedVector2Array:

@@ -213,7 +213,7 @@ func test_robot_is_immune_to_self_and_player_team_damage() -> void:
 	_record_test_execution()
 
 
-func test_jab_cross_destroys_only_the_struck_lower_bay() -> void:
+func test_jab_cross_destroys_lower_bay_and_cracks_upper_support() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -235,11 +235,18 @@ func test_jab_cross_destroys_only_the_struck_lower_bay() -> void:
 	assert_false(city.building.is_cell_destroyed(2, 1))
 	for column: int in range(StructuralBuilding2D.COLUMNS):
 		assert_false(city.building.is_cell_destroyed(column, 0))
+	var upper_cell: Destructible2D = city.building.get_cell(0, 0)
+	var upper_pattern: BuildingDamagePattern2D = upper_cell.get_node(
+		^"DamagedVisual"
+	) as BuildingDamagePattern2D
+	assert_almost_eq(upper_cell.current_health, upper_cell.max_health * 0.5, 0.01)
+	assert_true(upper_pattern.visible)
+	assert_gt(upper_pattern.crack_count(), 0)
 	assert_eq(city.building.destroyed_cell_count(), 1)
 	assert_false(city.building.is_destroyed())
-	assert_eq(city.score, 750)
-	assert_eq(city.last_material_audio, &"glass")
-	assert_eq(city.material_audio_play_count, 1)
+	assert_eq(city.score, 1225)
+	assert_eq(city.last_material_audio, &"concrete")
+	assert_eq(city.material_audio_play_count, 2)
 	var glass_audio: AudioStreamPlayer2D = city.impact_audio_root.get_child(0)
 	assert_eq(glass_audio.stream, city.GLASS_IMPACT_SFX)
 	assert_eq(glass_audio.get_meta(&"structural_material"), &"glass")
@@ -261,7 +268,7 @@ func test_jab_cross_destroys_only_the_struck_lower_bay() -> void:
 			high_forward_shrapnel += 1
 	assert_gte(high_forward_shrapnel, 4)
 	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
-	assert_eq(score_label.text, "00000750")
+	assert_eq(score_label.text, "00001225")
 	_record_test_execution()
 
 
