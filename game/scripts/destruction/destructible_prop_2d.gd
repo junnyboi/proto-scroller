@@ -17,7 +17,8 @@ const WORLD_LAYER: int = 1 << 0
 @export var destroyed_display_size: Vector2 = Vector2(160.0, 80.0)
 @export var destroyed_collision_size: Vector2 = Vector2(130.0, 50.0)
 @export var visual_ground_offset: float = 0.0
-@export var ground_smash_fully_destroys: bool = false
+@export var ground_smash_breaks_immediately: bool = false
+@export var wreck_next_hit_fully_destroys: bool = false
 
 var current_health: float
 var is_broken: bool = false
@@ -53,9 +54,10 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
-	if ground_smash_fully_destroys and event.damage_type == &"ground_smash":
-		if not is_broken:
-			_break_prop(event)
+	if ground_smash_breaks_immediately and event.damage_type == &"ground_smash" and not is_broken:
+		_break_prop(event)
+		return true
+	if is_broken and wreck_next_hit_fully_destroys:
 		_fully_destroy_prop(event)
 		return true
 	current_health = maxf(current_health - event.amount, 0.0)

@@ -3,7 +3,8 @@ set -euo pipefail
 
 export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 export GODOT_SILENCE_ROOT_WARNING=1
-GODOT="${GODOT:-$HOME/bin/godot}"
+GODOT="${GODOT:-$(command -v godot || command -v godot4 || true)}"
+test -n "$GODOT"
 MODE="standard"
 if [[ "${1:-}" == "--full" ]]; then
   MODE="full"
@@ -141,9 +142,43 @@ if [[ "$MODE" == "full" ]]; then
     -s selftest/city_slice_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/city_slice/report.json >/dev/null
-  test -s artifacts/city_slice/city-slice.png
-  CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice.png)"
-  grep -Fq '1280 x 720' <<< "$CITY_DIMENSIONS"
+	  test -s artifacts/city_slice/city-slice.png
+	  CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice.png)"
+	  grep -Fq '1280 x 720' <<< "$CITY_DIMENSIONS"
+	  test -s artifacts/city_slice/city-slice-wrecked.png
+	  test -s artifacts/city_slice/city-slice-rubble.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/city_slice/city-slice-wrecked.png)"
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/city_slice/city-slice-rubble.png)"
+	  cp artifacts/city_slice/city-slice.png \
+	    artifacts/city_slice/city-slice-landscape.png
+	  mv artifacts/city_slice/city-slice-wrecked.png \
+	    artifacts/city_slice/city-slice-wrecked-landscape.png
+	  mv artifacts/city_slice/city-slice-rubble.png \
+	    artifacts/city_slice/city-slice-rubble-landscape.png
+
+	  printf '%s\n' '[L5] portrait city-slice wreck and rubble render scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	    --resolution 720x1280 -s selftest/city_slice_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+	    artifacts/city_slice/report.json >/dev/null
+	  test -s artifacts/city_slice/city-slice.png
+	  test -s artifacts/city_slice/city-slice-wrecked.png
+	  test -s artifacts/city_slice/city-slice-rubble.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/city_slice/city-slice.png)"
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/city_slice/city-slice-wrecked.png)"
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/city_slice/city-slice-rubble.png)"
+	  mv artifacts/city_slice/city-slice.png \
+	    artifacts/city_slice/city-slice-portrait.png
+	  mv artifacts/city_slice/city-slice-wrecked.png \
+	    artifacts/city_slice/city-slice-wrecked-portrait.png
+	  mv artifacts/city_slice/city-slice-rubble.png \
+	    artifacts/city_slice/city-slice-rubble-portrait.png
+	  cp artifacts/city_slice/city-slice-landscape.png \
+	    artifacts/city_slice/city-slice.png
+	  cp artifacts/city_slice/city-slice-wrecked-landscape.png \
+	    artifacts/city_slice/city-slice-wrecked.png
+	  cp artifacts/city_slice/city-slice-rubble-landscape.png \
+	    artifacts/city_slice/city-slice-rubble.png
 
   printf '%s\n' '[L5] windowed enemy-variety render scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \

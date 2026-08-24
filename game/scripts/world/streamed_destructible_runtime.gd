@@ -170,7 +170,8 @@ func _build_slot(chunk: CityStreetChunk) -> void:
 		"mass": 12.0,
 		"points": 300,
 		"is_car": true,
-		"ground_smash_fully_destroys": true,
+		"ground_smash_breaks_immediately": true,
+		"wreck_next_hit_fully_destroys": true,
 	})
 	var lamp: DestructibleProp2D = _create_prop("StreamedStreetlamp", {
 		"intact": LAMP_INTACT,
@@ -185,7 +186,8 @@ func _build_slot(chunk: CityStreetChunk) -> void:
 		"mass": 4.0,
 		"points": 150,
 		"is_car": false,
-		"ground_smash_fully_destroys": true,
+		"ground_smash_breaks_immediately": true,
+		"wreck_next_hit_fully_destroys": true,
 	})
 	chunk.add_child(car)
 	chunk.add_child(lamp)
@@ -213,8 +215,11 @@ func _create_prop(
 	prop.intact_display_size = spec.intact_size as Vector2
 	prop.destroyed_display_size = spec.broken_size as Vector2
 	prop.destroyed_collision_size = spec.broken_collision as Vector2
-	prop.ground_smash_fully_destroys = bool(
-		spec.get("ground_smash_fully_destroys", false)
+	prop.ground_smash_breaks_immediately = bool(
+		spec.get("ground_smash_breaks_immediately", false)
+	)
+	prop.wreck_next_hit_fully_destroys = bool(
+		spec.get("wreck_next_hit_fully_destroys", false)
 	)
 	prop.destroyed.connect(
 		_emit_prop_destroyed.bind(int(spec.points), bool(spec.is_car))

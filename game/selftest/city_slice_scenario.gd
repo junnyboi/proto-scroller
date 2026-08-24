@@ -3,6 +3,8 @@ extends SceneTree
 const MAX_FRAMES: int = 3000
 const REPORT_PATH: String = "res://artifacts/city_slice/report.json"
 const SHOT_PATH: String = "res://artifacts/city_slice/city-slice.png"
+const WRECK_SHOT_PATH: String = "res://artifacts/city_slice/city-slice-wrecked.png"
+const RUBBLE_SHOT_PATH: String = "res://artifacts/city_slice/city-slice-rubble.png"
 
 var checks: Array[Dictionary] = []
 var completed: bool = false
@@ -81,6 +83,53 @@ func _run() -> void:
 		target_building.destroyed_cell_count() == 1,
 		"cells=%d" % target_building.destroyed_cell_count()
 	)
+	_check(
+		"ground_smash_blackens_car",
+		target_car.is_broken and not target_car.is_fully_destroyed and target_car.visual.visible,
+		"broken=%s fully_destroyed=%s visible=%s"
+		% [target_car.is_broken, target_car.is_fully_destroyed, target_car.visual.visible]
+	)
+	_check(
+		"ground_smash_blackens_lamp",
+		target_lamp.is_broken and not target_lamp.is_fully_destroyed and target_lamp.visual.visible,
+		"broken=%s fully_destroyed=%s visible=%s"
+		% [target_lamp.is_broken, target_lamp.is_fully_destroyed, target_lamp.visual.visible]
+	)
+	await _save_state_shot(WRECK_SHOT_PATH)
+	var debris_before_rubble: int = city.debris_pool.active_count()
+	target_car.receive_damage(DamageEvent.new(
+		76101,
+		city.robot,
+		1.0,
+		&"jab_cross",
+		target_car.global_position,
+		Vector2.RIGHT,
+		420.0
+	))
+	target_lamp.receive_damage(DamageEvent.new(
+		76102,
+		city.robot,
+		1.0,
+		&"jab_cross",
+		target_lamp.global_position,
+		Vector2.RIGHT,
+		420.0
+	))
+	await physics_frame
+	await physics_frame
+	_check(
+		"next_hit_reduces_props_to_rubble",
+		target_car.is_fully_destroyed
+		and target_lamp.is_fully_destroyed
+		and city.debris_pool.active_count() == debris_before_rubble + 8,
+		"car=%s lamp=%s debris=%d"
+		% [
+			target_car.is_fully_destroyed,
+			target_lamp.is_fully_destroyed,
+			city.debris_pool.active_count(),
+		]
+	)
+	await _save_state_shot(RUBBLE_SHOT_PATH)
 	await _resolve_upgrade_choices(city)
 	var jab_cross_columns: Array[int] = [1, 1, 2, 2]
 	for jab_cross_index: int in range(jab_cross_columns.size()):
@@ -253,6 +302,18 @@ func _resolve_upgrade_choices(city: CitySlice) -> void:
 		if not session.select_choice(selected, sequence):
 			return
 		await process_frame
+
+
+func _save_state_shot(path: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	await RenderingServer.frame_post_draw
+	var image: Image = root.get_texture().get_image()
+	DirAccess.make_dir_recursive_absolute(
+		ProjectSettings.globalize_path("res://artifacts/city_slice")
+	)
+	var save_error: Error = image.save_png(ProjectSettings.globalize_path(path))
+	_check("shot_saved_%s" % path.get_file(), save_error == OK, "error=%s" % save_error)
 
 
 func _check(check_name: String, passed: bool, detail: String) -> void:
