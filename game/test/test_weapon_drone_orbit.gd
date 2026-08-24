@@ -7,6 +7,11 @@ func test_fixed_pool_activates_one_drone_per_offensive_rank() -> void:
 	var city: CitySlice = await _spawn_city()
 	var orbit: WeaponDroneOrbit2D = city.upgrade_assembler.drone_orbit
 	assert_not_null(orbit)
+	assert_almost_eq(
+		orbit.position.y,
+		CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y,
+		0.001
+	)
 	assert_eq(orbit.drones.size(), RuntimeBudget.WEAPON_DRONES)
 	assert_eq(orbit.active_count(), 0)
 	var machine: MachineGunRuntime = _machine(city)

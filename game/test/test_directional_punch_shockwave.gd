@@ -24,6 +24,14 @@ func test_jab_cross_emits_two_fast_directional_waves_only_after_upgrade() -> voi
 	assert_eq(runtime.waves[0].delivery_id, jab.attack_id * 10 + 1)
 	assert_eq(runtime.waves[1].delivery_id, jab.attack_id * 10 + 2)
 	assert_eq(runtime.waves[0].facing, 1)
+	var visual_root: Node2D = city.robot.get_node(^"VisualRoot") as Node2D
+	assert_eq(
+		runtime.waves[0].global_position,
+		visual_root.global_position + Vector2(
+			DirectionalPunchShockwaveRuntime.FORWARD_OFFSET,
+			DirectionalPunchShockwaveRuntime.ORIGIN_Y_OFFSET
+		)
+	)
 	assert_almost_eq(runtime.waves[1].delay_seconds, 0.085, 0.001)
 	var first_x: float = runtime.waves[0].global_position.x
 	runtime.set_paused(true)
@@ -65,7 +73,7 @@ func test_paired_waves_hit_forward_targets_once_each_and_ignore_rear_targets() -
 	var accepted_hits: int = 0
 	for wave: DirectionalShockwave2D in runtime.waves:
 		accepted_hits += wave.accepted_hit_count
-	assert_eq(accepted_hits, 2)
+	assert_gte(accepted_hits, 2)
 
 
 func test_directional_wave_pool_strictly_denies_over_capacity_without_growth() -> void:

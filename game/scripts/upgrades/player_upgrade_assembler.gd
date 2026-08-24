@@ -49,6 +49,7 @@ func setup(city: Node) -> PackedStringArray:
 		city.get("encounter_runtime") as EncounterRuntime
 	)
 	drone_orbit = WeaponDroneOrbit2D.new()
+	drone_orbit.position.y = CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y
 	robot.add_child(drone_orbit)
 	drone_orbit.setup(robot)
 	var machine_gun: MachineGunRuntime = (

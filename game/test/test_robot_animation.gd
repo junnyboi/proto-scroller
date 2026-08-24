@@ -24,6 +24,25 @@ const FORBIDDEN_SCROLLER_ANIMATIONS: Array[StringName] = [
 func test_library_excludes_all_northward_walk_and_attack_directions() -> void:
 	var city: CitySlice = await _spawn_city()
 	var sprite: AnimatedSprite2D = _sprite(city)
+	var visual_root: Node2D = sprite.get_parent() as Node2D
+	assert_almost_eq(
+		visual_root.position.y,
+		CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y,
+		0.001
+	)
+	var body_collision: CollisionShape2D = city.robot.get_node(^"BodyCollision") as CollisionShape2D
+	assert_eq(body_collision.position, Vector2(0.0, 21.0))
+	var gameplay_ground: Marker2D = city.robot.get_node(^"GroundImpactOrigin") as Marker2D
+	var visual_ground: Marker2D = city.robot.get_node(
+		^"VisualRoot/VisualGroundOrigin"
+	) as Marker2D
+	assert_eq(gameplay_ground.position, Vector2(0.0, 126.0))
+	assert_eq(visual_ground.position, Vector2(0.0, 126.0))
+	assert_almost_eq(
+		visual_ground.global_position.y - gameplay_ground.global_position.y,
+		CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y,
+		0.001
+	)
 	var names: PackedStringArray = sprite.sprite_frames.get_animation_names()
 	names.sort()
 	assert_eq(names, PackedStringArray(EXPECTED_ANIMATIONS))

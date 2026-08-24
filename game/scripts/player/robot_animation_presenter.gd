@@ -359,7 +359,9 @@ func _prewarm_dust() -> void:
 func _spawn_dodge_dust(intensity: float) -> void:
 	if _dust_pool == null or robot == null:
 		return
-	var ground_origin: Node2D = robot.get_node_or_null(^"GroundImpactOrigin") as Node2D
+	var ground_origin: Node2D = robot.get_node_or_null(
+		^"VisualRoot/VisualGroundOrigin"
+	) as Node2D
 	var origin: Vector2 = (
 		ground_origin.global_position if ground_origin != null else robot.global_position
 	)

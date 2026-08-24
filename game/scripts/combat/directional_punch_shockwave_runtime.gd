@@ -83,7 +83,11 @@ func _on_attack_active(spec: AttackSpec) -> void:
 		return
 	if robot == null:
 		return
-	var origin: Vector2 = robot.global_position + Vector2(
+	var visual_root: Node2D = robot.get_node_or_null(^"VisualRoot") as Node2D
+	var visual_anchor: Vector2 = (
+		visual_root.global_position if visual_root != null else robot.global_position
+	)
+	var origin: Vector2 = visual_anchor + Vector2(
 		float(spec.facing) * FORWARD_OFFSET,
 		ORIGIN_Y_OFFSET
 	)
