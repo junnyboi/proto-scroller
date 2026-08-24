@@ -9,7 +9,7 @@ const CRACK_HIGHLIGHT: Color = Color(0.34, 0.27, 0.22, 0.58)
 const CABLE_DETAIL_BIT: int = 1
 const PIPE_DETAIL_BIT: int = 2
 const CABLE_DISPLAY_SIZE: Vector2 = Vector2(46.0, 68.0)
-const PIPE_DISPLAY_SIZE: Vector2 = Vector2(42.0, 76.0)
+const PIPE_DISPLAY_SIZE: Vector2 = Vector2(31.5, 57.0)
 const CABLE_TEXTURE: Texture2D = preload(
 	"res://art/destruction/damage_details/dangling_cables.png"
 )

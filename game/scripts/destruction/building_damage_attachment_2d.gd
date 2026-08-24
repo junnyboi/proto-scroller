@@ -112,6 +112,10 @@ func active_effect_count() -> int:
 	return 1 if particles != null and particles.emitting else 0
 
 
+func display_size() -> Vector2:
+	return _display_size
+
+
 func _process(delta: float) -> void:
 	if kind != Kind.CABLE or not visible:
 		return

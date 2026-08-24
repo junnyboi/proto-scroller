@@ -65,6 +65,10 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
 	var city: CitySlice = await _spawn_city()
 	var cell: Destructible2D = city.building.get_cell(1, 1)
+	var upper_cell: Destructible2D = city.building.get_cell(1, 0)
+	var upper_pattern: BuildingDamagePattern2D = upper_cell.get_node(
+		^"DamagedVisual"
+	) as BuildingDamagePattern2D
 	var pattern: BuildingDamagePattern2D = cell.get_node(
 		^"DamagedVisual"
 	) as BuildingDamagePattern2D
@@ -85,6 +89,7 @@ func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
 	assert_true(cable.is_processing())
 	assert_eq(cable.particles.name, "CableSparks")
 	assert_eq(pipe.particles.name, "WaterSpray")
+	assert_eq(pipe.display_size(), Vector2(31.5, 57.0))
 	assert_lte(
 		cable.particles.amount,
 		BuildingDamageAttachment2D.MAX_SPARK_PARTICLES
@@ -105,7 +110,18 @@ func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
 	assert_eq(pattern.damage_detail_count(), 0)
 	assert_eq(pattern.active_damage_effect_count(), 0)
 	assert_false(cable.is_processing())
-	assert_gt(edge.exposed_edge_count(), 0)
+	assert_false(upper_cell.is_destroyed())
+	assert_almost_eq(
+		upper_cell.current_health,
+		upper_cell.max_health * 0.5,
+		0.01
+	)
+	assert_true(upper_pattern.visible)
+	assert_gt(upper_pattern.crack_count(), 0)
+	assert_eq(edge.exposed_edge_count(), 3)
+	assert_false(edge.is_edge_exposed(BuildingRubbleEdge2D.Edge.BOTTOM))
+	assert_gt(edge.weather_mark_count(), 0)
+	assert_lt(edge.surface_fill_color().get_luminance(), 0.12)
 	assert_true(edge.visible)
 	assert_gt(edge._edge_polygons.size(), 0)
 	for polygon: PackedVector2Array in edge._edge_polygons:

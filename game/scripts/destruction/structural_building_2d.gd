@@ -16,6 +16,7 @@ signal destroyed(event: DamageEvent)
 const COLUMNS: int = 3
 const ROWS: int = 2
 const CELL_COUNT: int = COLUMNS * ROWS
+const UPPER_SUPPORT_DAMAGE_RATIO: float = 0.5
 const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.gd")
 
 @export var intact_texture: Texture2D
@@ -355,6 +356,8 @@ func _on_cell_damage_applied(amount: float, event: DamageEvent) -> void:
 func _on_cell_destroyed(event: DamageEvent, column: int, row: int) -> void:
 	_destroyed_cells += 1
 	_last_destruction_event = event
+	if row == ROWS - 1:
+		_damage_cell_above(column, row, event)
 	_refresh_rubble_edges()
 	cell_destroyed.emit(column, row, event)
 	if is_destroyed():
@@ -379,9 +382,32 @@ func _refresh_rubble_edges() -> void:
 			edge.set_exposed_edges(
 				_neighbor_is_intact(column, row - 1),
 				_neighbor_is_intact(column + 1, row),
-				_neighbor_is_intact(column, row + 1),
+				row < ROWS - 1 and _neighbor_is_intact(column, row + 1),
 				_neighbor_is_intact(column - 1, row)
 			)
+
+
+func _damage_cell_above(
+	column: int,
+	destroyed_row: int,
+	source_event: DamageEvent
+) -> void:
+	var upper_row: int = destroyed_row - 1
+	var upper_cell: Destructible2D = get_cell(column, upper_row)
+	if upper_cell == null or upper_cell.is_destroyed():
+		return
+	var source: Node = source_event.source if source_event != null else null
+	var attack_id: int = source_event.attack_id if source_event != null else 0
+	var support_event: DamageEvent = DamageEvent.new(
+		attack_id,
+		source,
+		upper_cell.max_health * UPPER_SUPPORT_DAMAGE_RATIO,
+		&"support_failure",
+		upper_cell.global_position + Vector2(0.0, _cell_size().y * 0.34),
+		Vector2.UP,
+		260.0
+	)
+	upper_cell.receive_damage(support_event)
 
 
 func _neighbor_is_intact(column: int, row: int) -> bool:
