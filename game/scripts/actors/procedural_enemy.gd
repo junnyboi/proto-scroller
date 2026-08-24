@@ -70,6 +70,11 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	xp_value = int(profile.get("xp", 500))
 	threat_cost = int(profile.get("threat", 1))
 	remains_family = StringName(profile.get("remains", &"vehicle"))
+	hit_stun_recovery_seconds = (
+		HUMAN_HIT_STUN_SECONDS
+		if EnemyArchetypeCatalog.is_human_enemy(archetype_id)
+		else VEHICLE_HIT_STUN_SECONDS
+	)
 	_lane_y = float(profile.get("spawn_y", 190.0))
 	if airborne:
 		motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
@@ -87,6 +92,9 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if dead or not active:
+		return
+	if _advance_hit_stun(delta, 0.0 if airborne else GRAVITY):
+		_animate_visual(delta)
 		return
 	_state_time += delta
 	_cooldown = maxf(_cooldown - delta, 0.0)
@@ -443,3 +451,10 @@ func _reset_archetype_state() -> void:
 	_pass_side = facing
 	_spawned_children = 0
 	_attack_sequence = 0
+
+
+func _on_hit_stun_started() -> void:
+	state = State.HOLD
+	_state_time = 0.0
+	_cooldown = maxf(_cooldown, 0.20)
+	_attack_kick = 0.0

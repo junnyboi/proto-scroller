@@ -15,8 +15,15 @@ signal boss_armor_changed(current: float, maximum: float)
 signal boss_armor_broken()
 
 const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
+const VEHICLE_HIT_STUN_SECONDS: float = 0.45
+const HUMAN_HIT_STUN_SECONDS: float = 0.85
+const HIT_STUN_GROUND_DRAG: float = 170.0
+const HIT_STUN_AIR_DRAG: float = 110.0
 
 @export var max_health: float = 60.0
+
+@export_group("Hit Stun")
+@export var hit_stun_recovery_seconds: float = VEHICLE_HIT_STUN_SECONDS
 
 @export_group("Movement Bounce")
 @export var movement_bounce_enabled: bool = false
@@ -57,6 +64,8 @@ var player_anticipation_count: int = 0
 var player_strike_reaction_count: int = 0
 var last_player_reaction_attack_id: int = 0
 var last_player_knockback_attack_id: int = 0
+var hit_stun_remaining: float = 0.0
+var last_hit_stun_attack_id: int = 0
 var dodge_wheel_slip_count: int = 0
 var last_dodge_wheel_slip_direction: int = 0
 var _base_max_health: float = 0.0
@@ -141,6 +150,7 @@ func receive_damage(event: DamageEvent) -> bool:
 		boss_armor_changed.emit(boss_armor, boss_max_armor)
 		if is_zero_approx(boss_armor):
 			boss_armor_broken.emit()
+		_apply_nonlethal_hit_reaction(event)
 		return true
 	var accepted_event: DamageEvent = event
 	if _shield_available:
@@ -149,21 +159,58 @@ func receive_damage(event: DamageEvent) -> bool:
 	if not is_equal_approx(incoming_damage_multiplier, 1.0):
 		accepted_event = accepted_event.scaled(incoming_damage_multiplier)
 	current_health = maxf(current_health - accepted_event.amount, 0.0)
-	var knockback_scale: float = (
-		0.28
-		if accepted_event.damage_type in [&"jab_cross", &"ground_smash"]
-		else 0.18
-	)
-	velocity += accepted_event.direction * accepted_event.impulse_per_mass * knockback_scale
-	if accepted_event.damage_type in [&"jab_cross", &"ground_smash"]:
-		last_player_knockback_attack_id = accepted_event.attack_id
 	if visual != null:
 		visual.modulate = Color("ffd0a6")
 		var tween: Tween = create_tween()
 		tween.tween_property(visual, "modulate", Color.WHITE, 0.12)
 	if current_health <= 0.0:
 		_die(accepted_event)
+	else:
+		_apply_nonlethal_hit_reaction(accepted_event)
 	return true
+
+
+func _is_hit_stunned() -> bool:
+	return active and not dead and hit_stun_remaining > 0.0
+
+
+func _advance_hit_stun(
+	delta: float,
+	gravity_acceleration: float = 0.0,
+	maximum_fall_speed: float = 900.0
+) -> bool:
+	if not _is_hit_stunned():
+		return false
+	hit_stun_remaining = maxf(hit_stun_remaining - delta, 0.0)
+	velocity.x = move_toward(velocity.x, 0.0, HIT_STUN_GROUND_DRAG * delta)
+	if gravity_acceleration > 0.0:
+		velocity.y = minf(
+			velocity.y + gravity_acceleration * delta,
+			maximum_fall_speed
+		)
+	else:
+		velocity.y = move_toward(velocity.y, 0.0, HIT_STUN_AIR_DRAG * delta)
+	move_and_slide()
+	return true
+
+
+func _apply_nonlethal_hit_reaction(event: DamageEvent) -> void:
+	var knockback_scale: float = (
+		0.28
+		if event.damage_type in [&"jab_cross", &"ground_smash"]
+		else 0.18
+	)
+	velocity += event.direction * event.impulse_per_mass * knockback_scale
+	if event.damage_type in [&"jab_cross", &"ground_smash"]:
+		last_player_knockback_attack_id = event.attack_id
+	hit_stun_remaining = maxf(hit_stun_remaining, hit_stun_recovery_seconds)
+	last_hit_stun_attack_id = event.attack_id
+	cancel_telegraph()
+	_on_hit_stun_started()
+
+
+func _on_hit_stun_started() -> void:
+	pass
 
 
 func request_projectile(
@@ -331,6 +378,8 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 	activation_generation += 1
 	active = true
 	dead = false
+	hit_stun_remaining = 0.0
+	last_hit_stun_attack_id = 0
 	visible = true
 	global_position = spawn_position
 	velocity = Vector2.ZERO
@@ -361,6 +410,8 @@ func deactivate() -> void:
 	boss_max_armor = 0.0
 	active = false
 	dead = false
+	hit_stun_remaining = 0.0
+	last_hit_stun_attack_id = 0
 	visible = false
 	target = null
 	velocity = Vector2.ZERO

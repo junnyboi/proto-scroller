@@ -34,6 +34,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if dead or not active or target == null:
 		return
+	if _advance_hit_stun(delta):
+		return
 	if state == State.ANTICIPATE:
 		velocity = velocity.move_toward(Vector2.ZERO, acceleration * delta)
 		if advance_telegraph(delta):
@@ -103,3 +105,9 @@ func _reset_archetype_state() -> void:
 	_cooldown = 1.0
 	_state_time = 0.0
 	_attack_side = 1
+
+
+func _on_hit_stun_started() -> void:
+	state = State.STRAFE
+	_state_time = 0.0
+	_cooldown = maxf(_cooldown, 0.25)

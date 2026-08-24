@@ -22,10 +22,18 @@ var state: State = State.APPROACH
 var _cooldown: float = 0.35
 
 
+func _ready() -> void:
+	hit_stun_recovery_seconds = HUMAN_HIT_STUN_SECONDS
+	super._ready()
+
+
 func _physics_process(delta: float) -> void:
 	if dead or not active:
 		return
 	_update_facing()
+	if _advance_hit_stun(delta, gravity):
+		update_movement_bounce(delta)
+		return
 	if state == State.ANTICIPATE:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		if advance_telegraph(delta):
@@ -89,3 +97,8 @@ func _fire_snapshot() -> void:
 func _reset_archetype_state() -> void:
 	state = State.APPROACH
 	_cooldown = 0.35
+
+
+func _on_hit_stun_started() -> void:
+	state = State.AIM
+	_cooldown = maxf(_cooldown, 0.15)

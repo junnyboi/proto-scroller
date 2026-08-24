@@ -194,8 +194,119 @@ func test_player_frame_11_dispatches_flash_shake_enemy_recoil_and_knockback() ->
 	assert_eq(reactions.last_strike_attack_id, attack_id)
 	assert_eq(city.tank.player_strike_reaction_count, 1)
 	assert_eq(city.tank.last_player_knockback_attack_id, attack_id)
+	assert_eq(city.tank.last_hit_stun_attack_id, attack_id)
+	assert_true(city.tank._is_hit_stunned())
+	assert_almost_eq(
+		city.tank.hit_stun_remaining,
+		EnemyActor2D.VEHICLE_HIT_STUN_SECONDS,
+		0.001
+	)
 	assert_lt(city.tank.current_health, city.tank.max_health)
 	assert_gt(city.tank.velocity.x, 250.0)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
+func test_humans_recover_from_nonlethal_hit_stun_after_vehicles() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.deactivate()
+	city.robot.global_position = Vector2(700.0, 460.0)
+	city.soldier.activate(Vector2(900.0, 542.5), city.robot)
+	city.tank.activate(Vector2(1100.0, 551.0), city.robot)
+	city.soldier.set_physics_process(false)
+	city.tank.set_physics_process(false)
+	var soldier_start_x: float = city.soldier.global_position.x
+	var tank_start_x: float = city.tank.global_position.x
+	var soldier_event: DamageEvent = DamageEvent.new(
+		9101,
+		city.robot,
+		1.0,
+		&"jab_cross",
+		city.soldier.global_position,
+		Vector2.RIGHT,
+		1080.0
+	)
+	var tank_event: DamageEvent = DamageEvent.new(
+		9102,
+		city.robot,
+		1.0,
+		&"jab_cross",
+		city.tank.global_position,
+		Vector2.RIGHT,
+		1080.0
+	)
+	assert_true(city.soldier.receive_damage(soldier_event))
+	assert_true(city.tank.receive_damage(tank_event))
+	assert_false(city.soldier.dead)
+	assert_false(city.tank.dead)
+	assert_true(city.soldier._is_hit_stunned())
+	assert_true(city.tank._is_hit_stunned())
+	assert_gt(city.soldier.velocity.x, 250.0)
+	assert_gt(city.tank.velocity.x, 250.0)
+	assert_almost_eq(
+		city.soldier.hit_stun_remaining,
+		EnemyActor2D.HUMAN_HIT_STUN_SECONDS,
+		0.001
+	)
+	assert_almost_eq(
+		city.tank.hit_stun_remaining,
+		EnemyActor2D.VEHICLE_HIT_STUN_SECONDS,
+		0.001
+	)
+	assert_gt(city.soldier.hit_stun_remaining, city.tank.hit_stun_remaining)
+	var vehicle_recovery: float = EnemyActor2D.VEHICLE_HIT_STUN_SECONDS + 0.01
+	assert_true(city.soldier._advance_hit_stun(vehicle_recovery, city.soldier.gravity))
+	assert_true(city.tank._advance_hit_stun(vehicle_recovery, city.tank.gravity))
+	assert_true(city.soldier._is_hit_stunned())
+	assert_false(city.tank._is_hit_stunned())
+	assert_gt(city.soldier.global_position.x, soldier_start_x)
+	assert_gt(city.tank.global_position.x, tank_start_x)
+	assert_true(city.soldier._advance_hit_stun(
+		city.soldier.hit_stun_remaining + 0.01,
+		city.soldier.gravity
+	))
+	assert_false(city.soldier._is_hit_stunned())
+	var bulwark: ProceduralEnemy = city.encounter_runtime.acquire(
+		&"bulwark",
+		Vector2(1300.0, 540.0)
+	) as ProceduralEnemy
+	var jackal: ProceduralEnemy = city.encounter_runtime.acquire(
+		&"jackal",
+		Vector2(1500.0, 547.0)
+	) as ProceduralEnemy
+	assert_not_null(bulwark)
+	assert_not_null(jackal)
+	if bulwark == null or jackal == null:
+		return
+	bulwark.set_physics_process(false)
+	jackal.set_physics_process(false)
+	assert_almost_eq(
+		bulwark.hit_stun_recovery_seconds,
+		EnemyActor2D.HUMAN_HIT_STUN_SECONDS,
+		0.001
+	)
+	assert_almost_eq(
+		jackal.hit_stun_recovery_seconds,
+		EnemyActor2D.VEHICLE_HIT_STUN_SECONDS,
+		0.001
+	)
+	city.soldier.receive_damage(DamageEvent.new(
+		9103,
+		city.robot,
+		1.0,
+		&"ground_smash",
+		city.soldier.global_position,
+		Vector2.RIGHT,
+		1020.0
+	))
+	assert_true(city.soldier._is_hit_stunned())
+	city.soldier.deactivate()
+	city.soldier.activate(Vector2(900.0, 542.5), city.robot)
+	assert_false(city.soldier._is_hit_stunned())
+	assert_eq(city.soldier.last_hit_stun_attack_id, 0)
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 

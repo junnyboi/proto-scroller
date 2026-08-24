@@ -30,6 +30,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if dead or not active:
 		return
+	if _advance_hit_stun(delta, gravity):
+		update_movement_bounce(delta)
+		return
 	if state == State.ANTICIPATE:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		if advance_telegraph(delta):
@@ -90,3 +93,8 @@ func _fire_snapshot() -> void:
 func _reset_archetype_state() -> void:
 	state = State.ADVANCE
 	_cooldown = 1.25
+
+
+func _on_hit_stun_started() -> void:
+	state = State.AIM
+	_cooldown = maxf(_cooldown, 0.20)
