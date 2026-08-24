@@ -33,7 +33,7 @@ func bank_all() -> int:
 
 
 func discard_half() -> int:
-	var discarded: int = value / 2
+	var discarded: int = floori(float(value) / 2.0)
 	value -= discarded
 	return discarded
 

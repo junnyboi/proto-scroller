@@ -14,7 +14,11 @@ func register(event: GameplayEvent) -> bool:
 	if event == null or event.root_attack_id == 0:
 		return false
 	var root_id: int = event.root_attack_id
-	var event_key: Variant = event.event_id if event.event_id != 0 else event.dedupe_key
+	var event_key: Variant
+	if event.event_id != 0:
+		event_key = event.event_id
+	else:
+		event_key = event.dedupe_key
 	if not _records.has(root_id):
 		if event.causal_depth > 0:
 			rejected_count += 1

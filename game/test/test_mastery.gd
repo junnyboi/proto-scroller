@@ -45,6 +45,13 @@ func test_heavy_hit_discards_half_pending_and_one_combo_tier() -> void:
 	assert_eq(session.heavy_hit_count, 1)
 
 
+func test_pending_score_bank_discards_floor_half_for_odd_values() -> void:
+	var bank: PendingScoreBank = PendingScoreBank.new()
+	bank.add(5)
+	assert_eq(bank.discard_half(), 2)
+	assert_eq(bank.value, 3)
+
+
 func test_causal_tracker_rejects_duplicates_and_out_of_order_links() -> void:
 	var tracker: CausalChainTracker = CausalChainTracker.new()
 	var root: GameplayEvent = GameplayEvent.new(&"root", 500)
@@ -63,6 +70,25 @@ func test_causal_tracker_rejects_duplicates_and_out_of_order_links() -> void:
 	assert_eq(tracker.rejected_count, 2)
 	tracker.advance(CausalChainTracker.RECORD_LIFETIME)
 	assert_eq(tracker.active_count(), 0)
+
+
+func test_causal_tracker_supports_numeric_and_named_dedupe_keys() -> void:
+	var tracker: CausalChainTracker = CausalChainTracker.new()
+	var numeric_root: GameplayEvent = GameplayEvent.new(&"numeric_root", 700)
+	numeric_root.event_id = 42
+	numeric_root.root_attack_id = 700
+	assert_true(tracker.register(numeric_root))
+	var numeric_duplicate: GameplayEvent = GameplayEvent.new(&"different_name", 700)
+	numeric_duplicate.event_id = 42
+	numeric_duplicate.root_attack_id = 700
+	numeric_duplicate.causal_depth = 1
+	assert_false(tracker.register(numeric_duplicate))
+	var named_link: GameplayEvent = GameplayEvent.new(&"named_link", 701)
+	named_link.root_attack_id = 700
+	named_link.causal_depth = 1
+	assert_true(tracker.register(named_link))
+	assert_eq(tracker.best_depth, 1)
+	assert_eq(tracker.rejected_count, 1)
 
 
 func test_causal_tracker_never_exceeds_fixed_record_budget() -> void:
