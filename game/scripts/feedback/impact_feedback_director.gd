@@ -1,7 +1,6 @@
 class_name ImpactFeedbackDirector
 extends Node
 
-const PLAYER_FLASH_SECONDS: float = 0.14
 const PLAYER_JAB_IMPULSE: float = 22.0
 const PLAYER_SLAM_IMPULSE: float = 26.0
 
@@ -15,28 +14,8 @@ var last_priority: int = 0
 var player_strike_feedback_count: int = 0
 var last_player_attack_id: int = 0
 var last_player_strike_frame: int = -1
-var flash_layer: CanvasLayer
-var flash_rect: ColorRect
 var _pending: Dictionary[int, Dictionary] = {}
 var _flush_queued: bool = false
-var _flash_end_msec: int = 0
-
-
-func _ready() -> void:
-	_build_player_flash()
-
-
-func _process(_delta: float) -> void:
-	if flash_rect == null or _flash_end_msec <= 0:
-		return
-	var remaining_msec: int = maxi(_flash_end_msec - Time.get_ticks_msec(), 0)
-	var alpha: float = 0.46 * (
-		float(remaining_msec) / (PLAYER_FLASH_SECONDS * 1000.0)
-	)
-	flash_rect.color.a = alpha
-	flash_rect.visible = alpha > 0.001
-	if remaining_msec == 0:
-		_flash_end_msec = 0
 
 
 func setup(
@@ -67,9 +46,6 @@ func cancel_all() -> void:
 		camera_rig.reset_presentation()
 	if haptics != null:
 		haptics.cancel()
-	_flash_end_msec = 0
-	if flash_rect != null:
-		flash_rect.visible = false
 
 
 func _on_event_published(event: GameplayEvent) -> void:
@@ -155,25 +131,4 @@ func _on_player_attack_active(spec: AttackSpec) -> void:
 		camera_rig.add_impact_impulse(
 			Vector2(-float(spec.facing), -0.32).normalized() * strength
 		)
-	if flash_rect != null:
-		flash_rect.color = (
-			Color(1.0, 0.72, 0.38, 0.46)
-			if spec.is_ground_smash()
-			else Color(0.76, 0.96, 1.0, 0.46)
-		)
-		flash_rect.visible = true
-		_flash_end_msec = Time.get_ticks_msec() + int(PLAYER_FLASH_SECONDS * 1000.0)
 	player_strike_feedback_count += 1
-
-
-func _build_player_flash() -> void:
-	flash_layer = CanvasLayer.new()
-	flash_layer.name = "PlayerStrikeFlashLayer"
-	flash_layer.layer = 90
-	add_child(flash_layer)
-	flash_rect = ColorRect.new()
-	flash_rect.name = "PlayerStrikeFlash"
-	flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flash_rect.visible = false
-	flash_layer.add_child(flash_rect)

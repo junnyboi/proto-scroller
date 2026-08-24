@@ -9,6 +9,11 @@ const AFTERIMAGE_INTERVAL: float = 0.035
 const AFTERIMAGE_LIFETIME: float = 0.22
 const AFTERIMAGE_ALPHA: float = 0.34
 const DUST_INTERVAL: float = 0.055
+const CRITICAL_HEALTH_RATIO: float = 0.25
+const CRITICAL_SMOKE_OFFSET: Vector2 = Vector2(28.0, -42.0)
+const CRITICAL_SMOKE_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/missile_explosion_smoke.png"
+)
 const WALK_SERVO_FRAMES: Array[int] = [2, 15]
 const WALK_CONTACT_FRAMES: Array[int] = [5, 18]
 const FOOTSTEP_SFX: AudioStream = preload(
@@ -54,6 +59,7 @@ var _afterimage_elapsed: float = 0.0
 var _dust_pool: DodgeDustPool2D
 var _dust_elapsed: float = 0.0
 var _dodge_facing: int = 1
+var _critical_smoke: CPUParticles2D
 
 
 func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
@@ -66,10 +72,13 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	robot.dodge_started.connect(_on_dodge_started)
 	robot.dodge_finished.connect(_on_dodge_finished)
 	robot.dodge_cooldown_ready.connect(_on_dodge_cooldown_ready)
+	robot.health_changed.connect(_on_health_changed)
 	sprite.frame_changed.connect(_on_sprite_frame_changed)
 	_prewarm_audio()
 	_prewarm_afterimages()
 	_prewarm_dust()
+	_prewarm_critical_smoke()
+	_on_health_changed(robot.current_health, robot.max_health)
 	_show_idle()
 
 
@@ -99,6 +108,14 @@ func dust_slot_count() -> int:
 
 func active_dust_slot_count() -> int:
 	return _dust_pool.active_slot_count() if _dust_pool != null else 0
+
+
+func critical_smoke_emitter_count() -> int:
+	return 1 if _critical_smoke != null else 0
+
+
+func critical_smoke_emitting() -> bool:
+	return _critical_smoke != null and _critical_smoke.emitting
 
 
 func _process(delta: float) -> void:
@@ -197,6 +214,13 @@ func _on_dodge_finished() -> void:
 		_show_idle()
 
 
+func _on_health_changed(current: float, maximum: float) -> void:
+	if _critical_smoke == null:
+		return
+	var ratio: float = current / maxf(maximum, 1.0)
+	_critical_smoke.emitting = current > 0.0 and ratio <= CRITICAL_HEALTH_RATIO
+
+
 func _on_dodge_cooldown_ready() -> void:
 	if _status_sfx_player == null or DODGE_RECHARGED_SFX == null:
 		return
@@ -260,6 +284,36 @@ func _update_emitter_facing() -> void:
 	var emitter: Node2D = robot.get_node_or_null(^"VisualRoot/LaserEmitter") as Node2D
 	if emitter != null:
 		emitter.position.x = absf(emitter.position.x) * float(robot.facing)
+	if _critical_smoke != null:
+		_critical_smoke.position = Vector2(
+			absf(CRITICAL_SMOKE_OFFSET.x) * float(robot.facing),
+			CRITICAL_SMOKE_OFFSET.y
+		)
+
+
+func _prewarm_critical_smoke() -> void:
+	var visual_root: Node2D = robot.get_node_or_null(^"VisualRoot") as Node2D
+	if visual_root == null:
+		return
+	_critical_smoke = CPUParticles2D.new()
+	_critical_smoke.name = "CriticalHealthSmoke"
+	_critical_smoke.texture = CRITICAL_SMOKE_TEXTURE
+	_critical_smoke.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_critical_smoke.amount = 14
+	_critical_smoke.lifetime = 1.25
+	_critical_smoke.randomness = 0.55
+	_critical_smoke.direction = Vector2.UP
+	_critical_smoke.spread = 30.0
+	_critical_smoke.gravity = Vector2(0.0, -12.0)
+	_critical_smoke.initial_velocity_min = 28.0
+	_critical_smoke.initial_velocity_max = 72.0
+	_critical_smoke.scale_amount_min = 0.08
+	_critical_smoke.scale_amount_max = 0.18
+	_critical_smoke.color = Color(0.62, 0.65, 0.67, 0.74)
+	_critical_smoke.z_index = -1
+	_critical_smoke.emitting = false
+	visual_root.add_child(_critical_smoke)
+	_update_emitter_facing()
 
 
 func _prewarm_audio() -> void:

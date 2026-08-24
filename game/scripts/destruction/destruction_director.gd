@@ -3,6 +3,8 @@ extends Node2D
 
 signal explosion_resolved(origin: Vector2, accepted_targets: int)
 
+const GROUND_SMASH_PROP_DAMAGE_SCALE: float = 5.0
+
 @export_flags_2d_physics var blast_mask: int = 0
 @export_range(1, 64, 1) var max_results: int = 32
 @export_range(1, 8, 1) var max_explosions_per_tick: int = 4
@@ -168,6 +170,8 @@ func _damage_scale_for(receiver: Node, data: Dictionary) -> float:
 		return maxf(float(data.player_damage_scale), 0.0)
 	if receiver is EnemyActor2D:
 		return maxf(float(data.enemy_damage_scale), 0.0)
+	if receiver is DestructibleProp2D and StringName(data.damage_type) == &"ground_smash":
+		return GROUND_SMASH_PROP_DAMAGE_SCALE
 	return 1.0
 
 

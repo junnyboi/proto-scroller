@@ -4,6 +4,7 @@ const MAIN_SCENE: PackedScene = preload("res://scenes/main/main.tscn")
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 const LAND_VISUAL_BASELINE_Y: float = 655.0
+const LAND_VEHICLE_VISUAL_BASELINE_Y: float = 684.0
 
 
 func test_main_transitions_from_title_to_city_slice() -> void:
@@ -158,8 +159,8 @@ func test_stomp_breaks_props_and_damages_nearby_building_cells() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
-	city.car.current_health = 1.0
-	city.streetlamp.current_health = 0.05
+	assert_eq(city.car.current_health, city.car.max_health)
+	assert_eq(city.streetlamp.current_health, city.streetlamp.max_health)
 	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
 		enemy.global_position.x = 2500.0
 	city.robot.position = Vector2(1150.0, 460.0)
@@ -733,7 +734,7 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	_record_test_execution()
 
 
-func test_land_visuals_share_the_asphalt_baseline() -> void:
+func test_land_visuals_use_curb_and_vehicle_centerline_baselines() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	city.soldier.set_physics_process(false)
@@ -745,15 +746,31 @@ func test_land_visuals_share_the_asphalt_baseline() -> void:
 	assert_eq(lower_asphalt.color, road_surface.color)
 	var lower_cell: Destructible2D = city.building.get_cell(0, 1)
 	var lower_visual: Sprite2D = lower_cell.get_node(^"IntactVisual") as Sprite2D
-	var visuals: Array[Sprite2D] = [
+	var curb_side_visuals: Array[Sprite2D] = [
 		lower_visual,
 		city.streetlamp.get_node(^"Visual") as Sprite2D,
 		city.car.get_node(^"Visual") as Sprite2D,
 		city.soldier.get_node(^"Visual") as Sprite2D,
-		city.tank.get_node(^"Visual") as Sprite2D,
 	]
-	for visual: Sprite2D in visuals:
+	for visual: Sprite2D in curb_side_visuals:
 		assert_almost_eq(_visual_bottom(visual), LAND_VISUAL_BASELINE_Y, 1.0)
+	assert_almost_eq(
+		_visual_bottom(city.tank.get_node(^"Visual") as Sprite2D),
+		LAND_VEHICLE_VISUAL_BASELINE_Y,
+		1.0
+	)
+	var jackal: EnemyActor2D = city.encounter_runtime.acquire(
+		&"jackal",
+		Vector2(1080.0, 554.0)
+	)
+	assert_not_null(jackal)
+	if jackal != null:
+		jackal.set_physics_process(false)
+		assert_almost_eq(
+			_visual_bottom(jackal.visual),
+			LAND_VEHICLE_VISUAL_BASELINE_Y,
+			1.0
+		)
 	_record_test_execution()
 
 

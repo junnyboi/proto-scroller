@@ -111,6 +111,18 @@ func test_summary_freezes_once_and_late_events_cannot_mutate_it() -> void:
 	assert_eq(summary.overdrive_activations, 1)
 
 
+func test_game_over_summary_omits_strongest_and_weakest_metrics() -> void:
+	var city: CitySlice = await _spawn_city()
+	var summary: RunSummarySnapshot = city.rampage_session.freeze_summary(2, 0)
+	city.gameplay_hud.show_game_over(summary)
+	assert_eq(city.gameplay_hud.overlay_title.text, "GAME OVER")
+	assert_false(city.gameplay_hud.overlay_summary.text.contains("STRONGEST"))
+	assert_false(city.gameplay_hud.overlay_summary.text.contains("WEAKEST"))
+	city.gameplay_hud.show_district_complete(summary)
+	assert_true(city.gameplay_hud.overlay_summary.text.contains("STRONGEST"))
+	assert_true(city.gameplay_hud.overlay_summary.text.contains("WEAKEST"))
+
+
 func test_district_completion_shows_frozen_summary_and_disables_play() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.run_lifecycle._on_district_completed()

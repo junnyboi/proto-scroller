@@ -112,6 +112,37 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	assert_eq(sprite.animation, &"idle_s")
 
 
+func test_critical_health_smoke_emits_at_or_below_twenty_five_percent() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var smoke: CPUParticles2D = (
+		robot.get_node(^"VisualRoot/CriticalHealthSmoke") as CPUParticles2D
+	)
+	assert_eq(presenter.critical_smoke_emitter_count(), 1)
+	assert_not_null(smoke.texture)
+	assert_false(presenter.critical_smoke_emitting())
+	robot.current_health = robot.max_health * 0.26
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_false(presenter.critical_smoke_emitting())
+	robot.current_health = robot.max_health * 0.25
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_true(presenter.critical_smoke_emitting())
+	assert_gt(smoke.position.x, 0.0)
+	robot.facing = -1
+	robot.facing_changed.emit(-1)
+	assert_lt(smoke.position.x, 0.0)
+	robot.current_health = 0.0
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_false(presenter.critical_smoke_emitting())
+	robot.current_health = robot.max_health * 0.5
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_false(presenter.critical_smoke_emitting())
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
 func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot

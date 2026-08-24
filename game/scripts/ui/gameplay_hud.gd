@@ -272,7 +272,7 @@ func show_district_complete(summary: RunSummarySnapshot) -> void:
 func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 	overlay_title.text = L10n.t("hud.district_cleared" if completed else "hud.game_over")
 	if summary != null:
-		overlay_summary.text = L10n.t("hud.summary", {
+		var tokens: Dictionary = {
 			"grade": summary.grade,
 			"points": "%03d" % summary.mastery_points,
 			"score": "%08d" % summary.score,
@@ -280,14 +280,17 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 			"hits": summary.heavy_hits,
 			"variety": summary.unique_actions,
 			"depth": summary.causal_depth,
-			"strongest": L10n.t(
-				"summary.metric.%s" % String(summary.strongest_metric).to_lower()
-			),
-			"weakest": L10n.t(
-				"summary.metric.%s" % String(summary.weakest_metric).to_lower()
-			),
 			"objective": L10n.t(summary.retry_objective),
-		})
+		}
+		if completed:
+			tokens.strongest = L10n.t(
+				"summary.metric.%s" % String(summary.strongest_metric).to_lower()
+			)
+			tokens.weakest = L10n.t(
+				"summary.metric.%s" % String(summary.weakest_metric).to_lower()
+			)
+		var summary_key: String = "hud.summary" if completed else "hud.summary_game_over"
+		overlay_summary.text = L10n.t(summary_key, tokens)
 	else:
 		overlay_summary.text = L10n.t("hud.chassis_signal_lost")
 	game_over_overlay.visible = true
