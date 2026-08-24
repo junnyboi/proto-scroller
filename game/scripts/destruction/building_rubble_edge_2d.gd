@@ -9,15 +9,14 @@ enum Edge {
 }
 
 const EDGE_COUNT: int = 4
-const HOLE_HALF_EXTENTS: Vector2 = Vector2(0.245, 0.27)
-const INTERIOR_COLOR: Color = Color("101619")
+const HOLE_HALF_EXTENTS: Vector2 = Vector2(0.34, 0.38)
 const HOLLOW_SHADER_CODE: String = """
 shader_type canvas_item;
 render_mode unshaded;
 
 uniform vec4 atlas_region_uv = vec4(0.0, 0.0, 1.0, 1.0);
 uniform vec2 hole_center = vec2(0.5, 0.48);
-uniform vec2 hole_half_extents = vec2(0.245, 0.27);
+uniform vec2 hole_half_extents = vec2(0.34, 0.38);
 uniform float pattern_seed = 1.0;
 uniform float ground_open = 1.0;
 
@@ -88,7 +87,6 @@ var _cell_size: Vector2 = Vector2.ZERO
 var _facade_texture: Texture2D
 var _facade_region: Rect2 = Rect2()
 var _edge_visible: Array[bool] = [false, false, false, false]
-var _interior_backing: Polygon2D
 var _shell_sprite: Sprite2D
 var _cutout_material: ShaderMaterial
 
@@ -103,18 +101,6 @@ func configure(
 	_cell_size = cell_size
 	_facade_texture = facade_texture
 	_facade_region = facade_region
-	_interior_backing = Polygon2D.new()
-	_interior_backing.name = "DestroyedInterior"
-	_interior_backing.z_index = -1
-	var half_size: Vector2 = _cell_size * 0.5
-	_interior_backing.polygon = PackedVector2Array([
-		Vector2(-half_size.x, -half_size.y),
-		Vector2(half_size.x, -half_size.y),
-		Vector2(half_size.x, half_size.y),
-		Vector2(-half_size.x, half_size.y),
-	])
-	_interior_backing.color = INTERIOR_COLOR
-	add_child(_interior_backing)
 	_shell_sprite = Sprite2D.new()
 	_shell_sprite.name = "HollowFacade"
 	_shell_sprite.z_index = 0
@@ -196,11 +182,3 @@ func cutout_parameter(parameter_name: StringName) -> Variant:
 	if _cutout_material == null:
 		return null
 	return _cutout_material.get_shader_parameter(parameter_name)
-
-
-func interior_backing_color() -> Color:
-	return INTERIOR_COLOR
-
-
-func interior_backing() -> Polygon2D:
-	return _interior_backing

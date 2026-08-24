@@ -139,6 +139,8 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 		edge.cutout_parameter(&"hole_half_extents"),
 		BuildingRubbleEdge2D.HOLE_HALF_EXTENTS
 	)
+	assert_almost_eq(BuildingRubbleEdge2D.HOLE_HALF_EXTENTS.x, 0.34, 0.0001)
+	assert_almost_eq(BuildingRubbleEdge2D.HOLE_HALF_EXTENTS.y, 0.38, 0.0001)
 	assert_eq(edge.cutout_parameter(&"ground_open"), 1.0)
 	var texture_size: Vector2 = intact_sprite.texture.get_size()
 	assert_eq(
@@ -150,12 +152,7 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 			intact_sprite.region_rect.size.y / texture_size.y
 		)
 	)
-	var interior: Polygon2D = edge.interior_backing()
-	assert_not_null(interior)
-	assert_eq(interior.z_index, -1)
-	assert_eq(interior.color, edge.interior_backing_color())
-	assert_lt(interior.color.get_luminance(), 0.12)
-	assert_eq(interior.polygon.size(), 4)
+	assert_null(edge.get_node_or_null(^"DestroyedInterior"))
 	var cutout_material: ShaderMaterial = hollow_facade.material as ShaderMaterial
 	assert_not_null(cutout_material)
 	assert_not_null(cutout_material.shader)
