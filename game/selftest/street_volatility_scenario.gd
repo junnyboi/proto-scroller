@@ -206,6 +206,10 @@ func _run() -> void:
 	var cap_errors: PackedStringArray = RuntimeBudget.validation_errors(city)
 	_check("runtime_caps_hold", cap_errors.is_empty(), "errors=%s" % cap_errors)
 	_check("frame_budget", elapsed_frames <= MAX_FRAMES, "frames=%d" % elapsed_frames)
+	city.queue_free()
+	await process_frame
+	# Work around godotengine/godot#76745 in fixed-FPS command-line runs.
+	OS.delay_msec(100)
 	_finish(shot_status, shot_path)
 
 

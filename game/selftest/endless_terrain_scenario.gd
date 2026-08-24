@@ -159,6 +159,8 @@ func _run() -> void:
 		shot_path = SHOT_PATH
 	city.queue_free()
 	await process_frame
+	# Work around godotengine/godot#76745 in fixed-FPS command-line runs.
+	OS.delay_msec(100)
 	_finish(shot_status, shot_path)
 
 
