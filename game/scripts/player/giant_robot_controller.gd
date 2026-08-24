@@ -130,15 +130,17 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var input_axis: float = Input.get_axis(&"move_left", &"move_right")
+	if absf(virtual_move_axis) > absf(input_axis):
+		input_axis = virtual_move_axis
 	if _control_enabled and Input.is_action_just_pressed(&"stomp"):
 		request_attack()
+	if _control_enabled and Input.is_action_just_pressed(&"dodge"):
+		request_dodge(_sign_to_facing(input_axis))
 	if _control_enabled and Input.is_action_just_pressed(&"move_left"):
 		_register_move_tap(-1)
 	elif _control_enabled and Input.is_action_just_pressed(&"move_right"):
 		_register_move_tap(1)
-	var input_axis: float = Input.get_axis(&"move_left", &"move_right")
-	if absf(virtual_move_axis) > absf(input_axis):
-		input_axis = virtual_move_axis
 	physics_step(input_axis, delta)
 
 
@@ -322,9 +324,16 @@ func _register_move_tap(direction: int) -> bool:
 	if not is_double_tap:
 		return false
 	_clear_move_tap()
+	return request_dodge(normalized_direction)
+
+
+func request_dodge(direction: int = 0) -> bool:
+	var selected_direction: int = clampi(direction, -1, 1)
+	if selected_direction == 0:
+		selected_direction = facing
 	if attack_controller != null:
-		return attack_controller.request_dodge(normalized_direction)
-	return _start_dodge(normalized_direction)
+		return attack_controller.request_dodge(selected_direction)
+	return _start_dodge(selected_direction)
 
 
 func _clear_move_tap() -> void:

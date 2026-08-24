@@ -101,10 +101,13 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 	var enemy_intel: String = (screen.get_node("%EnemyIntel") as Label).text
 	var run_rule: String = (screen.get_node("%RunRule") as Label).text
 	assert_eq(hook, L10n.t("title.command_hook"))
-	for required_control: String in ["A / D", "Mobile joystick", "SPACE", "SMASH"]:
+	for required_control: String in [
+		"A / D", "Left stick", "D-PAD", "Mobile joystick", "SPACE", "A / CROSS", "SMASH"
+	]:
 		assert_true(controls.contains(required_control), required_control)
 	assert_true(field_note.contains("Double-tap A / D"))
-	assert_true(field_note.contains("joystick twice"))
+	assert_true(field_note.contains("flick twice"))
+	assert_true(field_note.contains("B / CIRCLE"))
 	assert_eq(
 		(screen.get_node("SemanticContract/PrimaryObjective") as Label).text,
 		"PRIMARY  Survive the city response."
