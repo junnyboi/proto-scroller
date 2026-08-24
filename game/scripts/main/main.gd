@@ -22,6 +22,13 @@ func _ready() -> void:
 	_show_title()
 
 
+func _exit_tree() -> void:
+	if background_music_player == null:
+		return
+	background_music_player.stop()
+	background_music_player.stream = null
+
+
 func start_game() -> void:
 	if city_slice != null:
 		return
