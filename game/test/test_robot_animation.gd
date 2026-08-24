@@ -123,6 +123,8 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_pcm_cue(RobotAnimationPresenter.SERVO_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_SERVO_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_RECHARGED_SFX)
+	_assert_compressed_runtime_cue(RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX)
+	_assert_compressed_runtime_cue(RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	for audio_node: Node in presenter.find_children("RobotMechanicsAudio*", "AudioStreamPlayer2D"):
 		assert_eq((audio_node as AudioStreamPlayer2D).bus, GameAudioBus.MECHANICS)
@@ -158,8 +160,11 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	assert_eq(presenter.last_audio_cue, &"attack_windup")
 	presenter._on_attack_committed(AttackSpec.Mode.GROUND_SMASH, 501)
 	assert_eq(presenter.attack_impact_play_count, 1)
-	assert_eq(presenter.last_audio_cue, &"attack_piston")
+	assert_eq(presenter.last_audio_cue, &"ground_slam_impact")
 	assert_eq(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
+	presenter._on_attack_committed(AttackSpec.Mode.JAB_CROSS, 501)
+	assert_eq(presenter.attack_impact_play_count, 2)
+	assert_eq(presenter.last_audio_cue, &"double_punch_impact")
 	for cycle_index: int in range(8):
 		presenter.attacking = false
 		_set_walk_audio_frame(presenter, sprite, 2 if cycle_index % 2 == 0 else 5)
@@ -187,8 +192,8 @@ func test_robot_mechanics_priority_stealing_protects_signature_cues() -> void:
 		)
 	for index: int in range(RobotAnimationPresenter.AUDIO_VOICE_CAPACITY):
 		presenter._play_mechanics(
-			RobotAnimationPresenter.FOOTSTEP_SFX,
-			&"attack_piston",
+			RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX,
+			&"double_punch_impact",
 			2.0,
 			1.0
 		)
@@ -211,7 +216,7 @@ func test_robot_mechanics_priority_stealing_protects_signature_cues() -> void:
 	)
 	assert_eq(presenter.audio_play_count, accepted_count)
 	assert_eq(presenter.audio_drop_count, 1)
-	assert_eq(presenter.last_audio_cue, &"attack_piston")
+	assert_eq(presenter.last_audio_cue, &"double_punch_impact")
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 
 
@@ -368,6 +373,18 @@ func _assert_pcm_cue(stream: AudioStream) -> void:
 	assert_eq(wav.format, AudioStreamWAV.FORMAT_16_BITS)
 	assert_eq(wav.mix_rate, 48000)
 	assert_false(wav.stereo)
+
+
+func _assert_compressed_runtime_cue(stream: AudioStream) -> void:
+	var wav: AudioStreamWAV = stream as AudioStreamWAV
+	assert_not_null(wav)
+	if wav == null:
+		return
+	assert_eq(wav.format, AudioStreamWAV.FORMAT_QOA)
+	assert_eq(wav.mix_rate, 48000)
+	assert_false(wav.stereo)
+	assert_gt(wav.get_length(), 1.0)
+	assert_lt(wav.get_length(), 2.1)
 
 
 func _assert_compact_voice_cue(stream: AudioStream) -> void:

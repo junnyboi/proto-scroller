@@ -54,6 +54,11 @@ for cue in \
 	  audio/sfx/robot/robot_servo.wav \
 	  audio/sfx/robot/robot_dodge_servo.wav \
 	  audio/sfx/robot/dodge_energy_recharged.wav \
+	  audio/sfx/robot/ground_slam_impact.wav \
+	  audio/sfx/robot/double_punch_impact.wav \
+	  audio/voice/air_target_acquired.wav \
+	  audio/voice/target_lost.wav \
+	  audio/voice/target_destroyed.wav \
 	  audio/sfx/debris/debris_enemy_thud.wav; do
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le

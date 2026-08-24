@@ -157,7 +157,7 @@ func test_accepted_events_coalesce_to_one_strongest_feedback_transaction() -> vo
 	assert_eq(city.camera_rig.impact_offset, Vector2.ZERO)
 
 
-func test_player_frame_11_dispatches_flash_shake_enemy_recoil_and_knockback() -> void:
+func test_player_frame_11_dispatches_shake_enemy_recoil_and_knockback_without_flash() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -189,7 +189,9 @@ func test_player_frame_11_dispatches_flash_shake_enemy_recoil_and_knockback() ->
 		city.impact_feedback_director.last_player_strike_frame,
 		RobotAnimationPresenter.ATTACK_EVENT_FRAME
 	)
-	assert_true(city.impact_feedback_director.flash_rect.visible)
+	assert_null(
+		city.impact_feedback_director.get_node_or_null(^"PlayerStrikeFlashLayer")
+	)
 	assert_gt(city.camera_rig.impact_velocity.length(), 0.0)
 	assert_eq(reactions.last_strike_attack_id, attack_id)
 	assert_eq(city.tank.player_strike_reaction_count, 1)

@@ -61,7 +61,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.player_missiles, 4)
 	assert_eq(snapshot.missile_explosion_visual_slots, 4)
 	assert_eq(snapshot.missile_explosion_queue, 8)
-	assert_eq(snapshot.player_strike_flashes, 1)
+	assert_false(snapshot.has("player_strike_flashes"))
 	assert_eq(snapshot.player_attack_reaction_runtimes, 1)
 
 

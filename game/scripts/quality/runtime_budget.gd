@@ -70,7 +70,6 @@ const FLAMETHROWER_LOOP_VOICES: int = 1
 const PLAYER_MISSILES: int = 4
 const MISSILE_EXPLOSION_VISUAL_SLOTS: int = MissileWeapon.EXPLOSION_VISUAL_CAPACITY
 const MISSILE_EXPLOSION_QUEUE: int = 8
-const PLAYER_STRIKE_FLASHES: int = 1
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_DUST_SLOTS: int = DodgeDustPool2D.CAPACITY
@@ -189,9 +188,6 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"player_missiles": MissileProjectilePool.CAPACITY,
 		"missile_explosion_visual_slots": _missile_explosion_visual_slot_count(city),
 		"missile_explosion_queue": MissileWeapon.EXPLOSION_QUEUE_CAPACITY,
-		"player_strike_flashes": (
-			1 if city.impact_feedback_director.flash_rect != null else 0
-		),
 		"player_attack_reaction_runtimes": (
 			1
 			if city.upgrade_assembler.get_node_or_null(^"PlayerAttackReactionRuntime") != null
@@ -291,7 +287,6 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		MISSILE_EXPLOSION_VISUAL_SLOTS
 	)
 	_check_equal(errors, data, "missile_explosion_queue", MISSILE_EXPLOSION_QUEUE)
-	_check_equal(errors, data, "player_strike_flashes", PLAYER_STRIKE_FLASHES)
 	_check_equal(
 		errors,
 		data,

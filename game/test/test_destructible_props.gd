@@ -50,6 +50,27 @@ func test_cars_and_streetlamps_require_multiple_hits_then_fragment() -> void:
 		assert_eq(debris.material_id(), &"steel")
 
 
+func test_one_ground_smash_fully_destroys_car_and_streetlamp() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var debris_before: int = city.debris_pool.active_count()
+	assert_true(city.car.ground_smash_fully_destroys)
+	assert_true(city.streetlamp.ground_smash_fully_destroys)
+	assert_true(city.car.receive_damage(_ground_smash(city, city.car, 6130)))
+	assert_true(city.car.is_broken)
+	assert_true(city.car.is_fully_destroyed)
+	assert_false(city.car.visual.visible)
+	assert_true(city.streetlamp.receive_damage(
+		_ground_smash(city, city.streetlamp, 6131)
+	))
+	await get_tree().physics_frame
+	assert_true(city.streetlamp.is_broken)
+	assert_true(city.streetlamp.is_fully_destroyed)
+	assert_true(city.streetlamp.collision_shape.disabled)
+	assert_eq(city.debris_pool.active_count(), debris_before + 8)
+
+
 func _prop_hit(
 	city: CitySlice,
 	prop: DestructibleProp2D,
@@ -64,4 +85,20 @@ func _prop_hit(
 		prop.global_position,
 		Vector2.RIGHT,
 		320.0
+	)
+
+
+func _ground_smash(
+	city: CitySlice,
+	prop: DestructibleProp2D,
+	attack_id: int
+) -> DamageEvent:
+	return DamageEvent.new(
+		attack_id,
+		city.robot,
+		1.0,
+		&"ground_smash",
+		prop.global_position,
+		Vector2.UP,
+		640.0
 	)

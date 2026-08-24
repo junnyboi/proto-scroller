@@ -7,9 +7,13 @@ const TARGET_ACQUIRED_SFX: AudioStream = preload(
 const TARGET_LOST_SFX: AudioStream = preload(
 	"res://audio/voice/target_lost.wav"
 )
+const TARGET_DESTROYED_SFX: AudioStream = preload(
+	"res://audio/voice/target_destroyed.wav"
+)
 
 var target_acquired_play_count: int = 0
 var target_lost_play_count: int = 0
+var target_destroyed_play_count: int = 0
 var last_voice_cue: StringName = &""
 var _robot: GiantRobotController
 var _attacks: ContextualAttackController
@@ -69,9 +73,10 @@ func _process(delta: float) -> void:
 		_locked_target,
 		origin
 	):
+		var invalid_target: EnemyActor2D = _locked_target
 		_locked_target = null
 		_reticle.clear_lock()
-		_play_voice(TARGET_LOST_SFX, &"target_lost")
+		_play_invalid_target_voice(invalid_target)
 		return
 	if _locked_target != null:
 		return
@@ -115,7 +120,7 @@ func consume_volley_target(attack_id: int) -> EnemyActor2D:
 	var target: EnemyActor2D = _locked_target
 	if not AerialDebrisLauncher.is_valid_focused_target(target, _impact_origin()):
 		if target != null:
-			_play_voice(TARGET_LOST_SFX, &"target_lost")
+			_play_invalid_target_voice(target)
 		target = null
 	_clear_lock()
 	return target
@@ -172,3 +177,12 @@ func _play_voice(stream: AudioStream, cue: StringName) -> void:
 		target_acquired_play_count += 1
 	elif cue == &"target_lost":
 		target_lost_play_count += 1
+	elif cue == &"target_destroyed":
+		target_destroyed_play_count += 1
+
+
+func _play_invalid_target_voice(target: EnemyActor2D) -> void:
+	if is_instance_valid(target) and target.dead:
+		_play_voice(TARGET_DESTROYED_SFX, &"target_destroyed")
+	else:
+		_play_voice(TARGET_LOST_SFX, &"target_lost")

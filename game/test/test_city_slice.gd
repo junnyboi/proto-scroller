@@ -633,14 +633,21 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 		AirTargetLockRuntime.TARGET_ACQUIRED_SFX as AudioStreamWAV
 	)
 	var lost_stream: AudioStreamWAV = AirTargetLockRuntime.TARGET_LOST_SFX as AudioStreamWAV
+	var destroyed_stream: AudioStreamWAV = (
+		AirTargetLockRuntime.TARGET_DESTROYED_SFX as AudioStreamWAV
+	)
+	assert_eq(acquired_stream.format, AudioStreamWAV.FORMAT_QOA)
+	assert_eq(lost_stream.format, AudioStreamWAV.FORMAT_QOA)
+	assert_eq(destroyed_stream.format, AudioStreamWAV.FORMAT_QOA)
 	assert_eq(acquired_stream.mix_rate, 48000)
 	assert_eq(lost_stream.mix_rate, 48000)
-	assert_eq(acquired_stream.format, AudioStreamWAV.FORMAT_16_BITS)
-	assert_eq(lost_stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_eq(destroyed_stream.mix_rate, 48000)
 	assert_false(acquired_stream.stereo)
 	assert_false(lost_stream.stereo)
-	assert_between(acquired_stream.get_length(), 0.85, 0.93)
-	assert_between(lost_stream.get_length(), 0.65, 0.80)
+	assert_false(destroyed_stream.stereo)
+	assert_between(acquired_stream.get_length(), 1.75, 1.86)
+	assert_between(lost_stream.get_length(), 1.25, 1.36)
+	assert_between(destroyed_stream.get_length(), 1.34, 1.45)
 	assert_eq(city.air_target_lock_runtime.voice_player_count(), 1)
 	assert_eq(
 		(city.air_target_lock_runtime.get_node(^"AirTargetVoice") as AudioStreamPlayer).bus,
@@ -693,10 +700,25 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_true(lock_reticle.is_processing())
 	assert_true(lock_reticle.is_release_imminent())
 	assert_eq(city.air_target_lock_runtime.target_acquired_play_count, 2)
+	closest_overhead.dead = true
+	city.air_target_lock_runtime._process(0.0)
+	assert_null(city.air_target_lock_runtime.current_target())
+	assert_eq(city.air_target_lock_runtime.target_destroyed_play_count, 1)
+	assert_eq(city.air_target_lock_runtime.last_voice_cue, &"target_destroyed")
+	closest_overhead.dead = false
+	closest_overhead.active = true
+	closest_overhead.current_health = closest_overhead.max_health
+	city.air_target_lock_runtime._process(0.0)
+	assert_same(city.air_target_lock_runtime.current_target(), closest_overhead)
+	assert_eq(city.air_target_lock_runtime.target_acquired_play_count, 3)
 	var target_health_before: float = closest_overhead.current_health
 	var side_health_before: float = closer_side_target.current_health
 	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
-	assert_eq(city.debris_pool.active_count(), 3)
+	var volley_debris: Array[DebrisBody2D] = []
+	for debris: DebrisBody2D in city.debris_pool.active_bodies():
+		if debris.aerial_impact_armed:
+			volley_debris.append(debris)
+	assert_eq(volley_debris.size(), 3)
 	assert_null(city.air_target_lock_runtime.current_target())
 	assert_false(city.air_target_lock_runtime.reticle_visible())
 	assert_null(city.air_target_lock_runtime.reticle_target())
@@ -704,14 +726,14 @@ func test_smash_concentrates_shrapnel_on_closest_overhead_enemy() -> void:
 	assert_false(lock_reticle.is_release_imminent())
 	for launch_tick: int in range(2):
 		await get_tree().physics_frame
-		if city.debris_pool.active_bodies().any(
+		if volley_debris.any(
 			func(debris: DebrisBody2D) -> bool:
 				return debris.linear_velocity.length() > 100.0
 		):
 			break
 	var minimum_angle: float = INF
 	var maximum_angle: float = -INF
-	for debris: DebrisBody2D in city.debris_pool.active_bodies():
+	for debris: DebrisBody2D in volley_debris:
 		assert_true(debris.aerial_impact_armed)
 		assert_gt(debris.linear_velocity.length(), 100.0)
 		var launch_angle: float = debris.linear_velocity.angle()

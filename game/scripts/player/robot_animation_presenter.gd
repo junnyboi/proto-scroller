@@ -23,6 +23,12 @@ const DODGE_SERVO_SFX: AudioStream = preload(
 const DODGE_RECHARGED_SFX: AudioStream = preload(
 	"res://audio/sfx/robot/dodge_energy_recharged.wav"
 )
+const GROUND_SLAM_IMPACT_SFX: AudioStream = preload(
+	"res://audio/sfx/robot/ground_slam_impact.wav"
+)
+const DOUBLE_PUNCH_IMPACT_SFX: AudioStream = preload(
+	"res://audio/sfx/robot/double_punch_impact.wav"
+)
 
 var robot: GiantRobotController
 var sprite: AnimatedSprite2D
@@ -155,8 +161,10 @@ func _on_attack_committed(mode: int, attack_id: int) -> void:
 		return
 	if sprite.frame < ATTACK_EVENT_FRAME:
 		sprite.set_frame_and_progress(ATTACK_EVENT_FRAME, 0.0)
-	var pitch: float = 0.84 if mode == AttackSpec.Mode.GROUND_SMASH else 1.0
-	_play_mechanics(FOOTSTEP_SFX, &"attack_piston", 2.0, pitch)
+	if mode == AttackSpec.Mode.GROUND_SMASH:
+		_play_mechanics(GROUND_SLAM_IMPACT_SFX, &"ground_slam_impact", 1.5, 1.0)
+	else:
+		_play_mechanics(DOUBLE_PUNCH_IMPACT_SFX, &"double_punch_impact", 1.5, 1.0)
 
 
 func _on_attack_finished(spec: AttackSpec) -> void:
@@ -365,7 +373,7 @@ func _play_mechanics(
 	last_audio_cue = cue
 	if cue == &"walk_footstep":
 		footstep_play_count += 1
-	elif cue == &"attack_piston":
+	elif cue in [&"ground_slam_impact", &"double_punch_impact"]:
 		attack_impact_play_count += 1
 	else:
 		servo_play_count += 1
@@ -391,7 +399,7 @@ func _acquire_audio_voice(priority: int) -> AudioStreamPlayer2D:
 
 func _priority_for_mechanics(cue: StringName) -> int:
 	match cue:
-		&"attack_piston", &"dodge_servo":
+		&"ground_slam_impact", &"double_punch_impact", &"dodge_servo":
 			return AudioVoicePriority.SIGNATURE
 		&"attack_windup":
 			return AudioVoicePriority.MAJOR
