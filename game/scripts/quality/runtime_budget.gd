@@ -60,7 +60,7 @@ const WEAPON_STATUS_STRIPS: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
 const PLAYER_ARSENALS: int = 1
-const WEAPON_MOUNTS: int = 4
+const WEAPON_DRONES: int = 19
 const MACHINE_GUN_IMPACT_SLOTS: int = ProjectilePool.MACHINE_GUN_IMPACT_CAPACITY
 const LASER_BEAM_SLOTS: int = 2
 const ANTI_AIR_IMPACT_SLOTS: int = PlayerLaserWeapon.IMPACT_CAPACITY
@@ -179,7 +179,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			if city.upgrade_assembler.get_node_or_null(^"PlayerArsenalRuntime") != null
 			else 0
 		),
-		"weapon_mounts": _weapon_mount_count(city),
+		"weapon_drones": _weapon_drone_count(city),
 		"machine_gun_impact_slots": city.projectile_root.machine_gun_impacts.size(),
 		"laser_beam_slots": PlayerLaserWeapon.BEAM_CAPACITY,
 		"anti_air_impact_slots": _anti_air_impact_slot_count(city),
@@ -271,7 +271,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "cosmetic_debris_instances", COSMETIC_DEBRIS_INSTANCES)
 	_check_equal(errors, data, "shockwave_ring_slots", SHOCKWAVE_RING_SLOTS)
 	_check_equal(errors, data, "player_arsenals", PLAYER_ARSENALS)
-	_check_equal(errors, data, "weapon_mounts", WEAPON_MOUNTS)
+	_check_equal(errors, data, "weapon_drones", WEAPON_DRONES)
 	_check_equal(
 		errors,
 		data,
@@ -381,15 +381,11 @@ static func _robot_dust_slot_count(city: CitySlice) -> int:
 	return presenter.dust_slot_count() if presenter != null else 0
 
 
-static func _weapon_mount_count(city: CitySlice) -> int:
-	var visual_root: Node = city.robot.get_node_or_null(^"VisualRoot")
-	if visual_root == null:
-		return 0
-	var total: int = 0
-	for child: Node in visual_root.get_children():
-		if child is WeaponMountVisual2D:
-			total += 1
-	return total
+static func _weapon_drone_count(city: CitySlice) -> int:
+	var orbit: WeaponDroneOrbit2D = city.robot.get_node_or_null(
+		^"WeaponDroneOrbit"
+	) as WeaponDroneOrbit2D
+	return orbit.drones.size() if orbit != null else 0
 
 
 static func _anti_air_impact_slot_count(city: CitySlice) -> int:

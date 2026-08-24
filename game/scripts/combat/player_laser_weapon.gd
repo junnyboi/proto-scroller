@@ -23,13 +23,15 @@ var arsenal: PlayerArsenalRuntime
 var emitter: Node2D
 var beams: Array[LaserBeamVisual2D] = []
 var impacts: Array[WeaponImpactEffect2D] = []
-var mount: WeaponMountVisual2D
+var mount: WeaponDroneVisual2D
+var drones: Array[WeaponDroneVisual2D] = []
 var cooldown_remaining: float = 0.0
 var shots_fired: int = 0
 var last_query_count: int = 0
 var last_accepted_count: int = 0
 var _beam_cursor: int = 0
 var _impact_cursor: int = 0
+var _drone_cursor: int = 0
 var _shape: RectangleShape2D = RectangleShape2D.new()
 var _parameters: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
 
@@ -54,19 +56,20 @@ func _init() -> void:
 		impacts.append(impact)
 
 
-func setup_arsenal(p_arsenal: PlayerArsenalRuntime, _p_emitter: Node2D) -> void:
+func setup_arsenal(
+	p_arsenal: PlayerArsenalRuntime,
+	drone_orbit: WeaponDroneOrbit2D
+) -> void:
 	arsenal = p_arsenal
-	mount = WeaponMountVisual2D.new()
-	mount.name = "AntiAirMount"
-	arsenal.robot.get_node(^"VisualRoot").add_child(mount)
-	mount.setup(
-		arsenal.robot,
-		MOUNT_TEXTURE,
-		Vector2(58.0, 56.0),
-		Vector2(22.0, -78.0),
-		31.0,
-		4
-	)
+	for _index: int in range(runtime_max_rank):
+		drones.append(drone_orbit.create_drone(
+			&"LASER",
+			MOUNT_TEXTURE,
+			Vector2(52.0, 42.0),
+			31.0,
+			4
+		))
+	mount = drones[0]
 	emitter = mount.muzzle
 	_parameters.exclude = [arsenal.robot.get_rid()]
 
@@ -92,8 +95,7 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 	if current_rank == next_rank:
 		return false
 	current_rank = next_rank
-	if mount != null:
-		mount.set_armed(current_rank > 0)
+	_sync_drones()
 	return true
 
 
@@ -103,8 +105,8 @@ func set_paused(value: bool) -> void:
 		beam.paused = value
 	for impact: WeaponImpactEffect2D in impacts:
 		impact.paused = value
-	if mount != null:
-		mount.paused = value
+	for drone: WeaponDroneVisual2D in drones:
+		drone.paused = value
 
 
 func stop_and_release() -> void:
@@ -113,8 +115,7 @@ func stop_and_release() -> void:
 		beam.deactivate()
 	for impact: WeaponImpactEffect2D in impacts:
 		impact.deactivate()
-	if mount != null:
-		mount.set_armed(false)
+	_set_all_drones_armed(false)
 
 
 func reset_run() -> void:
@@ -125,14 +126,14 @@ func reset_run() -> void:
 	last_accepted_count = 0
 	_beam_cursor = 0
 	_impact_cursor = 0
+	_drone_cursor = 0
 	for beam: LaserBeamVisual2D in beams:
 		beam.paused = false
 		beam.deactivate()
 	for impact: WeaponImpactEffect2D in impacts:
 		impact.paused = false
 		impact.deactivate()
-	if mount != null:
-		mount.set_armed(false)
+	_set_all_drones_armed(false)
 
 
 func active_beam_count() -> int:
@@ -161,8 +162,11 @@ func _nearest_target() -> EnemyActor2D:
 
 
 func _fire(direction: Vector2) -> void:
-	if mount != null:
-		mount.aim_at(direction)
+	var firing_drone: WeaponDroneVisual2D = _next_drone()
+	if firing_drone != null:
+		mount = firing_drone
+		emitter = firing_drone.muzzle
+		firing_drone.aim_at(direction)
 	var origin: Vector2 = emitter.global_position
 	_parameters.transform = Transform2D(
 		direction.angle(),
@@ -213,6 +217,29 @@ func _fire(direction: Vector2) -> void:
 	_beam_cursor = (_beam_cursor + 1) % beams.size()
 	shots_fired += 1
 	cooldown_remaining = COOLDOWNS[current_rank]
+
+
+func _next_drone() -> WeaponDroneVisual2D:
+	if current_rank <= 0 or drones.is_empty():
+		return null
+	var active_total: int = mini(current_rank, drones.size())
+	var drone: WeaponDroneVisual2D = drones[_drone_cursor % active_total]
+	_drone_cursor = (_drone_cursor + 1) % active_total
+	return drone
+
+
+func _sync_drones() -> void:
+	for index: int in range(drones.size()):
+		drones[index].set_armed(index < current_rank)
+	if current_rank <= 0 or _drone_cursor >= current_rank:
+		_drone_cursor = 0
+	mount = drones[0] if not drones.is_empty() else null
+	emitter = mount.muzzle if mount != null else null
+
+
+func _set_all_drones_armed(value: bool) -> void:
+	for drone: WeaponDroneVisual2D in drones:
+		drone.set_armed(value)
 
 
 func _damage_for(receiver: Node) -> float:

@@ -25,9 +25,12 @@ var tick_remaining: float = 0.0
 var bursts_started: int = 0
 var ticks_delivered: int = 0
 var loop_audio_active: bool = false
-var mount: WeaponMountVisual2D
+var mount: WeaponDroneVisual2D
+var active_drone: WeaponDroneVisual2D
+var drones: Array[WeaponDroneVisual2D] = []
 var _flame_cursor: int = 0
 var _scorch_cursor: int = 0
+var _drone_cursor: int = 0
 
 
 func _init() -> void:
@@ -48,19 +51,20 @@ func _init() -> void:
 	add_child(loop_audio)
 
 
-func setup_arsenal(p_arsenal: PlayerArsenalRuntime, _p_emitter: Node2D) -> void:
+func setup_arsenal(
+	p_arsenal: PlayerArsenalRuntime,
+	drone_orbit: WeaponDroneOrbit2D
+) -> void:
 	arsenal = p_arsenal
-	mount = WeaponMountVisual2D.new()
-	mount.name = "FlamethrowerMount"
-	arsenal.robot.get_node(^"VisualRoot").add_child(mount)
-	mount.setup(
-		arsenal.robot,
-		MOUNT_TEXTURE,
-		Vector2(70.0, 48.0),
-		Vector2(51.0, -8.0),
-		38.0,
-		5
-	)
+	for _index: int in range(runtime_max_rank):
+		drones.append(drone_orbit.create_drone(
+			&"FLAMETHROWER",
+			MOUNT_TEXTURE,
+			Vector2(58.0, 38.0),
+			38.0,
+			5
+		))
+	mount = drones[0]
 	emitter = mount.muzzle
 
 
@@ -95,8 +99,7 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 	if current_rank == next_rank:
 		return false
 	current_rank = next_rank
-	if mount != null:
-		mount.set_armed(current_rank > 0)
+	_sync_drones()
 	return true
 
 
@@ -106,8 +109,8 @@ func set_paused(value: bool) -> void:
 		flame.paused = value
 	for scorch: ScorchVisualSlot2D in scorches:
 		scorch.paused = value
-	if mount != null:
-		mount.paused = value
+	for drone: WeaponDroneVisual2D in drones:
+		drone.paused = value
 	if value:
 		_stop_loop_audio()
 	elif burst_active:
@@ -122,8 +125,8 @@ func stop_and_release() -> void:
 		flame.deactivate()
 	for scorch: ScorchVisualSlot2D in scorches:
 		scorch.deactivate()
-	if mount != null:
-		mount.set_armed(false)
+	active_drone = null
+	_set_all_drones_armed(false)
 
 
 func reset_run() -> void:
@@ -138,9 +141,10 @@ func reset_run() -> void:
 	ticks_delivered = 0
 	_flame_cursor = 0
 	_scorch_cursor = 0
+	_drone_cursor = 0
+	active_drone = null
 	_stop_loop_audio()
-	if mount != null:
-		mount.set_armed(false)
+	_set_all_drones_armed(false)
 
 
 func flame_range() -> float:
@@ -198,8 +202,11 @@ func _start_burst(direction: Vector2) -> void:
 	ticks_remaining = tick_count()
 	tick_remaining = 0.0
 	bursts_started += 1
-	if mount != null:
-		mount.aim_at(direction)
+	active_drone = _next_drone()
+	if active_drone != null:
+		mount = active_drone
+		emitter = active_drone.muzzle
+		active_drone.aim_at(direction)
 	_start_loop_audio()
 
 
@@ -210,6 +217,7 @@ func _advance_burst(delta: float) -> void:
 		ticks_remaining -= 1
 		if ticks_remaining <= 0:
 			burst_active = false
+			active_drone = null
 			cooldown_remaining = cooldown_duration()
 			_stop_loop_audio()
 			return
@@ -247,3 +255,26 @@ func _start_loop_audio() -> void:
 func _stop_loop_audio() -> void:
 	loop_audio_active = false
 	loop_audio.stop()
+
+
+func _next_drone() -> WeaponDroneVisual2D:
+	if current_rank <= 0 or drones.is_empty():
+		return null
+	var active_total: int = mini(current_rank, drones.size())
+	var drone: WeaponDroneVisual2D = drones[_drone_cursor % active_total]
+	_drone_cursor = (_drone_cursor + 1) % active_total
+	return drone
+
+
+func _sync_drones() -> void:
+	for index: int in range(drones.size()):
+		drones[index].set_armed(index < current_rank)
+	if current_rank <= 0 or _drone_cursor >= current_rank:
+		_drone_cursor = 0
+	mount = drones[0] if not drones.is_empty() else null
+	emitter = mount.muzzle if mount != null else null
+
+
+func _set_all_drones_armed(value: bool) -> void:
+	for drone: WeaponDroneVisual2D in drones:
+		drone.set_armed(value)

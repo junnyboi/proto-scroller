@@ -24,7 +24,8 @@ var arsenal: PlayerArsenalRuntime
 var emitter: Node2D
 var pool: MissileProjectilePool
 var explosion_visuals: Array[MissileExplosionVisual2D] = []
-var mount: WeaponMountVisual2D
+var mount: WeaponDroneVisual2D
+var drones: Array[WeaponDroneVisual2D] = []
 var cooldown_remaining: float = 0.0
 var salvo_remaining: int = 0
 var salvo_spacing_remaining: float = 0.0
@@ -61,19 +62,20 @@ func _init() -> void:
 	_blast_parameters.collide_with_bodies = true
 
 
-func setup_arsenal(p_arsenal: PlayerArsenalRuntime, _p_emitter: Node2D) -> void:
+func setup_arsenal(
+	p_arsenal: PlayerArsenalRuntime,
+	drone_orbit: WeaponDroneOrbit2D
+) -> void:
 	arsenal = p_arsenal
-	mount = WeaponMountVisual2D.new()
-	mount.name = "MissilePodMount"
-	arsenal.robot.get_node(^"VisualRoot").add_child(mount)
-	mount.setup(
-		arsenal.robot,
-		MOUNT_TEXTURE,
-		Vector2(56.0, 44.0),
-		Vector2(18.0, -64.0),
-		32.0,
-		2
-	)
+	for _index: int in range(runtime_max_rank):
+		drones.append(drone_orbit.create_drone(
+			&"MISSILE",
+			MOUNT_TEXTURE,
+			Vector2(52.0, 38.0),
+			32.0,
+			2
+		))
+	mount = drones[0]
 	emitter = mount.muzzle
 	_blast_parameters.exclude = [arsenal.robot.get_rid()]
 
@@ -101,8 +103,7 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 	if current_rank == next_rank:
 		return false
 	current_rank = next_rank
-	if mount != null:
-		mount.set_armed(current_rank > 0)
+	_sync_drones()
 	return true
 
 
@@ -111,8 +112,8 @@ func set_paused(value: bool) -> void:
 	pool.set_paused(value)
 	for visual: MissileExplosionVisual2D in explosion_visuals:
 		visual.paused = value
-	if mount != null:
-		mount.paused = value
+	for drone: WeaponDroneVisual2D in drones:
+		drone.paused = value
 
 
 func stop_and_release() -> void:
@@ -122,8 +123,7 @@ func stop_and_release() -> void:
 	salvo_remaining = 0
 	for visual: MissileExplosionVisual2D in explosion_visuals:
 		visual.deactivate()
-	if mount != null:
-		mount.set_armed(false)
+	_set_all_drones_armed(false)
 
 
 func reset_run() -> void:
@@ -148,8 +148,7 @@ func reset_run() -> void:
 	for visual: MissileExplosionVisual2D in explosion_visuals:
 		visual.paused = false
 		visual.deactivate()
-	if mount != null:
-		mount.set_armed(false)
+	_set_all_drones_armed(false)
 
 
 func enqueue_explosion(
@@ -234,8 +233,11 @@ func _launch_next_missile() -> void:
 		return
 	var target_index: int = salvo_cursor % salvo_targets.size()
 	var attack_id: int = arsenal.reserve_attack_id()
-	if mount != null:
-		mount.aim_at(
+	var firing_drone: WeaponDroneVisual2D = _drone_for_launch(salvo_cursor)
+	if firing_drone != null:
+		mount = firing_drone
+		emitter = firing_drone.muzzle
+		firing_drone.aim_at(
 			emitter.global_position.direction_to(salvo_points[target_index])
 		)
 	var missile: MissileProjectile2D = pool.acquire(
@@ -250,6 +252,24 @@ func _launch_next_missile() -> void:
 		missiles_launched += 1
 	salvo_cursor += 1
 	salvo_remaining -= 1
+
+
+func _drone_for_launch(index: int) -> WeaponDroneVisual2D:
+	if current_rank <= 0 or drones.is_empty():
+		return null
+	return drones[index % mini(current_rank, drones.size())]
+
+
+func _sync_drones() -> void:
+	for index: int in range(drones.size()):
+		drones[index].set_armed(index < current_rank)
+	mount = drones[0] if not drones.is_empty() else null
+	emitter = mount.muzzle if mount != null else null
+
+
+func _set_all_drones_armed(value: bool) -> void:
+	for drone: WeaponDroneVisual2D in drones:
+		drone.set_armed(value)
 
 
 func _flush_explosions() -> void:

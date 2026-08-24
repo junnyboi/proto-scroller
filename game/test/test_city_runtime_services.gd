@@ -53,7 +53,7 @@ func test_upgrade_offer_ducks_music_until_entire_queue_drains() -> void:
 		1,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH,
-		3525
+		7050
 	)
 	assert_true(city.rampage_session.publish(reward))
 	await get_tree().process_frame

@@ -122,13 +122,13 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_pcm_cue(RobotAnimationPresenter.FOOTSTEP_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.SERVO_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_SERVO_SFX)
-	_assert_compact_voice_cue(RobotAnimationPresenter.DODGE_READY_VOICE)
+	_assert_pcm_cue(RobotAnimationPresenter.DODGE_RECHARGED_SFX)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	for audio_node: Node in presenter.find_children("RobotMechanicsAudio*", "AudioStreamPlayer2D"):
 		assert_eq((audio_node as AudioStreamPlayer2D).bus, GameAudioBus.MECHANICS)
 	assert_eq(
-		(presenter.get_node(^"RobotStatusVoice") as AudioStreamPlayer).bus,
-		GameAudioBus.VOICE
+		(presenter.get_node(^"RobotStatusRechargeSfx") as AudioStreamPlayer).bus,
+		GameAudioBus.MECHANICS
 	)
 	var frame_callable: Callable = presenter._on_sprite_frame_changed
 	sprite.frame_changed.disconnect(frame_callable)
@@ -215,7 +215,7 @@ func test_robot_mechanics_priority_stealing_protects_signature_cues() -> void:
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 
 
-func test_dodge_ready_voice_plays_once_when_cooldown_completes() -> void:
+func test_dodge_recharge_sfx_plays_once_when_cooldown_completes() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var presenter: RobotAnimationPresenter = (
@@ -223,15 +223,21 @@ func test_dodge_ready_voice_plays_once_when_cooldown_completes() -> void:
 	)
 	robot.collision_mask = 0
 	robot.gravity = 0.0
-	assert_eq(presenter.dodge_ready_voice_play_count, 0)
+	assert_eq(presenter.dodge_recharged_sfx_play_count, 0)
+	assert_eq(presenter._status_sfx_player.bus, GameAudioBus.MECHANICS)
+	assert_same(
+		RobotAnimationPresenter.DODGE_RECHARGED_SFX,
+		load("res://audio/sfx/robot/dodge_energy_recharged.wav")
+	)
 	assert_true(robot._start_dodge())
 	robot.physics_step(0.0, 0.60)
-	assert_eq(presenter.dodge_ready_voice_play_count, 0)
+	assert_eq(presenter.dodge_recharged_sfx_play_count, 0)
 	robot.physics_step(0.0, 0.60)
-	assert_eq(presenter.dodge_ready_voice_play_count, 1)
-	assert_eq(presenter.last_audio_cue, &"dodge_ready")
+	assert_eq(presenter.dodge_recharged_sfx_play_count, 1)
+	assert_eq(presenter.last_audio_cue, &"dodge_recharged")
+	assert_same(presenter._status_sfx_player.stream, presenter.DODGE_RECHARGED_SFX)
 	robot.physics_step(0.0, 0.20)
-	assert_eq(presenter.dodge_ready_voice_play_count, 1)
+	assert_eq(presenter.dodge_recharged_sfx_play_count, 1)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 

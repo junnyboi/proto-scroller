@@ -20,8 +20,8 @@ const SERVO_SFX: AudioStream = preload(
 const DODGE_SERVO_SFX: AudioStream = preload(
 	"res://audio/sfx/robot/robot_dodge_servo.wav"
 )
-const DODGE_READY_VOICE: AudioStream = preload(
-	"res://audio/voice/dodge_ready.wav"
+const DODGE_RECHARGED_SFX: AudioStream = preload(
+	"res://audio/sfx/robot/dodge_energy_recharged.wav"
 )
 
 var robot: GiantRobotController
@@ -33,7 +33,7 @@ var audio_play_count: int = 0
 var footstep_play_count: int = 0
 var servo_play_count: int = 0
 var dodge_servo_play_count: int = 0
-var dodge_ready_voice_play_count: int = 0
+var dodge_recharged_sfx_play_count: int = 0
 var attack_impact_play_count: int = 0
 var audio_recycle_count: int = 0
 var audio_drop_count: int = 0
@@ -44,7 +44,7 @@ var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
 var dust_intensity_scale: float = 1.0
 var _audio_players: Array[AudioStreamPlayer2D] = []
-var _status_voice_player: AudioStreamPlayer
+var _status_sfx_player: AudioStreamPlayer
 var _voice_started_order: int = 0
 var _afterimage_root: Node2D
 var _afterimages: Array[Sprite2D] = []
@@ -78,7 +78,7 @@ func bind_attacks(controller: ContextualAttackController) -> void:
 
 
 func audio_voice_count() -> int:
-	return _audio_players.size() + (1 if _status_voice_player != null else 0)
+	return _audio_players.size() + (1 if _status_sfx_player != null else 0)
 
 
 func afterimage_slot_count() -> int:
@@ -198,15 +198,15 @@ func _on_dodge_finished() -> void:
 
 
 func _on_dodge_cooldown_ready() -> void:
-	if _status_voice_player == null or DODGE_READY_VOICE == null:
+	if _status_sfx_player == null or DODGE_RECHARGED_SFX == null:
 		return
-	_status_voice_player.stop()
-	_status_voice_player.stream = DODGE_READY_VOICE
-	_status_voice_player.volume_db = -3.0
-	_status_voice_player.play()
-	dodge_ready_voice_play_count += 1
+	_status_sfx_player.stop()
+	_status_sfx_player.stream = DODGE_RECHARGED_SFX
+	_status_sfx_player.volume_db = -4.0
+	_status_sfx_player.play()
+	dodge_recharged_sfx_play_count += 1
 	audio_play_count += 1
-	last_audio_cue = &"dodge_ready"
+	last_audio_cue = &"dodge_recharged"
 
 
 func _on_sprite_frame_changed() -> void:
@@ -272,10 +272,10 @@ func _prewarm_audio() -> void:
 		AudioVoicePriority.stamp(player, AudioVoicePriority.UNUSED, 0)
 		add_child(player)
 		_audio_players.append(player)
-	_status_voice_player = AudioStreamPlayer.new()
-	_status_voice_player.name = "RobotStatusVoice"
-	_status_voice_player.bus = GameAudioBus.VOICE
-	add_child(_status_voice_player)
+	_status_sfx_player = AudioStreamPlayer.new()
+	_status_sfx_player.name = "RobotStatusRechargeSfx"
+	_status_sfx_player.bus = GameAudioBus.MECHANICS
+	add_child(_status_sfx_player)
 
 
 func _prewarm_afterimages() -> void:

@@ -22,28 +22,31 @@ var scan_remaining: float = 0.0
 var fire_remaining: float = 0.0
 var shot_cycle: int = 0
 var shots_fired: int = 0
-var mount: WeaponMountVisual2D
+var mount: WeaponDroneVisual2D
+var drones: Array[WeaponDroneVisual2D] = []
+var drone_cursor: int = 0
 
 
 func _init() -> void:
 	setup(&"MACHINE_GUN", 5)
 
 
-func setup_arsenal(p_arsenal: PlayerArsenalRuntime) -> void:
+func setup_arsenal(
+	p_arsenal: PlayerArsenalRuntime,
+	drone_orbit: WeaponDroneOrbit2D
+) -> void:
 	arsenal = p_arsenal
-	mount = WeaponMountVisual2D.new()
-	mount.name = "MachineGunMount"
-	arsenal.robot.get_node(^"VisualRoot").add_child(mount)
-	mount.setup(
-		arsenal.robot,
-		MOUNT_TEXTURE,
-		Vector2(78.0, 56.0),
-		Vector2(50.0, -29.0),
-		43.0,
-		3,
-		MUZZLE_FLASH_TEXTURE,
-		Vector2(44.0, 30.0)
-	)
+	for _index: int in range(runtime_max_rank):
+		drones.append(drone_orbit.create_drone(
+			&"MACHINE_GUN",
+			MOUNT_TEXTURE,
+			Vector2(62.0, 40.0),
+			43.0,
+			3,
+			MUZZLE_FLASH_TEXTURE,
+			Vector2(44.0, 30.0)
+		))
+	mount = drones[0]
 
 
 func _process(delta: float) -> void:
@@ -75,8 +78,7 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 	current_rank = next_rank
 	if current_rank <= 0:
 		target = null
-	if mount != null:
-		mount.set_armed(current_rank > 0)
+	_sync_drones()
 	return true
 
 
@@ -85,8 +87,7 @@ func stop_and_release() -> void:
 	target = null
 	if arsenal != null:
 		arsenal.projectile_pool.release_partition(&"player_bullet")
-	if mount != null:
-		mount.set_armed(false)
+	_set_all_drones_armed(false)
 
 
 func reset_run() -> void:
@@ -97,8 +98,8 @@ func reset_run() -> void:
 	fire_remaining = 0.0
 	shot_cycle = 0
 	shots_fired = 0
-	if mount != null:
-		mount.set_armed(false)
+	drone_cursor = 0
+	_set_all_drones_armed(false)
 
 
 func damage_per_shot() -> float:
@@ -121,9 +122,10 @@ func snapshot() -> Dictionary:
 
 
 func _fire() -> void:
+	var firing_drone: WeaponDroneVisual2D = _next_drone()
 	var origin: Vector2 = (
-		mount.muzzle_global_position()
-		if mount != null
+		firing_drone.muzzle_global_position()
+		if firing_drone != null
 		else arsenal.robot.global_position + Vector2(
 			48.0 * float(arsenal.robot.facing),
 			-30.0
@@ -132,9 +134,9 @@ func _fire() -> void:
 	var direction: Vector2 = (target.global_position - origin).normalized()
 	var spread: float = deg_to_rad(SPREAD_DEGREES[shot_cycle % SPREAD_DEGREES.size()])
 	direction = direction.rotated(spread)
-	if mount != null:
-		mount.aim_at(direction)
-		origin = mount.muzzle_global_position()
+	if firing_drone != null:
+		firing_drone.aim_at(direction)
+		origin = firing_drone.muzzle_global_position()
 	var attack_id: int = arsenal.reserve_attack_id()
 	var projectile: Projectile2D = arsenal.projectile_pool.acquire(
 		origin,
@@ -149,8 +151,31 @@ func _fire() -> void:
 		fire_remaining = fire_interval()
 		return
 	projectile.set_delivery_identity(attack_id, attack_id, BULLET_LIFETIME)
-	if mount != null:
-		mount.flash()
+	if firing_drone != null:
+		firing_drone.flash()
 	shots_fired += 1
 	shot_cycle += 1
 	fire_remaining = fire_interval()
+
+
+func _next_drone() -> WeaponDroneVisual2D:
+	if current_rank <= 0 or drones.is_empty():
+		return null
+	var active_total: int = mini(current_rank, drones.size())
+	var drone: WeaponDroneVisual2D = drones[drone_cursor % active_total]
+	drone_cursor = (drone_cursor + 1) % active_total
+	mount = drone
+	return drone
+
+
+func _sync_drones() -> void:
+	for index: int in range(drones.size()):
+		drones[index].set_armed(index < current_rank)
+	if current_rank <= 0 or drone_cursor >= current_rank:
+		drone_cursor = 0
+	mount = drones[0] if not drones.is_empty() else null
+
+
+func _set_all_drones_armed(value: bool) -> void:
+	for drone: WeaponDroneVisual2D in drones:
+		drone.set_armed(value)

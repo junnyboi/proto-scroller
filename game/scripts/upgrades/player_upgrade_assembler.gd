@@ -7,6 +7,7 @@ const CATALOG: UpgradeCatalog = preload(
 
 var session: UpgradeSession
 var runtimes: Dictionary[StringName, UpgradeRuntime] = {}
+var drone_orbit: WeaponDroneOrbit2D
 var _last_upgrade_audio_msec: int = -1000
 
 
@@ -47,26 +48,29 @@ func setup(city: Node) -> PackedStringArray:
 		city.get("projectile_root") as ProjectilePool,
 		city.get("encounter_runtime") as EncounterRuntime
 	)
+	drone_orbit = WeaponDroneOrbit2D.new()
+	robot.add_child(drone_orbit)
+	drone_orbit.setup(robot)
 	var machine_gun: MachineGunRuntime = (
 		runtimes[&"MACHINE_GUN"] as MachineGunRuntime
 	)
-	machine_gun.setup_arsenal(arsenal)
+	machine_gun.setup_arsenal(arsenal, drone_orbit)
 	var laser: PlayerLaserWeapon = runtimes[&"LASER"] as PlayerLaserWeapon
 	laser.setup_arsenal(
 		arsenal,
-		robot.get_node(^"VisualRoot/LaserEmitter") as Node2D
+		drone_orbit
 	)
 	var flamethrower: FlamethrowerRuntime = (
 		runtimes[&"FLAMETHROWER"] as FlamethrowerRuntime
 	)
 	flamethrower.setup_arsenal(
 		arsenal,
-		robot.get_node(^"VisualRoot/LaserEmitter") as Node2D
+		drone_orbit
 	)
 	var missiles: MissileWeapon = runtimes[&"MISSILE"] as MissileWeapon
 	missiles.setup_arsenal(
 		arsenal,
-		robot.get_node(^"VisualRoot/LaserEmitter") as Node2D
+		drone_orbit
 	)
 	session = UpgradeSession.new()
 	session.name = "UpgradeSession"
@@ -160,6 +164,8 @@ func _create_runtime(
 func _on_pause_changed(is_paused: bool) -> void:
 	for runtime: UpgradeRuntime in runtimes.values():
 		runtime.set_paused(is_paused)
+	if drone_orbit != null:
+		drone_orbit.set_paused(is_paused)
 
 
 

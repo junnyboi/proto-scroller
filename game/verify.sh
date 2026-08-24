@@ -18,10 +18,11 @@ rm -rf artifacts
 mkdir -p \
   artifacts/title_screen \
   artifacts/city_slice \
-  artifacts/endless_terrain \
-  artifacts/enemy_variety \
-  artifacts/street_volatility \
-  artifacts/upgrades
+	  artifacts/endless_terrain \
+	  artifacts/enemy_variety \
+	  artifacts/street_volatility \
+	  artifacts/upgrades \
+	  artifacts/weapon_drones
 START_EPOCH="$(date +%s)"
 
 run_engine() {
@@ -32,7 +33,7 @@ printf '%s\n' '[L3] import'
 run_engine "$GODOT" --headless --path . --import
 
 printf '%s\n' '[L1] parse and lint'
-"$GODOT" --version | grep -Fq '4.7.1'
+"$GODOT" --version | grep -Fq '4.7.2'
 grep -Fq 'config/features=PackedStringArray("4.7", "GL Compatibility")' project.godot
 grep -Fq 'window/size/viewport_width=1280' project.godot
 grep -Fq 'window/size/viewport_height=720' project.godot
@@ -52,6 +53,7 @@ for cue in \
 	  audio/sfx/robot/robot_footstep.wav \
 	  audio/sfx/robot/robot_servo.wav \
 	  audio/sfx/robot/robot_dodge_servo.wav \
+	  audio/sfx/robot/dodge_energy_recharged.wav \
 	  audio/sfx/debris/debris_enemy_thud.wav; do
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
@@ -198,6 +200,30 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/upgrades/upgrade-choice.png)"
 	  mv artifacts/upgrades/upgrade-choice.png \
 	    artifacts/upgrades/upgrade-choice-portrait.png
+
+	  printf '%s\n' '[L5] landscape weapon-drone visual scenario'
+	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	    -s selftest/weapon_drone_visual_scenario.gd
+	  test -s artifacts/weapon_drones/weapon-drones-rank-one.png
+	  test -s artifacts/weapon_drones/weapon-drones-max-rank.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_drones/weapon-drones-rank-one.png)"
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_drones/weapon-drones-max-rank.png)"
+	  mv artifacts/weapon_drones/weapon-drones-rank-one.png \
+	    artifacts/weapon_drones/weapon-drones-rank-one-landscape.png
+	  mv artifacts/weapon_drones/weapon-drones-max-rank.png \
+	    artifacts/weapon_drones/weapon-drones-max-rank-landscape.png
+
+	  printf '%s\n' '[L5] portrait weapon-drone visual scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	    --resolution 720x1280 -s selftest/weapon_drone_visual_scenario.gd
+	  test -s artifacts/weapon_drones/weapon-drones-rank-one.png
+	  test -s artifacts/weapon_drones/weapon-drones-max-rank.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_drones/weapon-drones-rank-one.png)"
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_drones/weapon-drones-max-rank.png)"
+	  mv artifacts/weapon_drones/weapon-drones-rank-one.png \
+	    artifacts/weapon_drones/weapon-drones-rank-one-portrait.png
+	  mv artifacts/weapon_drones/weapon-drones-max-rank.png \
+	    artifacts/weapon_drones/weapon-drones-max-rank-portrait.png
 
 	  printf '%s\n' '[WEB] cache-bypassed release export'
   rm -rf ../client/public/game

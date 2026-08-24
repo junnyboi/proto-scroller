@@ -6,7 +6,7 @@ signal level_gained(level: int, accepted_event_id: int)
 
 const BASE_REQUIREMENT: int = 500
 const GROWTH_FACTOR: float = 1.35
-const REQUIREMENT_MULTIPLIER: int = 3
+const REQUIREMENT_MULTIPLIER: int = 6
 const MAX_LEVEL: int = 999
 const MAX_EXPERIENCE: int = 2_000_000_000
 
