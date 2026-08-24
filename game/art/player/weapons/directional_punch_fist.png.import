@@ -17,7 +17,7 @@ dest_files=["res://.godot/imported/directional_punch_fist.png-d6d0b11940efb60d2c
 
 compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.65
+compress/lossy_quality=0.15
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
