@@ -146,7 +146,11 @@ func _layout_ring(
 			cos(angle) * responsive_radii.y
 		)
 		ring[local_index].scale = Vector2.ONE * presentation_scale
-		ring[local_index].update_orbit(next_position, tangent)
+		ring[local_index].update_orbit(
+			next_position,
+			tangent,
+			sin(angle) < 0.0
+		)
 
 
 func _count_for_weapon(weapon_key: StringName) -> int:
