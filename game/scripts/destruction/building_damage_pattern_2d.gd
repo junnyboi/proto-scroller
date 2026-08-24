@@ -6,6 +6,16 @@ const BASE_CRACK_COUNT: int = 5
 const EDGE_MARGIN: float = 8.0
 const CRACK_SHADOW: Color = Color(0.015, 0.012, 0.012, 0.78)
 const CRACK_HIGHLIGHT: Color = Color(0.34, 0.27, 0.22, 0.58)
+const CABLE_DETAIL_BIT: int = 1
+const PIPE_DETAIL_BIT: int = 2
+const CABLE_DISPLAY_SIZE: Vector2 = Vector2(46.0, 68.0)
+const PIPE_DISPLAY_SIZE: Vector2 = Vector2(42.0, 76.0)
+const CABLE_TEXTURE: Texture2D = preload(
+	"res://art/destruction/damage_details/dangling_cables.png"
+)
+const PIPE_TEXTURE: Texture2D = preload(
+	"res://art/destruction/damage_details/broken_water_pipe.png"
+)
 
 var _texture: Texture2D
 var _region_rect: Rect2
@@ -15,6 +25,9 @@ var _material_id: StringName = &"concrete"
 var _contour: PackedVector2Array = PackedVector2Array()
 var _cracks: Array[PackedVector2Array] = []
 var _patch: Polygon2D
+var _cable_detail: Sprite2D
+var _pipe_detail: Sprite2D
+var _detail_mask: int = 0
 
 
 func configure(
@@ -38,6 +51,16 @@ func configure(
 	_patch.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_patch.z_index = -1
 	add_child(_patch)
+	_cable_detail = _create_detail_sprite(
+		"DanglingCables",
+		CABLE_TEXTURE,
+		CABLE_DISPLAY_SIZE
+	)
+	_pipe_detail = _create_detail_sprite(
+		"BrokenWaterPipe",
+		PIPE_TEXTURE,
+		PIPE_DISPLAY_SIZE
+	)
 	visible = false
 
 
@@ -66,6 +89,19 @@ func crack_count() -> int:
 	return _cracks.size()
 
 
+func damage_detail_count() -> int:
+	var total: int = 0
+	if _cable_detail != null and _cable_detail.visible:
+		total += 1
+	if _pipe_detail != null and _pipe_detail.visible:
+		total += 1
+	return total
+
+
+func damage_detail_mask() -> int:
+	return _detail_mask
+
+
 func pattern_signature() -> String:
 	var parts: PackedStringArray = PackedStringArray()
 	for point: Vector2 in _contour:
@@ -76,9 +112,14 @@ func pattern_signature() -> String:
 func reset_pattern() -> void:
 	_contour.clear()
 	_cracks.clear()
+	_detail_mask = 0
 	if _patch != null:
 		_patch.polygon = PackedVector2Array()
 		_patch.uv = PackedVector2Array()
+	if _cable_detail != null:
+		_cable_detail.visible = false
+	if _pipe_detail != null:
+		_pipe_detail.visible = false
 	queue_redraw()
 
 
@@ -89,6 +130,7 @@ func capture_stream_state() -> Dictionary:
 	return {
 		"contour": _contour.duplicate(),
 		"cracks": cracks,
+		"detail_mask": _detail_mask,
 	}
 
 
@@ -102,6 +144,10 @@ func restore_stream_state(state: Dictionary) -> void:
 		_cracks.append((crack_value as PackedVector2Array).duplicate())
 	_patch.polygon = _contour
 	_patch.uv = _texture_uvs(_contour)
+	_apply_detail_mask(
+		int(state.get("detail_mask", 0)),
+		_contour_center()
+	)
 	queue_redraw()
 
 
@@ -162,6 +208,87 @@ func _generate(center: Vector2, severity: float, event_seed: int) -> void:
 			edge,
 		])
 		_cracks.append(crack)
+	_apply_detail_mask(_detail_mask_for_severity(severity), center)
+
+
+func _detail_mask_for_severity(severity: float) -> int:
+	if severity < 0.28:
+		return 0
+	if severity >= 0.62:
+		return CABLE_DETAIL_BIT | PIPE_DETAIL_BIT
+	if _material_id == &"steel":
+		return PIPE_DETAIL_BIT
+	if _material_id == &"glass":
+		return CABLE_DETAIL_BIT
+	return CABLE_DETAIL_BIT if _pattern_seed % 2 == 0 else PIPE_DETAIL_BIT
+
+
+func _apply_detail_mask(mask: int, center: Vector2) -> void:
+	_detail_mask = mask
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = _pattern_seed * 32452843 + mask * 49979687
+	_position_detail(
+		_cable_detail,
+		center,
+		Vector2(rng.randf_range(-28.0, 16.0), 30.0),
+		rng
+	)
+	_position_detail(
+		_pipe_detail,
+		center,
+		Vector2(rng.randf_range(-12.0, 28.0), 34.0),
+		rng
+	)
+	if _cable_detail != null:
+		_cable_detail.visible = (mask & CABLE_DETAIL_BIT) != 0
+	if _pipe_detail != null:
+		_pipe_detail.visible = (mask & PIPE_DETAIL_BIT) != 0
+
+
+func _position_detail(
+	sprite: Sprite2D,
+	center: Vector2,
+	offset: Vector2,
+	rng: RandomNumberGenerator
+) -> void:
+	if sprite == null:
+		return
+	var half_size: Vector2 = _cell_size * 0.5
+	sprite.position = center + offset
+	sprite.position.x = clampf(sprite.position.x, -half_size.x + 26.0, half_size.x - 26.0)
+	sprite.position.y = clampf(sprite.position.y, -half_size.y + 34.0, half_size.y - 34.0)
+	sprite.rotation = rng.randf_range(-0.11, 0.11)
+	sprite.flip_h = rng.randi_range(0, 1) == 1
+
+
+func _create_detail_sprite(
+	sprite_name: String,
+	texture: Texture2D,
+	display_size: Vector2
+) -> Sprite2D:
+	var sprite: Sprite2D = Sprite2D.new()
+	sprite.name = sprite_name
+	sprite.texture = texture
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var texture_size: Vector2 = texture.get_size()
+	var fit_scale: float = minf(
+		display_size.x / maxf(texture_size.x, 1.0),
+		display_size.y / maxf(texture_size.y, 1.0)
+	)
+	sprite.scale = Vector2.ONE * fit_scale
+	sprite.z_index = 1
+	sprite.visible = false
+	add_child(sprite)
+	return sprite
+
+
+func _contour_center() -> Vector2:
+	if _contour.is_empty():
+		return Vector2.ZERO
+	var center: Vector2 = Vector2.ZERO
+	for point: Vector2 in _contour:
+		center += point
+	return center / float(_contour.size())
 
 
 func _texture_uvs(points: PackedVector2Array) -> PackedVector2Array:

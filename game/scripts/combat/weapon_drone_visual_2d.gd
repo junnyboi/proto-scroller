@@ -5,12 +5,15 @@ const CHASSIS_TEXTURE: Texture2D = preload(
 	"res://art/player/drones/weapon_drone_chassis_east.png"
 )
 const CHASSIS_DISPLAY_SIZE: Vector2 = Vector2(58.0, 42.0)
+const REAR_ORBIT_Z_OFFSET: int = -12
 
 var robot: GiantRobotController
 var weapon_key: StringName = &""
 var paused: bool = false
 var armed: bool = false
 var chassis_facing: int = 1
+var behind_robot: bool = false
+var base_z_index: int = 0
 var flash_count: int = 0
 var weapon_pivot: Node2D
 var weapon_sprite: Sprite2D
@@ -50,7 +53,8 @@ func setup(
 ) -> void:
 	robot = p_robot
 	weapon_key = p_weapon_key
-	z_index = p_z_index
+	base_z_index = p_z_index
+	_set_behind_robot(false)
 	_configure_sprite(weapon_sprite, weapon_texture, weapon_display_size)
 	weapon_sprite.position = Vector2(8.0, 0.0)
 	muzzle.position = Vector2(muzzle_distance, 0.0)
@@ -84,10 +88,20 @@ func aim_at(direction: Vector2) -> void:
 		flash_sprite.flip_v = westward
 
 
-func update_orbit(next_position: Vector2, tangent: Vector2) -> void:
+func update_orbit(
+	next_position: Vector2,
+	tangent: Vector2,
+	p_behind_robot: bool
+) -> void:
 	position = next_position
 	chassis_facing = 1 if tangent.x >= 0.0 else -1
 	chassis_sprite.flip_h = chassis_facing < 0
+	_set_behind_robot(p_behind_robot)
+
+
+func _set_behind_robot(value: bool) -> void:
+	behind_robot = value
+	z_index = base_z_index + (REAR_ORBIT_Z_OFFSET if value else 0)
 
 
 func muzzle_global_position() -> Vector2:

@@ -25,12 +25,14 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	var cell: Destructible2D = city.building.get_cell(0, 1)
 	var partial_cell: Destructible2D = city.building.get_cell(1, 1)
 	cell.receive_damage(_fatal_event(city, cell, 31_001))
-	partial_cell.receive_damage(_fatal_event(city, partial_cell, 31_003, 35.0))
+	partial_cell.receive_damage(_fatal_event(city, partial_cell, 31_003, 60.0))
 	var partial_health: float = partial_cell.current_health
 	var partial_pattern: BuildingDamagePattern2D = partial_cell.get_node(
 		^"DamagedVisual"
 	) as BuildingDamagePattern2D
 	var pattern_signature: String = partial_pattern.pattern_signature()
+	var detail_mask: int = partial_pattern.damage_detail_mask()
+	assert_gt(partial_pattern.damage_detail_count(), 0)
 	city.car.current_health = 1.0
 	city.car.receive_damage(_fatal_event(city, city.car, 31_002))
 	assert_true(cell.is_destroyed())
@@ -43,10 +45,12 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	assert_true(city.building.is_cell_destroyed(0, 1))
 	var restored_partial: Destructible2D = city.building.get_cell(1, 1)
 	assert_almost_eq(restored_partial.current_health, partial_health, 0.01)
-	assert_eq(
-		(restored_partial.get_node(^"DamagedVisual") as BuildingDamagePattern2D).pattern_signature(),
-		pattern_signature
-	)
+	var restored_pattern: BuildingDamagePattern2D = restored_partial.get_node(
+		^"DamagedVisual"
+	) as BuildingDamagePattern2D
+	assert_eq(restored_pattern.pattern_signature(), pattern_signature)
+	assert_eq(restored_pattern.damage_detail_mask(), detail_mask)
+	assert_gt(restored_pattern.damage_detail_count(), 0)
 	assert_true(city.car.is_broken)
 	assert_ne(city.building.get_instance_id(), 0)
 	assert_eq(city.streamed_destructibles.post_warm_creation_count, 0)
@@ -54,6 +58,29 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 		city.building.get_instance_id() == original_building_slot
 		or city.streamed_destructibles.active_building_count() == 6
 	)
+	_record_test_execution()
+
+
+func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
+	var city: CitySlice = await _spawn_city()
+	var cell: Destructible2D = city.building.get_cell(1, 1)
+	var pattern: BuildingDamagePattern2D = cell.get_node(
+		^"DamagedVisual"
+	) as BuildingDamagePattern2D
+	var edge: BuildingRubbleEdge2D = cell.get_node(
+		^"RubbleEdgeVisual"
+	) as BuildingRubbleEdge2D
+	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_101, 60.0)))
+	assert_gt(pattern.damage_detail_count(), 0)
+	assert_true(pattern.visible)
+	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_102)))
+	assert_true(cell.is_destroyed())
+	assert_false(pattern.visible)
+	assert_gt(edge.exposed_edge_count(), 0)
+	assert_true(edge.visible)
+	assert_gt(edge._edge_polygons.size(), 0)
+	for polygon: PackedVector2Array in edge._edge_polygons:
+		assert_gt(polygon.size(), 4)
 	_record_test_execution()
 
 
