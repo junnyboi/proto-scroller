@@ -72,7 +72,7 @@ test "$UNIT_TESTS" -ge 2
 printf 'unit_tests=%s\n' "$UNIT_TESTS"
 
 printf '%s\n' '[L3] launch boot'
-run_engine "$GODOT" --headless --path . --quit-after 2
+run_engine "$GODOT" --headless --path . -s selftest/boot_smoke_scenario.gd
 
 printf '%s\n' '[L4] headless injected-input scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
