@@ -21,6 +21,28 @@ const EXPECTED_BASELINE_PUNCHES: Dictionary = {
 	&"longbow": 3, &"hive": 3, &"goliath": 5, &"nemesis": 6, &"leviathan": 13,
 }
 const EXPECTED_ACT_PEAK_THREAT: Array[int] = [5, 9, 12, 16, 17, 20]
+const EXPECTED_FACES_RIGHT: Dictionary[StringName, bool] = {
+	&"needle": false,
+	&"bulwark": true,
+	&"jackal": false,
+	&"lobber": true,
+	&"sapper": true,
+	&"hound": true,
+	&"mule": false,
+	&"basilisk": true,
+	&"lancer": true,
+	&"static": false,
+	&"kestrel": true,
+	&"rainmaker": false,
+	&"shrike": false,
+	&"cinder": false,
+	&"aegis": false,
+	&"longbow": false,
+	&"hive": false,
+	&"goliath": true,
+	&"nemesis": true,
+	&"leviathan": false,
+}
 const MAX_ARMOR_LOADOUT_HEALTH: float = 1200.0
 const LATE_WAVE_MINIMUM_DPS: float = 20.0
 
@@ -196,6 +218,55 @@ func test_shielded_bulwark_faces_player_from_both_sides() -> void:
 	bulwark._update_facing()
 	assert_eq(bulwark.facing, -1)
 	assert_true(bulwark.visual.flip_h)
+
+
+func test_every_procedural_sprite_faces_player_from_both_sides() -> void:
+	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var authored_right: bool = EXPECTED_FACES_RIGHT[archetype_id]
+		city.robot.global_position.x = 1300.0
+		var actor: ProceduralEnemy = runtime.acquire(
+			archetype_id,
+			Vector2(1000.0, float(profile.spawn_y))
+		) as ProceduralEnemy
+		assert_not_null(actor, archetype_id)
+		actor.set_physics_process(false)
+		assert_eq(
+			actor.visual_faces_right_by_default,
+			authored_right,
+			"%s authored direction" % archetype_id
+		)
+		assert_eq(actor.facing, 1, "%s target east" % archetype_id)
+		assert_eq(
+			actor.visual.flip_h,
+			not authored_right,
+			"%s visual east" % archetype_id
+		)
+		city.robot.global_position.x = 700.0
+		actor._update_facing()
+		assert_eq(actor.facing, -1, "%s target west" % archetype_id)
+		assert_eq(
+			actor.visual.flip_h,
+			authored_right,
+			"%s visual west" % archetype_id
+		)
+		runtime.release(actor)
+
+
+func test_base_enemy_sprites_face_player_from_both_sides() -> void:
+	for kind: StringName in EnemyArchetypeCatalog.BASE_KINDS:
+		city.robot.global_position.x = 1300.0
+		var actor: EnemyActor2D = runtime.acquire(kind, Vector2(1000.0, 542.5))
+		assert_not_null(actor, kind)
+		actor.set_physics_process(false)
+		assert_false(actor.visual_faces_right_by_default, "%s authored west" % kind)
+		assert_eq(actor.facing, 1, "%s target east" % kind)
+		assert_true(actor.visual.flip_h, "%s visual east" % kind)
+		city.robot.global_position.x = 700.0
+		actor._update_facing()
+		assert_eq(actor.facing, -1, "%s target west" % kind)
+		assert_false(actor.visual.flip_h, "%s visual west" % kind)
+		runtime.release(actor)
 
 
 func test_random_affix_spawns_play_bounded_colored_impact_effects() -> void:

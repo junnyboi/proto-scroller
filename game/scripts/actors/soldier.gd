@@ -25,7 +25,6 @@ var _cooldown: float = 0.35
 func _physics_process(delta: float) -> void:
 	if dead or not active:
 		return
-	_update_facing()
 	if state == State.ANTICIPATE:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		if advance_telegraph(delta):
@@ -36,6 +35,7 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		update_movement_bounce(delta)
 		return
+	_update_facing()
 	velocity.y = minf(velocity.y + gravity * delta, 900.0)
 	if target == null:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)

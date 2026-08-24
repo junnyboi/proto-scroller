@@ -48,6 +48,23 @@ func _run() -> void:
 		if not acquired:
 			continue
 		actor.set_physics_process(false)
+		var authored_right: bool = bool(profile.get("faces_right", false))
+		city.robot.global_position.x = actor.global_position.x + 200.0
+		actor._update_facing()
+		_check(
+			"%s_faces_east" % archetype_id,
+			actor.facing == 1 and actor.visual.flip_h == (not authored_right),
+			"facing=%d flip=%s authored_right=%s"
+			% [actor.facing, actor.visual.flip_h, authored_right]
+		)
+		city.robot.global_position.x = actor.global_position.x - 200.0
+		actor._update_facing()
+		_check(
+			"%s_faces_west" % archetype_id,
+			actor.facing == -1 and actor.visual.flip_h == authored_right,
+			"facing=%d flip=%s authored_right=%s"
+			% [actor.facing, actor.visual.flip_h, authored_right]
+		)
 		var before_position: Vector2 = actor.visual.position
 		var before_scale: Vector2 = actor.visual.scale
 		actor.velocity = Vector2(actor.move_speed, 0.0)

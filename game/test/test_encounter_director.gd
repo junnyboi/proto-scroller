@@ -61,12 +61,17 @@ func test_all_regular_soldiers_share_exact_pixel_height_and_face_the_player() ->
 	tracked.state = SoldierEnemy.State.ANTICIPATE
 	city.robot.global_position.x = tracked.global_position.x + 200.0
 	tracked._physics_process(0.0)
-	assert_eq(tracked.facing, 1)
-	assert_true(tracked.visual.flip_h)
-	city.robot.global_position.x = tracked.global_position.x - 200.0
-	tracked._physics_process(0.0)
 	assert_eq(tracked.facing, -1)
 	assert_false(tracked.visual.flip_h)
+	tracked.state = SoldierEnemy.State.AIM
+	tracked._physics_process(0.0)
+	assert_eq(tracked.facing, 1)
+	assert_true(tracked.visual.flip_h)
+	tracked.state = SoldierEnemy.State.ANTICIPATE
+	city.robot.global_position.x = tracked.global_position.x - 200.0
+	tracked._physics_process(0.0)
+	assert_eq(tracked.facing, 1)
+	assert_true(tracked.visual.flip_h)
 
 
 func test_projectile_pool_is_partitioned_16_4_4_and_reservations_are_strict() -> void:

@@ -50,6 +50,7 @@ const PROFILES: Dictionary = {
 	&"lobber": {
 		"display_name": "LOBBER GRENADIER", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/04-lobber-grenadier.png",
+		"faces_right": true,
 		"display": Vector2(110.07, 108.0), "collision": Vector2(44.0, 96.0),
 		"spawn_y": 542.0, "health": 105.0, "speed": 82.0, "acceleration": 500.0,
 		"preferred_range": 500.0, "minimum_range": 300.0, "attack_interval": 1.9,
@@ -60,6 +61,7 @@ const PROFILES: Dictionary = {
 	&"sapper": {
 		"display_name": "SAPPER COMBAT ENGINEER", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/05-sapper-combat-engineer.png",
+		"faces_right": true,
 		"display": Vector2(109.24, 108.0), "collision": Vector2(46.0, 98.0),
 		"spawn_y": 541.0, "health": 130.0, "speed": 76.0, "acceleration": 470.0,
 		"preferred_range": 420.0, "minimum_range": 240.0, "attack_interval": 2.1,
@@ -70,6 +72,7 @@ const PROFILES: Dictionary = {
 	&"hound": {
 		"display_name": "HOUND HUNTER DRONE", "family": &"air", "airborne": true,
 		"texture": "res://art/city/enemies/archetypes/06-hound-hunter-drone.png",
+		"faces_right": true,
 		"display": Vector2(180.0, 150.0), "collision": Vector2(150.0, 104.0),
 		"spawn_y": 230.0, "health": 170.0, "speed": 235.0, "acceleration": 520.0,
 		"preferred_range": 250.0, "minimum_range": 110.0, "attack_interval": 1.2,
@@ -91,6 +94,7 @@ const PROFILES: Dictionary = {
 	&"basilisk": {
 		"display_name": "BASILISK MORTAR CARRIER", "family": &"heavy", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/08-basilisk-mortar-platform.png",
+		"faces_right": true,
 		"display": Vector2(230.0, 150.0), "collision": Vector2(215.0, 90.0),
 		"spawn_y": 545.0, "health": 210.0, "speed": 54.0, "acceleration": 240.0,
 		"preferred_range": 690.0, "minimum_range": 430.0, "attack_interval": 2.6,
@@ -101,6 +105,7 @@ const PROFILES: Dictionary = {
 	&"lancer": {
 		"display_name": "LANCER MISSILE TEAM", "family": &"infantry", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/09-lancer-missile-team.png",
+		"faces_right": true,
 		"display": Vector2(128.81, 108.0), "collision": Vector2(120.0, 85.0),
 		"spawn_y": 547.5, "health": 160.0, "speed": 58.0, "acceleration": 350.0,
 		"preferred_range": 650.0, "minimum_range": 390.0, "attack_interval": 2.45,
@@ -121,6 +126,7 @@ const PROFILES: Dictionary = {
 	&"kestrel": {
 		"display_name": "KESTREL BOMBER DRONE", "family": &"air", "airborne": true,
 		"texture": "res://art/city/enemies/archetypes/11-kestrel-bomber-drone.png",
+		"faces_right": true,
 		"display": Vector2(235.0, 120.0), "collision": Vector2(210.0, 72.0),
 		"spawn_y": 145.0, "health": 170.0, "speed": 285.0, "acceleration": 580.0,
 		"preferred_range": 360.0, "minimum_range": 160.0, "attack_interval": 2.1,
@@ -192,6 +198,7 @@ const PROFILES: Dictionary = {
 	&"goliath": {
 		"display_name": "GOLIATH SIEGE WALKER", "family": &"siege", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/18-goliath-siege-walker.png",
+		"faces_right": true,
 		"display": Vector2(260.0, 240.0), "collision": Vector2(210.0, 210.0),
 		"spawn_y": 485.0, "health": 650.0, "speed": 52.0, "acceleration": 210.0,
 		"preferred_range": 550.0, "minimum_range": 300.0, "attack_interval": 2.75,
@@ -202,6 +209,7 @@ const PROFILES: Dictionary = {
 	&"nemesis": {
 		"display_name": "NEMESIS TITAN-HUNTER MECH", "family": &"siege", "airborne": false,
 		"texture": "res://art/city/enemies/archetypes/19-nemesis-titan-hunter-mech.png",
+		"faces_right": true,
 		"display": Vector2(170.0, 240.0), "collision": Vector2(82.0, 215.0),
 		"spawn_y": 482.5, "health": 850.0, "speed": 135.0, "acceleration": 520.0,
 		"preferred_range": 180.0, "minimum_range": 70.0, "attack_interval": 1.1,
