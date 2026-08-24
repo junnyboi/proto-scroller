@@ -247,10 +247,19 @@ func _create_rubble_edge(
 	var edge: BuildingRubbleEdge2D = BuildingRubbleEdge2D.new()
 	edge.name = "RubbleEdgeVisual"
 	edge.z_index = 3
+	var source_size: Vector2 = intact_texture.get_size()
+	var source_cell_size: Vector2 = Vector2(
+		source_size.x / float(COLUMNS),
+		source_size.y / float(ROWS)
+	)
 	edge.configure(
 		_cell_size(),
 		1 + row * COLUMNS + column,
-		profile.material_id,
+		intact_texture,
+		Rect2(
+			Vector2(source_cell_size.x * float(column), source_cell_size.y * float(row)),
+			source_cell_size
+		),
 		profile.visual_tint
 	)
 	return edge

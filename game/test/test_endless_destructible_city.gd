@@ -119,13 +119,33 @@ func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
 	assert_true(upper_pattern.visible)
 	assert_gt(upper_pattern.crack_count(), 0)
 	assert_eq(edge.exposed_edge_count(), 3)
+	assert_eq(edge.active_shell_count(), 3)
 	assert_false(edge.is_edge_exposed(BuildingRubbleEdge2D.Edge.BOTTOM))
-	assert_gt(edge.weather_mark_count(), 0)
-	assert_lt(edge.surface_fill_color().get_luminance(), 0.12)
 	assert_true(edge.visible)
-	assert_gt(edge._edge_polygons.size(), 0)
-	for polygon: PackedVector2Array in edge._edge_polygons:
+	var intact_sprite: Sprite2D = cell.get_node(^"IntactVisual") as Sprite2D
+	assert_eq(edge.source_texture(), intact_sprite.texture)
+	assert_eq(edge.source_region(), intact_sprite.region_rect)
+	var shell_edges: Array[BuildingRubbleEdge2D.Edge] = [
+		BuildingRubbleEdge2D.Edge.TOP,
+		BuildingRubbleEdge2D.Edge.RIGHT,
+		BuildingRubbleEdge2D.Edge.LEFT,
+	]
+	var cell_size: Vector2 = city.building.display_size / Vector2(
+		StructuralBuilding2D.COLUMNS,
+		StructuralBuilding2D.ROWS
+	)
+	for shell_edge: BuildingRubbleEdge2D.Edge in shell_edges:
+		var polygon: PackedVector2Array = edge.shell_polygon(shell_edge)
+		var uvs: PackedVector2Array = edge.shell_uv(shell_edge)
 		assert_gt(polygon.size(), 4)
+		assert_eq(uvs.size(), polygon.size())
+		for point_index: int in range(polygon.size()):
+			var normalized: Vector2 = (polygon[point_index] + cell_size * 0.5) / cell_size
+			var expected_uv: Vector2 = (
+				intact_sprite.region_rect.position
+				+ normalized * intact_sprite.region_rect.size
+			)
+			assert_eq(uvs[point_index], expected_uv)
 	_record_test_execution()
 
 
