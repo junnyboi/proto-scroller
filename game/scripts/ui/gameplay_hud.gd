@@ -349,7 +349,10 @@ func _build_status_panel() -> void:
 	objective_label = Label.new()
 	objective_label.name = "ObjectiveLabel"
 	objective_label.position = Vector2(48.0, 100.0)
-	objective_label.text = L10n.t("hud.move_hint")
+	objective_label.text = L10n.t(
+		"hud.move_hint",
+		InputBindingSettings.display_placeholders()
+	)
 	objective_label.add_theme_font_size_override(&"font_size", 20)
 	objective_label.modulate = MUTED_COLOR
 	add_child(objective_label)

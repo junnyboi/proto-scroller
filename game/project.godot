@@ -35,15 +35,19 @@ locale/fallback="en"
 
 move_left={
 "deadzone": 0.3,
-"events": [Object(InputEventKey,"physical_keycode":65,"unicode":97)]
+"events": [Object(InputEventKey,"physical_keycode":65,"unicode":97), Object(InputEventJoypadMotion,"axis":0,"axis_value":-1.0), Object(InputEventJoypadButton,"button_index":13)]
 }
 move_right={
 "deadzone": 0.3,
-"events": [Object(InputEventKey,"physical_keycode":68,"unicode":100)]
+"events": [Object(InputEventKey,"physical_keycode":68,"unicode":100), Object(InputEventJoypadMotion,"axis":0,"axis_value":1.0), Object(InputEventJoypadButton,"button_index":14)]
 }
 stomp={
 "deadzone": 0.3,
-"events": [Object(InputEventKey,"physical_keycode":32,"unicode":32)]
+"events": [Object(InputEventKey,"physical_keycode":32,"unicode":32), Object(InputEventJoypadButton,"button_index":0)]
+}
+dodge={
+"deadzone": 0.3,
+"events": [Object(InputEventKey,"physical_keycode":4194325), Object(InputEventJoypadButton,"button_index":1)]
 }
 
 [rendering]
