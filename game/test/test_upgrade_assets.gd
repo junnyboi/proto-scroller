@@ -73,9 +73,10 @@ func test_atlas_boundaries_have_transparent_gutters() -> void:
 		_assert_transparent_border(path)
 
 
-func test_directional_icon_and_drone_sprite_have_clear_borders() -> void:
+func test_directional_icon_drone_and_fist_projectile_have_clear_borders() -> void:
 	_assert_clear_border("res://art/ui/upgrades/directional_shockwave_icon.png")
 	_assert_clear_border("res://art/player/drones/weapon_drone_chassis_east.png")
+	_assert_clear_border("res://art/player/weapons/directional_punch_fist.png")
 
 
 func test_upgrade_audio_is_original_48khz_pcm16_and_uses_fixed_pool() -> void:

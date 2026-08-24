@@ -7,6 +7,10 @@ const PROP_LAYER: int = 1 << 7
 const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const TARGET_MASK: int = ENEMY_LAYER | HURTBOX_LAYER | PROP_LAYER | DEBRIS_LAYER | REMAINS_LAYER
+const FIST_TEXTURE: Texture2D = preload(
+	"res://art/player/weapons/directional_punch_fist.png"
+)
+const FIST_DISPLAY_SIZE: Vector2 = Vector2(168.0, 94.5)
 const HIT_SIZE: Vector2 = Vector2(112.0, 82.0)
 const MAX_RESULTS: int = 24
 
@@ -159,20 +163,11 @@ func _draw() -> void:
 		return
 	var ratio: float = clampf((age - delay_seconds) / lifetime, 0.0, 1.0)
 	var alpha: float = 1.0 - pow(ratio, 2.0)
-	var direction: float = float(facing)
-	var inner: PackedVector2Array = PackedVector2Array([
-		Vector2(-54.0 * direction, -24.0),
-		Vector2(48.0 * direction, -11.0),
-		Vector2(68.0 * direction, 0.0),
-		Vector2(48.0 * direction, 11.0),
-		Vector2(-54.0 * direction, 24.0),
-	])
-	draw_polyline(inner, Color(0.31, 0.91, 1.0, alpha * 0.92), 8.0, true)
-	draw_polyline(inner, Color(0.98, 0.72, 0.34, alpha * 0.56), 2.5, true)
-	draw_line(
-		Vector2(-64.0 * direction, 0.0),
-		Vector2(72.0 * direction, 0.0),
-		Color(0.92, 0.99, 1.0, alpha),
-		4.0,
-		true
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(float(facing), 1.0))
+	draw_texture_rect(
+		FIST_TEXTURE,
+		Rect2(-FIST_DISPLAY_SIZE * 0.5, FIST_DISPLAY_SIZE),
+		false,
+		Color(1.0, 1.0, 1.0, alpha)
 	)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

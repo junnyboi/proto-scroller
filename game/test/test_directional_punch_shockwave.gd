@@ -24,12 +24,25 @@ func test_jab_cross_emits_two_fast_directional_waves_only_after_upgrade() -> voi
 	assert_eq(runtime.waves[0].delivery_id, jab.attack_id * 10 + 1)
 	assert_eq(runtime.waves[1].delivery_id, jab.attack_id * 10 + 2)
 	assert_eq(runtime.waves[0].facing, 1)
+	assert_eq(DirectionalShockwave2D.FIST_TEXTURE.get_size(), Vector2(512.0, 288.0))
+	assert_eq(DirectionalShockwave2D.FIST_DISPLAY_SIZE, Vector2(168.0, 94.5))
 	var visual_root: Node2D = city.robot.get_node(^"VisualRoot") as Node2D
+	var base_origin: Vector2 = visual_root.global_position + Vector2(
+		DirectionalPunchShockwaveRuntime.FORWARD_OFFSET,
+		DirectionalPunchShockwaveRuntime.ORIGIN_Y_OFFSET
+	)
 	assert_eq(
 		runtime.waves[0].global_position,
-		visual_root.global_position + Vector2(
-			DirectionalPunchShockwaveRuntime.FORWARD_OFFSET,
-			DirectionalPunchShockwaveRuntime.ORIGIN_Y_OFFSET
+		base_origin + Vector2(
+			0.0,
+			-DirectionalPunchShockwaveRuntime.PUNCH_LANE_OFFSET_Y
+		)
+	)
+	assert_eq(
+		runtime.waves[1].global_position,
+		base_origin + Vector2(
+			0.0,
+			DirectionalPunchShockwaveRuntime.PUNCH_LANE_OFFSET_Y
 		)
 	)
 	assert_almost_eq(runtime.waves[1].delay_seconds, 0.085, 0.001)

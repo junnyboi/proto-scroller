@@ -4,6 +4,7 @@ extends UpgradeRuntime
 const CAPACITY: int = 10
 const PULSE_DELAY_SECONDS: float = 0.085
 const ORIGIN_Y_OFFSET: float = 18.0
+const PUNCH_LANE_OFFSET_Y: float = 18.0
 const FORWARD_OFFSET: float = 96.0
 
 var waves: Array[DirectionalShockwave2D] = []
@@ -97,8 +98,13 @@ func _on_attack_active(spec: AttackSpec) -> void:
 			denial_count += 1
 			continue
 		var delivery_id: int = spec.attack_id * 10 + pulse_index + 1
+		var lane_direction: float = -1.0 if pulse_index == 0 else 1.0
+		var wave_origin: Vector2 = origin + Vector2(
+			0.0,
+			lane_direction * PUNCH_LANE_OFFSET_Y
+		)
 		wave.activate(
-			origin,
+			wave_origin,
 			spec.facing,
 			delivery_id,
 			spec.attack_id,
