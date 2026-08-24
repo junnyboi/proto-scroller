@@ -10,8 +10,10 @@ enum Edge {
 
 const EDGE_COUNT: int = 4
 const HOLLOW_STEPS: int = 11
-const CHARRED_OUTLINE: Color = Color(0.018, 0.016, 0.015, 0.96)
-const EXPOSED_FACET: Color = Color(0.30, 0.285, 0.255, 0.72)
+const MIN_RETAINED_DEPTH: float = 24.0
+const MAX_RETAINED_DEPTH: float = 54.0
+const CHARRED_OUTLINE: Color = Color(0.018, 0.016, 0.015, 0.86)
+const EXPOSED_FACET: Color = Color(0.34, 0.32, 0.285, 0.66)
 
 var _cell_size: Vector2 = Vector2.ZERO
 var _facade_texture: Texture2D
@@ -104,11 +106,14 @@ func _shell_polygon(edge: int, rng: RandomNumberGenerator) -> PackedVector2Array
 		for step: int in range(HOLLOW_STEPS, -1, -1):
 			var ratio: float = float(step) / float(HOLLOW_STEPS)
 			var x: float = lerpf(-half_size.x, half_size.x, ratio)
-			var depth: float = rng.randf_range(8.0, 22.0)
+			var depth: float = rng.randf_range(
+				MIN_RETAINED_DEPTH + 4.0,
+				MAX_RETAINED_DEPTH
+			)
 			if step % 4 == 1:
-				depth *= rng.randf_range(0.38, 0.62)
+				depth *= rng.randf_range(0.62, 0.78)
 			elif step % 5 == 3:
-				depth *= rng.randf_range(1.18, 1.48)
+				depth *= rng.randf_range(1.05, 1.18)
 			var y: float = outer_y + depth if edge == Edge.TOP else outer_y - depth
 			points.append(Vector2(x, y))
 		return points
@@ -118,11 +123,14 @@ func _shell_polygon(edge: int, rng: RandomNumberGenerator) -> PackedVector2Array
 	for step: int in range(HOLLOW_STEPS, -1, -1):
 		var ratio: float = float(step) / float(HOLLOW_STEPS)
 		var y: float = lerpf(-half_size.y, half_size.y, ratio)
-		var depth: float = rng.randf_range(8.0, 21.0)
+		var depth: float = rng.randf_range(
+			MIN_RETAINED_DEPTH,
+			MAX_RETAINED_DEPTH - 8.0
+		)
 		if step % 4 == 2:
-			depth *= rng.randf_range(0.38, 0.62)
+			depth *= rng.randf_range(0.62, 0.78)
 		elif step % 5 == 4:
-			depth *= rng.randf_range(1.18, 1.45)
+			depth *= rng.randf_range(1.05, 1.18)
 		var x: float = outer_x + depth if edge == Edge.LEFT else outer_x - depth
 		points.append(Vector2(x, y))
 	return points
@@ -155,5 +163,5 @@ func _draw() -> void:
 		var hollow_edge: PackedVector2Array = PackedVector2Array()
 		for point_index: int in range(2, polygon.size()):
 			hollow_edge.append(polygon[point_index])
-		draw_polyline(hollow_edge, CHARRED_OUTLINE, 3.5, true)
-		draw_polyline(hollow_edge, EXPOSED_FACET, 1.15, true)
+		draw_polyline(hollow_edge, CHARRED_OUTLINE, 2.5, true)
+		draw_polyline(hollow_edge, EXPOSED_FACET, 0.9, true)

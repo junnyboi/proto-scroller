@@ -139,6 +139,22 @@ func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
 		var uvs: PackedVector2Array = edge.shell_uv(shell_edge)
 		assert_gt(polygon.size(), 4)
 		assert_eq(uvs.size(), polygon.size())
+		var retained_depth_total: float = 0.0
+		for point_index: int in range(2, polygon.size()):
+			var point: Vector2 = polygon[point_index]
+			if shell_edge == BuildingRubbleEdge2D.Edge.TOP:
+				retained_depth_total += point.y + cell_size.y * 0.5
+			elif shell_edge == BuildingRubbleEdge2D.Edge.RIGHT:
+				retained_depth_total += cell_size.x * 0.5 - point.x
+			else:
+				retained_depth_total += point.x + cell_size.x * 0.5
+		var average_retained_depth: float = (
+			retained_depth_total / float(polygon.size() - 2)
+		)
+		assert_gte(
+			average_retained_depth,
+			BuildingRubbleEdge2D.MIN_RETAINED_DEPTH
+		)
 		for point_index: int in range(polygon.size()):
 			var normalized: Vector2 = (polygon[point_index] + cell_size * 0.5) / cell_size
 			var expected_uv: Vector2 = (
