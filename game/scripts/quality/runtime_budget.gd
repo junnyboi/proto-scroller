@@ -59,6 +59,7 @@ const UPGRADE_CARDS: int = 2
 const WEAPON_STATUS_STRIPS: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
+const DIRECTIONAL_SHOCKWAVE_SLOTS: int = DirectionalPunchShockwaveRuntime.CAPACITY
 const PLAYER_ARSENALS: int = 1
 const WEAPON_DRONES: int = 19
 const MACHINE_GUN_IMPACT_SLOTS: int = ProjectilePool.MACHINE_GUN_IMPACT_CAPACITY
@@ -73,6 +74,7 @@ const MISSILE_EXPLOSION_QUEUE: int = 8
 const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_DUST_SLOTS: int = DodgeDustPool2D.CAPACITY
+const CRITICAL_SMOKE_EMITTERS: int = 1
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
 const HAZARD_ACTORS: int = 12
 const HAZARD_VFX_SLOTS: int = 16
@@ -120,6 +122,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"air_target_reticles": city.air_target_lock_runtime.reticle_count(),
 		"dodge_afterimage_slots": _robot_afterimage_slot_count(city),
 		"dodge_dust_slots": _robot_dust_slot_count(city),
+		"critical_smoke_emitters": _robot_smoke_emitter_count(city),
 		"elite_spawn_effect_slots": city.encounter_runtime.elite_spawn_effect_pool.slot_count(),
 		"hazard_total": city.urban_siege.hazards.total_count(),
 		"hazard_active": city.urban_siege.hazards.active_count(),
@@ -173,6 +176,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"weapon_status_strips": 1 if city.gameplay_hud.weapon_status_strip != null else 0,
 		"cosmetic_debris_instances": CosmeticDebrisField2D.CAPACITY,
 		"shockwave_ring_slots": ShockwaveUpgradeRuntime.CAPACITY,
+		"directional_shockwave_slots": DirectionalPunchShockwaveRuntime.CAPACITY,
 		"player_arsenals": (
 			1
 			if city.upgrade_assembler.get_node_or_null(^"PlayerArsenalRuntime") != null
@@ -225,6 +229,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "air_target_reticles", AIR_TARGET_RETICLES)
 	_check_equal(errors, data, "dodge_afterimage_slots", DODGE_AFTERIMAGE_SLOTS)
 	_check_equal(errors, data, "dodge_dust_slots", DODGE_DUST_SLOTS)
+	_check_equal(errors, data, "critical_smoke_emitters", CRITICAL_SMOKE_EMITTERS)
 	_check_equal(
 		errors,
 		data,
@@ -266,6 +271,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "weapon_status_strips", WEAPON_STATUS_STRIPS)
 	_check_equal(errors, data, "cosmetic_debris_instances", COSMETIC_DEBRIS_INSTANCES)
 	_check_equal(errors, data, "shockwave_ring_slots", SHOCKWAVE_RING_SLOTS)
+	_check_equal(errors, data, "directional_shockwave_slots", DIRECTIONAL_SHOCKWAVE_SLOTS)
 	_check_equal(errors, data, "player_arsenals", PLAYER_ARSENALS)
 	_check_equal(errors, data, "weapon_drones", WEAPON_DRONES)
 	_check_equal(
@@ -374,6 +380,13 @@ static func _robot_dust_slot_count(city: CitySlice) -> int:
 		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
 	return presenter.dust_slot_count() if presenter != null else 0
+
+
+static func _robot_smoke_emitter_count(city: CitySlice) -> int:
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	return presenter.critical_smoke_emitter_count() if presenter != null else 0
 
 
 static func _weapon_drone_count(city: CitySlice) -> int:

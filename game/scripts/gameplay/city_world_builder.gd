@@ -12,6 +12,7 @@ const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
+const ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y: float = 62.0
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
 const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
 const SKY_TEXTURE: Texture2D = preload("res://art/city/parallax/sky.png")
@@ -67,6 +68,7 @@ static func build_robot(
 	robot.add_child(body_shape)
 	var visual_root: Node2D = Node2D.new()
 	visual_root.name = "VisualRoot"
+	visual_root.position.y = ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y
 	visual_root.set_meta(&"baked_directional_art", true)
 	var robot_sprite: AnimatedSprite2D = AnimatedSprite2D.new()
 	robot_sprite.name = "RobotAnimatedSprite"
@@ -75,6 +77,10 @@ static func build_robot(
 	robot_sprite.scale = Vector2.ONE * 1.246
 	robot_sprite.position.y = 72.0
 	visual_root.add_child(robot_sprite)
+	var visual_ground_origin: Marker2D = Marker2D.new()
+	visual_ground_origin.name = "VisualGroundOrigin"
+	visual_ground_origin.position = Vector2(0.0, 126.0)
+	visual_root.add_child(visual_ground_origin)
 	robot.add_child(visual_root)
 	var impact_origin: Marker2D = Marker2D.new()
 	impact_origin.name = "GroundImpactOrigin"

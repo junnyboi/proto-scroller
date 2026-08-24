@@ -19,6 +19,7 @@ const BUILDING_LAYER: int = 1 << 3
 const HURTBOX_LAYER: int = 1 << 6
 const DEBRIS_LAYER: int = 1 << 8
 const LAND_BASELINE_Y: float = 655.0
+const LAND_VEHICLE_BASELINE_Y: float = 684.0
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
 const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
@@ -375,7 +376,12 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	visual.position = Vector2.ZERO
 	if not enemy.airborne:
 		var rendered_height: float = texture_size.y * fit
-		visual.position.y = LAND_BASELINE_Y - authored_y - rendered_height * 0.5
+		var baseline_y: float = (
+			LAND_BASELINE_Y
+			if EnemyArchetypeCatalog.is_human_enemy(kind)
+			else LAND_VEHICLE_BASELINE_Y
+		)
+		visual.position.y = baseline_y - authored_y - rendered_height * 0.5
 	enemy._visual_rest_position = visual.position
 	enemy._visual_rest_scale = visual.scale
 	enemy.collision_layer = ENEMY_LAYER
@@ -406,7 +412,10 @@ func _configure_actor_nodes(
 	visual.name = "Visual"
 	if kind != &"helicopter":
 		var rendered_height: float = texture.get_size().y * absf(visual.scale.y)
-		visual.position.y = LAND_BASELINE_Y - authored_y - rendered_height * 0.5
+		var baseline_y: float = (
+			LAND_VEHICLE_BASELINE_Y if kind == &"tank" else LAND_BASELINE_Y
+		)
+		visual.position.y = baseline_y - authored_y - rendered_height * 0.5
 		enemy.movement_bounce_enabled = true
 		if kind == &"soldier":
 			enemy.bounce_height = 5.5

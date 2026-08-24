@@ -25,6 +25,18 @@ func test_background_music_player_is_persistent_and_routes_to_music_bus() -> voi
 	assert_eq(player.get_parent(), main)
 
 
+func test_background_music_releases_stream_on_main_exit() -> void:
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	var player: AudioStreamPlayer = main.background_music_player
+	assert_true(player.playing)
+	assert_not_null(player.stream)
+	main._exit_tree()
+	assert_false(player.playing)
+	assert_null(player.stream)
+
+
 func test_upgrade_duck_controller_changes_the_players_music_bus() -> void:
 	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)

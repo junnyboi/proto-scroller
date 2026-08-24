@@ -75,10 +75,15 @@ func test_shockwave_is_one_zero_reward_cue_per_ground_smash() -> void:
 	runtime.call(&"_on_attack_active", smash)
 	assert_eq(runtime.active_count(), 1)
 	assert_eq(runtime.rings[0].lifetime, 1.0)
+	var visual_ground: Node2D = city.robot.get_node(
+		^"VisualRoot/VisualGroundOrigin"
+	) as Node2D
+	assert_eq(runtime.rings[0].global_position, visual_ground.global_position)
 	assert_eq(published.size(), 1)
 	assert_eq(published[0].dedupe_key, &"shockwave:700")
 	assert_eq(published[0].root_attack_id, 700)
 	assert_eq(published[0].base_points, 0)
+	assert_eq(published[0].world_position, visual_ground.global_position)
 	assert_eq(city.rampage_session.current_score(), score_before)
 	assert_eq(city.rampage_session.run_experience.total_experience, experience_before)
 	assert_gt(city.camera_rig.impact_velocity.length(), 0.0)

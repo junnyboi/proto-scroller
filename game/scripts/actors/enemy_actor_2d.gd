@@ -15,6 +15,7 @@ signal boss_armor_changed(current: float, maximum: float)
 signal boss_armor_broken()
 
 const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
+const SURVIVING_MELEE_KNOCKBACK_MULTIPLIER: float = 5.0
 
 @export var max_health: float = 60.0
 
@@ -149,11 +150,10 @@ func receive_damage(event: DamageEvent) -> bool:
 	if not is_equal_approx(incoming_damage_multiplier, 1.0):
 		accepted_event = accepted_event.scaled(incoming_damage_multiplier)
 	current_health = maxf(current_health - accepted_event.amount, 0.0)
-	var knockback_scale: float = (
-		0.28
-		if accepted_event.damage_type in [&"jab_cross", &"ground_smash"]
-		else 0.18
-	)
+	var melee_hit: bool = accepted_event.damage_type in [&"jab_cross", &"ground_smash"]
+	var knockback_scale: float = 0.28 if melee_hit else 0.18
+	if melee_hit and current_health > 0.0:
+		knockback_scale *= SURVIVING_MELEE_KNOCKBACK_MULTIPLIER
 	velocity += accepted_event.direction * accepted_event.impulse_per_mass * knockback_scale
 	if accepted_event.damage_type in [&"jab_cross", &"ground_smash"]:
 		last_player_knockback_attack_id = accepted_event.attack_id

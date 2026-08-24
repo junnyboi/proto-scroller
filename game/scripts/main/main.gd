@@ -20,6 +20,19 @@ func _ready() -> void:
 	add_child(responsive_viewport)
 	responsive_viewport.setup()
 	_show_title()
+	if not background_music_player.tree_exiting.is_connected(_release_background_music):
+		background_music_player.tree_exiting.connect(_release_background_music)
+
+
+func _exit_tree() -> void:
+	_release_background_music()
+
+
+func _release_background_music() -> void:
+	if not is_instance_valid(background_music_player):
+		return
+	background_music_player.stop()
+	background_music_player.stream = null
 
 
 func start_game() -> void:

@@ -85,7 +85,14 @@ func snapshot() -> Dictionary:
 func _on_attack_active(spec: AttackSpec) -> void:
 	if stopped or current_rank <= 0 or spec == null or not spec.is_ground_smash():
 		return
-	var origin: Vector2 = robot.global_position + Vector2(0.0, 126.0)
+	var visual_ground: Node2D = robot.get_node_or_null(
+		^"VisualRoot/VisualGroundOrigin"
+	) as Node2D
+	var origin: Vector2 = (
+		visual_ground.global_position
+		if visual_ground != null
+		else robot.global_position + Vector2(0.0, 126.0)
+	)
 	var event: GameplayEvent = GameplayEvent.new(
 		StringName("shockwave:%d" % spec.attack_id),
 		spec.attack_id,
