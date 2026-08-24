@@ -9,19 +9,88 @@ enum Edge {
 }
 
 const EDGE_COUNT: int = 4
-const HOLLOW_STEPS: int = 11
-const MIN_RETAINED_DEPTH: float = 24.0
-const MAX_RETAINED_DEPTH: float = 54.0
-const CHARRED_OUTLINE: Color = Color(0.018, 0.016, 0.015, 0.86)
-const EXPOSED_FACET: Color = Color(0.34, 0.32, 0.285, 0.66)
+const HOLE_HALF_EXTENTS: Vector2 = Vector2(0.245, 0.27)
+const INTERIOR_COLOR: Color = Color("101619")
+const HOLLOW_SHADER_CODE: String = """
+shader_type canvas_item;
+render_mode unshaded;
+
+uniform vec4 atlas_region_uv = vec4(0.0, 0.0, 1.0, 1.0);
+uniform vec2 hole_center = vec2(0.5, 0.48);
+uniform vec2 hole_half_extents = vec2(0.245, 0.27);
+uniform float pattern_seed = 1.0;
+uniform float ground_open = 1.0;
+
+void fragment() {
+	vec2 local_uv = (UV - atlas_region_uv.xy) / atlas_region_uv.zw;
+	vec2 from_hole = local_uv - hole_center;
+	float angle = atan(from_hole.y, from_hole.x);
+	float irregularity = (
+		sin(angle * 5.0 + pattern_seed * 1.73) * 0.035
+		+ sin(angle * 9.0 - pattern_seed * 0.91) * 0.018
+		+ sin(angle * 13.0 + pattern_seed * 0.37) * 0.010
+	);
+	vec2 effective_half = hole_half_extents + vec2(irregularity, irregularity * 0.72);
+	float hollow_distance = length(vec2(
+		from_hole.x / max(effective_half.x, 0.01),
+		from_hole.y / max(effective_half.y, 0.01)
+	));
+	float inside_hollow = 1.0 - step(1.0, hollow_distance);
+	float vertical_band = floor(local_uv.y * 9.0);
+	float left_width = clamp(
+		0.075
+		+ sin(vertical_band * 2.17 + pattern_seed * 1.31) * 0.020
+		+ sin(vertical_band * 4.63 - pattern_seed * 0.47) * 0.010,
+		0.045,
+		0.10
+	);
+	float right_width = clamp(
+		0.075
+		+ sin(vertical_band * 1.83 - pattern_seed * 1.07) * 0.020
+		+ sin(vertical_band * 5.11 + pattern_seed * 0.39) * 0.010,
+		0.045,
+		0.10
+	);
+	float ground_center_shift = (
+		sin(vertical_band * 1.37 + pattern_seed * 0.73) * 0.010
+	);
+	float ground_x = from_hole.x - ground_center_shift;
+	float below_hole_center = step(hole_center.y, local_uv.y);
+	float inside_ground_opening = (
+		step(-left_width, ground_x) * (1.0 - step(right_width, ground_x))
+	);
+	float cutout = max(
+		inside_hollow,
+		ground_open * below_hole_center * inside_ground_opening
+	);
+	if (cutout > 0.5) {
+		discard;
+	}
+	vec4 facade = texture(TEXTURE, UV) * COLOR;
+	float hollow_rim = 1.0 - smoothstep(1.0, 1.14, hollow_distance);
+	float ground_edge_distance = min(
+		abs(ground_x + left_width),
+		abs(ground_x - right_width)
+	);
+	float ground_rim = (
+		ground_open * below_hole_center
+		* (1.0 - smoothstep(0.0, 0.038, ground_edge_distance))
+	);
+	float scorched_rim = max(hollow_rim, ground_rim);
+	facade.rgb *= mix(1.0, 0.54, scorched_rim);
+	COLOR = facade;
+}
+"""
+
+static var _shared_hollow_shader: Shader
 
 var _cell_size: Vector2 = Vector2.ZERO
 var _facade_texture: Texture2D
 var _facade_region: Rect2 = Rect2()
-var _shell_polygons: Array[PackedVector2Array] = []
-var _shell_uvs: Array[PackedVector2Array] = []
 var _edge_visible: Array[bool] = [false, false, false, false]
-var _visual_tint: Color = Color.WHITE
+var _interior_backing: Polygon2D
+var _shell_sprite: Sprite2D
+var _cutout_material: ShaderMaterial
 
 
 func configure(
@@ -34,11 +103,58 @@ func configure(
 	_cell_size = cell_size
 	_facade_texture = facade_texture
 	_facade_region = facade_region
-	_visual_tint = visual_tint
-	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_build_shells(pattern_seed)
+	_interior_backing = Polygon2D.new()
+	_interior_backing.name = "DestroyedInterior"
+	_interior_backing.z_index = -1
+	var half_size: Vector2 = _cell_size * 0.5
+	_interior_backing.polygon = PackedVector2Array([
+		Vector2(-half_size.x, -half_size.y),
+		Vector2(half_size.x, -half_size.y),
+		Vector2(half_size.x, half_size.y),
+		Vector2(-half_size.x, half_size.y),
+	])
+	_interior_backing.color = INTERIOR_COLOR
+	add_child(_interior_backing)
+	_shell_sprite = Sprite2D.new()
+	_shell_sprite.name = "HollowFacade"
+	_shell_sprite.z_index = 0
+	_shell_sprite.texture = _facade_texture
+	_shell_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_shell_sprite.region_enabled = true
+	_shell_sprite.region_filter_clip_enabled = true
+	_shell_sprite.region_rect = _facade_region
+	_shell_sprite.scale = _cell_size / _facade_region.size
+	_shell_sprite.modulate = visual_tint
+	_cutout_material = ShaderMaterial.new()
+	_cutout_material.shader = _get_shared_hollow_shader()
+	var texture_size: Vector2 = _facade_texture.get_size()
+	_cutout_material.set_shader_parameter(
+		"atlas_region_uv",
+		Vector4(
+			_facade_region.position.x / texture_size.x,
+			_facade_region.position.y / texture_size.y,
+			_facade_region.size.x / texture_size.x,
+			_facade_region.size.y / texture_size.y
+		)
+	)
+	var seed_fraction: float = fmod(float(pattern_seed) * 0.173, 1.0)
+	_cutout_material.set_shader_parameter(
+		"hole_center",
+		Vector2(0.5 + (seed_fraction - 0.5) * 0.045, 0.48)
+	)
+	_cutout_material.set_shader_parameter("hole_half_extents", HOLE_HALF_EXTENTS)
+	_cutout_material.set_shader_parameter("pattern_seed", float(pattern_seed))
+	_cutout_material.set_shader_parameter("ground_open", 1.0)
+	_shell_sprite.material = _cutout_material
+	add_child(_shell_sprite)
 	visible = false
-	queue_redraw()
+
+
+static func _get_shared_hollow_shader() -> Shader:
+	if _shared_hollow_shader == null:
+		_shared_hollow_shader = Shader.new()
+		_shared_hollow_shader.code = HOLLOW_SHADER_CODE
+	return _shared_hollow_shader
 
 
 func set_exposed_edges(top: bool, right: bool, bottom: bool, left: bool) -> void:
@@ -47,7 +163,6 @@ func set_exposed_edges(top: bool, right: bool, bottom: bool, left: bool) -> void
 	_edge_visible[Edge.BOTTOM] = bottom
 	_edge_visible[Edge.LEFT] = left
 	visible = top or right or bottom or left
-	queue_redraw()
 
 
 func exposed_edge_count() -> int:
@@ -58,7 +173,7 @@ func exposed_edge_count() -> int:
 
 
 func active_shell_count() -> int:
-	return exposed_edge_count()
+	return 1 if visible and _shell_sprite != null else 0
 
 
 func is_edge_exposed(edge: Edge) -> bool:
@@ -73,95 +188,19 @@ func source_region() -> Rect2:
 	return _facade_region
 
 
-func shell_polygon(edge: Edge) -> PackedVector2Array:
-	if edge < 0 or edge >= _shell_polygons.size():
-		return PackedVector2Array()
-	return _shell_polygons[edge].duplicate()
+func facade_sprite() -> Sprite2D:
+	return _shell_sprite
 
 
-func shell_uv(edge: Edge) -> PackedVector2Array:
-	if edge < 0 or edge >= _shell_uvs.size():
-		return PackedVector2Array()
-	return _shell_uvs[edge].duplicate()
+func cutout_parameter(parameter_name: StringName) -> Variant:
+	if _cutout_material == null:
+		return null
+	return _cutout_material.get_shader_parameter(parameter_name)
 
 
-func _build_shells(pattern_seed: int) -> void:
-	_shell_polygons.clear()
-	_shell_uvs.clear()
-	for edge: int in range(EDGE_COUNT):
-		var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-		rng.seed = pattern_seed * 104729 + edge * 15485863
-		var polygon: PackedVector2Array = _shell_polygon(edge, rng)
-		_shell_polygons.append(polygon)
-		_shell_uvs.append(_texture_uvs(polygon))
+func interior_backing_color() -> Color:
+	return INTERIOR_COLOR
 
 
-func _shell_polygon(edge: int, rng: RandomNumberGenerator) -> PackedVector2Array:
-	var half_size: Vector2 = _cell_size * 0.5
-	var points: PackedVector2Array = PackedVector2Array()
-	if edge == Edge.TOP or edge == Edge.BOTTOM:
-		var outer_y: float = -half_size.y if edge == Edge.TOP else half_size.y
-		points.append(Vector2(-half_size.x, outer_y))
-		points.append(Vector2(half_size.x, outer_y))
-		for step: int in range(HOLLOW_STEPS, -1, -1):
-			var ratio: float = float(step) / float(HOLLOW_STEPS)
-			var x: float = lerpf(-half_size.x, half_size.x, ratio)
-			var depth: float = rng.randf_range(
-				MIN_RETAINED_DEPTH + 4.0,
-				MAX_RETAINED_DEPTH
-			)
-			if step % 4 == 1:
-				depth *= rng.randf_range(0.62, 0.78)
-			elif step % 5 == 3:
-				depth *= rng.randf_range(1.05, 1.18)
-			var y: float = outer_y + depth if edge == Edge.TOP else outer_y - depth
-			points.append(Vector2(x, y))
-		return points
-	var outer_x: float = -half_size.x if edge == Edge.LEFT else half_size.x
-	points.append(Vector2(outer_x, -half_size.y))
-	points.append(Vector2(outer_x, half_size.y))
-	for step: int in range(HOLLOW_STEPS, -1, -1):
-		var ratio: float = float(step) / float(HOLLOW_STEPS)
-		var y: float = lerpf(-half_size.y, half_size.y, ratio)
-		var depth: float = rng.randf_range(
-			MIN_RETAINED_DEPTH,
-			MAX_RETAINED_DEPTH - 8.0
-		)
-		if step % 4 == 2:
-			depth *= rng.randf_range(0.62, 0.78)
-		elif step % 5 == 4:
-			depth *= rng.randf_range(1.05, 1.18)
-		var x: float = outer_x + depth if edge == Edge.LEFT else outer_x - depth
-		points.append(Vector2(x, y))
-	return points
-
-
-func _texture_uvs(points: PackedVector2Array) -> PackedVector2Array:
-	var uvs: PackedVector2Array = PackedVector2Array()
-	var half_size: Vector2 = _cell_size * 0.5
-	for point: Vector2 in points:
-		var normalized: Vector2 = (point + half_size) / _cell_size
-		uvs.append(_facade_region.position + normalized * _facade_region.size)
-	return uvs
-
-
-func _draw() -> void:
-	if _facade_texture == null:
-		return
-	for edge: int in range(mini(_shell_polygons.size(), EDGE_COUNT)):
-		if not _edge_visible[edge]:
-			continue
-		var polygon: PackedVector2Array = _shell_polygons[edge]
-		if polygon.size() < 3:
-			continue
-		draw_polygon(
-			polygon,
-			PackedColorArray([_visual_tint]),
-			_shell_uvs[edge],
-			_facade_texture
-		)
-		var hollow_edge: PackedVector2Array = PackedVector2Array()
-		for point_index: int in range(2, polygon.size()):
-			hollow_edge.append(polygon[point_index])
-		draw_polyline(hollow_edge, CHARRED_OUTLINE, 2.5, true)
-		draw_polyline(hollow_edge, EXPOSED_FACET, 0.9, true)
+func interior_backing() -> Polygon2D:
+	return _interior_backing

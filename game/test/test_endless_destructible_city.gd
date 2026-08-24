@@ -62,7 +62,7 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	_record_test_execution()
 
 
-func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
+func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	var city: CitySlice = await _spawn_city()
 	var cell: Destructible2D = city.building.get_cell(1, 1)
 	var upper_cell: Destructible2D = city.building.get_cell(1, 0)
@@ -119,49 +119,47 @@ func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
 	assert_true(upper_pattern.visible)
 	assert_gt(upper_pattern.crack_count(), 0)
 	assert_eq(edge.exposed_edge_count(), 3)
-	assert_eq(edge.active_shell_count(), 3)
+	assert_eq(edge.active_shell_count(), 1)
 	assert_false(edge.is_edge_exposed(BuildingRubbleEdge2D.Edge.BOTTOM))
 	assert_true(edge.visible)
 	var intact_sprite: Sprite2D = cell.get_node(^"IntactVisual") as Sprite2D
+	var hollow_facade: Sprite2D = edge.facade_sprite()
+	assert_not_null(hollow_facade)
 	assert_eq(edge.source_texture(), intact_sprite.texture)
 	assert_eq(edge.source_region(), intact_sprite.region_rect)
-	var shell_edges: Array[BuildingRubbleEdge2D.Edge] = [
-		BuildingRubbleEdge2D.Edge.TOP,
-		BuildingRubbleEdge2D.Edge.RIGHT,
-		BuildingRubbleEdge2D.Edge.LEFT,
-	]
+	assert_eq(hollow_facade.texture, intact_sprite.texture)
+	assert_eq(hollow_facade.region_rect, intact_sprite.region_rect)
+	assert_true(hollow_facade.region_enabled)
 	var cell_size: Vector2 = city.building.display_size / Vector2(
 		StructuralBuilding2D.COLUMNS,
 		StructuralBuilding2D.ROWS
 	)
-	for shell_edge: BuildingRubbleEdge2D.Edge in shell_edges:
-		var polygon: PackedVector2Array = edge.shell_polygon(shell_edge)
-		var uvs: PackedVector2Array = edge.shell_uv(shell_edge)
-		assert_gt(polygon.size(), 4)
-		assert_eq(uvs.size(), polygon.size())
-		var retained_depth_total: float = 0.0
-		for point_index: int in range(2, polygon.size()):
-			var point: Vector2 = polygon[point_index]
-			if shell_edge == BuildingRubbleEdge2D.Edge.TOP:
-				retained_depth_total += point.y + cell_size.y * 0.5
-			elif shell_edge == BuildingRubbleEdge2D.Edge.RIGHT:
-				retained_depth_total += cell_size.x * 0.5 - point.x
-			else:
-				retained_depth_total += point.x + cell_size.x * 0.5
-		var average_retained_depth: float = (
-			retained_depth_total / float(polygon.size() - 2)
+	assert_eq(hollow_facade.region_rect.size * hollow_facade.scale, cell_size)
+	assert_eq(
+		edge.cutout_parameter(&"hole_half_extents"),
+		BuildingRubbleEdge2D.HOLE_HALF_EXTENTS
+	)
+	assert_eq(edge.cutout_parameter(&"ground_open"), 1.0)
+	var texture_size: Vector2 = intact_sprite.texture.get_size()
+	assert_eq(
+		edge.cutout_parameter(&"atlas_region_uv"),
+		Vector4(
+			intact_sprite.region_rect.position.x / texture_size.x,
+			intact_sprite.region_rect.position.y / texture_size.y,
+			intact_sprite.region_rect.size.x / texture_size.x,
+			intact_sprite.region_rect.size.y / texture_size.y
 		)
-		assert_gte(
-			average_retained_depth,
-			BuildingRubbleEdge2D.MIN_RETAINED_DEPTH
-		)
-		for point_index: int in range(polygon.size()):
-			var normalized: Vector2 = (polygon[point_index] + cell_size * 0.5) / cell_size
-			var expected_uv: Vector2 = (
-				intact_sprite.region_rect.position
-				+ normalized * intact_sprite.region_rect.size
-			)
-			assert_eq(uvs[point_index], expected_uv)
+	)
+	var interior: Polygon2D = edge.interior_backing()
+	assert_not_null(interior)
+	assert_eq(interior.z_index, -1)
+	assert_eq(interior.color, edge.interior_backing_color())
+	assert_lt(interior.color.get_luminance(), 0.12)
+	assert_eq(interior.polygon.size(), 4)
+	var cutout_material: ShaderMaterial = hollow_facade.material as ShaderMaterial
+	assert_not_null(cutout_material)
+	assert_not_null(cutout_material.shader)
+	assert_true(cutout_material.shader.code.contains("discard"))
 	_record_test_execution()
 
 
