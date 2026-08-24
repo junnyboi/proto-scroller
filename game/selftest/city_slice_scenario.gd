@@ -225,6 +225,10 @@ func _run() -> void:
 		elapsed_frames <= MAX_FRAMES,
 		"frames=%s max=%s" % [elapsed_frames, MAX_FRAMES]
 	)
+	retry_city.queue_free()
+	await process_frame
+	# Work around godotengine/godot#76745 in fixed-FPS command-line runs.
+	OS.delay_msec(100)
 	_finish(shot_status, shot_path)
 
 
