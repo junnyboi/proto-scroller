@@ -74,6 +74,18 @@ func visible_world_size() -> Vector2:
 	return get_viewport_rect().size / _camera.zoom
 
 
+func visible_world_rect(margin: Vector2 = Vector2.ZERO) -> Rect2:
+	var clamped_margin: Vector2 = Vector2(
+		maxf(margin.x, 0.0),
+		maxf(margin.y, 0.0)
+	)
+	var size: Vector2 = visible_world_size() + clamped_margin * 2.0
+	var center: Vector2 = global_position
+	if _camera != null:
+		center += _camera.offset
+	return Rect2(center - size * 0.5, size)
+
+
 func _apply_responsive_framing() -> void:
 	if _camera == null:
 		return

@@ -32,7 +32,7 @@ func test_every_upgrade_profile_has_a_generated_icon() -> void:
 	) as UpgradeCatalog
 	var english_keys: PackedStringArray = L10n.keys_for_locale("en")
 	var chinese_keys: PackedStringArray = L10n.keys_for_locale("zh-CN")
-	assert_eq(catalog.profiles.size(), 10)
+	assert_eq(catalog.profiles.size(), 11)
 	for profile: UpgradeProfile in catalog.profiles:
 		assert_has(english_keys, profile.display_name, "%s English name" % profile.upgrade_id)
 		assert_has(chinese_keys, profile.display_name, "%s Chinese name" % profile.upgrade_id)
@@ -71,6 +71,12 @@ func test_atlas_boundaries_have_transparent_gutters() -> void:
 	])
 	for path: String in standalone_paths:
 		_assert_transparent_border(path)
+
+
+func test_directional_icon_drone_and_fist_projectile_have_clear_borders() -> void:
+	_assert_clear_border("res://art/ui/upgrades/directional_shockwave_icon.png")
+	_assert_clear_border("res://art/player/drones/weapon_drone_chassis_east.png")
+	_assert_clear_border("res://art/player/weapons/directional_punch_fist.png")
 
 
 func test_upgrade_audio_is_original_48khz_pcm16_and_uses_fixed_pool() -> void:
@@ -114,6 +120,25 @@ func _assert_gutters(path: String, columns: int, rows: int) -> void:
 		var y: int = roundi(float(image.get_height() * row) / float(rows))
 		for x: int in range(image.get_width()):
 			assert_eq(image.get_pixel(x, y).a, 0.0, "%s x=%d y=%d" % [path, x, y])
+
+
+func _assert_clear_border(path: String) -> void:
+	var image: Image = Image.load_from_file(ProjectSettings.globalize_path(path))
+	assert_false(image.is_empty(), path)
+	for x: int in range(image.get_width()):
+		assert_eq(image.get_pixel(x, 0).a, 0.0, "%s top x=%d" % [path, x])
+		assert_eq(
+			image.get_pixel(x, image.get_height() - 1).a,
+			0.0,
+			"%s bottom x=%d" % [path, x]
+		)
+	for y: int in range(image.get_height()):
+		assert_eq(image.get_pixel(0, y).a, 0.0, "%s left y=%d" % [path, y])
+		assert_eq(
+			image.get_pixel(image.get_width() - 1, y).a,
+			0.0,
+			"%s right y=%d" % [path, y]
+		)
 
 
 func _assert_transparent_border(path: String) -> void:
