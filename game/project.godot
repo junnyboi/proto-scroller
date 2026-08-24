@@ -47,7 +47,7 @@ stomp={
 }
 dodge={
 "deadzone": 0.3,
-"events": [Object(InputEventJoypadButton,"button_index":1)]
+"events": [Object(InputEventKey,"physical_keycode":4194325), Object(InputEventJoypadButton,"button_index":1)]
 }
 
 [rendering]

@@ -4,6 +4,7 @@ const TITLE_SCREEN_SCENE: PackedScene = preload("res://scenes/title_screen.tscn"
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 const LANGUAGE_PREFERENCE_PATH: String = "user://test-title-language.cfg"
 const AUDIO_PREFERENCE_PATH: String = "user://test-title-audio.cfg"
+const INPUT_PREFERENCE_PATH: String = "user://test-title-input.cfg"
 const MINIMUM_TEXT_HEIGHT: float = 32.0
 
 var screen: TitleScreen
@@ -18,11 +19,14 @@ func before_all() -> void:
 func before_each() -> void:
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	InputBindingSettings.reset_to_defaults(INPUT_PREFERENCE_PATH, false)
+	_clear_input_preference()
 	_reset_audio_settings()
 	L10n.set_locale("en")
 	screen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	screen.audio_preference_path = AUDIO_PREFERENCE_PATH
+	screen.input_preference_path = INPUT_PREFERENCE_PATH
 	add_child_autofree(screen)
 	await get_tree().process_frame
 
@@ -31,6 +35,8 @@ func after_each() -> void:
 	L10n.set_locale("en")
 	L10n.clear_locale_preference(LANGUAGE_PREFERENCE_PATH)
 	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
+	InputBindingSettings.reset_to_defaults(INPUT_PREFERENCE_PATH, false)
+	_clear_input_preference()
 	_reset_audio_settings()
 
 
@@ -105,9 +111,8 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 		"A / D", "Left stick", "D-PAD", "Mobile joystick", "SPACE", "A / CROSS", "SMASH"
 	]:
 		assert_true(controls.contains(required_control), required_control)
-	assert_true(field_note.contains("Double-tap A / D"))
-	assert_true(field_note.contains("flick twice"))
-	assert_true(field_note.contains("B / CIRCLE"))
+	assert_true(field_note.contains("Bindings can be changed"))
+	assert_true(field_note.contains("AUTO SAVE"))
 	assert_eq(
 		(screen.get_node("SemanticContract/PrimaryObjective") as Label).text,
 		"PRIMARY  Survive the city response."
@@ -175,6 +180,12 @@ func test_settings_menu_applies_and_persists_the_complete_audio_mix() -> void:
 	assert_false(settings_layer.visible)
 	assert_true(screen.open_settings())
 	assert_true(settings_layer.visible)
+	assert_true((screen.get_node("%SettingsScroll") as ScrollContainer).visible)
+	assert_eq(
+		(screen.get_node("%ControlsHeading") as Label).text,
+		L10n.t("title.controls_settings_heading")
+	)
+	assert_true((screen.get_node("%ControllerVibrationToggle") as CheckButton).button_pressed)
 	for channel: int in AudioVolumeSettings.CHANNELS:
 		var slider: HSlider = sliders[channel] as HSlider
 		var value_label: Label = labels[channel] as Label
@@ -323,6 +334,11 @@ func _reset_audio_settings() -> void:
 			AudioVolumeSettings.default_percent(channel)
 		)
 		AudioVolumeSettings.apply_muted(channel, false)
+
+
+func _clear_input_preference() -> void:
+	if FileAccess.file_exists(INPUT_PREFERENCE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(INPUT_PREFERENCE_PATH))
 
 
 func _record_test_execution() -> void:

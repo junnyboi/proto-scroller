@@ -478,28 +478,37 @@ offset_right = 950.0
 offset_bottom = 620.0
 theme_override_styles/panel = SubResource("StyleSettingsPanel")
 
-[node name="Content" type="VBoxContainer" parent="SettingsLayer/SettingsPanel"]
+[node name="SettingsScroll" type="ScrollContainer" parent="SettingsLayer/SettingsPanel"]
+unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll"]
+custom_minimum_size = Vector2(540, 0)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="SettingsHeading" type="Label" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="SettingsHeading" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.352941, 1, 0.827451, 1)
 text = ""
 
-[node name="MasterVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="MasterVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MasterVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
+[node name="MasterVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MasterVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = ""
 vertical_alignment = 1
 
-[node name="MasterVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
+[node name="MasterVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MasterVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -512,7 +521,7 @@ value = 100.0
 tick_count = 11
 ticks_on_borders = true
 
-[node name="MasterVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
+[node name="MasterVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MasterVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(80, 44)
 layout_mode = 2
@@ -521,7 +530,7 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="MasterMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/MasterVolumeRow"]
+[node name="MasterMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MasterVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 44)
 layout_mode = 2
@@ -538,18 +547,18 @@ theme_override_styles/pressed = SubResource("StyleLanguagePressed")
 theme_override_styles/focus = SubResource("StyleToggleFocus")
 text = "MUTE"
 
-[node name="MusicVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="MusicVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MusicVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
+[node name="MusicVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MusicVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = ""
 vertical_alignment = 1
 
-[node name="MusicVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
+[node name="MusicVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MusicVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -562,7 +571,7 @@ value = 70.0
 tick_count = 11
 ticks_on_borders = true
 
-[node name="MusicVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
+[node name="MusicVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MusicVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(80, 44)
 layout_mode = 2
@@ -571,7 +580,7 @@ text = "70%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="MusicMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/MusicVolumeRow"]
+[node name="MusicMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MusicVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 44)
 layout_mode = 2
@@ -588,18 +597,18 @@ theme_override_styles/pressed = SubResource("StyleLanguagePressed")
 theme_override_styles/focus = SubResource("StyleToggleFocus")
 text = "MUTE"
 
-[node name="SfxVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="SfxVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="SfxVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
+[node name="SfxVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/SfxVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = ""
 vertical_alignment = 1
 
-[node name="SfxVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
+[node name="SfxVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/SfxVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -612,7 +621,7 @@ value = 100.0
 tick_count = 11
 ticks_on_borders = true
 
-[node name="SfxVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
+[node name="SfxVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/SfxVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(80, 44)
 layout_mode = 2
@@ -621,7 +630,7 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="SfxMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/SfxVolumeRow"]
+[node name="SfxMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/SfxVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 44)
 layout_mode = 2
@@ -638,18 +647,18 @@ theme_override_styles/pressed = SubResource("StyleLanguagePressed")
 theme_override_styles/focus = SubResource("StyleToggleFocus")
 text = "MUTE"
 
-[node name="VoiceVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="VoiceVolumeRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="VoiceVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+[node name="VoiceVolumeLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/VoiceVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = ""
 vertical_alignment = 1
 
-[node name="VoiceVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+[node name="VoiceVolumeSlider" type="HSlider" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/VoiceVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -662,7 +671,7 @@ value = 100.0
 tick_count = 11
 ticks_on_borders = true
 
-[node name="VoiceVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+[node name="VoiceVolumeValue" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/VoiceVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(80, 44)
 layout_mode = 2
@@ -671,7 +680,7 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="VoiceMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/Content/VoiceVolumeRow"]
+[node name="VoiceMuteButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/VoiceVolumeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 44)
 layout_mode = 2
@@ -688,14 +697,195 @@ theme_override_styles/pressed = SubResource("StyleLanguagePressed")
 theme_override_styles/focus = SubResource("StyleToggleFocus")
 text = "MUTE"
 
-[node name="AudioVolumeHint" type="Label" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="AudioVolumeHint" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
 text = ""
 clip_text = true
 
-[node name="SettingsCloseButton" type="Button" parent="SettingsLayer/SettingsPanel/Content"]
+[node name="ControlsHeading" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.352941, 1, 0.827451, 1)
+text = ""
+
+[node name="MoveLeftBindingRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MoveLeftBindingLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MoveLeftBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="MoveLeftKeyboardButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MoveLeftBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="MoveLeftGamepadButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MoveLeftBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="MoveRightBindingRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MoveRightBindingLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MoveRightBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="MoveRightKeyboardButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MoveRightBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="MoveRightGamepadButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/MoveRightBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="SmashBindingRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SmashBindingLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/SmashBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="SmashKeyboardButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/SmashBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="SmashGamepadButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/SmashBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="DodgeBindingRow" type="HBoxContainer" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DodgeBindingLabel" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/DodgeBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="DodgeKeyboardButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/DodgeBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="DodgeGamepadButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content/DodgeBindingRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="BindingHint" type="Label" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.443137, 0.635294, 0.635294, 1)
+text = ""
+autowrap_mode = 2
+
+[node name="ControllerVibrationToggle" type="CheckButton" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+text = ""
+
+[node name="ResetBindingsButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
+[node name="SettingsCloseButton" type="Button" parent="SettingsLayer/SettingsPanel/SettingsScroll/Content"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
