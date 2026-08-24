@@ -44,11 +44,15 @@ func _run() -> void:
 	var top_cell: Destructible2D = city.building.get_cell(1, 0)
 	var right_cell: Destructible2D = city.building.get_cell(2, 1)
 	var center_cell: Destructible2D = city.building.get_cell(1, 1)
-	_apply_damage(city, left_cell, 81_001, 38.0)
-	_apply_damage(city, top_cell, 81_002, 92.0)
-	_apply_damage(city, right_cell, 81_003, 72.0)
+	_apply_damage(city, left_cell, 81_001, 16.0)
+	_apply_damage(city, top_cell, 81_002, 60.0)
+	_apply_damage(city, right_cell, 81_003, 60.0)
 	_apply_damage(city, center_cell, 81_004, 10_000.0)
-	await create_timer(0.75, false).timeout
+	await create_timer(1.0, false).timeout
+	_apply_damage(city, left_cell, 81_005, 5.0)
+	_apply_damage(city, top_cell, 81_006, 10.0)
+	_apply_damage(city, right_cell, 81_007, 10.0)
+	await create_timer(0.10, false).timeout
 	await physics_frame
 	await RenderingServer.frame_post_draw
 	if DisplayServer.get_name() == "headless":

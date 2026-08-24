@@ -110,6 +110,11 @@ func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
 		_intact_visual.visible = not show_rubble
 	if _damaged_visual != null:
 		_damaged_visual.visible = show_damaged and not show_rubble
+		var damage_pattern: BuildingDamagePattern2D = (
+			_damaged_visual as BuildingDamagePattern2D
+		)
+		if damage_pattern != null and show_rubble:
+			damage_pattern.cull_damage_details()
 	if _rubble_visual != null:
 		_rubble_visual.visible = show_rubble
 	if _intact_collision != null:

@@ -51,6 +51,7 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	assert_eq(restored_pattern.pattern_signature(), pattern_signature)
 	assert_eq(restored_pattern.damage_detail_mask(), detail_mask)
 	assert_gt(restored_pattern.damage_detail_count(), 0)
+	assert_eq(restored_pattern.active_damage_effect_count(), 0)
 	assert_true(city.car.is_broken)
 	assert_ne(city.building.get_instance_id(), 0)
 	assert_eq(city.streamed_destructibles.post_warm_creation_count, 0)
@@ -71,11 +72,39 @@ func test_destroyed_segment_culls_details_and_exposes_jagged_edges() -> void:
 		^"RubbleEdgeVisual"
 	) as BuildingRubbleEdge2D
 	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_101, 60.0)))
-	assert_gt(pattern.damage_detail_count(), 0)
+	assert_eq(pattern.damage_detail_count(), 2)
+	assert_eq(pattern.damage_effect_activation_count(), 2)
+	assert_eq(pattern.active_damage_effect_count(), 2)
 	assert_true(pattern.visible)
+	var cable: BuildingDamageAttachment2D = pattern.get_node(
+		^"DanglingCables"
+	) as BuildingDamageAttachment2D
+	var pipe: BuildingDamageAttachment2D = pattern.get_node(
+		^"BrokenWaterPipe"
+	) as BuildingDamageAttachment2D
+	assert_true(cable.is_processing())
+	assert_eq(cable.particles.name, "CableSparks")
+	assert_eq(pipe.particles.name, "WaterSpray")
+	assert_lte(
+		cable.particles.amount,
+		BuildingDamageAttachment2D.MAX_SPARK_PARTICLES
+	)
+	assert_lte(
+		pipe.particles.amount,
+		BuildingDamageAttachment2D.MAX_WATER_PARTICLES
+	)
+	var initial_rotation: float = cable.rotation
+	for _step: int in range(8):
+		cable._process(0.1)
+	assert_ne(cable.rotation, initial_rotation)
+	assert_ne(pattern.cable_sway_offset(), 0.0)
+	assert_lte(absf(pattern.cable_sway_offset()), 0.26)
 	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_102)))
 	assert_true(cell.is_destroyed())
 	assert_false(pattern.visible)
+	assert_eq(pattern.damage_detail_count(), 0)
+	assert_eq(pattern.active_damage_effect_count(), 0)
+	assert_false(cable.is_processing())
 	assert_gt(edge.exposed_edge_count(), 0)
 	assert_true(edge.visible)
 	assert_gt(edge._edge_polygons.size(), 0)

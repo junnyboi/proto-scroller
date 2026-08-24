@@ -25,8 +25,8 @@ var _material_id: StringName = &"concrete"
 var _contour: PackedVector2Array = PackedVector2Array()
 var _cracks: Array[PackedVector2Array] = []
 var _patch: Polygon2D
-var _cable_detail: Sprite2D
-var _pipe_detail: Sprite2D
+var _cable_detail: BuildingDamageAttachment2D
+var _pipe_detail: BuildingDamageAttachment2D
 var _detail_mask: int = 0
 
 
@@ -51,13 +51,15 @@ func configure(
 	_patch.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_patch.z_index = -1
 	add_child(_patch)
-	_cable_detail = _create_detail_sprite(
+	_cable_detail = _create_detail_attachment(
 		"DanglingCables",
+		BuildingDamageAttachment2D.Kind.CABLE,
 		CABLE_TEXTURE,
 		CABLE_DISPLAY_SIZE
 	)
-	_pipe_detail = _create_detail_sprite(
+	_pipe_detail = _create_detail_attachment(
 		"BrokenWaterPipe",
+		BuildingDamageAttachment2D.Kind.PIPE,
 		PIPE_TEXTURE,
 		PIPE_DISPLAY_SIZE
 	)
@@ -77,7 +79,9 @@ func record_damage(event: DamageEvent, health_ratio: float) -> void:
 		^ int(roundf(event.hit_position.x * 17.0))
 		^ int(roundf(event.hit_position.y * 31.0))
 	)
-	_generate(local_hit, clampf(1.0 - health_ratio, 0.0, 1.0), event_seed)
+	var severity: float = clampf(1.0 - health_ratio, 0.0, 1.0)
+	_generate(local_hit, severity, event_seed)
+	_emit_attachment_effects(event, severity)
 	queue_redraw()
 
 
@@ -102,6 +106,35 @@ func damage_detail_mask() -> int:
 	return _detail_mask
 
 
+func damage_effect_activation_count() -> int:
+	var total: int = 0
+	if _cable_detail != null:
+		total += _cable_detail.activation_count
+	if _pipe_detail != null:
+		total += _pipe_detail.activation_count
+	return total
+
+
+func active_damage_effect_count() -> int:
+	var total: int = 0
+	if _cable_detail != null:
+		total += _cable_detail.active_effect_count()
+	if _pipe_detail != null:
+		total += _pipe_detail.active_effect_count()
+	return total
+
+
+func cable_sway_offset() -> float:
+	return _cable_detail.sway_rotation_offset if _cable_detail != null else 0.0
+
+
+func cull_damage_details() -> void:
+	if _cable_detail != null:
+		_cable_detail.set_attachment_visible(false)
+	if _pipe_detail != null:
+		_pipe_detail.set_attachment_visible(false)
+
+
 func pattern_signature() -> String:
 	var parts: PackedStringArray = PackedStringArray()
 	for point: Vector2 in _contour:
@@ -116,10 +149,7 @@ func reset_pattern() -> void:
 	if _patch != null:
 		_patch.polygon = PackedVector2Array()
 		_patch.uv = PackedVector2Array()
-	if _cable_detail != null:
-		_cable_detail.visible = false
-	if _pipe_detail != null:
-		_pipe_detail.visible = false
+	cull_damage_details()
 	queue_redraw()
 
 
@@ -240,46 +270,48 @@ func _apply_detail_mask(mask: int, center: Vector2) -> void:
 		rng
 	)
 	if _cable_detail != null:
-		_cable_detail.visible = (mask & CABLE_DETAIL_BIT) != 0
+		_cable_detail.set_attachment_visible((mask & CABLE_DETAIL_BIT) != 0)
 	if _pipe_detail != null:
-		_pipe_detail.visible = (mask & PIPE_DETAIL_BIT) != 0
+		_pipe_detail.set_attachment_visible((mask & PIPE_DETAIL_BIT) != 0)
 
 
 func _position_detail(
-	sprite: Sprite2D,
+	attachment: BuildingDamageAttachment2D,
 	center: Vector2,
 	offset: Vector2,
 	rng: RandomNumberGenerator
 ) -> void:
-	if sprite == null:
+	if attachment == null:
 		return
 	var half_size: Vector2 = _cell_size * 0.5
-	sprite.position = center + offset
-	sprite.position.x = clampf(sprite.position.x, -half_size.x + 26.0, half_size.x - 26.0)
-	sprite.position.y = clampf(sprite.position.y, -half_size.y + 34.0, half_size.y - 34.0)
-	sprite.rotation = rng.randf_range(-0.11, 0.11)
-	sprite.flip_h = rng.randi_range(0, 1) == 1
+	var visual_center: Vector2 = center + offset
+	visual_center.x = clampf(visual_center.x, -half_size.x + 26.0, half_size.x - 26.0)
+	visual_center.y = clampf(visual_center.y, -half_size.y + 34.0, half_size.y - 34.0)
+	attachment.configure_transform(
+		visual_center,
+		rng.randf_range(-0.11, 0.11),
+		rng.randi_range(0, 1) == 1
+	)
 
 
-func _create_detail_sprite(
-	sprite_name: String,
+func _create_detail_attachment(
+	attachment_name: String,
+	kind: BuildingDamageAttachment2D.Kind,
 	texture: Texture2D,
 	display_size: Vector2
-) -> Sprite2D:
-	var sprite: Sprite2D = Sprite2D.new()
-	sprite.name = sprite_name
-	sprite.texture = texture
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	var texture_size: Vector2 = texture.get_size()
-	var fit_scale: float = minf(
-		display_size.x / maxf(texture_size.x, 1.0),
-		display_size.y / maxf(texture_size.y, 1.0)
-	)
-	sprite.scale = Vector2.ONE * fit_scale
-	sprite.z_index = 1
-	sprite.visible = false
-	add_child(sprite)
-	return sprite
+) -> BuildingDamageAttachment2D:
+	var attachment: BuildingDamageAttachment2D = BuildingDamageAttachment2D.new()
+	attachment.name = attachment_name
+	attachment.setup(kind, texture, display_size, _pattern_seed)
+	add_child(attachment)
+	return attachment
+
+
+func _emit_attachment_effects(event: DamageEvent, severity: float) -> void:
+	if _cable_detail != null and _cable_detail.visible:
+		_cable_detail.emit_damage_effect(event.direction, severity)
+	if _pipe_detail != null and _pipe_detail.visible:
+		_pipe_detail.emit_damage_effect(event.direction, severity)
 
 
 func _contour_center() -> Vector2:
