@@ -130,6 +130,8 @@ func _ready() -> void:
 	_build_enemies()
 	CityWorldBuilder.build_camera(self, robot)
 	camera_rig = get_node(^"CameraRig") as CameraRig
+	debris_pool.set_culling_camera(camera_rig)
+	enemy_scrap_pool.set_culling_camera(camera_rig)
 	_build_hud()
 	_build_urban_siege()
 	run_lifecycle = RUN_LIFECYCLE_SCRIPT.new() as CityRunLifecycle
