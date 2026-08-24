@@ -176,6 +176,36 @@ func test_kinetic_decorates_once_and_directive_flags_are_ored() -> void:
 	assert_almost_eq(runtime.decorate_attack(smash).actor_damage, 234.0, 0.001)
 
 
+func test_kinetic_ground_smash_launches_debris_without_an_air_target() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.deactivate()
+	var options: DamageQueryOptions = DamageQueryOptions.new()
+	options.root_attack_id = 78
+	options.effect_flags = DamageEvent.FLAG_KINETIC_FIELD
+	options.kinetic_debris_bonus = 6.0
+	var launched: int = AerialDebrisLauncher.launch(
+		get_tree(),
+		city.debris_pool,
+		city.robot,
+		city.robot.global_position,
+		1020.0,
+		78,
+		options
+	)
+	assert_eq(launched, AerialDebrisLauncher.LAUNCH_COUNT)
+	assert_eq(city.debris_pool.active_count(), AerialDebrisLauncher.LAUNCH_COUNT)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	for debris: DebrisBody2D in city.debris_pool.active_bodies():
+		assert_false(debris.aerial_impact_armed)
+		assert_lt(debris.kinetic_delivery_id(), 0)
+		assert_lt(debris.linear_velocity.y, -200.0)
+		assert_gt(debris.linear_velocity.length(), 400.0)
+
+
 func test_kinetic_debris_uses_unique_negative_children_and_shared_root() -> void:
 	var runtime: KineticFieldRuntime = KineticFieldRuntime.new()
 	add_child_autofree(runtime)

@@ -24,6 +24,25 @@ const FORBIDDEN_SCROLLER_ANIMATIONS: Array[StringName] = [
 func test_library_excludes_all_northward_walk_and_attack_directions() -> void:
 	var city: CitySlice = await _spawn_city()
 	var sprite: AnimatedSprite2D = _sprite(city)
+	var visual_root: Node2D = sprite.get_parent() as Node2D
+	assert_almost_eq(
+		visual_root.position.y,
+		CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y,
+		0.001
+	)
+	var body_collision: CollisionShape2D = city.robot.get_node(^"BodyCollision") as CollisionShape2D
+	assert_eq(body_collision.position, Vector2(0.0, 21.0))
+	var gameplay_ground: Marker2D = city.robot.get_node(^"GroundImpactOrigin") as Marker2D
+	var visual_ground: Marker2D = city.robot.get_node(
+		^"VisualRoot/VisualGroundOrigin"
+	) as Marker2D
+	assert_eq(gameplay_ground.position, Vector2(0.0, 126.0))
+	assert_eq(visual_ground.position, Vector2(0.0, 126.0))
+	assert_almost_eq(
+		visual_ground.global_position.y - gameplay_ground.global_position.y,
+		CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y,
+		0.001
+	)
 	var names: PackedStringArray = sprite.sprite_frames.get_animation_names()
 	names.sort()
 	assert_eq(names, PackedStringArray(EXPECTED_ANIMATIONS))
@@ -110,6 +129,37 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	assert_eq(presenter.last_completed_attack_frame, 24)
 	assert_eq(presenter.completed_full_attack_count, 2)
 	assert_eq(sprite.animation, &"idle_s")
+
+
+func test_critical_health_smoke_emits_at_or_below_twenty_five_percent() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var smoke: CPUParticles2D = (
+		robot.get_node(^"VisualRoot/CriticalHealthSmoke") as CPUParticles2D
+	)
+	assert_eq(presenter.critical_smoke_emitter_count(), 1)
+	assert_not_null(smoke.texture)
+	assert_false(presenter.critical_smoke_emitting())
+	robot.current_health = robot.max_health * 0.26
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_false(presenter.critical_smoke_emitting())
+	robot.current_health = robot.max_health * 0.25
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_true(presenter.critical_smoke_emitting())
+	assert_gt(smoke.position.x, 0.0)
+	robot.facing = -1
+	robot.facing_changed.emit(-1)
+	assert_lt(smoke.position.x, 0.0)
+	robot.current_health = 0.0
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_false(presenter.critical_smoke_emitting())
+	robot.current_health = robot.max_health * 0.5
+	robot.health_changed.emit(robot.current_health, robot.max_health)
+	assert_false(presenter.critical_smoke_emitting())
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
 func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:

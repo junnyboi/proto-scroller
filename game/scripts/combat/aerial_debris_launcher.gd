@@ -11,6 +11,9 @@ const FOCUSED_SPAWN_SPACING: float = 8.0
 const FOCUSED_TARGET_SPACING: float = 12.0
 const WIDE_SPAWN_SPACING: float = 18.0
 const WIDE_TARGET_SPACING: float = 42.0
+const FALLBACK_HORIZONTAL_SPEED: float = 105.0
+const FALLBACK_FACING_BIAS: float = 65.0
+const FALLBACK_VERTICAL_SPEED: float = 620.0
 
 
 static func launch(
@@ -28,9 +31,11 @@ static func launch(
 	var target: EnemyActor2D = focused_target
 	if not is_valid_focused_target(target, origin):
 		target = _nearest_target(tree, origin)
-	if target == null:
+	var kinetic_bonus: float = options.kinetic_debris_bonus if options != null else 0.0
+	var fallback_launch: bool = target == null and kinetic_bonus > 0.0
+	if target == null and not fallback_launch:
 		return 0
-	var concentrated: bool = _is_in_overhead_cone(target, origin)
+	var concentrated: bool = target != null and _is_in_overhead_cone(target, origin)
 	var spawn_spacing: float = (
 		FOCUSED_SPAWN_SPACING if concentrated else WIDE_SPAWN_SPACING
 	)
@@ -48,11 +53,15 @@ static func launch(
 			float(debris_index - 1) * target_spacing,
 			float(abs(debris_index - 1)) * (3.0 if concentrated else 8.0)
 		)
-		var launch_velocity: Vector2 = _ballistic_velocity(
-			spawn_position,
-			target,
-			target_offset,
-			impulse_per_mass
+		var launch_velocity: Vector2 = (
+			_fallback_velocity(source, debris_index, impulse_per_mass)
+			if fallback_launch
+			else _ballistic_velocity(
+				spawn_position,
+				target,
+				target_offset,
+				impulse_per_mass
+			)
 		)
 		var debris: DebrisBody2D = pool.acquire(
 			Transform2D(0.0, spawn_position),
@@ -85,6 +94,21 @@ static func launch(
 		)
 		launched += 1
 	return launched
+
+
+static func _fallback_velocity(
+	source: Node,
+	debris_index: int,
+	impulse_per_mass: float
+) -> Vector2:
+	var facing: float = 1.0
+	if source is GiantRobotController:
+		facing = float((source as GiantRobotController).facing)
+	var force_scale: float = clampf(impulse_per_mass / 1020.0, 0.85, 1.35)
+	return Vector2(
+		float(debris_index - 1) * FALLBACK_HORIZONTAL_SPEED + facing * FALLBACK_FACING_BIAS,
+		-FALLBACK_VERTICAL_SPEED - float(abs(debris_index - 1)) * 45.0
+	) * force_scale
 
 
 static func _nearest_target(tree: SceneTree, origin: Vector2) -> EnemyActor2D:

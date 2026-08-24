@@ -201,6 +201,42 @@ func test_player_frame_11_dispatches_shake_enemy_recoil_and_knockback_without_fl
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
+func test_surviving_melee_hit_applies_fivefold_knockback() -> void:
+	var enemy: EnemyActor2D = EnemyActor2D.new()
+	enemy.max_health = 1000.0
+	add_child_autofree(enemy)
+	await get_tree().process_frame
+	var impulse: float = 100.0
+	assert_true(enemy.receive_damage(DamageEvent.new(
+		77_001,
+		null,
+		10.0,
+		&"jab_cross",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		impulse
+	)))
+	assert_almost_eq(
+		enemy.velocity.x,
+		impulse * 0.28 * EnemyActor2D.SURVIVING_MELEE_KNOCKBACK_MULTIPLIER,
+		0.001
+	)
+	var non_melee: EnemyActor2D = EnemyActor2D.new()
+	non_melee.max_health = 1000.0
+	add_child_autofree(non_melee)
+	await get_tree().process_frame
+	assert_true(non_melee.receive_damage(DamageEvent.new(
+		77_002,
+		null,
+		10.0,
+		&"projectile",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		impulse
+	)))
+	assert_almost_eq(non_melee.velocity.x, impulse * 0.18, 0.001)
+
+
 func test_dodge_through_light_enemies_triggers_one_non_damaging_wheel_slip() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
