@@ -1,7 +1,7 @@
 # District Destruction Implementation Plan
 
 **Author:** Manus AI  
-**Status:** In progress — WP3 complete
+**Status:** Completed — verified WebDev checkpoint published
 **Target branch:** `main`  
 **Engine:** Godot 4.7.2-stable
 
@@ -109,7 +109,11 @@ The primary risk is package growth. Runtime facade sprites are therefore compact
 | WP2 | Completed | This work-package commit | 25 profiles reconfigure six pooled building trees in place; 268 GUT tests passed; standard harness passed in 458 s; landscape and portrait Xvfb renders passed |
 | WP3 | Completed | This work-package commit | 25 GPT Image 2 facades bound and gallery-verified in both orientations; 269 GUT tests passed; Web PCK measured 13,817,516 bytes under the 16 MiB ceiling; standard harness passed in 474 s |
 | WP3A | Completed | This work-package commit | Four boundary transitions and responsive banner validated; 273 GUT tests passed with 27,879 assertions; all five trace IDs and catalog digest passed; post-integration standard harness passed in 463 s |
-| WP4 | Pending | — | — |
+| WP4 | Completed | `c85fb134d7a03d83b93e8692dceaf5469fff0a25` | 279/279 GUT tests and 27,935 assertions passed; full harness passed in 607 s; PCK 13,766,156 bytes; mission-card, district, mobile, melee-audio, export, and Chromium lanes passed; WebDev checkpoint `6f4645ed` published |
+
+## Deployment Record
+
+The public domain `https://protoscoll-enopta8p.manus.space/` serves checkpoint `6f4645ed` and its immutable `/manus-storage/game_9696d1de.pck` payload. The canonical source branch advanced afterward with independently verified charged-smash work; that later release is outside this district implementation record.
 
 ## References
 
