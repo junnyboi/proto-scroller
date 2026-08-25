@@ -66,6 +66,30 @@ func configure(
 	visible = false
 
 
+func reconfigure(
+	texture: Texture2D,
+	region_rect: Rect2,
+	cell_size: Vector2,
+	pattern_seed: int,
+	material_id: StringName,
+	visual_tint: Color
+) -> void:
+	_texture = texture
+	_region_rect = region_rect
+	_cell_size = cell_size
+	_pattern_seed = maxi(pattern_seed, 1)
+	_material_id = material_id
+	if _patch != null:
+		_patch.texture = _texture
+		_patch.color = visual_tint
+	if _cable_detail != null:
+		_cable_detail.configure_seed(_pattern_seed)
+	if _pipe_detail != null:
+		_pipe_detail.configure_seed(_pattern_seed)
+	reset_pattern()
+	visible = false
+
+
 func record_damage(event: DamageEvent, health_ratio: float) -> void:
 	if event == null or _patch == null:
 		return

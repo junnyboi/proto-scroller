@@ -16,6 +16,7 @@ signal destroyed(event: DamageEvent)
 const COLUMNS: int = 3
 const ROWS: int = 2
 const CELL_COUNT: int = COLUMNS * ROWS
+const STREAM_STATE_SCHEMA_VERSION: int = 2
 const UPPER_SUPPORT_DAMAGE_RATIO: float = 0.5
 const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.gd")
 
@@ -30,6 +31,8 @@ const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.g
 
 var last_chain_reaction_kind: StringName = &""
 var chain_reaction_count: int = 0
+var active_variant: StructuralBuildingVariant
+var active_variant_id: StringName = &"legacy"
 var _cells: Array[Destructible2D] = []
 var _destroyed_cells: int = 0
 var _last_destruction_event: DamageEvent
@@ -41,6 +44,36 @@ var _stream_generation: int = 0
 
 func _ready() -> void:
 	_build_cells()
+
+
+func apply_variant(variant: StructuralBuildingVariant) -> bool:
+	if variant == null:
+		push_error("StructuralBuilding2D cannot apply a null variant")
+		return false
+	var errors: PackedStringArray = variant.validation_errors()
+	if not errors.is_empty():
+		push_error(
+			"Structural building variant %s is invalid: %s"
+			% [variant.variant_id, "; ".join(errors)]
+		)
+		return false
+	active_variant = variant
+	active_variant_id = variant.variant_id
+	intact_texture = variant.intact_texture
+	damaged_texture = variant.damaged_texture
+	rubble_texture = variant.rubble_texture
+	display_size = variant.display_size
+	set_meta(&"building_variant_id", active_variant_id)
+	set_meta(&"destruction_signature", variant.destruction_signature)
+	for row: int in range(ROWS):
+		for column: int in range(COLUMNS):
+			_reconfigure_cell(column, row)
+	restore_stream_state({})
+	return true
+
+
+func current_variant_id() -> StringName:
+	return active_variant_id
 
 
 func receive_damage(event: DamageEvent) -> bool:
@@ -110,6 +143,10 @@ func capture_stream_state() -> Dictionary:
 		cells.append(cell_state)
 		pristine = pristine and bool(cell_state.pristine)
 	return {
+		"schema_version": STREAM_STATE_SCHEMA_VERSION,
+		"variant_id": active_variant_id,
+		"columns": COLUMNS,
+		"rows": ROWS,
 		"cells": cells,
 		"chain_count": chain_reaction_count,
 		"last_chain": last_chain_reaction_kind,
@@ -120,18 +157,31 @@ func capture_stream_state() -> Dictionary:
 
 
 func restore_stream_state(state: Dictionary) -> void:
+	var restored_state: Dictionary = state
+	if not state.is_empty():
+		var stored_variant_id: StringName = StringName(
+			state.get("variant_id", active_variant_id)
+		)
+		var stored_columns: int = int(state.get("columns", COLUMNS))
+		var stored_rows: int = int(state.get("rows", ROWS))
+		if (
+			stored_variant_id != active_variant_id
+			or stored_columns != COLUMNS
+			or stored_rows != ROWS
+		):
+			restored_state = {}
 	_stream_generation += 1
 	_chain_reaction_active = false
 	_last_destruction_event = null
 	_destroyed_cells = 0
-	chain_reaction_count = int(state.get("chain_count", 0))
-	last_chain_reaction_kind = StringName(state.get("last_chain", &""))
-	_steel_chain_triggered = bool(state.get("steel_chain", false))
+	chain_reaction_count = int(restored_state.get("chain_count", 0))
+	last_chain_reaction_kind = StringName(restored_state.get("last_chain", &""))
+	_steel_chain_triggered = bool(restored_state.get("steel_chain", false))
 	_triggered_floor_rows.clear()
-	var floor_rows: Dictionary = state.get("floor_rows", {}) as Dictionary
+	var floor_rows: Dictionary = restored_state.get("floor_rows", {}) as Dictionary
 	for row_value: Variant in floor_rows:
 		_triggered_floor_rows[int(row_value)] = bool(floor_rows[row_value])
-	var cell_states: Array = state.get("cells", []) as Array
+	var cell_states: Array = restored_state.get("cells", []) as Array
 	for cell_index: int in range(_cells.size()):
 		var cell_state: Dictionary = {}
 		if cell_index < cell_states.size():
@@ -291,12 +341,154 @@ func _create_damage_pattern(
 	return pattern
 
 
+func _reconfigure_cell(column: int, row: int) -> void:
+	var cell: Destructible2D = get_cell(column, row)
+	if cell == null:
+		return
+	var profile: StructuralMaterialProfile = _material_for_cell(column, row)
+	cell.position = _cell_center(column, row)
+	cell.configure_material_profile(profile)
+	cell.set_meta(&"structural_material", profile.material_id)
+	var intact_visual: Sprite2D = cell.get_node_or_null(^"IntactVisual") as Sprite2D
+	_configure_cell_sprite(intact_visual, intact_texture, column, row, profile)
+	var pattern: BuildingDamagePattern2D = cell.get_node_or_null(
+		^"DamagedVisual"
+	) as BuildingDamagePattern2D
+	if pattern != null:
+		pattern.reconfigure(
+			damaged_texture,
+			_cell_region(damaged_texture, column, row),
+			_cell_size(),
+			_pattern_seed_for_cell(column, row),
+			profile.material_id,
+			_cell_visual_tint(profile)
+		)
+	var rubble_visual: Sprite2D = cell.get_node_or_null(^"RubbleVisual") as Sprite2D
+	_configure_rubble_sprite(rubble_visual, column, row, profile)
+	var rubble_edge: BuildingRubbleEdge2D = cell.get_node_or_null(
+		^"RubbleEdgeVisual"
+	) as BuildingRubbleEdge2D
+	if rubble_edge != null:
+		rubble_edge.reconfigure(
+			_cell_size(),
+			_pattern_seed_for_cell(column, row),
+			intact_texture,
+			_cell_region(intact_texture, column, row),
+			_cell_visual_tint(profile)
+		)
+	_configure_intact_collision(cell, row)
+	_configure_hurtbox(cell)
+
+
+func _configure_cell_sprite(
+	sprite: Sprite2D,
+	texture: Texture2D,
+	column: int,
+	row: int,
+	profile: StructuralMaterialProfile
+) -> void:
+	if sprite == null:
+		return
+	sprite.texture = texture
+	sprite.region_rect = _cell_region(texture, column, row)
+	sprite.scale = _cell_size() / sprite.region_rect.size
+	sprite.modulate = _cell_visual_tint(profile)
+
+
+func _configure_rubble_sprite(
+	sprite: Sprite2D,
+	column: int,
+	row: int,
+	profile: StructuralMaterialProfile
+) -> void:
+	if sprite == null:
+		return
+	var source_size: Vector2 = rubble_texture.get_size()
+	var source_width: float = source_size.x / float(COLUMNS)
+	var rubble_height: float = 64.0 if row == ROWS - 1 else 44.0
+	sprite.texture = rubble_texture
+	sprite.region_rect = Rect2(
+		Vector2(source_width * float(column), 0.0),
+		Vector2(source_width, source_size.y)
+	)
+	sprite.scale = Vector2(
+		_cell_size().x / source_width,
+		rubble_height / maxf(source_size.y, 1.0)
+	)
+	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
+	sprite.modulate = _cell_visual_tint(profile)
+
+
+func _configure_intact_collision(cell: Destructible2D, row: int) -> void:
+	var collision: CollisionShape2D = cell.get_node_or_null(
+		^"IntactBody/CollisionShape2D"
+	) as CollisionShape2D
+	if collision == null:
+		return
+	var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+	if rectangle == null:
+		return
+	var cell_size: Vector2 = _cell_size()
+	if row == ROWS - 1:
+		rectangle.size = Vector2(cell_size.x - 8.0, cell_size.y - 6.0)
+		collision.position.y = 0.0
+	else:
+		rectangle.size = Vector2(cell_size.x - 8.0, minf(118.0, cell_size.y - 6.0))
+		collision.position.y = -cell_size.y * 0.5 + rectangle.size.y * 0.5
+
+
+func _configure_hurtbox(cell: Destructible2D) -> void:
+	var collision: CollisionShape2D = cell.get_node_or_null(
+		^"Hurtbox/CollisionShape2D"
+	) as CollisionShape2D
+	if collision == null:
+		return
+	var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+	if rectangle != null:
+		rectangle.size = _cell_size() - Vector2(4.0, 4.0)
+
+
+func _cell_region(texture: Texture2D, column: int, row: int) -> Rect2:
+	var source_size: Vector2 = texture.get_size()
+	var source_cell_size: Vector2 = Vector2(
+		source_size.x / float(COLUMNS),
+		source_size.y / float(ROWS)
+	)
+	return Rect2(
+		Vector2(source_cell_size.x * float(column), source_cell_size.y * float(row)),
+		source_cell_size
+	)
+
+
+func _pattern_seed_for_cell(column: int, row: int) -> int:
+	return posmod(
+		hash("%s:%d:%d" % [active_variant_id, column, row]),
+		2_000_000_000
+	) + 1
+
+
+func _cell_visual_tint(profile: StructuralMaterialProfile) -> Color:
+	if active_variant == null:
+		return profile.visual_tint
+	return profile.visual_tint * active_variant.visual_tint
+
+
 func _material_for_cell(column: int, row: int) -> StructuralMaterialProfile:
+	if active_variant != null:
+		return _profile_for_material_id(active_variant.material_id_at(column, row))
 	var material_grid: Array[Array] = [
 		[concrete_profile(), steel_profile(), concrete_profile()],
 		[glass_profile(), concrete_profile(), steel_profile()],
 	]
 	return material_grid[row][column] as StructuralMaterialProfile
+
+
+func _profile_for_material_id(material_id: StringName) -> StructuralMaterialProfile:
+	if material_id == &"glass":
+		return glass_profile()
+	if material_id == &"steel":
+		return steel_profile()
+	return concrete_profile()
 
 
 func concrete_profile() -> StructuralMaterialProfile:

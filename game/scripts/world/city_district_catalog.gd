@@ -27,7 +27,10 @@ static func districts() -> Array[CityDistrictProfile]:
 
 static func district_index_for_chunk(logical_index: int) -> int:
 	var forward_chunk: int = maxi(logical_index, 0)
-	return mini(forward_chunk / CHUNKS_PER_DISTRICT, DISTRICT_COUNT - 1)
+	return mini(
+		floori(float(forward_chunk) / float(CHUNKS_PER_DISTRICT)),
+		DISTRICT_COUNT - 1
+	)
 
 
 static func district_for_chunk(logical_index: int) -> CityDistrictProfile:
@@ -40,6 +43,8 @@ static func variant_for_chunk(
 	logical_index: int
 ) -> StructuralBuildingVariant:
 	var district: CityDistrictProfile = district_for_chunk(logical_index)
+	if logical_index == 0:
+		return district.building_variants[0]
 	var selection_seed: int = hash(
 		"%d:%d:%s" % [run_seed, logical_index, district.district_id]
 	)
@@ -109,8 +114,8 @@ static func _ensure_catalog() -> void:
 				_variant(
 					&"business_mercy_exchange_annex",
 					"Mercy Exchange Annex",
-					Vector2(430.0, 365.0),
-					["glass", "glass", "concrete", "glass", "concrete", "steel"],
+					Vector2(500.0, 445.0),
+					["concrete", "steel", "concrete", "glass", "concrete", "steel"],
 					&"ticker_glass_unzip",
 					Color("e5f6fb")
 				),

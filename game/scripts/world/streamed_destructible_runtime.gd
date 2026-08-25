@@ -29,15 +29,6 @@ signal prop_destroyed(
 	is_car: bool
 )
 
-const BUILDING_INTACT: Texture2D = preload(
-	"res://art/city/destructibles/building_intact.png"
-)
-const BUILDING_DAMAGED: Texture2D = preload(
-	"res://art/city/destructibles/building_damaged.png"
-)
-const BUILDING_RUBBLE: Texture2D = preload(
-	"res://art/city/destructibles/building_rubble.png"
-)
 const LAMP_INTACT: Texture2D = preload(
 	"res://art/city/destructibles/streetlamp_intact.png"
 )
@@ -138,12 +129,16 @@ func reset_run(run_seed: int) -> void:
 
 func _build_slot(chunk: CityStreetChunk) -> void:
 	var building: StructuralBuilding2D = BUILDING_SCRIPT.new() as StructuralBuilding2D
+	var bootstrap_variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+		0,
+		0
+	)
 	building.name = "StreamedBuilding"
 	building.z_index = 5
-	building.intact_texture = BUILDING_INTACT
-	building.damaged_texture = BUILDING_DAMAGED
-	building.rubble_texture = BUILDING_RUBBLE
-	building.display_size = Vector2(500.0, 445.0)
+	building.intact_texture = bootstrap_variant.intact_texture
+	building.damaged_texture = bootstrap_variant.damaged_texture
+	building.rubble_texture = bootstrap_variant.rubble_texture
+	building.display_size = bootstrap_variant.display_size
 	building.collision_layer_value = BUILDING_LAYER
 	building.collision_mask_value = ROBOT_LAYER
 	building.hurtbox_layer_value = HURTBOX_LAYER
@@ -244,7 +239,11 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	var building_id: StringName = ledger.make_object_id(blueprint.logical_index, &"building")
 	var car_id: StringName = ledger.make_object_id(blueprint.logical_index, &"car")
 	var lamp_id: StringName = ledger.make_object_id(blueprint.logical_index, &"streetlamp")
+	assert(building.apply_variant(blueprint.building_variant))
 	building.set_meta(&"stream_object_id", building_id)
+	building.set_meta(&"district_id", blueprint.district_id)
+	building.set_meta(&"district_index", blueprint.district_index)
+	building.set_meta(&"building_variant_id", blueprint.building_variant_id)
 	car.set_meta(&"stream_object_id", car_id)
 	lamp.set_meta(&"stream_object_id", lamp_id)
 	building.position = Vector2(blueprint.building_x, CitySlice.LAND_VISUAL_BASELINE_Y)

@@ -136,6 +136,41 @@ func configure(
 	visible = false
 
 
+func reconfigure(
+	cell_size: Vector2,
+	pattern_seed: int,
+	facade_texture: Texture2D,
+	facade_region: Rect2,
+	visual_tint: Color
+) -> void:
+	_cell_size = cell_size
+	_facade_texture = facade_texture
+	_facade_region = facade_region
+	if _shell_sprite == null or _cutout_material == null:
+		return
+	_shell_sprite.texture = _facade_texture
+	_shell_sprite.region_rect = _facade_region
+	_shell_sprite.scale = _cell_size / _facade_region.size
+	_shell_sprite.modulate = visual_tint
+	var texture_size: Vector2 = _facade_texture.get_size()
+	_cutout_material.set_shader_parameter(
+		"atlas_region_uv",
+		Vector4(
+			_facade_region.position.x / texture_size.x,
+			_facade_region.position.y / texture_size.y,
+			_facade_region.size.x / texture_size.x,
+			_facade_region.size.y / texture_size.y
+		)
+	)
+	var seed_fraction: float = fmod(float(pattern_seed) * 0.173, 1.0)
+	_cutout_material.set_shader_parameter(
+		"hole_center",
+		Vector2(0.5 + (seed_fraction - 0.5) * 0.045, 0.48)
+	)
+	_cutout_material.set_shader_parameter("pattern_seed", float(pattern_seed))
+	set_exposed_edges(false, false, false, false)
+
+
 static func _get_shared_hollow_shader() -> Shader:
 	if _shared_hollow_shader == null:
 		_shared_hollow_shader = Shader.new()

@@ -198,6 +198,12 @@ func _release_chunks(event: DamageEvent) -> void:
 		_debris_pool.arm_kinetic_debris(debris, event)
 
 
+func configure_material_profile(profile: StructuralMaterialProfile) -> void:
+	assert(profile != null, "Destructible2D requires a material profile")
+	material_profile = profile
+	_apply_material_profile()
+
+
 func get_material_profile() -> StructuralMaterialProfile:
 	return material_profile
 
