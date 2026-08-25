@@ -124,6 +124,33 @@ func test_stream_state_restores_only_to_the_matching_variant() -> void:
 	assert_eq(building.destroyed_cell_count(), 0)
 
 
+func test_forward_boundaries_emit_four_spatial_district_transitions() -> void:
+	var city: CitySlice = await _spawn_city()
+	var transitions: Array[Dictionary] = []
+	city.world_stream.district_changed.connect(
+		func(previous_id: StringName, district_id: StringName, chunk: int) -> void:
+			transitions.append({
+				"previous": previous_id,
+				"district": district_id,
+				"chunk": chunk,
+			})
+	)
+	for logical_index: int in [8, 16, 24, 32]:
+		await _move_to_logical_chunk(city, logical_index)
+	assert_eq(transitions.size(), 4)
+	assert_eq(transitions[0].previous, &"BUSINESS")
+	assert_eq(transitions[0].district, &"RESIDENTIAL")
+	assert_eq(transitions[0].chunk, 8)
+	assert_eq(transitions[1].district, &"ENTERTAINMENT")
+	assert_eq(transitions[2].district, &"MILITARY")
+	assert_eq(transitions[3].district, &"ROYAL")
+	assert_eq(transitions[3].chunk, 32)
+	assert_eq(city.world_stream.current_district_id, &"ROYAL")
+	assert_eq(city.world_stream.current_district().district_id, &"ROYAL")
+	assert_eq(city.district_transition_banner.presentation_count, 4)
+	assert_true(city.district_transition_banner.panel.visible)
+
+
 func _spawn_city() -> CitySlice:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)

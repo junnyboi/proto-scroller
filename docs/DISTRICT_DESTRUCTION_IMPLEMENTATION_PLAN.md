@@ -66,6 +66,14 @@ Add `building_variant_gallery_scenario.gd` to render five buildings per district
 
 **Regression gate:** `./verify.sh --full`, direct import, bounded boot, log scans, gallery inspection, and fresh Web export. Commit and push after green.
 
+### WP3A — Spatial district transition feedback
+
+Expose `CityWorldStream.current_district_id` and a typed boundary signal without coupling spatial geography to siege acts. Carry district and variant IDs on each pooled street chunk, tint lane marks with the active district accent, and present a prebuilt allocation-free transition banner when forward progression crosses chunks 8, 16, 24, and 32. The banner must reposition responsively below persistent HUD instrumentation in landscape and portrait.
+
+Extend the endless-terrain report with a SHA-256 catalog digest and selected district/variant traces. Require all five districts, stable node count, zero post-warm creation, and mutation continuity while traversing from west of origin through Royal territory.
+
+**Regression gate:** focused transition tests, complete GUT suite, standard `./verify.sh`, and inspected 1280×720 plus 720×1280 Royal gameplay renders. Commit and push after green.
+
 ### WP4 — Web runtime, Manus WebDev deployment, and continuity
 
 Re-fetch upstream and repeat affected gates if the revision moves. Export through the repository’s `Web` preset and require HTML, JavaScript, WASM, and PCK artifacts with recorded SHA-256 checksums and sizes. Serve over HTTP and run browser smoke checks for canvas readiness, movement, smash, district trace, mutation restore, portrait resize, request failures, console errors, MIME types, and WebGL context loss.
@@ -100,6 +108,7 @@ The primary risk is package growth. Runtime facade sprites are therefore compact
 | WP1 | Completed | This work-package commit | 5 districts, 25 variants, and deterministic chunk boundaries validated; 265 GUT tests passed; standard harness passed in 451 s |
 | WP2 | Completed | This work-package commit | 25 profiles reconfigure six pooled building trees in place; 268 GUT tests passed; standard harness passed in 458 s; landscape and portrait Xvfb renders passed |
 | WP3 | Completed | This work-package commit | 25 GPT Image 2 facades bound and gallery-verified in both orientations; 269 GUT tests passed; Web PCK measured 13,817,516 bytes under the 16 MiB ceiling; standard harness passed in 474 s |
+| WP3A | Completed | This work-package commit | Four boundary transitions and responsive banner validated; 273 GUT tests passed with 27,879 assertions; all five trace IDs and catalog digest passed; post-integration standard harness passed in 463 s |
 | WP4 | Pending | — | — |
 
 ## References

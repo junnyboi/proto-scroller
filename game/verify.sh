@@ -233,10 +233,23 @@ if [[ "$MODE" == "full" ]]; then
     -s selftest/endless_terrain_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/endless_terrain/report.json >/dev/null
-  test -s artifacts/endless_terrain/endless-terrain.png
-  grep -Fq '1280 x 720' <<< "$(file artifacts/endless_terrain/endless-terrain.png)"
+	  test -s artifacts/endless_terrain/endless-terrain.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/endless_terrain/endless-terrain.png)"
+	  cp artifacts/endless_terrain/endless-terrain.png \
+	    artifacts/endless_terrain/endless-terrain-landscape.png
 
-  printf '%s\n' '[L5] initial city-slice visual scenario'
+	  printf '%s\n' '[L5] portrait endless-terrain district scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	    --resolution 720x1280 -s selftest/endless_terrain_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+	    artifacts/endless_terrain/report.json >/dev/null
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/endless_terrain/endless-terrain.png)"
+	  mv artifacts/endless_terrain/endless-terrain.png \
+	    artifacts/endless_terrain/endless-terrain-portrait.png
+	  cp artifacts/endless_terrain/endless-terrain-landscape.png \
+	    artifacts/endless_terrain/endless-terrain.png
+
+	  printf '%s\n' '[L5] initial city-slice visual scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
     -s selftest/city_slice_visual_scenario.gd
   test -s artifacts/city_slice/city-slice-initial.png

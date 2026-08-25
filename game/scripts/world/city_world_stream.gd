@@ -11,6 +11,11 @@ signal chunk_reassigned(
 	blueprint: CityChunkBlueprint
 )
 signal run_configured(run_seed: int)
+signal district_changed(
+	previous_district_id: StringName,
+	district_id: StringName,
+	logical_chunk: int
+)
 
 const CHUNK_WIDTH: float = CityStreetChunk.CHUNK_WIDTH
 const CHUNK_CAPACITY: int = 6
@@ -23,6 +28,7 @@ const CHUNK_SCRIPT: Script = preload("res://scripts/world/city_street_chunk.gd")
 var robot: GiantRobotController
 var run_seed: int = 0
 var current_logical_chunk: int = 0
+var current_district_id: StringName = &"BUSINESS"
 var minimum_visited_chunk: int = 0
 var maximum_visited_chunk: int = 0
 var transition_count: int = 0
@@ -45,6 +51,9 @@ func _ready() -> void:
 		chunks.append(chunk)
 	if robot != null:
 		current_logical_chunk = logical_index_for_runtime_x(robot.global_position.x)
+	current_district_id = CityDistrictCatalog.district_for_chunk(
+		current_logical_chunk
+	).district_id
 	minimum_visited_chunk = current_logical_chunk
 	maximum_visited_chunk = current_logical_chunk
 	_refresh_window()
@@ -70,10 +79,20 @@ func advance_stream() -> void:
 			_refresh_window()
 		return
 	transition_count += absi(next_chunk - current_logical_chunk)
+	var previous_district_id: StringName = current_district_id
 	current_logical_chunk = next_chunk
+	current_district_id = CityDistrictCatalog.district_for_chunk(
+		current_logical_chunk
+	).district_id
 	minimum_visited_chunk = mini(minimum_visited_chunk, current_logical_chunk)
 	maximum_visited_chunk = maxi(maximum_visited_chunk, current_logical_chunk)
 	_refresh_window()
+	if current_district_id != previous_district_id:
+		district_changed.emit(
+			previous_district_id,
+			current_district_id,
+			current_logical_chunk
+		)
 	window_changed.emit(current_logical_chunk)
 
 
@@ -132,17 +151,31 @@ func progression_tier() -> int:
 	)
 
 
+func current_district() -> CityDistrictProfile:
+	return CityDistrictCatalog.district_for_chunk(current_logical_chunk)
+
+
 func reset_stream(p_run_seed: int = 0) -> void:
 	run_seed = p_run_seed
+	var previous_district_id: StringName = current_district_id
 	floating_origin.reset()
 	current_logical_chunk = logical_index_for_runtime_x(
 		robot.global_position.x if robot != null else 0.0
 	)
+	current_district_id = CityDistrictCatalog.district_for_chunk(
+		current_logical_chunk
+	).district_id
 	minimum_visited_chunk = current_logical_chunk
 	maximum_visited_chunk = current_logical_chunk
 	transition_count = 0
 	run_configured.emit(run_seed)
 	_refresh_window()
+	if current_district_id != previous_district_id:
+		district_changed.emit(
+			previous_district_id,
+			current_district_id,
+			current_logical_chunk
+		)
 
 
 func _refresh_window() -> void:

@@ -5,6 +5,7 @@ const REPORT_PATH: String = "res://artifacts/endless_terrain/report.json"
 const SHOT_PATH: String = "res://artifacts/endless_terrain/endless-terrain.png"
 
 var checks: Array[Dictionary] = []
+var district_trace: Array[Dictionary] = []
 var completed: bool = false
 var elapsed_frames: int = 0
 
@@ -24,8 +25,9 @@ func _on_process_frame() -> void:
 
 
 func _run() -> void:
-	root.get_window().content_scale_size = Vector2i(1280, 720)
-	root.size = Vector2i(1280, 720)
+	var target_size: Vector2i = _target_size()
+	root.get_window().content_scale_size = target_size
+	root.size = target_size
 	var packed: PackedScene = load("res://scenes/gameplay/city_slice.tscn") as PackedScene
 	_check("city_scene_loads", packed != null, "loaded=%s" % [packed != null])
 	if packed == null:
@@ -39,6 +41,7 @@ func _run() -> void:
 	city.upgrade_assembler.session.set_presentation_blocked(true)
 	city.gameplay_hud.first_run_tutorial.visible = false
 	city.encounter_runtime.release_all()
+	var catalog_digest: String = _catalog_digest()
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
 	var origin_cell: Destructible2D = city.building.get_cell(0, 1)
 	origin_cell.receive_damage(_fatal_event(city, origin_cell, 51_001))
@@ -46,6 +49,16 @@ func _run() -> void:
 	city.car.receive_damage(_fatal_event(city, city.car, 51_002))
 	for logical_index: int in range(-12, 49):
 		_move_to_logical_chunk(city, logical_index)
+		if logical_index in [-12, 0, 8, 16, 24, 32, 48]:
+			var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(
+				city.world_stream.run_seed,
+				logical_index
+			)
+			district_trace.append({
+				"chunk": logical_index,
+				"district": blueprint.district_id,
+				"variant": blueprint.building_variant_id,
+			})
 	for logical_index: int in range(48, 39, -1):
 		_move_to_logical_chunk(city, logical_index)
 	_check(
@@ -57,6 +70,14 @@ func _run() -> void:
 		"traversal_exceeds_fixed_map",
 		city.world_stream.maximum_visited_chunk >= 48,
 		"max_chunk=%d" % city.world_stream.maximum_visited_chunk
+	)
+	var traced_districts: Dictionary[StringName, bool] = {}
+	for trace_item: Dictionary in district_trace:
+		traced_districts[StringName(trace_item.district)] = true
+	_check(
+		"all_spatial_districts_traced",
+		traced_districts.size() == CityDistrictCatalog.DISTRICT_COUNT,
+		"districts=%s digest=%s" % [traced_districts.keys(), catalog_digest]
 	)
 	_check(
 		"floating_origin_applied",
@@ -154,7 +175,7 @@ func _run() -> void:
 		)
 		var error: Error = image.save_png(ProjectSettings.globalize_path(SHOT_PATH))
 		_check("shot_saved", error == OK, "error=%d" % error)
-		_check("shot_geometry", image.get_size() == Vector2i(1280, 720), "size=%s" % image.get_size())
+		_check("shot_geometry", image.get_size() == target_size, "size=%s" % image.get_size())
 		shot_status = "PASS" if error == OK else "FAIL"
 		shot_path = SHOT_PATH
 	city.queue_free()
@@ -162,6 +183,12 @@ func _run() -> void:
 	# Work around godotengine/godot#76745 in fixed-FPS command-line runs.
 	OS.delay_msec(100)
 	_finish(shot_status, shot_path)
+
+
+func _target_size() -> Vector2i:
+	if OS.get_environment("PROTO_SCROLLER_PORTRAIT") == "1":
+		return Vector2i(720, 1280)
+	return Vector2i(1280, 720)
 
 
 func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
@@ -185,6 +212,20 @@ func _fatal_event(city: CitySlice, target: Node2D, attack_id: int) -> DamageEven
 	return event
 
 
+func _catalog_digest() -> String:
+	var entries: PackedStringArray = PackedStringArray()
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		for variant: StructuralBuildingVariant in district.building_variants:
+			entries.append(
+				"%s:%s:%s"
+				% [district.district_id, variant.variant_id, variant.intact_texture.resource_path]
+			)
+	var context: HashingContext = HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update("|".join(entries).to_utf8_buffer())
+	return context.finish().hex_encode()
+
+
 func _check(check_name: String, passed: bool, detail: String) -> void:
 	checks.append({"name": check_name, "passed": passed, "detail": detail})
 	print("[CHECK] %s %s — %s" % ["PASS" if passed else "FAIL", check_name, detail])
@@ -203,6 +244,8 @@ func _finish(shot_status: String, shot_path: String) -> void:
 		"headless": DisplayServer.get_name() == "headless",
 		"elapsed_frames": elapsed_frames,
 		"max_frames": MAX_FRAMES,
+		"catalog_digest": _catalog_digest(),
+		"district_trace": district_trace,
 		"checks": checks,
 		"shot": {"status": shot_status, "path": shot_path},
 		"engine": Engine.get_version_info().get("string", "unknown"),

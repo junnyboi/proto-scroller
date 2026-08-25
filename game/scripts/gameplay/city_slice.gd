@@ -22,6 +22,9 @@ const RUN_LIFECYCLE_SCRIPT: Script = preload(
 	"res://scripts/gameplay/city_run_lifecycle.gd"
 )
 const WORLD_STREAM_SCRIPT: Script = preload("res://scripts/world/city_world_stream.gd")
+const DISTRICT_TRANSITION_SCRIPT: Script = preload(
+	"res://scripts/world/district_transition_banner.gd"
+)
 const STREAMED_DESTRUCTIBLES_SCRIPT: Script = preload(
 	"res://scripts/world/streamed_destructible_runtime.gd"
 )
@@ -70,6 +73,7 @@ var music_duck_controller: MusicDuckController
 var contextual_attacks: ContextualAttackController
 var air_target_lock_runtime: AirTargetLockRuntime
 var world_stream: CityWorldStream
+var district_transition_banner: DistrictTransitionBanner
 var streamed_destructibles: StreamedDestructibleRuntime
 var landmark_root: Node2D
 var telegraph_presenter: TelegraphPresenter2D
@@ -244,6 +248,9 @@ func _build_world_stream() -> void:
 	world_stream.origin_shift_requested.connect(_on_origin_shift_requested)
 	world_stream.window_changed.connect(_on_stream_window_changed)
 	add_child(world_stream)
+	district_transition_banner = DISTRICT_TRANSITION_SCRIPT.new()
+	add_child(district_transition_banner)
+	world_stream.district_changed.connect(_on_spatial_district_changed)
 
 
 func _build_enemies() -> void:
@@ -306,6 +313,17 @@ func _on_stream_window_changed(_logical_index: int) -> void:
 	encounter_runtime.structural_target = target
 	for enemy: EnemyActor2D in encounter_runtime.all_actors():
 		enemy.structural_target = target
+
+
+func _on_spatial_district_changed(
+	_previous_district_id: StringName,
+	_district_id: StringName,
+	logical_chunk: int
+) -> void:
+	district_transition_banner.present(
+		CityDistrictCatalog.district_for_chunk(logical_chunk),
+		logical_chunk
+	)
 
 
 func _refresh_primary_destructibles() -> void:

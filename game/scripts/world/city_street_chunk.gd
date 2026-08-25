@@ -14,6 +14,9 @@ const UNUSED_INDEX: int = -2_147_483_648
 
 var logical_index: int = UNUSED_INDEX
 var generation_seed: int = 0
+var district_index: int = 0
+var district_id: StringName = &"BUSINESS"
+var building_variant_id: StringName = &""
 var road_surface: Polygon2D
 var lower_asphalt: Polygon2D
 var lane_marks: Array[Line2D] = []
@@ -29,11 +32,19 @@ func _ready() -> void:
 func configure(blueprint: CityChunkBlueprint, runtime_x: float) -> void:
 	logical_index = blueprint.logical_index
 	generation_seed = blueprint.generation_seed
+	district_index = blueprint.district_index
+	district_id = blueprint.district_id
+	building_variant_id = blueprint.building_variant_id
+	set_meta(&"district_id", district_id)
+	set_meta(&"building_variant_id", building_variant_id)
 	position = Vector2(runtime_x, 0.0)
 	road_surface.color = blueprint.asphalt_color
 	lower_asphalt.color = blueprint.asphalt_color
+	var lane_color: Color = blueprint.district_profile.accent_color
+	lane_color.a = 0.32
 	for mark_index: int in range(lane_marks.size()):
 		var segment_x: float = blueprint.lane_phase + float(mark_index) * 336.0
+		lane_marks[mark_index].default_color = lane_color
 		lane_marks[mark_index].points = PackedVector2Array([
 			Vector2(segment_x, 694.0),
 			Vector2(segment_x + 170.0, 694.0),
