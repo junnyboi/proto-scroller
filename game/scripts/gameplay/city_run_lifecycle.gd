@@ -25,6 +25,7 @@ func setup(p_city: CitySlice) -> void:
 		)
 		city.urban_siege.directives.completed.connect(_on_directive_completed)
 		city.urban_siege.directives.failed.connect(_on_directive_failed)
+		city.urban_siege.directives.withdrawn.connect(_on_directive_withdrawn)
 		city.gameplay_hud.directive_choice_overlay.profile_selected.connect(
 			city.urban_siege.directives.select
 		)
@@ -162,7 +163,11 @@ func _on_directive_completed(profile: DirectiveProfile, banked_score: int) -> vo
 func _on_directive_failed(profile: DirectiveProfile, penalty: int) -> void:
 	city.gameplay_hud.show_directive_result(L10n.t("directive.failed", {
 		"name": L10n.t(profile.display_name),
-	}), false, penalty)
+		}), false, penalty)
+
+
+func _on_directive_withdrawn() -> void:
+	city.gameplay_hud.directive_card.hide_card()
 
 
 func _on_district_completed() -> void:

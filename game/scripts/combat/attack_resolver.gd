@@ -17,6 +17,7 @@ const FULL_RECOVERY_SECONDS: float = (
 const FULL_ATTACK_SECONDS: float = (
 	FULL_ANTICIPATION_SECONDS + FULL_ACTIVE_SECONDS + FULL_RECOVERY_SECONDS
 )
+const GROUND_SMASH_DAMAGE_MULTIPLIER: float = 2.0
 
 @export_range(0.0, 1.0, 0.01) var jab_cross_speed_threshold: float = 0.70
 @export var ground_anticipation_seconds: float = FULL_ANTICIPATION_SECONDS
@@ -60,8 +61,8 @@ func resolve(
 		ground_anticipation_seconds,
 		ground_active_seconds,
 		ground_recovery_seconds,
-		ground_damage,
-		ground_damage * structure_multiplier,
+		ground_damage * GROUND_SMASH_DAMAGE_MULTIPLIER,
+		ground_damage * structure_multiplier * GROUND_SMASH_DAMAGE_MULTIPLIER,
 		ground_impulse_per_mass * force_multiplier,
 		Vector2.ONE * ground_radius * 2.0,
 		Vector2.ZERO

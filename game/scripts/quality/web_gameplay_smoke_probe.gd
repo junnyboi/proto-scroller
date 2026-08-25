@@ -41,6 +41,8 @@ func _run() -> void:
 		return
 	if not await _run_upgrade_transition():
 		return
+	if not await _run_post_upgrade_sfx():
+		return
 	if not await _run_east_walk():
 		return
 	await _run_west_walk()
@@ -145,7 +147,118 @@ func _finish_upgrade_transition() -> bool:
 	return true
 
 
+func _run_post_upgrade_sfx() -> bool:
+	robot.global_position.x = 2800.0
+	var ground: Dictionary = await _capture_attack_sfx(
+		false,
+		RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX,
+		&"ground_slam_impact"
+	)
+	if not bool(ground.get("ok", false)):
+		_fail("post-upgrade ground slam SFX did not play at the robot")
+		return false
+	var punch: Dictionary = await _capture_attack_sfx(
+		true,
+		RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX,
+		&"double_punch_impact"
+	)
+	if not bool(punch.get("ok", false)):
+		_fail("post-upgrade punch SFX did not play at the robot")
+		return false
+	var dash: Dictionary = await _capture_dash_sfx()
+	if not bool(dash.get("ok", false)):
+		_fail("post-upgrade Dash or recharge SFX did not play")
+		return false
+	var feedback: ImpactFeedbackPool = city.impact_feedback_pool
+	_publish(&"post_upgrade_sfx_ok", {
+		"ground": ground,
+		"punch": punch,
+		"dash": dash,
+		"upgrade_confirm_count": feedback.cue_play_count,
+		"upgrade_confirm_cue": feedback.last_cue,
+		"audio_drop_count": presenter.audio_drop_count,
+	})
+	return feedback.cue_play_count >= 1 and presenter.audio_drop_count == 0
+
+
+func _capture_attack_sfx(
+	punch: bool,
+	stream: AudioStream,
+	expected_cue: StringName
+) -> Dictionary:
+	var impact_before: int = presenter.attack_impact_play_count
+	robot.velocity.x = robot.max_speed if punch else 0.0
+	var attack_id: int = robot.request_attack()
+	if attack_id <= 0:
+		return {"ok": false, "reason": "attack_rejected"}
+	if not await _wait_until(
+		func() -> bool: return presenter.attack_impact_play_count > impact_before
+	):
+		return {"ok": false, "reason": "impact_timeout"}
+	var voice: AudioStreamPlayer2D = _voice_for_stream(stream)
+	var snapshot: Dictionary = _voice_snapshot(voice)
+	snapshot.ok = (
+		voice != null
+		and voice.playing
+		and presenter.last_audio_cue == expected_cue
+		and float(snapshot.distance_to_robot) <= 1.0
+	)
+	snapshot.attack_id = attack_id
+	snapshot.cue = String(presenter.last_audio_cue)
+	if not await _wait_until(func() -> bool: return not city.contextual_attacks.is_busy()):
+		snapshot.ok = false
+		snapshot.reason = "attack_finish_timeout"
+	return snapshot
+
+
+func _capture_dash_sfx() -> Dictionary:
+	var warp_before: int = presenter.dash_warp_sfx_play_count
+	var recharge_before: int = presenter.dodge_recharged_sfx_play_count
+	robot.velocity = Vector2.ZERO
+	if not robot._start_dodge(1):
+		return {"ok": false, "reason": "dash_rejected"}
+	if not await _wait_until(
+		func() -> bool: return presenter.dash_warp_sfx_play_count > warp_before
+	):
+		return {"ok": false, "reason": "warp_timeout"}
+	var voice: AudioStreamPlayer2D = _voice_for_stream(
+		RobotAnimationPresenter.DASH_WARP_SFX
+	)
+	var snapshot: Dictionary = _voice_snapshot(voice)
+	if not await _wait_until(
+		func() -> bool:
+			return presenter.dodge_recharged_sfx_play_count > recharge_before
+	):
+		snapshot.ok = false
+		snapshot.reason = "recharge_timeout"
+		return snapshot
+	snapshot.ok = voice != null and float(snapshot.distance_to_robot) <= 1.0
+	snapshot.warp_count = presenter.dash_warp_sfx_play_count
+	snapshot.recharge_count = presenter.dodge_recharged_sfx_play_count
+	return snapshot
+
+
+func _voice_for_stream(stream: AudioStream) -> AudioStreamPlayer2D:
+	for voice: AudioStreamPlayer2D in presenter._audio_players:
+		if voice.stream == stream:
+			return voice
+	return null
+
+
+func _voice_snapshot(voice: AudioStreamPlayer2D) -> Dictionary:
+	if voice == null:
+		return {"playing": false, "distance_to_robot": INF, "stream": ""}
+	return {
+		"playing": voice.playing,
+		"distance_to_robot": voice.global_position.distance_to(robot.global_position),
+		"max_distance": voice.max_distance,
+		"stream": voice.stream.resource_path if voice.stream != null else "",
+	}
+
+
 func _run_east_walk() -> bool:
+	var servo_before: int = presenter.servo_play_count
+	var footstep_before: int = presenter.footstep_play_count
 	if not await _wait_until(_walking_east):
 		_fail("east walking animation did not start after the upgrade")
 		return false
@@ -153,10 +266,21 @@ func _run_east_walk() -> bool:
 	if not await _wait_for_frame_advance(&"walk_e", east_start_frame):
 		_fail("east walking animation did not advance after the upgrade")
 		return false
+	if not await _wait_until(
+		func() -> bool:
+			return (
+				presenter.servo_play_count > servo_before
+				and presenter.footstep_play_count > footstep_before
+			)
+	):
+		_fail("post-upgrade walk servo or footstep SFX did not play")
+		return false
 	_publish(&"east_walk_ok", {
 		"animation": String(sprite.animation),
 		"frame_before": east_start_frame,
 		"frame_after": sprite.frame,
+		"servo_count": presenter.servo_play_count,
+		"footstep_count": presenter.footstep_play_count,
 	})
 	return true
 

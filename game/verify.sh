@@ -458,6 +458,7 @@ if [[ "$MODE" == "full" ]]; then
 	      "attack_started",
 	      "upgrade_visible",
 	      "upgrade_resolved",
+	      "post_upgrade_sfx_ok",
 	      "east_walk_ok",
 	      "pass"
 	    ]

@@ -42,7 +42,7 @@ func test_breach_decorates_jab_cross_only_and_caps_multiplier() -> void:
 		1000.0,
 		96.0
 	)
-	assert_almost_eq(session.decorate_attack(smash).structural_damage, 100.0, 0.01)
+	assert_almost_eq(session.decorate_attack(smash).structural_damage, 200.0, 0.01)
 
 
 func test_aftershock_deduplicates_one_secondary_query_per_attack() -> void:

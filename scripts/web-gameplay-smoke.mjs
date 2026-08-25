@@ -14,12 +14,7 @@ const FAILURE_SCREENSHOT_PATH = path.join(
   ARTIFACT_DIR,
   "upgrade-transition-failure.png"
 );
-const SMOKE_ENGINE_DIR = path.join(
-  ROOT,
-  "client",
-  "public",
-  "remote-engine"
-);
+const SMOKE_ENGINE_DIR = path.join(ROOT, "client", "public", "remote-engine");
 const PORT = Number(process.env.PROTO_SCROLLER_SMOKE_PORT ?? 4173);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH ?? "/usr/bin/chromium";
@@ -31,6 +26,7 @@ const EXPECTED_PHASES = [
   "attack_started",
   "upgrade_visible",
   "upgrade_resolved",
+  "post_upgrade_sfx_ok",
   "east_walk_ok",
   "pass",
 ];
@@ -122,7 +118,8 @@ try {
               entry.state = "fulfilled";
             } catch (error) {
               entry.state = "rejected";
-              entry.error = error instanceof Error ? error.message : String(error);
+              entry.error =
+                error instanceof Error ? error.message : String(error);
               throw error;
             }
           };
@@ -188,7 +185,9 @@ try {
   await waitForPhase(page, "charge_released", 30_000);
   await waitForPhase(page, "upgrade_visible", 30_000);
   const audioContextStates = await page.evaluate(() =>
-    (window.__PROTO_SCROLLER_AUDIO_CONTEXTS__ ?? []).map(context => context.state)
+    (window.__PROTO_SCROLLER_AUDIO_CONTEXTS__ ?? []).map(
+      context => context.state
+    )
   );
   if (
     audioContextStates.length === 0 ||
@@ -199,7 +198,9 @@ try {
     );
   }
   const workletModules = await page.evaluate(() =>
-    (window.__PROTO_SCROLLER_WORKLET_MODULES__ ?? []).map(entry => ({ ...entry }))
+    (window.__PROTO_SCROLLER_WORKLET_MODULES__ ?? []).map(entry => ({
+      ...entry,
+    }))
   );
   const expectedWorklets = [
     `${BASE_URL}/game/game.audio.position.worklet.js`,
@@ -217,6 +218,7 @@ try {
   await page.screenshot({ path: SCREENSHOT_PATH });
   await page.keyboard.press("Enter");
   await waitForPhase(page, "upgrade_resolved", 30_000);
+  await waitForPhase(page, "post_upgrade_sfx_ok", 30_000);
 
   await page.keyboard.down("d");
   try {
@@ -328,14 +330,15 @@ function assertPhaseContract(phases) {
       );
     }
   });
-	  const chargeStarted = phases[1];
+  const chargeStarted = phases[1];
   const chargeProgress = phases[2];
   const chargeReleased = phases[3];
   const attack = phases[4];
   const visible = phases[5];
   const resolved = phases[6];
-  const east = phases[7];
-  const west = phases[8];
+  const postUpgradeSfx = phases[7];
+  const east = phases[8];
+  const west = phases[9];
   if (
     chargeStarted.details.frame !== 0 ||
     chargeStarted.details.particles !== true ||
@@ -355,20 +358,20 @@ function assertPhaseContract(phases) {
       `charge progress contract failed: ${JSON.stringify(chargeProgress.details)}`
     );
   }
-	  if (
-		chargeReleased.details.damage <= 180 ||
-    chargeReleased.details.damage > 360 ||
+  if (
+    chargeReleased.details.damage <= 360 ||
+    chargeReleased.details.damage > 720 ||
     chargeReleased.details.playing !== true
   ) {
-		throw new Error(
-		  `charge release contract failed: ${JSON.stringify(chargeReleased.details)}`
-		);
-	  }
-	  if (phases[0].details.background_music_playing !== true) {
-		throw new Error(
-		  `background music did not start after launch gesture: ${JSON.stringify(phases[0].details)}`
-		);
-	  }
+    throw new Error(
+      `charge release contract failed: ${JSON.stringify(chargeReleased.details)}`
+    );
+  }
+  if (phases[0].details.background_music_playing !== true) {
+    throw new Error(
+      `background music did not start after launch gesture: ${JSON.stringify(phases[0].details)}`
+    );
+  }
   if (!String(attack.details.animation).startsWith("attack_")) {
     throw new Error(`melee animation missing: ${attack.details.animation}`);
   }
@@ -382,9 +385,31 @@ function assertPhaseContract(phases) {
       `upgrade did not apply: rank_total=${resolved.details.rank_total}`
     );
   }
+  for (const cue of ["ground", "punch", "dash"]) {
+    const details = postUpgradeSfx.details[cue];
+    if (
+      details.ok !== true ||
+      details.distance_to_robot > 1 ||
+      !String(details.stream).startsWith("res://audio/")
+    ) {
+      throw new Error(
+        `post-upgrade ${cue} SFX failed: ${JSON.stringify(details)}`
+      );
+    }
+  }
+  if (
+    postUpgradeSfx.details.upgrade_confirm_count < 1 ||
+    postUpgradeSfx.details.audio_drop_count !== 0
+  ) {
+    throw new Error(
+      `post-upgrade SFX audit failed: ${JSON.stringify(postUpgradeSfx.details)}`
+    );
+  }
   if (
     east.details.animation !== "walk_e" ||
-    east.details.frame_before === east.details.frame_after
+    east.details.frame_before === east.details.frame_after ||
+    east.details.servo_count < 1 ||
+    east.details.footstep_count < 1
   ) {
     throw new Error(
       `east animation continuity failed: ${JSON.stringify(east.details)}`

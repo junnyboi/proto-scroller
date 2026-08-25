@@ -93,6 +93,12 @@ func set_bank(value: int) -> void:
 	bank_label.text = L10n.t("directive.pending", {"value": maxi(value, 0)})
 
 
+func hide_card() -> void:
+	result_remaining = 0.0
+	visible = false
+	set_process(false)
+
+
 func show_result(text: String, success: bool, score_delta: int = 0) -> void:
 	visible = true
 	title_label.text = text
