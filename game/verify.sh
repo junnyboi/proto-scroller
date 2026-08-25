@@ -280,9 +280,28 @@ if [[ "$MODE" == "full" ]]; then
   (
     cd ../client/public/game
     find . -maxdepth 1 -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
-  ) > artifacts/web-export.sha256
-  printf 'web_files=%s\n' "$(wc -l < artifacts/web-export.sha256)"
-fi
+	  ) > artifacts/web-export.sha256
+	  printf 'web_files=%s\n' "$(wc -l < artifacts/web-export.sha256)"
+
+	  printf '%s\n' '[WEB] automated browser upgrade-transition smoke'
+	  (
+	    cd ..
+	    timeout --preserve-status --signal=TERM --kill-after=5s 180s pnpm smoke:web
+	  )
+	  jq -e '
+	    .status == "PASS"
+	    and (.phases | map(.status)) == [
+	      "ready",
+	      "attack_started",
+	      "upgrade_visible",
+	      "upgrade_resolved",
+	      "east_walk_ok",
+	      "pass"
+	    ]
+	  ' artifacts/browser/upgrade-transition.json >/dev/null
+	  test -s artifacts/browser/upgrade-transition.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/upgrade-transition.png)"
+	fi
 
 END_EPOCH="$(date +%s)"
 jq -n \

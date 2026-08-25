@@ -368,7 +368,21 @@ func _start_dodge(direction: int = 0) -> bool:
 	return true
 
 
+func cancel_dodge() -> bool:
+	if locomotion_state != LocomotionState.DODGE:
+		return false
+	_dodge_remaining = 0.0
+	_invulnerable_remaining = 0.0
+	_dodge_recovery_remaining = 0.0
+	velocity.x = 0.0
+	_set_locomotion_state(LocomotionState.IDLE)
+	dodge_finished.emit()
+	return true
+
+
 func set_disabled(disabled: bool) -> void:
+	if disabled:
+		cancel_dodge()
 	_control_enabled = not disabled
 	if disabled:
 		_clear_move_tap()

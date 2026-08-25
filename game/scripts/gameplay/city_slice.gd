@@ -32,6 +32,9 @@ const URBAN_SIEGE_SCRIPT: Script = preload("res://scripts/siege/urban_siege_runt
 const TELEGRAPH_SCRIPT: Script = preload(
 	"res://scripts/encounter/telegraph_presenter_2d.gd"
 )
+const WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT: Script = preload(
+	"res://scripts/quality/web_gameplay_smoke_probe.gd"
+)
 const CONTACT_DISTRICT: DistrictDefinition = preload(
 	"res://resources/siege/district_contact.tres"
 )
@@ -142,6 +145,10 @@ func _ready() -> void:
 	add_child(upgrade_assembler)
 	var upgrade_errors: PackedStringArray = upgrade_assembler.setup(self)
 	assert(upgrade_errors.is_empty(), "Upgrade setup failed: %s" % [upgrade_errors])
+	if _web_gameplay_smoke_requested():
+		var smoke_probe: Node = WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT.new() as Node
+		add_child(smoke_probe)
+		smoke_probe.call(&"setup", self)
 
 
 func _process(delta: float) -> void:
@@ -151,6 +158,13 @@ func _process(delta: float) -> void:
 		return
 	var speed_ratio: float = absf(robot.velocity.x) / maxf(robot.max_speed, 1.0)
 	rampage_session.advance(speed_ratio, delta)
+
+
+func _web_gameplay_smoke_requested() -> bool:
+	if OS.has_feature("web"):
+		var query: String = String(JavaScriptBridge.eval("window.location.search"))
+		return query.contains("webSmoke=upgrade")
+	return OS.get_environment("PROTO_SCROLLER_WEB_SMOKE") == "1"
 
 
 func trigger_test_stomp() -> int:

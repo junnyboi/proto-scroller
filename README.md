@@ -16,7 +16,15 @@ cd game
 ./verify.sh --full
 ```
 
-The full gate runs import, GDScript lint/parse checks, all GUT suites, headless boot, deterministic movement/turn/destruction scenarios, fresh 1280×720 launch and destruction renders, and a cache-bypassed Web export. A required render SKIP or zero-test run is blocking.
+The full gate runs import, GDScript lint/parse checks, all GUT suites, headless boot, deterministic movement/turn/destruction scenarios, fresh landscape and portrait renders, a cache-bypassed Web export, and a required Chromium gameplay smoke. The browser smoke enters gameplay, begins a melee animation, triggers and resolves a real upgrade offer, then proves both east and west walk clips advance afterward without another attack. A required render SKIP, browser phase failure, or zero-test run is blocking.
+
+To run only the browser lane after producing a fresh Web export:
+
+```bash
+pnpm smoke:web
+```
+
+The smoke uses the local exported WASM/PCK bundle and system Chromium (`/usr/bin/chromium` by default, overridable with `CHROMIUM_PATH`). It writes its ordered phase report and screenshot beneath `game/artifacts/browser/`.
 
 ## Run the web host
 

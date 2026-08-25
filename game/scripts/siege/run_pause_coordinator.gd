@@ -55,9 +55,10 @@ func lease_count() -> int:
 
 
 func _apply_pause(paused: bool) -> void:
-	dependencies.robot.set_control_enabled(not paused)
 	if paused:
 		dependencies.city.contextual_attacks.cancel_attack()
+		dependencies.robot.cancel_dodge()
+	dependencies.robot.set_control_enabled(not paused)
 	var preserve_upgrade_touches: bool = paused and _leases.values().has(&"upgrade_choice")
 	dependencies.city.mobile_controls.set_controls_enabled(
 		not paused,
