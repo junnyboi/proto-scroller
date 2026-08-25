@@ -1,7 +1,7 @@
 # District Destruction Implementation Plan
 
 **Author:** Manus AI  
-**Status:** In progress — WP0 complete  
+**Status:** In progress — WP1 complete
 **Target branch:** `main`  
 **Engine:** Godot 4.7.2-stable
 
@@ -97,7 +97,7 @@ The primary risk is package growth. Runtime facade sprites are therefore compact
 | Work package | Status | Source revision | Verification |
 |---|---|---|---|
 | WP0 | Completed | This work-package commit | Five concept boards and 25 building briefs validated at 1920×1080; documentation links verified |
-| WP1 | Pending | — | — |
+| WP1 | Completed | This work-package commit | 5 districts, 25 variants, and deterministic chunk boundaries validated; 265 GUT tests passed; standard harness passed in 451 s |
 | WP2 | Pending | — | — |
 | WP3 | Pending | — | — |
 | WP4 | Pending | — | — |
