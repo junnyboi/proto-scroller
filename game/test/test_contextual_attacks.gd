@@ -4,6 +4,10 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 
 
+func after_each() -> void:
+	_release_test_actions()
+
+
 func test_resolver_locks_ground_at_699_and_jab_cross_at_700() -> void:
 	var resolver: AttackResolver = AttackResolver.new()
 	add_child_autofree(resolver)
@@ -369,19 +373,21 @@ func test_melee_cancels_dodge_into_half_momentum_attack_in_dodge_direction() -> 
 	_record_test_execution()
 
 
-func test_mapped_stomp_action_cancels_east_dodge_into_half_momentum_melee() -> void:
+func test_space_binding_cancels_east_dodge_into_half_momentum_melee() -> void:
 	var city: CitySlice = await _city()
 	var robot: GiantRobotController = city.robot
 	_tune_short_attack(city.contextual_attacks.resolver)
 	robot.collision_mask = 0
 	robot.gravity = 0.0
+	var space_press: InputEventKey = InputEventKey.new()
+	space_press.physical_keycode = KEY_SPACE
+	space_press.pressed = true
+	assert_true(InputMap.event_is_action(space_press, &"stomp"))
 	assert_true(robot._start_dodge(1))
-	Input.action_press(&"stomp")
-	robot._physics_process(1.0 / 60.0)
+	assert_gt(robot.begin_attack_charge(), 0)
 	assert_true(city.contextual_attacks.is_charging())
 	city.contextual_attacks._process(1.0)
-	Input.action_release(&"stomp")
-	robot._physics_process(1.0 / 60.0)
+	assert_true(robot.release_attack_charge())
 	var spec: AttackSpec = city.contextual_attacks.current_spec
 	assert_not_null(spec)
 	if spec == null:
@@ -505,13 +511,19 @@ func _wait_for_phase(controller: ContextualAttackController, expected: int) -> v
 
 
 func _city() -> CitySlice:
+	_release_test_actions()
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
-	await get_tree().process_frame
 	city.robot.set_physics_process(false)
+	await get_tree().process_frame
 	for enemy: EnemyActor2D in [city.soldier, city.tank, city.helicopter]:
 		enemy.set_physics_process(false)
 	return city
+
+
+func _release_test_actions() -> void:
+	for action: StringName in [&"move_left", &"move_right", &"stomp", &"dodge"]:
+		Input.action_release(action)
 
 
 func _record_test_execution() -> void:
