@@ -75,6 +75,8 @@ Hazard planning consumes the same locked profile and enforces caps at both plann
 
 Implement declarative mission predicates, reusable effects, five validated pools, deterministic offers, once-per-cycle district routing, and non-penalizing withdrawal. Add localization and focused catalog, selector, transition, scoring, and stale-callback tests. Run the complete standard verification gate, review, commit, and push.
 
+**Status: Complete.** The catalog now contains five validated pools and fifteen globally unique missions. Offers are deterministic per run seed, cycle, and spatial district; active missions withdraw without penalty at district boundaries; presentation waits for in-flight attack telegraphs to clear; and deferred directive effects are generation-guarded. After integrating concurrent retaliation and district-catalog revisions, the standard gate passed **296/296 tests with 28,669 assertions** in **478 seconds**, including localization glyph coverage, cycle persistence, floating-origin telegraphs, six-chunk streaming, and legacy kinetic/directive composition.
+
 ### WP2 — Live countdown and objective progress UI
 
 Make mission time pause-aware, expose authoritative countdown state, build allocation-free timer/progress bars, add responsive landscape/portrait layouts, and expand the directive-card visual scenario to active, low-time, success, and failure states. Run focused tests, complete standard verification, inspect both orientations, commit, and push.

@@ -8,6 +8,7 @@ signal progress_changed(current: int, target: int)
 signal completed(profile: DirectiveProfile, banked_score: int)
 signal failed(profile: DirectiveProfile, penalty: int)
 signal bank_changed(value: int)
+signal withdrawn
 
 const AFTERSHOCK_DELAY: float = 0.14
 const AFTERSHOCK_RADIUS: float = 180.0
@@ -27,6 +28,8 @@ var offer_count: int = 0
 var completion_count: int = 0
 var failure_count: int = 0
 var _seen_aftershocks: Dictionary[int, bool] = {}
+var _paused: bool = false
+var _generation: int = 0
 
 
 func setup(
@@ -40,7 +43,7 @@ func setup(
 
 
 func _process(delta: float) -> void:
-	if active_profile == null:
+	if active_profile == null or _paused:
 		return
 	remaining = maxf(remaining - delta, 0.0)
 	if is_zero_approx(remaining):
@@ -60,11 +63,28 @@ func offer(run_seed: int) -> DirectiveProfile:
 	return ordered[0]
 
 
+func offer_district(run_seed: int, cycle: int, district_id: StringName) -> DirectiveProfile:
+	if active_profile != null:
+		return active_profile
+	var ordered: Array[DirectiveProfile] = DistrictMissionCatalog.choices_for(
+		district_id,
+		run_seed,
+		cycle
+	)
+	if ordered.is_empty():
+		return null
+	offer_count += 1
+	offered.emit(ordered[0])
+	choices_offered.emit(ordered)
+	return ordered[0]
+
+
 func select(profile: DirectiveProfile) -> bool:
 	if profile == null or active_profile != null:
 		return false
 	active_profile = profile
 	selected_profile = profile
+	_generation += 1
 	remaining = profile.duration_seconds
 	progress = 0
 	pending_score = 0
@@ -79,7 +99,7 @@ func decorate_attack(spec: AttackSpec) -> AttackSpec:
 		return spec
 	var structure_multiplier: float = 1.0
 	if (
-			effect_profile.directive_id == &"DEMOLITION_BREACH"
+				effect_profile.resolved_effect_kind() == DirectiveProfile.EffectKind.BREACH
 		and spec.is_jab_cross()
 	):
 		structure_multiplier = effect_profile.structural_multiplier
@@ -109,13 +129,14 @@ func attack_active(spec: AttackSpec) -> void:
 	var effect_profile: DirectiveProfile = _effect_profile()
 	if spec == null or effect_profile == null:
 		return
-	if effect_profile.directive_id == &"AFTERSHOCK_BREAKS":
+	if effect_profile.resolved_effect_kind() == DirectiveProfile.EffectKind.AFTERSHOCK:
 		_queue_aftershock(spec)
-	elif effect_profile.directive_id == &"SKYBREAKER":
+	elif effect_profile.resolved_effect_kind() == DirectiveProfile.EffectKind.SKYBREAKER:
 		_apply_skybreaker(spec)
 
 
 func stop() -> void:
+	_generation += 1
 	active_profile = null
 	selected_profile = null
 	remaining = 0.0
@@ -123,6 +144,25 @@ func stop() -> void:
 	pending_score = 0
 	_seen_aftershocks.clear()
 	bank_changed.emit(0)
+
+
+func withdraw() -> void:
+	var had_mission: bool = active_profile != null or selected_profile != null
+	stop()
+	if had_mission:
+		withdrawn.emit()
+
+
+func reset_run_state() -> void:
+	stop()
+	offer_count = 0
+	completion_count = 0
+	failure_count = 0
+	_paused = false
+
+
+func set_paused(paused: bool) -> void:
+	_paused = paused
 
 
 func is_active() -> bool:
@@ -137,12 +177,16 @@ func _queue_aftershock(spec: AttackSpec) -> void:
 	if _seen_aftershocks.has(spec.attack_id):
 		return
 	_seen_aftershocks[spec.attack_id] = true
-	_run_aftershock(spec)
+	_run_aftershock(spec, _generation)
 
 
-func _run_aftershock(spec: AttackSpec) -> void:
+func _run_aftershock(spec: AttackSpec, generation: int) -> void:
 	await get_tree().create_timer(AFTERSHOCK_DELAY).timeout
-	if dependencies == null or dependencies.city.game_over_active:
+	if (
+		generation != _generation
+		or dependencies == null
+		or dependencies.city.game_over_active
+	):
 		return
 	var options: DamageQueryOptions = DamageQueryOptions.new()
 	options.root_attack_id = spec.attack_id
@@ -197,18 +241,7 @@ func _nearest_active_helicopter() -> HelicopterEnemy:
 func _on_event_published(event: GameplayEvent) -> void:
 	if active_profile == null or event == null:
 		return
-	var accepted: bool = false
-	match active_profile.directive_id:
-		&"DEMOLITION_BREACH":
-			accepted = event.kind == GameplayEvent.Kind.CELL_DESTROYED
-		&"AFTERSHOCK_BREAKS":
-			accepted = (
-				event.qualifies_for_combo
-				and event.cause == &"directive_aftershock"
-			)
-		&"SKYBREAKER":
-			accepted = event.kind == GameplayEvent.Kind.AIRBORNE_DEBRIS_HIT
-	if not accepted:
+	if not active_profile.matches_event(event):
 		return
 	progress += 1
 	progress_changed.emit(progress, active_profile.target_count)

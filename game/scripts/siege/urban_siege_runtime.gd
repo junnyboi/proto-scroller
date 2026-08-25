@@ -12,15 +12,6 @@ const CATALYST_RUNTIME_SCRIPT: Script = preload(
 	"res://scripts/destruction/catalysts/catalyst_runtime.gd"
 )
 const HAZARD_RUNTIME_SCRIPT: Script = preload("res://scripts/hazards/hazard_runtime.gd")
-const BREACH_PROFILE: DirectiveProfile = preload(
-	"res://resources/directives/demolition_breach.tres"
-)
-const AFTERSHOCK_PROFILE: DirectiveProfile = preload(
-	"res://resources/directives/aftershock_breaks.tres"
-)
-const SKYBREAKER_PROFILE: DirectiveProfile = preload(
-	"res://resources/directives/skybreaker.tres"
-)
 const GAS_MAIN_PROFILE: CatalystProfile = preload("res://resources/catalysts/gas_main.tres")
 const ROLE_PROFILES: Array[EnemyRoleProfile] = [
 	preload("res://resources/roles/advancing_soldier.tres"),
@@ -62,6 +53,8 @@ var selected_recipe: DistrictRecipe
 var selected_contract: RunContract
 var _directive_pause_token: int = 0
 var _terminal_pause_token: int = 0
+var _offered_district_keys: Dictionary[StringName, bool] = {}
+var _pending_district_offer: StringName = &""
 
 
 func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinition) -> void:
@@ -94,7 +87,7 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	directives.name = "DirectiveSession"
 	directives.setup(
 		dependencies,
-		[BREACH_PROFILE, AFTERSHOCK_PROFILE, SKYBREAKER_PROFILE]
+		DistrictMissionCatalog.all_profiles()
 	)
 	add_child(directives)
 	dependencies.city.contextual_attacks.set_directive_session(directives)
@@ -112,14 +105,22 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	pause_coordinator.name = "RunPauseCoordinator"
 	pause_coordinator.setup(dependencies, director, catalysts, hazards)
 	add_child(pause_coordinator)
+	pause_coordinator.pause_changed.connect(directives.set_paused)
 	directives.choices_offered.connect(_on_directive_choices_offered)
 	directives.selected.connect(_on_directive_selected)
+	if dependencies.city.world_stream != null:
+		dependencies.city.world_stream.district_changed.connect(
+			_on_spatial_district_changed
+		)
 	_select_configuration(false)
 
 
 func start_run(p_seed: int = 0) -> void:
 	run_seed = p_seed
 	cycle_count = 1
+	_offered_district_keys.clear()
+	_pending_district_offer = &""
+	directives.reset_run_state()
 	if dependencies.city.world_stream != null:
 		dependencies.city.world_stream.configure_run(run_seed)
 	_prepare_cycle()
@@ -137,6 +138,7 @@ func continue_cycle() -> bool:
 		pause_coordinator.release(_terminal_pause_token)
 		_terminal_pause_token = 0
 	cycle_count += 1
+	_offered_district_keys.clear()
 	dependencies.telegraphs.cancel_all()
 	dependencies.projectile_pool.release_all()
 	dependencies.encounter_runtime.release_all()
@@ -169,9 +171,11 @@ func contract_succeeded() -> bool:
 func _process(delta: float) -> void:
 	if boss_session != null:
 		boss_session.advance(delta)
+	_try_present_pending_district_offer()
 
 
 func stop_run() -> void:
+	_pending_district_offer = &""
 	if director != null:
 		director.stop()
 	if catalysts != null:
@@ -211,7 +215,7 @@ func _on_phase_changed(index: int, display_name: String) -> void:
 
 func _on_milestone_reached(milestone: StringName) -> void:
 	if milestone == &"DIRECTIVE_CHOICE":
-		directives.offer(run_seed)
+		_offer_current_district_once()
 	elif milestone == &"GAS_MAIN":
 		var gas_main: Catalyst2D = catalysts.activate(
 			1,
@@ -230,6 +234,52 @@ func _on_directive_choices_offered(_profiles: Array[DirectiveProfile]) -> void:
 
 
 func _on_directive_selected(_profile: DirectiveProfile) -> void:
+	if _directive_pause_token != 0:
+		pause_coordinator.release(_directive_pause_token)
+		_directive_pause_token = 0
+
+
+func _on_spatial_district_changed(
+	_previous_district_id: StringName,
+	district_id: StringName,
+	_logical_chunk: int
+) -> void:
+	_withdraw_directive_presentation()
+	_pending_district_offer = district_id
+	_try_present_pending_district_offer()
+
+
+func _offer_current_district_once() -> void:
+	var district_id: StringName = &"BUSINESS"
+	if dependencies.city.world_stream != null:
+		district_id = dependencies.city.world_stream.current_district_id
+	_offer_district_once(district_id)
+
+
+func _offer_district_once(district_id: StringName) -> void:
+	var key: StringName = StringName("%d:%s" % [cycle_count, district_id])
+	if _offered_district_keys.has(key):
+		return
+	_offered_district_keys[key] = true
+	directives.offer_district(run_seed, cycle_count, district_id)
+
+
+func _try_present_pending_district_offer() -> void:
+	if _pending_district_offer.is_empty():
+		return
+	if pause_coordinator != null and pause_coordinator.is_paused():
+		return
+	if dependencies.telegraphs != null and dependencies.telegraphs.active_count() > 0:
+		return
+	var district_id: StringName = _pending_district_offer
+	_pending_district_offer = &""
+	_offer_district_once(district_id)
+
+
+func _withdraw_directive_presentation() -> void:
+	directives.withdraw()
+	if dependencies.gameplay_hud != null:
+		dependencies.gameplay_hud.directive_choice_overlay.hide_choices()
 	if _directive_pause_token != 0:
 		pause_coordinator.release(_directive_pause_token)
 		_directive_pause_token = 0

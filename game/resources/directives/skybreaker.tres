@@ -6,10 +6,13 @@
 [resource]
 script = ExtResource("1")
 directive_id = &"SKYBREAKER"
+district_id = &"ROYAL"
 display_name = "directive.skybreaker.name"
 instruction = "directive.skybreaker.instruction"
 duration_seconds = 14.0
 target_count = 1
+objective_kind = 6
+effect_kind = 3
 structural_multiplier = 1.0
 pending_bank_fraction = 0.25
 failure_penalty_fraction = 0.20
