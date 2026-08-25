@@ -51,7 +51,7 @@ static func build_robot(
 ) -> GiantRobotController:
 	var robot: GiantRobotController = ROBOT_SCRIPT.new() as GiantRobotController
 	robot.name = "Robot"
-	robot.position = Vector2(760.0, 460.0)
+	robot.position = Vector2(760.0, 466.5)
 	robot.max_health = 800.0
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0
