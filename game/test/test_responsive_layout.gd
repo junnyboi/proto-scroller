@@ -41,12 +41,15 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	assert_eq(background.texture.resource_path, "res://art/ui/title_screen/command_deck_portrait.jpg")
 	assert_true(_inside_viewport(background, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(screen.get_node("%TitleLabel") as Control, PORTRAIT_SIZE))
-	assert_true(_inside_viewport(screen.get_node("StatusRail") as Control, PORTRAIT_SIZE))
+	var info_panel: Control = screen.get_node("StatusRail") as Control
+	var controls_label: Control = screen.get_node("%ControlsLabel") as Control
+	assert_true(_inside_viewport(info_panel, PORTRAIT_SIZE))
+	assert_true(info_panel.get_global_rect().encloses(controls_label.get_global_rect()))
 	assert_true(_inside_viewport(initialize_button, PORTRAIT_SIZE))
-	assert_true(_inside_viewport(screen.get_node("MoveChip") as Control, PORTRAIT_SIZE))
-	assert_true(_inside_viewport(screen.get_node("SmashChip") as Control, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(briefing_toggle, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(settings_button, PORTRAIT_SIZE))
+	assert_eq(settings_button.position, Vector2(504.0, 20.0))
+	assert_eq(settings_button.get_rect().end.x, 704.0)
 	assert_true(
 		_inside_viewport(settings_panel, PORTRAIT_SIZE),
 		"Portrait settings panel escaped viewport: %s" % settings_panel.get_global_rect()
@@ -73,10 +76,12 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	_set_viewport(LANDSCAPE_SIZE)
 	await get_tree().process_frame
 	assert_false(screen.is_portrait_layout())
-	assert_eq((screen.get_node("StatusRail") as Control).position, Vector2(744.0, 36.0))
+	assert_eq((screen.get_node("StatusRail") as Control).position, Vector2(52.0, 536.0))
 	assert_eq(background.texture.resource_path, "res://art/ui/title_screen/command_deck_landscape.jpg")
 	assert_true(_inside_viewport(briefing_toggle, LANDSCAPE_SIZE))
 	assert_true(_inside_viewport(settings_button, LANDSCAPE_SIZE))
+	assert_eq(settings_button.position, Vector2(1068.0, 16.0))
+	assert_eq(settings_button.get_rect().end.x, 1264.0)
 	assert_true(
 		_inside_viewport(settings_panel, LANDSCAPE_SIZE),
 		"Landscape settings panel escaped viewport: %s" % settings_panel.get_global_rect()

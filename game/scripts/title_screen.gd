@@ -83,7 +83,6 @@ var _capture_gamepad: bool = false
 }
 @onready var language_selector: HBoxContainer = %LanguageSelector
 @onready var language_label: Label = %LanguageLabel
-@onready var automatic_button: Button = %AutomaticButton
 @onready var english_button: Button = %EnglishButton
 @onready var chinese_button: Button = %ChineseButton
 @onready var status_label: Label = %StatusLabel
@@ -115,7 +114,6 @@ func _ready() -> void:
 	music_mute_button.toggled.connect(_on_music_mute_toggled)
 	sfx_mute_button.toggled.connect(_on_sfx_mute_toggled)
 	voice_mute_button.toggled.connect(_on_voice_mute_toggled)
-	automatic_button.pressed.connect(_on_automatic_pressed)
 	english_button.pressed.connect(_on_english_pressed)
 	chinese_button.pressed.connect(_on_chinese_pressed)
 	InputBindingSettings.apply_saved(input_preference_path)
@@ -217,7 +215,6 @@ func initialize_game() -> bool:
 	initialize_button.disabled = true
 	briefing_toggle.disabled = true
 	settings_button.disabled = true
-	automatic_button.disabled = true
 	english_button.disabled = true
 	chinese_button.disabled = true
 	return true
@@ -297,10 +294,6 @@ func select_automatic_language() -> bool:
 func _on_initialize_pressed() -> void:
 	if initialize_game():
 		start_requested.emit()
-
-
-func _on_automatic_pressed() -> void:
-	select_automatic_language()
 
 
 func _on_english_pressed() -> void:
@@ -443,25 +436,26 @@ func is_portrait_layout() -> bool:
 
 
 func _apply_localized_text() -> void:
-	($ProtocolLabel as Label).text = L10n.t("title.protocol")
 	(%TitleLabel as Label).text = L10n.t("title.command_heading")
 	instruction_label.text = L10n.t(
 		"title.deployment_authorized" if initialized else "title.command_hook"
 	)
-	($StatusRail/StatusItems/Objective/Key as Label).text = L10n.t(
+	($StatusRail/InfoContent/StatusItems/Objective/Key as Label).text = L10n.t(
 		"title.status_objective"
 	)
-	($StatusRail/StatusItems/Objective/Value as Label).text = L10n.t(
+	($StatusRail/InfoContent/StatusItems/Objective/Value as Label).text = L10n.t(
 		"title.status_survive"
 	)
-	($StatusRail/StatusItems/Threat/Key as Label).text = L10n.t("title.status_threat")
-	($StatusRail/StatusItems/Threat/Value as Label).text = L10n.t(
+	($StatusRail/InfoContent/StatusItems/Threat/Key as Label).text = L10n.t(
+		"title.status_threat"
+	)
+	($StatusRail/InfoContent/StatusItems/Threat/Value as Label).text = L10n.t(
 		"title.status_ground_air"
 	)
-	($StatusRail/StatusItems/Upgrades/Key as Label).text = L10n.t(
+	($StatusRail/InfoContent/StatusItems/Upgrades/Key as Label).text = L10n.t(
 		"title.status_upgrades"
 	)
-	($StatusRail/StatusItems/Upgrades/Value as Label).text = L10n.t(
+	($StatusRail/InfoContent/StatusItems/Upgrades/Value as Label).text = L10n.t(
 		"title.status_during_run"
 	)
 	initialize_button.text = (
@@ -493,14 +487,6 @@ func _apply_localized_text() -> void:
 	_update_audio_volume_values()
 	_update_mute_button_texts()
 	language_label.text = L10n.t("title.language")
-	automatic_button.text = L10n.t(
-		"title.language_auto_resolved",
-		{
-			"automatic": L10n.t("title.language_auto"),
-			"resolved": _resolved_language_label(L10n.automatic_locale()),
-		}
-	)
-	automatic_button.tooltip_text = L10n.t("title.language_auto_tooltip")
 	english_button.text = L10n.t("title.language_en")
 	chinese_button.text = L10n.t("title.language_zh_cn")
 	_sync_language_selector()
@@ -520,9 +506,11 @@ func _apply_localized_text() -> void:
 
 func _refresh_control_copy() -> void:
 	var bindings: Dictionary = InputBindingSettings.display_placeholders()
-	($MoveChip/Label as Label).text = L10n.t("title.move_chip", bindings)
-	($SmashChip/Label as Label).text = L10n.t("title.smash_chip", bindings)
-	(%ControlsLabel as Label).text = L10n.t("title.controls_body", bindings)
+	(%ControlsLabel as Label).text = L10n.t("title.controls_compact", bindings)
+	($SemanticContract/BriefingControlsLabel as Label).text = L10n.t(
+		"title.controls_body",
+		bindings
+	)
 	($SemanticContract/FieldNote as Label).text = L10n.t("title.field_note", bindings)
 
 
@@ -536,17 +524,14 @@ func _apply_responsive_layout() -> void:
 func _apply_landscape_layout() -> void:
 	background_art.texture = LANDSCAPE_ART
 	briefing_art.texture = _briefing_texture(false)
-	_set_rect($ProtocolLabel, Rect2(52.0, 250.0, 390.0, 38.0))
-	_set_rect(%TitleLabel, Rect2(52.0, 290.0, 650.0, 78.0))
-	_set_rect(%InstructionLabel, Rect2(52.0, 380.0, 610.0, 46.0))
-	_set_rect($StatusRail, Rect2(744.0, 36.0, 504.0, 68.0))
-	_set_rect(initialize_button, Rect2(52.0, 450.0, 360.0, 72.0))
-	_set_rect(language_selector, Rect2(52.0, 530.0, 500.0, 48.0))
-	_set_rect($HintLabel, Rect2(430.0, 464.0, 160.0, 46.0))
-	_set_rect($MoveChip, Rect2(52.0, 590.0, 164.0, 48.0))
-	_set_rect($SmashChip, Rect2(236.0, 590.0, 178.0, 48.0))
+	_set_rect(%TitleLabel, Rect2(52.0, 246.0, 680.0, 78.0))
+	_set_rect(%InstructionLabel, Rect2(52.0, 326.0, 740.0, 60.0))
+	_set_rect(initialize_button, Rect2(52.0, 400.0, 360.0, 72.0))
+	_set_rect($HintLabel, Rect2(430.0, 412.0, 190.0, 46.0))
+	_set_rect(language_selector, Rect2(52.0, 486.0, 282.0, 48.0))
+	_set_rect($StatusRail, Rect2(52.0, 536.0, 760.0, 162.0))
 	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
-	_set_rect(settings_button, Rect2(1052.0, 118.0, 196.0, 48.0))
+	_set_rect(settings_button, Rect2(1068.0, 16.0, 196.0, 48.0))
 	_set_rect(settings_panel, Rect2(330.0, 100.0, 620.0, 520.0))
 	_set_font_sizes(24, 56, 24)
 
@@ -554,17 +539,14 @@ func _apply_landscape_layout() -> void:
 func _apply_portrait_layout() -> void:
 	background_art.texture = PORTRAIT_ART
 	briefing_art.texture = _briefing_texture(true)
-	_set_rect($ProtocolLabel, Rect2(56.0, 72.0, 608.0, 42.0))
-	_set_rect(%TitleLabel, Rect2(56.0, 122.0, 608.0, 82.0))
-	_set_rect(%InstructionLabel, Rect2(56.0, 206.0, 608.0, 50.0))
-	_set_rect($StatusRail, Rect2(54.0, 268.0, 612.0, 92.0))
-	_set_rect(initialize_button, Rect2(104.0, 900.0, 512.0, 92.0))
-	_set_rect(language_selector, Rect2(104.0, 1004.0, 512.0, 52.0))
-	_set_rect($HintLabel, Rect2(260.0, 1062.0, 200.0, 46.0))
-	_set_rect($MoveChip, Rect2(120.0, 1114.0, 214.0, 58.0))
-	_set_rect($SmashChip, Rect2(372.0, 1114.0, 228.0, 58.0))
-	_set_rect(briefing_toggle, Rect2(174.0, 1180.0, 372.0, 70.0))
-	_set_rect(settings_button, Rect2(466.0, 376.0, 200.0, 56.0))
+	_set_rect(%TitleLabel, Rect2(56.0, 88.0, 608.0, 82.0))
+	_set_rect(%InstructionLabel, Rect2(56.0, 174.0, 608.0, 92.0))
+	_set_rect(initialize_button, Rect2(104.0, 790.0, 512.0, 92.0))
+	_set_rect($HintLabel, Rect2(260.0, 888.0, 200.0, 46.0))
+	_set_rect(language_selector, Rect2(174.0, 940.0, 372.0, 52.0))
+	_set_rect($StatusRail, Rect2(54.0, 1004.0, 612.0, 194.0))
+	_set_rect(briefing_toggle, Rect2(174.0, 1224.0, 372.0, 48.0))
+	_set_rect(settings_button, Rect2(504.0, 20.0, 200.0, 56.0))
 	_set_rect(settings_panel, Rect2(54.0, 300.0, 612.0, 610.0))
 	_set_font_sizes(24, 48, 24)
 
@@ -592,25 +574,14 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	controller_vibration_toggle.add_theme_font_size_override(&"font_size", body_size)
 	reset_bindings_button.add_theme_font_size_override(&"font_size", body_size)
 	language_label.add_theme_font_size_override(&"font_size", body_size)
-	automatic_button.add_theme_font_size_override(&"font_size", body_size)
 	english_button.add_theme_font_size_override(&"font_size", body_size)
 	chinese_button.add_theme_font_size_override(&"font_size", body_size)
 
 
 func _sync_language_selector() -> void:
-	var automatic_selected: bool = L10n.uses_automatic_locale(locale_preference_path)
 	var chinese_selected: bool = L10n.current_locale() == "zh-CN"
-	automatic_button.set_pressed_no_signal(automatic_selected)
-	english_button.set_pressed_no_signal(not automatic_selected and not chinese_selected)
-	chinese_button.set_pressed_no_signal(not automatic_selected and chinese_selected)
-
-
-func _resolved_language_label(locale: String) -> String:
-	return L10n.t(
-		"title.language_resolved_zh_cn"
-		if locale == "zh-CN"
-		else "title.language_resolved_en"
-	)
+	english_button.set_pressed_no_signal(not chinese_selected)
+	chinese_button.set_pressed_no_signal(chinese_selected)
 
 
 func _set_rect(control: Control, rect: Rect2) -> void:
