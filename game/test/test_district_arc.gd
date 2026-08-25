@@ -75,6 +75,80 @@ func test_bounded_overrun_advances_with_surviving_low_threat() -> void:
 	assert_eq(city.encounter_runtime.active_count(&"soldier"), 1)
 
 
+func test_retaliation_triggers_every_wave_25_percent_sooner() -> void:
+	var director: DistrictResponseDirector = city.urban_siege.director
+	var retaliation: DistrictAct = DISTRICT.acts[4]
+	var expected_beats: Array[StringName] = [
+		&"RETALIATION_FRONT",
+		&"RETALIATION_REAR",
+		&"RETALIATION_AIR",
+		&"RETALIATION_SQUEEZE",
+		&"RETALIATION_PEAK",
+	]
+	var baseline_pressure: Array[float] = [12.0, 13.0, 13.0, 14.0, 15.0]
+	assert_almost_eq(
+		DistrictResponseDirector.RETALIATION_TRIGGER_SCALE,
+		0.75,
+		0.0001
+	)
+	assert_almost_eq(
+		director._scaled_target_duration(retaliation),
+		retaliation.target_duration * 0.75,
+		0.0001
+	)
+	director.stop()
+	director.running = true
+	director.completed = false
+	director.phase_index = 4
+	director.beat_index = -1
+	director.state = DistrictResponseDirector.STATE_WAITING
+	director.act_elapsed = 0.0
+	for beat_index: int in range(retaliation.beats.size()):
+		director._try_start_next_beat()
+		assert_eq(director.current_beat_id(), expected_beats[beat_index])
+		assert_almost_eq(
+			director.pressure_remaining,
+			baseline_pressure[beat_index] * 0.75,
+			0.0001
+		)
+		assert_almost_eq(
+			director.recovery_remaining,
+			retaliation.beats[beat_index].recovery_seconds * 0.75,
+			0.0001
+		)
+		assert_gt(director.pending_count(), 0)
+		director._beat_pending.clear()
+		director.ledger.cancel(director._beat_reservation_id)
+		director._beat_reservation_id = 0
+		director.state = DistrictResponseDirector.STATE_WAITING
+
+
+func test_act_five_releases_overrun_survivors_and_starts_max_tier_retaliation() -> void:
+	var director: DistrictResponseDirector = city.urban_siege.director
+	city.world_stream.current_logical_chunk = 32
+	city.world_stream.maximum_visited_chunk = 32
+	director.stop()
+	director.running = true
+	director.completed = false
+	director.phase_index = 3
+	director.beat_index = DISTRICT.acts[3].beats.size() - 1
+	director.state = DistrictResponseDirector.STATE_WAITING
+	director.act_elapsed = (
+		DISTRICT.acts[3].target_duration
+		+ DistrictResponseDirector.MAXIMUM_ACT_OVERRUN
+	)
+	assert_not_null(city.encounter_runtime.acquire(&"goliath", Vector2(1200.0, 485.0)))
+	assert_gt(director._threat_weight(), DistrictResponseDirector.LOW_THREAT_WEIGHT)
+	director.advance(0.1)
+	assert_eq(director.phase_index, 4)
+	assert_eq(city.encounter_runtime.active_count(), 0)
+	director.advance(0.1)
+	assert_eq(director.current_beat_id(), &"RETALIATION_FRONT")
+	assert_eq(director.pending_count(), 9)
+	assert_eq(director.ledger.pending_count(), 9)
+	assert_eq(director.ledger.denial_count, 0)
+
+
 func test_late_elite_affixes_are_seeded_replayable_and_never_mutate_authored_entries() -> void:
 	var first_trace: Array[Dictionary] = _elite_trace(73)
 	var replay_trace: Array[Dictionary] = _elite_trace(73)

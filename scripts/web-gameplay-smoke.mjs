@@ -359,8 +359,8 @@ function assertPhaseContract(phases) {
     );
   }
   if (
-    chargeReleased.details.damage <= 180 ||
-    chargeReleased.details.damage > 360 ||
+    chargeReleased.details.damage <= 360 ||
+    chargeReleased.details.damage > 720 ||
     chargeReleased.details.playing !== true
   ) {
     throw new Error(

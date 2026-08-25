@@ -11,6 +11,8 @@ const STATE_RECOVERY: int = 2
 const MAX_PENDING_RECORDS: int = RuntimeBudget.PENDING_BEAT_RECORDS
 const MAXIMUM_ACT_OVERRUN: float = 20.0
 const LOW_THREAT_WEIGHT: int = 2
+const RETALIATION_TRIGGER_SCALE: float = 0.75
+const RETALIATION_MINIMUM_RECOVERY: float = 0.75
 const ELITE_SYSTEM_SALT: int = 0x0E11E77
 const CHAOS_SYSTEM_SALT: int = 0x0C4A05
 const ELITE_AFFIXES: Array[StringName] = EnemyArchetypeCatalog.RANDOM_AFFIXES
@@ -184,7 +186,8 @@ func is_recovery_active() -> bool:
 func current_act_progress() -> float:
 	if district == null or phase_index < 0 or phase_index >= district.acts.size():
 		return 0.0
-	return clampf(act_elapsed / maxf(district.acts[phase_index].target_duration, 1.0), 0.0, 1.0)
+	var act: DistrictAct = district.acts[phase_index]
+	return clampf(act_elapsed / maxf(_scaled_target_duration(act), 1.0), 0.0, 1.0)
 
 
 func _advance_act() -> void:
@@ -204,11 +207,14 @@ func _advance_act() -> void:
 func _try_start_next_beat() -> void:
 	var act: DistrictAct = district.acts[phase_index]
 	if beat_index >= act.beats.size() - 1:
-		if act_elapsed < act.target_duration:
+		var target_duration: float = _scaled_target_duration(act)
+		if act_elapsed < target_duration:
 			return
-		var overrun_expired: bool = act_elapsed >= act.target_duration + MAXIMUM_ACT_OVERRUN
-		if _threat_weight() > LOW_THREAT_WEIGHT and not overrun_expired:
-			return
+		var overrun_expired: bool = act_elapsed >= target_duration + MAXIMUM_ACT_OVERRUN
+		if _threat_weight() > LOW_THREAT_WEIGHT:
+			if not overrun_expired:
+				return
+			runtime.release_all()
 		if not act.milestone_after.is_empty():
 			milestone_reached.emit(act.milestone_after)
 		_advance_act()
@@ -279,10 +285,13 @@ func _try_start_next_beat() -> void:
 		)
 		peak_hazard_pending = maxi(peak_hazard_pending, _hazard_pending.size())
 	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
-	pressure_remaining = next_beat.pressure_seconds
+	var trigger_scale: float = _trigger_scale(act)
+	pressure_remaining = next_beat.pressure_seconds * trigger_scale
 	recovery_remaining = maxf(
-		1.0,
-		next_beat.recovery_seconds * (1.0 - float(progression_tier) * 0.08)
+		RETALIATION_MINIMUM_RECOVERY if _is_retaliation(act) else 1.0,
+		next_beat.recovery_seconds
+		* trigger_scale
+		* (1.0 - float(progression_tier) * 0.08)
 	)
 	runtime.set_attack_gate(true)
 	state = STATE_PRESSURE
@@ -458,6 +467,18 @@ func _progression_tier() -> int:
 	if runtime == null or runtime.world_stream == null:
 		return 0
 	return runtime.world_stream.progression_tier()
+
+
+func _is_retaliation(act: DistrictAct) -> bool:
+	return act != null and act.act_id == &"RETALIATION"
+
+
+func _trigger_scale(act: DistrictAct) -> float:
+	return RETALIATION_TRIGGER_SCALE if _is_retaliation(act) else 1.0
+
+
+func _scaled_target_duration(act: DistrictAct) -> float:
+	return act.target_duration * _trigger_scale(act) if act != null else 0.0
 
 
 func _progression_copy_plan(

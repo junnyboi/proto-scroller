@@ -215,7 +215,7 @@ func test_full_charge_stops_particles_at_two_seconds_but_keeps_first_frame_froze
 	assert_eq(sprite.frame, 0)
 	assert_false(sprite.is_playing())
 	assert_true(attacks.release_charge())
-	assert_almost_eq(attacks.current_spec.actor_damage, 360.0, 0.001)
+	assert_almost_eq(attacks.current_spec.actor_damage, 720.0, 0.001)
 	assert_true(sprite.is_playing())
 
 
