@@ -43,6 +43,11 @@ func test_library_excludes_all_northward_walk_and_attack_directions() -> void:
 		CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y,
 		0.001
 	)
+	assert_between(
+		CityWorldBuilder.LAND_VISUAL_BASELINE_Y - visual_ground.global_position.y,
+		CityWorldBuilder.ROBOT_ROAD_CLEARANCE_PIXELS,
+		CityWorldBuilder.ROBOT_ROAD_CLEARANCE_PIXELS + 1.0
+	)
 	var names: PackedStringArray = sprite.sprite_frames.get_animation_names()
 	names.sort()
 	assert_eq(names, PackedStringArray(EXPECTED_ANIMATIONS))

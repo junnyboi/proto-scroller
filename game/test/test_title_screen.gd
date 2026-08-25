@@ -63,7 +63,7 @@ func test_launch_scene_contract() -> void:
 	assert_eq(title_label.text, "PROTOS")
 	assert_eq(
 		(screen.get_node("%InstructionLabel") as Label).text,
-		"Terrorists have taken control of the city, make them pay."
+		"An evil organisation killed everyone you love... it's payback time!"
 	)
 	assert_eq(english_button.text, "EN")
 	assert_eq(chinese_button.text, "CN")
