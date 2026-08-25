@@ -81,6 +81,8 @@ Implement declarative mission predicates, reusable effects, five validated pools
 
 Make mission time pause-aware, expose authoritative countdown state, build allocation-free timer/progress bars, add responsive landscape/portrait layouts, and expand the directive-card visual scenario to active, low-time, success, and failure states. Run focused tests, complete standard verification, inspect both orientations, commit, and push.
 
+**Status: Complete.** `DirectiveSession` is now the authoritative pause-aware clock, while the mission card reads only scalar session state and mutates prebuilt controls. The active card presents a numeric ceiling-second countdown, timer bar, objective counter, progress bar, instruction, and pending score; localized timer text changes only at integer boundaries. Landscape and portrait active/failure captures passed bounds and safe-zone checks, result mode still dismisses after 2.4 seconds, and the standard gate passed **299/299 tests with 28,702 assertions** in **483 seconds**.
+
 ### WP3 — Bounded five-district difficulty escalation
 
 Add district pressure profiles, readiness gating, threat-aware enemy copies, and hazard cap enforcement. Add a five-district by six-act planning matrix plus saturation, determinism, runtime-budget, and economy trace tests. Run the complete standard gate and representative traversal visuals, commit, and push.

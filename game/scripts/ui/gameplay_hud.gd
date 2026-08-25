@@ -225,9 +225,10 @@ func show_directive(
 	profile: DirectiveProfile,
 	current: int,
 	target: int,
-	bank: int
+	bank: int,
+	session: DirectiveSession = null
 ) -> void:
-	directive_card.show_directive(profile, current, target, bank)
+	directive_card.show_directive(profile, current, target, bank, session)
 
 
 func set_directive_progress(profile: DirectiveProfile, current: int, target: int) -> void:
@@ -479,8 +480,8 @@ func _build_siege_progress() -> void:
 func _build_directive_card() -> void:
 	directive_card = DirectiveCard.new()
 	directive_card.name = "DirectiveCard"
-	directive_card.position = Vector2(848.0, 426.0)
-	directive_card.size = Vector2(392.0, 104.0)
+	directive_card.position = Vector2(808.0, 392.0)
+	directive_card.size = DirectiveCard.LANDSCAPE_SIZE
 	add_child(directive_card)
 
 
@@ -598,6 +599,8 @@ func _apply_responsive_layout() -> void:
 		weapon_status_strip.apply_responsive_layout()
 	if first_run_tutorial != null:
 		first_run_tutorial.apply_responsive_layout(viewport_size)
+	if directive_card != null:
+		directive_card.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout() -> void:
@@ -649,7 +652,7 @@ func _apply_landscape_layout() -> void:
 	siege_progress.size = Vector2(500.0, 32.0)
 	siege_progress.set_compact(false)
 	siege_progress.apply_width(500.0)
-	directive_card.position = Vector2(848.0, 426.0)
+	directive_card.position = Vector2(808.0, 382.0)
 	boss_label.position = Vector2(400.0, 146.0)
 	boss_label.size = Vector2(480.0, 38.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -708,7 +711,7 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	siege_progress.size = Vector2(panel_width, 24.0)
 	siege_progress.set_compact(true)
 	siege_progress.apply_width(panel_width)
-	directive_card.position = Vector2(18.0, viewport_size.y - 280.0)
+	directive_card.position = Vector2(18.0, viewport_size.y - 338.0)
 	boss_label.position = Vector2(0.0, 226.0)
 	boss_label.size = Vector2(panel_width, 24.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT

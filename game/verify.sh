@@ -358,17 +358,25 @@ if [[ "$MODE" == "full" ]]; then
 	  mv artifacts/upgrades/upgrade-choice.png \
 	    artifacts/upgrades/upgrade-choice-portrait.png
 
-	  printf '%s\n' '[L5] landscape failed-directive card scenario'
+	  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
 	    -s selftest/directive_card_visual_scenario.gd
+	  test -s artifacts/directives/directive-active.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/directives/directive-active.png)"
+	  mv artifacts/directives/directive-active.png \
+	    artifacts/directives/directive-active-landscape.png
 	  test -s artifacts/directives/directive-failed.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/directives/directive-failed.png)"
 	  mv artifacts/directives/directive-failed.png \
 	    artifacts/directives/directive-failed-landscape.png
 
-	  printf '%s\n' '[L5] portrait failed-directive card scenario'
+	  printf '%s\n' '[L5] portrait active/failed directive-card scenario'
 	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
 	    --resolution 720x1280 -s selftest/directive_card_visual_scenario.gd
+	  test -s artifacts/directives/directive-active.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/directives/directive-active.png)"
+	  mv artifacts/directives/directive-active.png \
+	    artifacts/directives/directive-active-portrait.png
 	  test -s artifacts/directives/directive-failed.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/directives/directive-failed.png)"
 	  mv artifacts/directives/directive-failed.png \

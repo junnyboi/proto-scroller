@@ -182,6 +182,8 @@
   "directive.select": "选择拆除指令",
   "directive.choice": "{name}\n\n{instruction}",
   "directive.progress": "{instruction}  {current}/{target}",
+  "directive.progress_short": "目标 {current}/{target}",
+  "directive.time_remaining": "{seconds}秒",
   "directive.pending": "待结算 +{value}",
   "directive.score_secured": "得分已保全",
   "directive.score_penalty": "得分已受罚",

@@ -182,6 +182,8 @@
   "directive.select": "SELECT DEMOLITION DIRECTIVE",
   "directive.choice": "{name}\n\n{instruction}",
   "directive.progress": "{instruction}  {current}/{target}",
+  "directive.progress_short": "OBJECTIVE {current}/{target}",
+  "directive.time_remaining": "{seconds}s",
   "directive.pending": "PENDING +{value}",
   "directive.score_secured": "SCORE SECURED",
   "directive.score_penalty": "SCORE PENALTY APPLIED",
