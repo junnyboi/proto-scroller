@@ -66,19 +66,6 @@ func test_web_feature_keeps_bgm_available_with_dummy_driver_name() -> void:
 	main.free()
 
 
-func test_launch_gesture_retries_background_music_startup() -> void:
-	if not OS.has_feature("web") and AudioServer.get_driver_name() == Main.DUMMY_AUDIO_DRIVER_NAME:
-		pending("Native Dummy driver intentionally suppresses Ogg playback")
-		return
-	var main: Main = MAIN_SCENE.instantiate() as Main
-	add_child_autofree(main)
-	await get_tree().process_frame
-	main.background_music_player.stop()
-	assert_false(main.background_music_player.playing)
-	main.start_game()
-	assert_true(main.background_music_player.playing)
-
-
 func test_upgrade_duck_controller_changes_the_players_music_bus() -> void:
 	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)

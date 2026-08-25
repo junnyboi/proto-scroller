@@ -264,6 +264,11 @@ function assertPhaseContract(phases) {
   const resolved = phases[3];
   const east = phases[4];
   const west = phases[5];
+  if (phases[0].details.background_music_playing !== true) {
+    throw new Error(
+      `background music did not start after launch gesture: ${JSON.stringify(phases[0].details)}`
+    );
+  }
   if (!String(attack.details.animation).startsWith("attack_")) {
     throw new Error(`melee animation missing: ${attack.details.animation}`);
   }
