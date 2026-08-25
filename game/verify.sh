@@ -75,10 +75,17 @@ for cue in \
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
 done
+PARSE_LOG="artifacts/parse-lint.log"
+: > "$PARSE_LOG"
 while IFS= read -r -d '' script; do
-  gdlint "$script"
-  run_engine "$GODOT" --headless --path . --check-only -s "$script"
+	  gdlint "$script"
+	  run_engine "$GODOT" --headless --path . --check-only -s "$script" 2>&1 \
+	    | tee -a "$PARSE_LOG"
 done < <(find scripts selftest test -type f -name '*.gd' -print0 | sort -z)
+if grep -Eq 'SCRIPT ERROR|Parse Error|ERROR:|FATAL|CRASH' "$PARSE_LOG"; then
+	printf '%s\n' '[PARSE-FAIL] Godot logged a script or resource diagnostic' >&2
+	exit 1
+fi
 
 printf '%s\n' '[L2] GUT unit suite'
 run_engine "$GODOT" --headless -d -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit \
