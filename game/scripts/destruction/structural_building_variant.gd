@@ -5,9 +5,24 @@ const EXPECTED_MATERIAL_COUNT: int = 6
 
 @export var variant_id: StringName = &"legacy"
 @export var display_name: String = "Legacy Building"
-@export var intact_texture: Texture2D
-@export var damaged_texture: Texture2D
-@export var rubble_texture: Texture2D
+@export var intact_texture: Texture2D:
+	get:
+		_intact_texture = _load_texture(intact_texture_path, _intact_texture)
+		return _intact_texture
+	set(value):
+		_intact_texture = value
+@export var damaged_texture: Texture2D:
+	get:
+		_damaged_texture = _load_texture(damaged_texture_path, _damaged_texture)
+		return _damaged_texture
+	set(value):
+		_damaged_texture = value
+@export var rubble_texture: Texture2D:
+	get:
+		_rubble_texture = _load_texture(rubble_texture_path, _rubble_texture)
+		return _rubble_texture
+	set(value):
+		_rubble_texture = value
 @export var display_size: Vector2 = Vector2(500.0, 445.0)
 @export var material_ids: PackedStringArray = PackedStringArray([
 	"concrete",
@@ -19,6 +34,26 @@ const EXPECTED_MATERIAL_COUNT: int = 6
 ])
 @export var visual_tint: Color = Color.WHITE
 @export var destruction_signature: StringName = &"structural_cascade"
+
+var intact_texture_path: String = ""
+var damaged_texture_path: String = ""
+var rubble_texture_path: String = ""
+var _intact_texture: Texture2D
+var _damaged_texture: Texture2D
+var _rubble_texture: Texture2D
+
+
+func configure_texture_paths(
+	intact_path: String,
+	damaged_path: String,
+	rubble_path: String
+) -> void:
+	intact_texture_path = intact_path
+	damaged_texture_path = damaged_path
+	rubble_texture_path = rubble_path
+	_intact_texture = null
+	_damaged_texture = null
+	_rubble_texture = null
 
 
 func material_id_at(column: int, row: int) -> StringName:
@@ -56,3 +91,9 @@ func validation_errors() -> PackedStringArray:
 	if steel_count == 0:
 		errors.append("no steel support authored for %s" % variant_id)
 	return errors
+
+
+func _load_texture(texture_path: String, current: Texture2D) -> Texture2D:
+	if current != null or texture_path.is_empty():
+		return current
+	return load(texture_path) as Texture2D

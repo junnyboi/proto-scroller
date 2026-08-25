@@ -6,6 +6,7 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const RESPONSIVE_VIEWPORT_SCRIPT: Script = preload(
 	"res://scripts/main/responsive_viewport.gd"
 )
+const DUMMY_AUDIO_DRIVER_NAME: String = "Dummy"
 
 var title_screen: TitleScreen
 var city_slice: CitySlice
@@ -21,6 +22,7 @@ func _ready() -> void:
 	add_child(responsive_viewport)
 	responsive_viewport.setup()
 	_show_title()
+	_start_background_music()
 	if not background_music_player.tree_exiting.is_connected(_release_background_music):
 		background_music_player.tree_exiting.connect(_release_background_music)
 
@@ -34,6 +36,17 @@ func _release_background_music() -> void:
 		return
 	background_music_player.stop()
 	background_music_player.stream = null
+
+
+func background_music_output_available() -> bool:
+	return AudioServer.get_driver_name() != DUMMY_AUDIO_DRIVER_NAME
+
+
+func _start_background_music() -> void:
+	if not background_music_output_available():
+		return
+	if background_music_player.stream != null and not background_music_player.playing:
+		background_music_player.play()
 
 
 func start_game() -> void:

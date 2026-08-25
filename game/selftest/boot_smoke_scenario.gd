@@ -20,10 +20,13 @@ func _run() -> void:
 	var music_ready: bool = (
 		main.background_music_player != null
 		and main.background_music_player.stream != null
-		and main.background_music_player.playing
+		and (
+			main.background_music_player.playing
+			== main.background_music_output_available()
+		)
 	)
 	print("[CHECK] %s main_scene_boots" % ["PASS" if title_ready else "FAIL"])
-	print("[CHECK] %s background_music_starts" % ["PASS" if music_ready else "FAIL"])
+	print("[CHECK] %s background_music_lifecycle_ready" % ["PASS" if music_ready else "FAIL"])
 	root.remove_child(main)
 	main.queue_free()
 	await process_frame

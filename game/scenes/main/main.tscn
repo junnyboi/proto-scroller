@@ -11,4 +11,4 @@ unique_name_in_owner = true
 process_mode = 3
 stream = ExtResource("2_bgm")
 bus = &"Music"
-autoplay = true
+autoplay = false

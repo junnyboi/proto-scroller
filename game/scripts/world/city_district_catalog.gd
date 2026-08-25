@@ -15,7 +15,7 @@ const LEGACY_DAMAGED: Texture2D = preload(
 const LEGACY_RUBBLE: Texture2D = preload(
 	"res://art/city/destructibles/building_rubble.png"
 )
-const FACADE_TEXTURES: Dictionary = {
+const INITIAL_DISTRICT_TEXTURES: Dictionary = {
 	&"business_mercy_exchange_annex": preload(
 		"res://art/city/destructibles/districts/business/mercy_exchange_annex.png"
 	),
@@ -31,64 +31,81 @@ const FACADE_TEXTURES: Dictionary = {
 	&"business_crown_reserve_treasury": preload(
 		"res://art/city/destructibles/districts/business/crown_reserve_data_treasury.png"
 	),
-	&"residential_emberpot_canteen_house": preload(
+}
+const FACADE_TEXTURE_PATHS: Dictionary = {
+	&"business_mercy_exchange_annex": (
+		"res://art/city/destructibles/districts/business/mercy_exchange_annex.png"
+	),
+	&"business_helix_clearinghouse_spine": (
+		"res://art/city/destructibles/districts/business/helix_clearinghouse_spine.png"
+	),
+	&"business_orison_custody_vault": (
+		"res://art/city/destructibles/districts/business/orison_custody_vault.png"
+	),
+	&"business_vanta_compliance_tribunal": (
+		"res://art/city/destructibles/districts/business/vanta_compliance_tribunal.png"
+	),
+	&"business_crown_reserve_treasury": (
+		"res://art/city/destructibles/districts/business/crown_reserve_data_treasury.png"
+	),
+	&"residential_emberpot_canteen_house": (
 		"res://art/city/destructibles/districts/residential/emberpot_canteen_house.png"
 	),
-	&"residential_bluewire_laundry_walkup": preload(
+	&"residential_bluewire_laundry_walkup": (
 		"res://art/city/destructibles/districts/residential/bluewire_laundry_walkup.png"
 	),
-	&"residential_rainvault_cooperative": preload(
+	&"residential_rainvault_cooperative": (
 		"res://art/city/destructibles/districts/residential/rainvault_cooperative.png"
 	),
-	&"residential_sixfold_balcony_court": preload(
+	&"residential_sixfold_balcony_court": (
 		"res://art/city/destructibles/districts/residential/sixfold_balcony_court.png"
 	),
-	&"residential_nightglass_mutual_clinic": preload(
+	&"residential_nightglass_mutual_clinic": (
 		"res://art/city/destructibles/districts/residential/nightglass_mutual_clinic.png"
 	),
-	&"entertainment_voltage_chapel": preload(
+	&"entertainment_voltage_chapel": (
 		"res://art/city/destructibles/districts/entertainment/voltage_chapel.png"
 	),
-	&"entertainment_orpheum_vanta": preload(
+	&"entertainment_orpheum_vanta": (
 		"res://art/city/destructibles/districts/entertainment/orpheum_vanta.png"
 	),
-	&"entertainment_halcyon_stack_hotel": preload(
+	&"entertainment_halcyon_stack_hotel": (
 		"res://art/city/destructibles/districts/entertainment/halcyon_stack_hotel.png"
 	),
-	&"entertainment_prism_crown_revue": preload(
+	&"entertainment_prism_crown_revue": (
 		"res://art/city/destructibles/districts/entertainment/prism_crown_revue.png"
 	),
-	&"entertainment_house_of_static": preload(
+	&"entertainment_house_of_static": (
 		"res://art/city/destructibles/districts/entertainment/house_of_static_casino_hotel.png"
 	),
-	&"military_ordnance_transload_bastion": preload(
+	&"military_ordnance_transload_bastion": (
 		"res://art/city/destructibles/districts/military/ordnance_transload_bastion.png"
 	),
-	&"military_revetment_armory_stack": preload(
+	&"military_revetment_armory_stack": (
 		"res://art/city/destructibles/districts/military/revetment_armory_stack.png"
 	),
-	&"military_aegis_signal_citadel": preload(
+	&"military_aegis_signal_citadel": (
 		"res://art/city/destructibles/districts/military/aegis_signal_citadel.png"
 	),
-	&"military_manticore_repair_gantry": preload(
+	&"military_manticore_repair_gantry": (
 		"res://art/city/destructibles/districts/military/manticore_siege_repair_gantry.png"
 	),
-	&"military_prefect_war_keep": preload(
+	&"military_prefect_war_keep": (
 		"res://art/city/destructibles/districts/military/prefect_war_keep.png"
 	),
-	&"royal_laureate_processional_gate": preload(
+	&"royal_laureate_processional_gate": (
 		"res://art/city/destructibles/districts/royal/laureate_processional_gate.png"
 	),
-	&"royal_aurelian_conservatory": preload(
+	&"royal_aurelian_conservatory": (
 		"res://art/city/destructibles/districts/royal/aurelian_menagerie_conservatory.png"
 	),
-	&"royal_tribunal_nine_seals": preload(
+	&"royal_tribunal_nine_seals": (
 		"res://art/city/destructibles/districts/royal/tribunal_of_nine_seals.png"
 	),
-	&"royal_ministry_privilege_spire": preload(
+	&"royal_ministry_privilege_spire": (
 		"res://art/city/destructibles/districts/royal/ministry_of_privilege_spire.png"
 	),
-	&"royal_palace_last_sovereign": preload(
+	&"royal_palace_last_sovereign": (
 		"res://art/city/destructibles/districts/royal/palace_of_last_sovereign.png"
 	),
 }
@@ -473,9 +490,18 @@ static func _variant(
 	var variant: StructuralBuildingVariant = StructuralBuildingVariant.new()
 	variant.variant_id = id
 	variant.display_name = name
-	variant.intact_texture = FACADE_TEXTURES.get(id, LEGACY_INTACT) as Texture2D
-	variant.damaged_texture = FACADE_TEXTURES.get(id, LEGACY_DAMAGED) as Texture2D
-	variant.rubble_texture = LEGACY_RUBBLE
+	var initial_texture: Texture2D = INITIAL_DISTRICT_TEXTURES.get(id) as Texture2D
+	if initial_texture != null:
+		variant.intact_texture = initial_texture
+		variant.damaged_texture = initial_texture
+		variant.rubble_texture = LEGACY_RUBBLE
+	else:
+		var facade_path: String = String(FACADE_TEXTURE_PATHS.get(id, ""))
+		variant.configure_texture_paths(
+			facade_path,
+			facade_path,
+			LEGACY_RUBBLE.resource_path
+		)
 	variant.display_size = size
 	variant.material_ids = PackedStringArray(materials)
 	variant.visual_tint = tint

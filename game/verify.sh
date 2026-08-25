@@ -24,10 +24,20 @@ mkdir -p \
 	  artifacts/street_volatility \
 	  artifacts/upgrades \
 	  artifacts/weapon_drones
+: > artifacts/.gdignore
 START_EPOCH="$(date +%s)"
+ENGINE_TIMEOUT_SECONDS=60
+EXPORT_TIMEOUT_SECONDS=300
+PCK_BUDGET_BYTES=$((16 * 1024 * 1024))
 
 run_engine() {
-  timeout --preserve-status --signal=TERM --kill-after=5s 60s "$@"
+	timeout --preserve-status --signal=TERM --kill-after=5s \
+		"${ENGINE_TIMEOUT_SECONDS}s" "$@"
+}
+
+run_export() {
+	timeout --preserve-status --signal=TERM --kill-after=5s \
+		"${EXPORT_TIMEOUT_SECONDS}s" "$@"
 }
 
 printf '%s\n' '[L3] import'
@@ -79,6 +89,16 @@ printf 'unit_tests=%s\n' "$UNIT_TESTS"
 
 printf '%s\n' '[L3] launch boot'
 run_engine "$GODOT" --headless --path . -s selftest/boot_smoke_scenario.gd
+
+printf '%s\n' '[L3] bounded direct launch shutdown'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+  --quit-after 120 2>&1 | tee artifacts/direct-boot.log
+if grep -Eq \
+  'ObjectDB instances were leaked|resources still in use at exit|AudioStreamPlaybackOggVorbis|Resource still in use:.*city_pressure_loop' \
+  artifacts/direct-boot.log; then
+  printf '%s\n' '[DIRECT-BOOT-FAIL] retained Ogg playback during shutdown' >&2
+  exit 1
+fi
 
 printf '%s\n' '[L4] headless injected-input scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
@@ -311,15 +331,15 @@ if [[ "$MODE" == "full" ]]; then
 	  printf '%s\n' '[WEB] cache-bypassed release export'
   rm -rf ../client/public/game
   mkdir -p ../client/public/game
-  run_engine "$GODOT" --headless --path . --export-release Web \
-    ../client/public/game/game.html
-	  test -s ../client/public/game/game.html
+	  run_export "$GODOT" --headless --quiet --path . --export-release Web \
+	    ../client/public/game/game.html
+  test -s ../client/public/game/game.html
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.wasm' -size +0c -printf '.' | wc -c)" -ge 1
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.pck' -size +0c -printf '.' | wc -c)" -ge 1
-  test "$(find ../client/public/game -maxdepth 1 -type f -name '*.js' -size +0c -printf '.' | wc -c)" -ge 1
+	  test "$(find ../client/public/game -maxdepth 1 -type f -name '*.js' -size +0c -printf '.' | wc -c)" -ge 1
 	  PCK_BYTES="$(stat -c %s ../client/public/game/game.pck)"
-	  test "$PCK_BYTES" -le 16777216
-  printf 'pck_bytes=%s\n' "$PCK_BYTES"
+	  test "$PCK_BYTES" -le "$PCK_BUDGET_BYTES"
+	  printf 'pck_bytes=%s pck_budget_bytes=%s\n' "$PCK_BYTES" "$PCK_BUDGET_BYTES"
   (
     cd ../client/public/game
     find . -maxdepth 1 -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum

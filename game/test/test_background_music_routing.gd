@@ -14,8 +14,8 @@ func test_background_music_player_is_persistent_and_routes_to_music_bus() -> voi
 	var music_stream: AudioStreamOggVorbis = player.stream as AudioStreamOggVorbis
 	assert_true(music_stream.loop)
 	assert_almost_eq(music_stream.get_length(), 28.0, 0.05)
-	assert_true(player.autoplay)
-	assert_true(player.playing)
+	assert_false(player.autoplay)
+	assert_eq(player.playing, main.background_music_output_available())
 	assert_eq(player.bus, &"Music")
 	assert_eq(player.process_mode, Node.PROCESS_MODE_ALWAYS)
 	assert_gte(AudioServer.get_bus_index(player.bus), 0)
@@ -30,11 +30,23 @@ func test_background_music_releases_stream_on_main_exit() -> void:
 	add_child_autofree(main)
 	await get_tree().process_frame
 	var player: AudioStreamPlayer = main.background_music_player
-	assert_true(player.playing)
+	assert_eq(player.playing, main.background_music_output_available())
 	assert_not_null(player.stream)
 	main._exit_tree()
 	assert_false(player.playing)
 	assert_null(player.stream)
+
+
+func test_dummy_audio_driver_does_not_start_an_ogg_decoder() -> void:
+	if AudioServer.get_driver_name() != Main.DUMMY_AUDIO_DRIVER_NAME:
+		pending("Requires Godot's Dummy audio driver")
+		return
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	assert_false(main.background_music_output_available())
+	assert_false(main.background_music_player.playing)
+	assert_not_null(main.background_music_player.stream)
 
 
 func test_upgrade_duck_controller_changes_the_players_music_bus() -> void:
