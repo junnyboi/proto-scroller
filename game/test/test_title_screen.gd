@@ -57,23 +57,23 @@ func test_launch_scene_contract() -> void:
 		if button.text.contains(L10n.t("title.begin")):
 			launch_actions += 1
 	assert_eq(launch_actions, 1, "The Command Deck must expose one launch action only.")
-	var automatic_button: Button = screen.get_node("%AutomaticButton") as Button
 	var english_button: Button = screen.get_node("%EnglishButton") as Button
 	var chinese_button: Button = screen.get_node("%ChineseButton") as Button
-	assert_eq(automatic_button.text, _expected_automatic_label())
-	assert_eq(automatic_button.tooltip_text, L10n.t("title.language_auto_tooltip"))
-	assert_true(automatic_button.button_pressed)
-	assert_false(english_button.button_pressed)
+	assert_null(screen.get_node_or_null("%AutomaticButton"))
+	assert_eq(title_label.text, "PROTOS")
+	assert_eq(
+		(screen.get_node("%InstructionLabel") as Label).text,
+		"Terrorists have taken control of the city, make them pay."
+	)
+	assert_eq(english_button.text, "EN")
+	assert_eq(chinese_button.text, "CN")
+	assert_true(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
-	assert_true(chinese_button.get_theme_font(&"font").has_char("中".unicode_at(0)))
 	assert_eq((screen.get_node("%SettingsButton") as Button).text, L10n.t("title.settings"))
 	assert_true(screen.select_language("zh-CN"))
 	assert_eq(L10n.current_locale(), "zh-CN")
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "zh-CN")
-	assert_eq(title_label.text, L10n.t("title.command_heading"))
-	assert_eq(automatic_button.text, _expected_automatic_label())
-	assert_eq(automatic_button.tooltip_text, L10n.t("title.language_auto_tooltip"))
-	assert_false(automatic_button.button_pressed)
+	assert_eq(title_label.text, "PROTOS")
 	assert_true(chinese_button.button_pressed)
 	assert_false(english_button.button_pressed)
 	assert_eq(
@@ -86,16 +86,7 @@ func test_launch_scene_contract() -> void:
 	)
 	assert_true(screen.select_language("en"))
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "en")
-	assert_false(automatic_button.button_pressed)
 	assert_true(english_button.button_pressed)
-	assert_false(chinese_button.button_pressed)
-	var detected_locale: String = L10n.automatic_locale()
-	assert_true(screen.select_automatic_language())
-	assert_eq(L10n.current_locale(), detected_locale)
-	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "")
-	assert_eq(automatic_button.text, _expected_automatic_label())
-	assert_true(automatic_button.button_pressed)
-	assert_false(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
 	_record_test_execution()
 
@@ -108,14 +99,18 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 	var run_rule: String = (screen.get_node("%RunRule") as Label).text
 	assert_eq(hook, L10n.t("title.command_hook"))
 	for required_control: String in [
-		"A / D", "Left stick", "D-PAD", "Mobile joystick", "SPACE", "A / CROSS", "SMASH"
+		"A/D", "STICK", "D-PAD", "TOUCH", "SPACE", "A / CROSS", "SHIFT", "B / CIRCLE"
 	]:
 		assert_true(controls.contains(required_control), required_control)
+	var info_panel: PanelContainer = screen.get_node("StatusRail") as PanelContainer
+	assert_true(info_panel.get_global_rect().encloses(
+		(screen.get_node("%ControlsLabel") as Label).get_global_rect()
+	))
 	assert_true(field_note.contains("Bindings can be changed"))
 	assert_true(field_note.contains("AUTO SAVE"))
 	assert_eq(
-		(screen.get_node("SemanticContract/PrimaryObjective") as Label).text,
-		"PRIMARY  Survive the city response."
+		(screen.get_node("StatusRail/InfoContent/StatusItems/Objective/Value") as Label).text,
+		"SURVIVE"
 	)
 	assert_true(
 		(screen.get_node("SemanticContract/ObjectiveOne") as Label).text.contains("earn EXP")
@@ -142,7 +137,7 @@ func test_initialize_seam_transitions_once() -> void:
 	assert_eq(status_label.text, L10n.t("title.expedition_active"))
 	assert_eq(initialize_button.text, L10n.t("title.deploying"))
 	assert_true(initialize_button.disabled)
-	assert_true((screen.get_node("%AutomaticButton") as Button).disabled)
+	assert_null(screen.get_node_or_null("%AutomaticButton"))
 	assert_true((screen.get_node("%EnglishButton") as Button).disabled)
 	assert_true((screen.get_node("%ChineseButton") as Button).disabled)
 	assert_true((screen.get_node("%SettingsButton") as Button).disabled)
@@ -310,21 +305,6 @@ func _rendered_line_height(control: Control) -> float:
 	var font: Font = control.get_theme_font(&"font")
 	var font_size: int = control.get_theme_font_size(&"font_size")
 	return font.get_height(font_size)
-
-
-func _expected_automatic_label() -> String:
-	var resolved_key: String = (
-		"title.language_resolved_zh_cn"
-		if L10n.automatic_locale() == "zh-CN"
-		else "title.language_resolved_en"
-	)
-	return L10n.t(
-		"title.language_auto_resolved",
-		{
-			"automatic": L10n.t("title.language_auto"),
-			"resolved": L10n.t(resolved_key),
-		}
-	)
 
 
 func _reset_audio_settings() -> void:

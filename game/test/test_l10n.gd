@@ -109,16 +109,20 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 			"Missing invariant control glyph: %s" % token_character
 		)
 	assert_eq((screen.get_node("HintLabel") as Label).text, "ENTER  /  A  /  TAP")
-	assert_true((screen.get_node("MoveChip/Label") as Label).text.begins_with("A / D"))
-	assert_true((screen.get_node("SmashChip/Label") as Label).text.begins_with("SPACE"))
+	assert_eq((screen.get_node("%TitleLabel") as Label).text, "PROTOS")
+	assert_eq(
+		(screen.get_node("%InstructionLabel") as Label).text,
+		"敌军已控制城市。全面报复。"
+	)
+	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
+	assert_true(controls.contains("MOVE A/D"))
+	assert_true(controls.contains("SMASH SPACE · A / CROSS"))
 	assert_eq((screen.get_node("%EnglishButton") as Button).text, "EN")
+	assert_eq((screen.get_node("%ChineseButton") as Button).text, "CN")
+	assert_null(screen.get_node_or_null("%AutomaticButton"))
 	assert_true((screen.get_node("%BriefingToggle") as Button).text.contains("[TAB]"))
 	_assert_locale_font_coverage("zh-CN", title_font)
 	_assert_locale_font_coverage("en", ThemeDB.fallback_font, [&"title.language_zh_cn"])
-	var chinese_button_font: Font = (
-		(screen.get_node("%ChineseButton") as Button).get_theme_font(&"font")
-	)
-	assert_true(chinese_button_font.has_char("中".unicode_at(0)))
 
 
 func _placeholders(value: String) -> PackedStringArray:
