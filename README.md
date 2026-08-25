@@ -24,21 +24,21 @@ The standard gate performs a direct import, GDScript lint and parse checks, the 
 
 ### Latest verified baseline
 
-The full harness last passed on **2026-08-25** against gameplay revision `23390fa322c00c47570f1ddfd05832a755629c84` using `Godot 4.7.2.stable.official.ed1daf0bf`.
+The full harness last passed on **2026-08-25** against gameplay revision `d73199701c7f131ab3db0e1c43f6933554e4ba48` using `Godot 4.7.2.stable.official.ed1daf0bf`.
 
 | Check | Result |
 |---|---|
 | Harness command | `./verify.sh --full` |
 | Process result | Exit `0`; `[VERIFY-PASS] mode=full` |
-| GUT suite | 47 scripts; 261 of 261 tests passed; 26,776 assertions |
+| GUT suite | 49 scripts; 276 of 276 tests passed; 27,911 assertions |
 | Headless scenarios | Title screen, city slice, enemy variety, street volatility, and endless terrain passed |
 | Visual scenarios | Required landscape and portrait renders passed |
-| Reference title render | SHA-256 `3e3ff3478dab903541c1b41c90017a2136c5431e16cec5b0c5f16fc25e2f58f3` |
+| Reference title render | SHA-256 `556071409fd54e959064813d0047f7f6b384708428cff7b6246f48800d9a651d` |
 | Web release export | 9 files; HTML, JavaScript, WebAssembly, and PCK present |
-| PCK size | 8,373,812 bytes, below the 8 MiB harness limit |
+| PCK size | 13,764,540 bytes, below the 16 MiB harness limit |
 | Browser gameplay smoke | `ready → attack_started → upgrade_visible → upgrade_resolved → east_walk_ok → pass` |
 | Error scan | No script, parse, browser console, request, fatal, or crash errors |
-| Duration | 537 seconds |
+| Duration | 570 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
