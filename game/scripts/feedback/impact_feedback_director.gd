@@ -3,6 +3,9 @@ extends Node
 
 const PLAYER_JAB_IMPULSE: float = 22.0
 const PLAYER_SLAM_IMPULSE: float = 26.0
+const FULL_CHARGE_HIT_STOP_MS: int = 110
+const FULL_CHARGE_CAMERA_IMPULSE: float = 38.0
+const FULL_CHARGE_HAPTIC_MS: int = 92
 
 var hit_stop: HitStopLease
 var camera_rig: CameraRig
@@ -12,6 +15,8 @@ var flush_count: int = 0
 var coalesced_count: int = 0
 var last_priority: int = 0
 var player_strike_feedback_count: int = 0
+var full_charge_hit_feedback_count: int = 0
+var last_full_charge_enemy_count: int = 0
 var last_player_attack_id: int = 0
 var last_player_strike_frame: int = -1
 var _pending: Dictionary[int, Dictionary] = {}
@@ -35,6 +40,11 @@ func setup(
 func bind_player_attacks(attacks: ContextualAttackController) -> void:
 	if attacks != null and not attacks.attack_active.is_connected(_on_player_attack_active):
 		attacks.attack_active.connect(_on_player_attack_active)
+	if (
+		attacks != null
+		and not attacks.full_charge_enemy_hit.is_connected(_on_full_charge_enemy_hit)
+	):
+		attacks.full_charge_enemy_hit.connect(_on_full_charge_enemy_hit)
 
 
 func cancel_all() -> void:
@@ -132,3 +142,23 @@ func _on_player_attack_active(spec: AttackSpec) -> void:
 			Vector2(-float(spec.facing), -0.32).normalized() * strength
 		)
 	player_strike_feedback_count += 1
+
+
+func _on_full_charge_enemy_hit(
+	spec: AttackSpec,
+	world_position: Vector2,
+	enemy_count: int
+) -> void:
+	if spec == null or not spec.is_fully_charged() or enemy_count <= 0:
+		return
+	if hit_stop != null:
+		hit_stop.request(FULL_CHARGE_HIT_STOP_MS, -(spec.attack_id + 2_000_000))
+	if camera_rig != null and robot != null:
+		var direction: Vector2 = robot.global_position.direction_to(world_position)
+		if direction.is_zero_approx():
+			direction = Vector2(float(spec.facing), 0.0)
+		camera_rig.add_impact_impulse(-direction * FULL_CHARGE_CAMERA_IMPULSE)
+	if haptics != null:
+		haptics.pulse(FULL_CHARGE_HAPTIC_MS)
+	full_charge_hit_feedback_count += 1
+	last_full_charge_enemy_count = enemy_count

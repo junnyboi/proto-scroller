@@ -2,6 +2,7 @@ class_name JabCrossImpact
 extends Node2D
 
 signal jab_cross_resolved(spec: AttackSpec, accepted_targets: int, velocity_retention: float)
+signal enemy_hit_resolved(spec: AttackSpec, enemy_count: int, world_position: Vector2)
 
 const ENEMY_LAYER: int = 1 << 2
 const HURTBOX_LAYER: int = 1 << 6
@@ -67,6 +68,8 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 	last_velocity_retention = 1.0
 	var impact_speed: float = absf(robot.velocity.x)
 	var blocked_by_steel: bool = false
+	var enemy_count: int = 0
+	var enemy_hit_position: Vector2 = robot.global_position
 	var seen_targets: Dictionary[int, bool] = {}
 	for result: Dictionary in results:
 		var collider: Node2D = result.get("collider") as Node2D
@@ -87,6 +90,10 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 		if not accepted and not rigid_hit:
 			continue
 		last_accepted_targets += 1
+		if accepted and receiver is EnemyActor2D:
+			enemy_count += 1
+			if enemy_count == 1:
+				enemy_hit_position = collider.global_position
 		last_velocity_retention = minf(
 			last_velocity_retention,
 			_retention_for_target(target)
@@ -102,6 +109,8 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 	else:
 		robot.velocity.x *= last_velocity_retention
 	jab_cross_resolved.emit(spec, last_accepted_targets, last_velocity_retention)
+	if enemy_count > 0:
+		enemy_hit_resolved.emit(spec, enemy_count, enemy_hit_position)
 	return last_accepted_targets
 
 

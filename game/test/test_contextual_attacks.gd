@@ -76,6 +76,8 @@ func test_tap_charge_releases_normal_damage_and_full_charge_caps_at_double_damag
 	assert_true(attacks.release_charge())
 	assert_almost_eq(attacks.current_spec.actor_damage, 180.0, 0.001)
 	assert_almost_eq(attacks.current_spec.structural_damage, 180.0, 0.001)
+	assert_false(attacks.current_spec.is_fully_charged())
+	assert_almost_eq(attacks.current_spec.charge_multiplier, 1.0, 0.0001)
 	attacks.cancel_attack()
 	assert_gt(attacks.begin_charge(), 0)
 	attacks._process(3.5)
@@ -90,6 +92,8 @@ func test_tap_charge_releases_normal_damage_and_full_charge_caps_at_double_damag
 	assert_almost_eq(attacks.current_spec.actor_damage, 360.0, 0.001)
 	assert_almost_eq(attacks.current_spec.structural_damage, 360.0, 0.001)
 	assert_almost_eq(attacks.current_spec.impulse_per_mass, 1020.0, 0.001)
+	assert_true(attacks.current_spec.is_fully_charged())
+	assert_almost_eq(attacks.current_spec.charge_multiplier, 2.0, 0.0001)
 	_record_test_execution()
 
 
@@ -126,6 +130,35 @@ func test_full_charge_ground_commit_emits_double_damage_with_base_impulse_and_ra
 	assert_almost_eq(float(payloads[0].structural_damage), 360.0, 0.001)
 	assert_almost_eq(float(payloads[0].impulse_per_mass), 1020.0, 0.001)
 	assert_almost_eq(float(payloads[0].radius), 320.0, 0.001)
+	_record_test_execution()
+
+
+func test_full_charge_feedback_requires_enemy_damage_and_emits_once_per_attack() -> void:
+	var city: CitySlice = await _city()
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var reports: Array[Dictionary] = []
+	attacks.full_charge_enemy_hit.connect(
+		func(spec: AttackSpec, world_position: Vector2, enemy_count: int) -> void:
+			reports.append({
+				"attack_id": spec.attack_id,
+				"position": world_position,
+				"enemy_count": enemy_count,
+			})
+	)
+	var attack_id: int = attacks.begin_charge()
+	attacks._process(ContextualAttackController.MAX_CHARGE_SECONDS)
+	assert_true(attacks.release_charge())
+	var position: Vector2 = city.robot.global_position + Vector2(120.0, -20.0)
+	assert_false(attacks.report_enemy_hit(attack_id, position, 0))
+	assert_false(attacks.report_enemy_hit(attack_id + 1, position, 1))
+	assert_eq(reports.size(), 0)
+	assert_true(attacks.report_enemy_hit(attack_id, position, 2))
+	assert_eq(reports.size(), 1)
+	assert_eq(int(reports[0].attack_id), attack_id)
+	assert_eq(reports[0].position as Vector2, position)
+	assert_eq(int(reports[0].enemy_count), 2)
+	assert_false(attacks.report_enemy_hit(attack_id, position, 1))
+	assert_eq(reports.size(), 1)
 	_record_test_execution()
 
 
