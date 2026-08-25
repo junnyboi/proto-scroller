@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "cell_pixels": {"width": 192, "height": 256},
+  "source_model": "gpt-image-2",
+  "buildings": [
+    {"id":"res_tenement_block","district":"residential","name":"Tenement Block","columns":3,"rows":4,"file":"residential/res_tenement_block.png","spawn_weight":35},
+    {"id":"res_brownstone_walkup","district":"residential","name":"Brownstone Walk-up","columns":2,"rows":3,"file":"residential/res_brownstone_walkup.png","spawn_weight":25},
+    {"id":"res_courtyard_apartments","district":"residential","name":"Courtyard Apartments","columns":4,"rows":3,"file":"residential/res_courtyard_apartments.png","spawn_weight":20},
+    {"id":"res_narrow_highrise","district":"residential","name":"Narrow High-rise","columns":2,"rows":4,"file":"residential/res_narrow_highrise.png","spawn_weight":10},
+    {"id":"res_housing_block","district":"residential","name":"Low-income Housing Block","columns":5,"rows":2,"file":"residential/res_housing_block.png","spawn_weight":10},
+
+    {"id":"biz_corporate_tower","district":"business","name":"Corporate Tower","columns":3,"rows":4,"file":"business/biz_corporate_tower.png","spawn_weight":25},
+    {"id":"biz_bank_headquarters","district":"business","name":"Bank Headquarters","columns":4,"rows":3,"file":"business/biz_bank_headquarters.png","spawn_weight":20},
+    {"id":"biz_commercial_exchange","district":"business","name":"Commercial Exchange","columns":5,"rows":2,"file":"business/biz_commercial_exchange.png","spawn_weight":15},
+    {"id":"biz_executive_highrise","district":"business","name":"Executive High-rise","columns":2,"rows":4,"file":"business/biz_executive_highrise.png","spawn_weight":25},
+    {"id":"biz_syndicate_office","district":"business","name":"Syndicate Office","columns":3,"rows":2,"file":"business/biz_syndicate_office.png","spawn_weight":15},
+
+    {"id":"night_underground_club","district":"nightlife","name":"Underground Club","columns":4,"rows":3,"file":"nightlife/night_underground_club.png","spawn_weight":15},
+    {"id":"night_dive_bar_tower","district":"nightlife","name":"Dive Bar Tower","columns":2,"rows":4,"file":"nightlife/night_dive_bar_tower.png","spawn_weight":30},
+    {"id":"night_casino_warehouse","district":"nightlife","name":"Casino Warehouse","columns":5,"rows":3,"file":"nightlife/night_casino_warehouse.png","spawn_weight":10},
+    {"id":"night_vip_lounge","district":"nightlife","name":"VIP Lounge","columns":3,"rows":4,"file":"nightlife/night_vip_lounge.png","spawn_weight":20},
+    {"id":"night_arcade_hall","district":"nightlife","name":"Arcade Hall","columns":3,"rows":2,"file":"nightlife/night_arcade_hall.png","spawn_weight":25},
+
+    {"id":"shop_boutique_arcade","district":"shopping","name":"Boutique Arcade","columns":3,"rows":2,"file":"shopping/shop_boutique_arcade.png","spawn_weight":25},
+    {"id":"shop_department_store","district":"shopping","name":"Department Store","columns":5,"rows":4,"file":"shopping/shop_department_store.png","spawn_weight":10},
+    {"id":"shop_market_hall","district":"shopping","name":"Market Hall","columns":4,"rows":3,"file":"shopping/shop_market_hall.png","spawn_weight":20},
+    {"id":"shop_retail_tower","district":"shopping","name":"Retail Tower","columns":2,"rows":4,"file":"shopping/shop_retail_tower.png","spawn_weight":20},
+    {"id":"shop_corner_plaza","district":"shopping","name":"Corner Plaza","columns":3,"rows":3,"file":"shopping/shop_corner_plaza.png","spawn_weight":25},
+
+    {"id":"gov_ministry_records","district":"government","name":"Ministry of Records","columns":4,"rows":3,"file":"government/gov_ministry_records.png","spawn_weight":30},
+    {"id":"gov_municipal_courthouse","district":"government","name":"Municipal Courthouse","columns":5,"rows":4,"file":"government/gov_municipal_courthouse.png","spawn_weight":15},
+    {"id":"gov_tax_bureau","district":"government","name":"Bureau of Taxation","columns":3,"rows":4,"file":"government/gov_tax_bureau.png","spawn_weight":20},
+    {"id":"gov_sector_precinct","district":"government","name":"Sector Precinct","columns":4,"rows":2,"file":"government/gov_sector_precinct.png","spawn_weight":25},
+    {"id":"gov_archive_vault","district":"government","name":"Archive Vault","columns":2,"rows":3,"file":"government/gov_archive_vault.png","spawn_weight":10},
+
+    {"id":"mil_command_bunker","district":"military","name":"Command Bunker","columns":5,"rows":2,"file":"military/mil_command_bunker.png","spawn_weight":10},
+    {"id":"mil_munitions_depot","district":"military","name":"Munitions Depot","columns":4,"rows":2,"file":"military/mil_munitions_depot.png","spawn_weight":25},
+    {"id":"mil_comms_tower_base","district":"military","name":"Communications Tower Base","columns":2,"rows":4,"file":"military/mil_comms_tower_base.png","spawn_weight":20},
+    {"id":"mil_barracks_block","district":"military","name":"Barracks Block","columns":3,"rows":3,"file":"military/mil_barracks_block.png","spawn_weight":30},
+    {"id":"mil_vehicle_depot","district":"military","name":"Vehicle Depot","columns":4,"rows":3,"file":"military/mil_vehicle_depot.png","spawn_weight":15}
+  ]
+}

@@ -1,0 +1,7 @@
+# District Building Asset Provenance
+
+All thirty district building sprites and the shared visual anchor in this directory were generated specifically for **Proto Scroller** with **GPT Image 2** on 2026-08-25. The existing project-owned `building_intact.png` asset supplied the initial style reference. A generated mixed-use anchor then served as the common reference for every residential, business, nightlife, shopping, government, and military building to maintain camera, material, lighting, and pixel-density consistency.
+
+The generated sprites were deterministically post-processed with the repository tools under `tools/` to remove temporary key-color artifacts, preserve true alpha, trim unused transparent space, resize with Lanczos filtering, and bottom-align each subject on a manifest-defined structural canvas. Runtime canvases use **192×256 pixels per structural cell** and dimensions matching each archetype’s declared column and row footprint. This source-cell aspect ratio closely matches the existing 166.7×222.5 world destruction cells.
+
+No external logos, trademarks, readable signs, people, vehicles, sky, street, or third-party visual assets were intentionally incorporated. Raw automatic generation duplicates were removed; the source-controlled PNG files are the final standalone runtime candidates. The JSON manifest is the canonical mapping between asset ID, district, footprint, filename, and procedural spawn weight.
