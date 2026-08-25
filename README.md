@@ -24,21 +24,21 @@ The standard gate performs a direct import, strict GDScript lint and parse-log c
 
 ### Latest verified baseline
 
-The full harness last passed on **2026-08-25** against the integrated title-story, robot-clearance, district-mission, and synchronized punch-audio candidate using `Godot 4.7.2.stable.official.ed1daf0bf`.
+The full harness last passed on **2026-08-25** against revision `df7ca4b4a096f75f3504ce76750307ab8cc94e98` using `Godot 4.7.2.stable.official.ed1daf0bf`.
 
 | Check | Result |
 |---|---|
 | Harness command | `./verify.sh --full` |
 | Process result | Exit `0`; `[VERIFY-PASS] mode=full` |
-| GUT suite | 50 scripts; 296 of 296 tests passed; 28,673 assertions |
+| GUT suite | 50 scripts; 301 of 301 tests passed; 28,792 assertions |
 | Headless scenarios | Title screen, city slice, enemy variety, street volatility, and endless terrain passed |
 | Visual scenarios | Required landscape and portrait renders passed |
-| Reference title render | SHA-256 `050fe68a57a1beeaa61182d3e49061899e3315bfca33bc51d0e61ad264a3417d` |
+| Reference title render | SHA-256 `5dc39ecc4fe6c02131797bf49036bb49fb878793d65dca012fd0c89c1dce56ae` |
 | Web release export | 9 files; HTML, JavaScript, WebAssembly, and PCK present |
-| PCK size | 13,813,196 bytes, below the 16 MiB harness limit |
+| PCK size | 14,095,736 bytes, below the 16 MiB harness limit |
 | Browser gameplay smoke | Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass`; the exported punch cue reported 1.17 seconds, ground slam and punch reported the exact 25-percent-reduced 8.54365 dB playback level, and all audited SFX passed at progression distance with zero drops |
 | Error scan | No script, parse, browser console, request, fatal, or crash errors |
-| Duration | 615 seconds |
+| Duration | 697 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
