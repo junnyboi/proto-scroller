@@ -403,7 +403,11 @@ if [[ "$MODE" == "full" ]]; then
   mkdir -p ../client/public/game
 	  run_export "$GODOT" --headless --quiet --path . --export-release Web \
 	    ../client/public/game/game.html
-  test -s ../client/public/game/game.html
+	  (
+	    cd ..
+	    pnpm patch:web-audio
+	  )
+	  test -s ../client/public/game/game.html
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.wasm' -size +0c -printf '.' | wc -c)" -ge 1
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.pck' -size +0c -printf '.' | wc -c)" -ge 1
 	  test "$(find ../client/public/game -maxdepth 1 -type f -name '*.js' -size +0c -printf '.' | wc -c)" -ge 1
@@ -423,12 +427,16 @@ if [[ "$MODE" == "full" ]]; then
 	  )
 	  jq -e '
 	    .status == "PASS"
-		    and (.phases | map(.status)) == [
-		      "ready",
-		      "charge_started",
-		      "charge_progress",
-		      "charge_released",
-		      "attack_started",
+	    and (.audioContextStates | index("running")) != null
+	    and .phases[0].details.background_music_playing == true
+	    and (.workletModules | length) == 2
+	    and (.workletModules | all(.state == "fulfilled" and (.url | contains("/game/game.audio"))))
+	    and (.phases | map(.status)) == [
+	      "ready",
+	      "charge_started",
+	      "charge_progress",
+	      "charge_released",
+	      "attack_started",
 	      "upgrade_visible",
 	      "upgrade_resolved",
 	      "east_walk_ok",
