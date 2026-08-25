@@ -48,13 +48,13 @@ func test_fast_unarmed_debris_damages_ground_enemy_once_via_physics() -> void:
 	assert_eq(city.impact_feedback_pool.debris_spark_play_count, 1)
 
 
-func test_debris_thud_is_pcm_and_scales_with_weight_inside_fixed_pool() -> void:
+func test_debris_thud_is_48k_qoa_and_scales_with_weight_inside_fixed_pool() -> void:
 	var stream: AudioStreamWAV = (
 		ImpactFeedbackPool.DEBRIS_ENEMY_THUD_SFX as AudioStreamWAV
 	)
 	assert_not_null(stream)
 	assert_eq(stream.mix_rate, 48000)
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_eq(stream.format, AudioStreamWAV.FORMAT_QOA)
 	assert_false(stream.stereo)
 	assert_between(stream.get_length(), 0.75, 0.90)
 	var root: Node2D = Node2D.new()

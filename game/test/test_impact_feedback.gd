@@ -112,17 +112,6 @@ func test_pool_stays_at_eight_and_tracks_drop_and_recycle() -> void:
 	assert_eq(pool.last_preempted_priority, AudioVoicePriority.DEFEAT)
 
 
-func test_debris_enemy_thud_is_48k_mono_qoa_for_web_budget() -> void:
-	var stream: AudioStreamWAV = (
-		ImpactFeedbackPool.DEBRIS_ENEMY_THUD_SFX as AudioStreamWAV
-	)
-	assert_not_null(stream)
-	assert_eq(stream.mix_rate, 48000)
-	assert_eq(stream.format, AudioStreamWAV.FORMAT_QOA)
-	assert_false(stream.stereo)
-	assert_between(stream.get_length(), 0.75, 0.90)
-
-
 func test_accepted_events_coalesce_to_one_strongest_feedback_transaction() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	city.mobile_detection_override = 1
