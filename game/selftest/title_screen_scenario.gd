@@ -206,6 +206,8 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
 	var language_selector: HBoxContainer = screen.get_node("%LanguageSelector") as HBoxContainer
 	var status_rail: PanelContainer = screen.get_node("StatusRail") as PanelContainer
+	var controls_label: Label = screen.get_node("%ControlsLabel") as Label
+	var settings_button: Button = screen.get_node("%SettingsButton") as Button
 	var button_rect: Rect2 = button.get_global_rect()
 	var briefing_toggle_rect: Rect2 = briefing_toggle.get_global_rect()
 	var status_rect: Rect2 = status_rail.get_global_rect()
@@ -221,9 +223,25 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 		"button=%s language=%s" % [button_rect, language_selector.get_global_rect()]
 	)
 	_check(
+		"status_below_language",
+		status_rect.position.y >= language_selector.get_global_rect().end.y,
+		"language=%s status=%s" % [language_selector.get_global_rect(), status_rect]
+	)
+	_check(
 		"status_rail_inside_viewport",
 		viewport_rect.encloses(status_rect),
 		"viewport=%s status=%s" % [viewport_rect, status_rect]
+	)
+	_check(
+		"controls_inside_status_rail",
+		status_rect.encloses(controls_label.get_global_rect()),
+		"status=%s controls=%s" % [status_rect, controls_label.get_global_rect()]
+	)
+	_check(
+		"settings_flush_top_right",
+		settings_button.position.y <= 20.0
+		and float(root.size.x) - settings_button.get_rect().end.x <= 20.0,
+		"settings=%s viewport=%s" % [settings_button.get_rect(), viewport_rect]
 	)
 	var background: TextureRect = screen.get_node("%BackgroundArt") as TextureRect
 	_check(
@@ -249,7 +267,7 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 	_check(
 		"tutorial_present",
 			controls == L10n.t(
-				"title.controls_body",
+				"title.controls_compact",
 				InputBindingSettings.display_placeholders()
 			)
 			and field_note == L10n.t(
@@ -276,58 +294,45 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 func _check_language_selector(screen: TitleScreen) -> void:
 	var initial_locale: String = L10n.current_locale()
 	var alternate_locale: String = "en" if initial_locale == "zh-CN" else "zh-CN"
-	var automatic_button: Button = screen.get_node("%AutomaticButton") as Button
+	var english_button: Button = screen.get_node("%EnglishButton") as Button
+	var chinese_button: Button = screen.get_node("%ChineseButton") as Button
 	_check(
-		"automatic_mode_shows_resolved_locale",
-		automatic_button.button_pressed
-		and automatic_button.text == _expected_automatic_label(),
-		"pressed=%s text=%s" % [automatic_button.button_pressed, automatic_button.text]
+		"language_selector_has_only_en_cn",
+		screen.get_node_or_null("%AutomaticButton") == null
+		and english_button.text == "EN"
+		and chinese_button.text == "CN",
+		"en=%s cn=%s" % [english_button.text, chinese_button.text]
 	)
 	_check(
-		"automatic_mode_explains_detection_source",
-		automatic_button.tooltip_text == L10n.t("title.language_auto_tooltip"),
-		"tooltip=%s" % [automatic_button.tooltip_text]
+		"resolved_language_is_highlighted",
+		(english_button.button_pressed and initial_locale == "en")
+		or (chinese_button.button_pressed and initial_locale == "zh-CN"),
+		"locale=%s en=%s cn=%s"
+		% [initial_locale, english_button.button_pressed, chinese_button.button_pressed]
 	)
 	var switched: bool = screen.select_language(alternate_locale)
 	_check(
 		"language_switches_live",
-		switched and L10n.current_locale() == alternate_locale,
-		"locale=%s" % [L10n.current_locale()]
+		switched
+		and L10n.current_locale() == alternate_locale
+		and english_button.button_pressed == (alternate_locale == "en")
+		and chinese_button.button_pressed == (alternate_locale == "zh-CN"),
+		"locale=%s en=%s cn=%s"
+		% [L10n.current_locale(), english_button.button_pressed, chinese_button.button_pressed]
 	)
 	_check(
 		"language_preference_persists",
 		L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH) == alternate_locale,
 		"persisted=%s" % [L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH)]
 	)
-	var restored: bool = screen.select_automatic_language()
+	var restored: bool = screen.select_language(initial_locale)
 	_check(
-		"automatic_mode_restores_detected_locale",
+		"initial_language_restores_explicitly",
 		restored
 		and L10n.current_locale() == initial_locale
-		and L10n.uses_automatic_locale(LANGUAGE_PREFERENCE_PATH)
-		and automatic_button.button_pressed
-		and automatic_button.text == _expected_automatic_label(),
-		"locale=%s automatic=%s text=%s"
-		% [
-			L10n.current_locale(),
-			L10n.uses_automatic_locale(LANGUAGE_PREFERENCE_PATH),
-			automatic_button.text,
-		]
-	)
-
-
-func _expected_automatic_label() -> String:
-	var resolved_key: String = (
-		"title.language_resolved_zh_cn"
-		if L10n.automatic_locale() == "zh-CN"
-		else "title.language_resolved_en"
-	)
-	return L10n.t(
-		"title.language_auto_resolved",
-		{
-			"automatic": L10n.t("title.language_auto"),
-			"resolved": L10n.t(resolved_key),
-		}
+		and L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH) == initial_locale,
+		"locale=%s persisted=%s"
+		% [L10n.current_locale(), L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH)]
 	)
 
 
