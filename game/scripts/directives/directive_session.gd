@@ -236,12 +236,14 @@ func _complete_active() -> void:
 
 func _fail_active() -> void:
 	var profile: DirectiveProfile = active_profile
-	var penalty: int = roundi(float(pending_score) * profile.failure_penalty_fraction)
+	var run_score: RunScore = dependencies.rampage_session.run_score
+	var penalty: int = roundi(float(run_score.score) * profile.failure_penalty_fraction)
+	if run_score.score > 0 and profile.failure_penalty_fraction > 0.0:
+		penalty = maxi(penalty, 1)
 	failure_count += 1
 	active_profile = null
 	remaining = 0.0
 	pending_score = 0
-	if penalty > 0:
-		dependencies.rampage_session.run_score.deduct(penalty)
+	penalty = run_score.deduct(penalty)
 	failed.emit(profile, penalty)
 	bank_changed.emit(0)

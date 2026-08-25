@@ -153,16 +153,16 @@ func _on_directive_progress(current: int, target: int) -> void:
 	)
 
 
-func _on_directive_completed(profile: DirectiveProfile, _banked_score: int) -> void:
+func _on_directive_completed(profile: DirectiveProfile, banked_score: int) -> void:
 	city.gameplay_hud.show_directive_result(L10n.t("directive.complete", {
 		"name": L10n.t(profile.display_name),
-	}), true)
+	}), true, banked_score)
 
 
-func _on_directive_failed(profile: DirectiveProfile, _penalty: int) -> void:
+func _on_directive_failed(profile: DirectiveProfile, penalty: int) -> void:
 	city.gameplay_hud.show_directive_result(L10n.t("directive.failed", {
 		"name": L10n.t(profile.display_name),
-	}), false)
+	}), false, penalty)
 
 
 func _on_district_completed() -> void:

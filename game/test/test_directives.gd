@@ -75,7 +75,12 @@ func test_skybreaker_redirects_at_most_three_pooled_bodies() -> void:
 	assert_eq(redirected, DirectiveSession.SKYBREAKER_BODY_CAP)
 
 
-func test_pending_score_bank_loses_only_twenty_percent_on_failure() -> void:
+func test_failure_deducts_twenty_percent_of_secured_run_score() -> void:
+	var penalties: Array[int] = []
+	session.failed.connect(
+		func(_profile: DirectiveProfile, penalty: int) -> void:
+			penalties.append(penalty)
+	)
 	assert_true(session.select(BREACH))
 	assert_true(city.rampage_session.publish(GameplayEvent.new(
 		&"directive_score",
@@ -88,9 +93,29 @@ func test_pending_score_bank_loses_only_twenty_percent_on_failure() -> void:
 	)))
 	assert_eq(session.pending_score, 25)
 	session._process(BREACH.duration_seconds)
-	assert_eq(city.score, 95)
+	assert_eq(city.score, 80)
+	assert_eq(penalties, [20])
 	assert_eq(session.failure_count, 1)
 	assert_false(session.is_active())
+	assert_eq(city.gameplay_hud.directive_card.bank_label.text, "SCORE -20")
+
+
+func test_failure_penalty_is_nonzero_when_directive_bank_is_empty() -> void:
+	assert_true(city.rampage_session.publish(GameplayEvent.new(
+		&"secured_score_before_directive",
+		402,
+		GameplayEvent.Kind.PROP_DESTROYED,
+		GameplayEvent.PROP_BREAK,
+		500,
+		6.0,
+		true
+	)))
+	assert_eq(city.score, 500)
+	assert_true(session.select(BREACH))
+	assert_eq(session.pending_score, 0)
+	session._process(BREACH.duration_seconds)
+	assert_eq(city.score, 400)
+	assert_eq(city.gameplay_hud.directive_card.bank_label.text, "SCORE -100")
 
 
 func test_breach_completes_after_three_accepted_cells() -> void:
@@ -115,6 +140,19 @@ func test_directive_card_is_noninteractive_and_above_mobile_smash() -> void:
 	assert_eq(card.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	assert_false(card.get_global_rect().intersects(city.mobile_controls.smash_bounds()))
 	assert_not_null(card.icon.texture)
+	assert_eq(card.size, Vector2(392.0, 104.0))
+	assert_lte(card.title_label.position.x + card.title_label.size.x, card.size.x)
+	assert_lte(card.detail_label.position.x + card.detail_label.size.x, card.size.x)
+	assert_lte(card.bank_label.position.x + card.bank_label.size.x, card.size.x)
+
+
+func test_directive_result_card_dismisses_after_bounded_hold() -> void:
+	city.gameplay_hud.show_directive_result("DEMOLITION BREACH FAILED", false, 100)
+	var card: DirectiveCard = city.gameplay_hud.directive_card
+	assert_true(card.visible)
+	assert_eq(card.bank_label.text, "SCORE -100")
+	card._process(DirectiveCard.RESULT_DISPLAY_SECONDS + 0.01)
+	assert_false(card.visible)
 
 
 func test_choice_overlay_pauses_runtime_and_selects_exactly_once() -> void:

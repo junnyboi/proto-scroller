@@ -251,8 +251,12 @@ func set_boss_status(state: StringName, current: float = 0.0, maximum: float = 1
 	})
 
 
-func show_directive_result(text: String, success: bool) -> void:
-	directive_card.show_result(text, success)
+func show_directive_result(
+	text: String,
+	success: bool,
+	score_delta: int = 0
+) -> void:
+	directive_card.show_result(text, success, score_delta)
 
 
 func show_game_over(summary: RunSummarySnapshot = null) -> void:
@@ -475,8 +479,8 @@ func _build_siege_progress() -> void:
 func _build_directive_card() -> void:
 	directive_card = DirectiveCard.new()
 	directive_card.name = "DirectiveCard"
-	directive_card.position = Vector2(948.0, 426.0)
-	directive_card.size = Vector2(292.0, 104.0)
+	directive_card.position = Vector2(848.0, 426.0)
+	directive_card.size = Vector2(392.0, 104.0)
 	add_child(directive_card)
 
 
@@ -645,7 +649,7 @@ func _apply_landscape_layout() -> void:
 	siege_progress.size = Vector2(500.0, 32.0)
 	siege_progress.set_compact(false)
 	siege_progress.apply_width(500.0)
-	directive_card.position = Vector2(948.0, 426.0)
+	directive_card.position = Vector2(848.0, 426.0)
 	boss_label.position = Vector2(400.0, 146.0)
 	boss_label.size = Vector2(480.0, 38.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
