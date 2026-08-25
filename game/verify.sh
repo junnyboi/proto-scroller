@@ -83,6 +83,15 @@ DASH_WARP_DURATION="$(
 awk -v duration="$DASH_WARP_DURATION" 'BEGIN {
 	exit !(duration >= 1.0 && duration <= 3.0)
 }'
+PUNCH_DURATION="$(
+	ffprobe -v error -show_entries format=duration -of csv=p=0 \
+		audio/sfx/robot/double_punch_impact.wav
+)"
+awk -v duration="$PUNCH_DURATION" 'BEGIN {
+	exit !(duration >= 1.17 && duration <= 1.19)
+}'
+test "$(sha256sum audio/sfx/robot/double_punch_impact.wav | cut -d' ' -f1)" = \
+	"ac4dc961a2828c14c58f856f58a9cef817391d02cd35bb858c5315c22bab0793"
 PARSE_LOG="artifacts/parse-lint.log"
 : > "$PARSE_LOG"
 while IFS= read -r -d '' script; do

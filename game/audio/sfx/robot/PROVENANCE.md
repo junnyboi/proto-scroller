@@ -10,7 +10,7 @@ The shipped robot cues were extracted from approved generated-video audio carrie
 
 All outputs preserve their carrier's original **48 kHz** rate and ship as mono **PCM16 WAV**. Deterministic post-processing uses stereo-to-mono summing, filtering and emphasis matched to each cue, compression, short edge fades, and peak limiting. The current dash cue uses a Lyria-generated source inside the required GPT Image 2 carrier pipeline; no procedural oscillator synthesis or image-generated audio ships.
 
-The runtime owns exactly four prewarmed positional voices. Walk servos fire at frames **2** and **15**, foot contacts at frames **5** and **18**, attack windup at frame **0**, piston impact at the authored gameplay commit frame **11**, and the warp-drive cue fires synchronously from `dodge_started`. Alternate pitch and velocity-aware gain provide variation without random timing or additional voices.
+The runtime owns exactly four prewarmed positional voices. Walk servos fire at frames **2** and **15**, foot contacts at frames **5** and **18**, attack windup at frame **0**, and the ground-slam impact fires at the authored gameplay commit frame **11**. The double-punch composite begins at frame **11** and contains a second impact exactly **250 ms** later for the opposite fist's frame-**14** extension. Both ground-slam and double-punch playback apply an exact **0.75 linear gain** (`−2.4987747322 dB`) after their existing impact gain, reducing perceived output by 25 percent without rewriting either approved source master. The warp-drive cue fires synchronously from `dodge_started`. Alternate pitch and velocity-aware gain provide variation without random timing or additional voices.
 
 ## Warp-drive dash cue
 

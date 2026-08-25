@@ -398,6 +398,22 @@ function assertPhaseContract(phases) {
     }
   }
   if (
+    postUpgradeSfx.details.punch.length_seconds < 1.16 ||
+    postUpgradeSfx.details.punch.length_seconds > 1.18
+  ) {
+    throw new Error(
+      `synchronized punch cue length invalid: ${JSON.stringify(postUpgradeSfx.details.punch)}`
+    );
+  }
+  for (const cue of ["ground", "punch"]) {
+    const volumeDb = postUpgradeSfx.details[cue].volume_db;
+    if (Math.abs(volumeDb - 8.5436503622) > 0.01) {
+      throw new Error(
+        `post-upgrade ${cue} SFX volume invalid: ${JSON.stringify(postUpgradeSfx.details[cue])}`
+      );
+    }
+  }
+  if (
     postUpgradeSfx.details.upgrade_confirm_count < 1 ||
     postUpgradeSfx.details.audio_drop_count !== 0
   ) {

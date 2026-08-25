@@ -382,9 +382,28 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_RECHARGED_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX)
+	assert_eq(
+		RobotAnimationPresenter.PUNCH_CONTACT_FRAMES,
+		[RobotAnimationPresenter.ATTACK_EVENT_FRAME, 14]
+	)
+	assert_almost_eq(
+		RobotAnimationPresenter.PUNCH_CONTACT_INTERVAL_SECONDS,
+		0.25,
+		0.0001
+	)
+	assert_almost_eq(
+		RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX.get_length(),
+		1.17,
+		0.01
+	)
 	assert_almost_eq(
 		db_to_linear(RobotAnimationPresenter.ATTACK_IMPACT_GAIN_DB),
 		3.0,
+		0.0001
+	)
+	assert_almost_eq(
+		db_to_linear(RobotAnimationPresenter.ATTACK_IMPACT_REDUCTION_DB),
+		0.75,
 		0.0001
 	)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
