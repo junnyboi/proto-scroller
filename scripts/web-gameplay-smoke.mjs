@@ -76,7 +76,8 @@ try {
     args: [
       "--no-sandbox",
       "--disable-dev-shm-usage",
-      "--use-angle=swiftshader",
+      "--disable-gpu-compositing",
+      "--use-angle=swiftshader-webgl",
     ],
   });
   const context = await browser.newContext({
