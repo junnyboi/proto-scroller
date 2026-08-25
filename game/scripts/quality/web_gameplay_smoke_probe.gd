@@ -25,13 +25,15 @@ func setup(p_city: Node) -> void:
 
 func _run() -> void:
 	_prepare_environment()
-	var main: Main = city.get_parent() as Main
+	var main: Node = city.get_parent()
+	var background_music_player: AudioStreamPlayer = null
+	if main != null:
+		background_music_player = main.get("background_music_player") as AudioStreamPlayer
 	_publish(&"ready", {
 		"animation": String(sprite.animation),
 		"background_music_playing": (
-			main != null
-			and main.background_music_player != null
-			and main.background_music_player.playing
+			background_music_player != null
+			and background_music_player.playing
 		),
 		"facing": robot.facing,
 	})
