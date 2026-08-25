@@ -56,6 +56,35 @@ func test_blueprint_selection_is_replayable_and_order_independent() -> void:
 		assert_eq(replay.building_variant_id, replay.building_variant.variant_id)
 
 
+func test_each_district_guarantees_its_complete_five_facade_roster() -> void:
+	for run_seed: int in [0, 731, 917, 4401]:
+		for district: CityDistrictProfile in CityDistrictCatalog.districts():
+			var selected_ids: Dictionary[StringName, bool] = {}
+			var selected_paths: Dictionary[String, bool] = {}
+			for local_index: int in range(CityDistrictCatalog.VARIANTS_PER_DISTRICT):
+				var logical_index: int = district.start_chunk + local_index
+				var variant: StructuralBuildingVariant = (
+					CityDistrictCatalog.variant_for_chunk(run_seed, logical_index)
+				)
+				assert_true(district.building_variants.has(variant))
+				selected_ids[variant.variant_id] = true
+				selected_paths[variant.intact_texture.resource_path] = true
+			assert_eq(
+				selected_ids.size(),
+				CityDistrictCatalog.VARIANTS_PER_DISTRICT,
+				"seed=%d district=%s" % [run_seed, district.district_id]
+			)
+			assert_eq(
+				selected_paths.size(),
+				CityDistrictCatalog.VARIANTS_PER_DISTRICT,
+				"seed=%d district=%s" % [run_seed, district.district_id]
+			)
+	assert_eq(
+		CityDistrictCatalog.variant_for_chunk(917, 0).variant_id,
+		&"business_mercy_exchange_annex"
+	)
+
+
 func test_all_buildings_are_directly_addressable() -> void:
 	var addressed: Dictionary[StringName, bool] = {}
 	for district: CityDistrictProfile in CityDistrictCatalog.districts():
