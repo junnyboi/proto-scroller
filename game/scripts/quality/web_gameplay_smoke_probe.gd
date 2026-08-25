@@ -25,8 +25,14 @@ func setup(p_city: Node) -> void:
 
 func _run() -> void:
 	_prepare_environment()
+	var main: Main = city.get_parent() as Main
 	_publish(&"ready", {
 		"animation": String(sprite.animation),
+		"background_music_playing": (
+			main != null
+			and main.background_music_player != null
+			and main.background_music_player.playing
+		),
 		"facing": robot.facing,
 	})
 	if not await _run_charged_input():

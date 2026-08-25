@@ -5,8 +5,8 @@
   "title.heading": "原型卷轴战\n战地简报",
   "title.story": "04:17，城市防御网突然静默。\n你的原型机是唯一仍在行动的单位。",
   "title.controls_heading": "驾驶员操作",
-  "title.controls_body": "移动   {move_left} / {move_right}   •   摇杆 / {pad_left} + {pad_right}   •   移动端摇杆\n重击强化  按住 {smash}、{pad_smash} 或移动端“重击”，释放时发动\n闪避  双击 {move_left} / {move_right}   •   连拨两次。",
-  "title.controls_compact": "操作   移动 {move_left}/{move_right}  ·  摇杆 / D-PAD / 触控\n强化   按住 {smash} / {pad_smash}  ·  释放时发动\n闪避   双击 {move_left} / {move_right}  ·  连拨两次",
+	"title.controls_body": "移动   {move_left} / {move_right}   •   摇杆 / {pad_left} + {pad_right}   •   移动端摇杆\n重击强化  按住 {smash}、{pad_smash} 或移动端“重击”，释放时发动\n冲刺  {dodge}   •   {pad_dodge}   •   移动端“冲刺”   •   双击 {move_left} / {move_right} 或连拨两次。",
+	"title.controls_compact": "操作   移动 {move_left}/{move_right}  ·  摇杆 / D-PAD / 触控\n强化   按住 {smash} / {pad_smash}  ·  释放时发动\n冲刺   {dodge} / {pad_dodge}  ·  双击 {move_left} / {move_right}",
   "title.field_note": "锁定目标后武器将自动开火。\nSETTINGS  /  AUTO SAVE",
   "title.begin": "开始远征",
   "title.input_hint": "ENTER  /  A  /  TAP",
@@ -240,5 +240,6 @@
   "weapon.flamethrower": "FLM",
   "weapon.entry": "{label} {rank}",
   "weapon.separator": "  ·  ",
-  "mobile.smash": "重击"
+  "mobile.smash": "重击",
+  "mobile.dash": "冲刺"
 }

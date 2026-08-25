@@ -107,8 +107,10 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 		"SPACE",
 		"A / CROSS",
 		"RELEASE TO STRIKE",
+		"DASH",
+		"SHIFT",
+		"B / CIRCLE",
 		"DOUBLE-TAP",
-		"FLICK TWICE",
 	]:
 		assert_true(controls.contains(required_control), required_control)
 	var info_panel: PanelContainer = screen.get_node("StatusRail") as PanelContainer

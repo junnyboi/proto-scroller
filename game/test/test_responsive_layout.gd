@@ -131,9 +131,20 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 	assert_true(_inside_viewport(city.gameplay_hud.experience_track, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.directive_card, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.mobile_controls.smash_button, PORTRAIT_SIZE))
+	assert_true(_inside_viewport(city.mobile_controls.dash_button, PORTRAIT_SIZE))
+	assert_false(
+		city.mobile_controls.dash_bounds().intersects(
+			city.mobile_controls.smash_bounds()
+		)
+	)
 	assert_false(
 		city.gameplay_hud.directive_card.get_global_rect().intersects(
 			city.mobile_controls.smash_bounds()
+		)
+	)
+	assert_false(
+		city.gameplay_hud.directive_card.get_global_rect().intersects(
+			city.mobile_controls.dash_bounds()
 		)
 	)
 	city.encounter_runtime.release_all()
@@ -177,18 +188,23 @@ func test_resize_preserves_touch_ownership_and_runtime_node_count() -> void:
 	controls.handle_touch_input(_screen_touch(3, Vector2(220.0, 520.0), true))
 	var smash_position: Vector2 = controls.smash_bounds().get_center()
 	controls.handle_touch_input(_screen_touch(8, smash_position, true))
+	var dash_position: Vector2 = controls.dash_bounds().get_center()
+	controls.handle_touch_input(_screen_touch(9, dash_position, true))
 	var node_count: int = RuntimeBudget.snapshot(city).node_count
 	_set_viewport(PORTRAIT_SIZE)
 	await get_tree().process_frame
 	assert_eq(controls.joystick_touch_index(), 3)
 	assert_eq(controls.smash_touch_index(), 8)
+	assert_eq(controls.dash_touch_index(), 9)
 	assert_true(controls.joystick_active)
 	assert_eq(RuntimeBudget.snapshot(city).node_count, node_count)
 	_set_viewport(LANDSCAPE_SIZE)
 	await get_tree().process_frame
 	assert_eq(controls.joystick_touch_index(), 3)
 	assert_eq(controls.smash_touch_index(), 8)
+	assert_eq(controls.dash_touch_index(), 9)
 	assert_eq(RuntimeBudget.snapshot(city).node_count, node_count)
+	controls.handle_touch_input(_screen_touch(9, controls.dash_bounds().get_center(), false))
 	controls.handle_touch_input(_screen_touch(8, controls.smash_bounds().get_center(), false))
 	controls.handle_touch_input(_screen_touch(3, Vector2(220.0, 520.0), false))
 

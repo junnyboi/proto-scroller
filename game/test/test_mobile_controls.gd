@@ -76,6 +76,54 @@ func test_disabling_mobile_controls_does_not_release_a_held_smash() -> void:
 	_record_test_execution()
 
 
+func test_portrait_dash_button_stacks_above_smash_and_uses_joystick_direction() -> void:
+	get_tree().root.size = Vector2i(720, 1280)
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	city.mobile_detection_override = 1
+	add_child_autofree(city)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	var smash_rect: Rect2 = city.mobile_controls.smash_bounds()
+	var dash_rect: Rect2 = city.mobile_controls.dash_bounds()
+	assert_gt(dash_rect.position.x, 500.0)
+	assert_lt(dash_rect.end.y, smash_rect.position.y)
+	assert_lt(dash_rect.size.x, smash_rect.size.x)
+	assert_lt(dash_rect.size.y, smash_rect.size.y)
+	assert_almost_eq(dash_rect.get_center().x, smash_rect.get_center().x, 0.01)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(40, Vector2(180.0, 1040.0), true)
+	)
+	city.mobile_controls.handle_touch_input(
+		_screen_drag(40, Vector2(85.0, 1040.0))
+	)
+	for response_step: int in range(5):
+		city.mobile_controls.process_controls(1.0 / 60.0)
+	assert_lt(city.mobile_controls.movement_axis(), -0.8)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(41, dash_rect.get_center(), true)
+	)
+	assert_eq(city.mobile_controls.dash_press_count, 1)
+	assert_eq(city.mobile_controls.dash_touch_index(), 41)
+	assert_eq(city.mobile_controls.joystick_touch_index(), 40)
+	assert_eq(city.mobile_controls.smash_touch_index(), -1)
+	assert_true(city.mobile_controls.joystick_active)
+	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
+	assert_eq(city.robot.facing, -1)
+	assert_eq(city.robot.dodge_count, 1)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(41, dash_rect.get_center(), false)
+	)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(40, Vector2(85.0, 1040.0), false)
+	)
+	assert_eq(city.mobile_controls.dash_touch_index(), -1)
+	assert_eq(city.mobile_controls.joystick_touch_index(), -1)
+	_record_test_execution()
+
+
 func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void:
 	get_tree().root.size = Vector2i(1280, 720)
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
@@ -183,6 +231,7 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	assert_eq(city.mobile_controls.movement_axis(), 0.0)
 	assert_eq(city.mobile_controls.joystick_touch_index(), -1)
 	assert_eq(city.mobile_controls.smash_touch_index(), -1)
+	assert_eq(city.mobile_controls.dash_touch_index(), -1)
 	_record_test_execution()
 
 

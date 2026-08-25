@@ -49,6 +49,23 @@ func test_dummy_audio_driver_does_not_start_an_ogg_decoder() -> void:
 	assert_not_null(main.background_music_player.stream)
 
 
+func test_web_feature_keeps_bgm_available_with_dummy_driver_name() -> void:
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	assert_true(
+		main._background_music_output_available_for_environment(
+			Main.DUMMY_AUDIO_DRIVER_NAME,
+			true
+		)
+	)
+	assert_false(
+		main._background_music_output_available_for_environment(
+			Main.DUMMY_AUDIO_DRIVER_NAME,
+			false
+		)
+	)
+	main.free()
+
+
 func test_upgrade_duck_controller_changes_the_players_music_bus() -> void:
 	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)

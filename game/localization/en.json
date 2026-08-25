@@ -5,8 +5,8 @@
   "title.heading": "PROTO SCROLLER\nFIELD BRIEFING",
   "title.story": "At 04:17, the city defense grid went silent.\nYour prototype is the only unit still moving.",
   "title.controls_heading": "PILOT CONTROLS",
-  "title.controls_body": "MOVE   {move_left} / {move_right}   •   Left stick / {pad_left} + {pad_right}   •   Mobile joystick\nSMASH / CHARGE  Hold {smash}, {pad_smash}, or Mobile SMASH; release to strike\nDODGE  Double-tap {move_left} / {move_right} or flick twice.",
-  "title.controls_compact": "CONTROLS   MOVE {move_left}/{move_right}  ·  STICK / D-PAD / TOUCH\nCHARGE   HOLD {smash} / {pad_smash}  ·  RELEASE TO STRIKE\nDODGE   DOUBLE-TAP {move_left} / {move_right}  ·  FLICK TWICE",
+	"title.controls_body": "MOVE   {move_left} / {move_right}   •   Left stick / {pad_left} + {pad_right}   •   Mobile joystick\nCHARGE  Hold {smash}, {pad_smash}, or Mobile SMASH; release to strike\nDASH   {dodge}   •   {pad_dodge}   •   Mobile DASH   •   Double-tap {move_left} / {move_right} or flick twice.",
+	"title.controls_compact": "CONTROLS   MOVE {move_left}/{move_right}  ·  STICK / D-PAD / TOUCH\nCHARGE   HOLD {smash} / {pad_smash}  ·  RELEASE TO STRIKE\nDASH   {dodge} / {pad_dodge}  ·  DOUBLE-TAP {move_left} / {move_right}",
   "title.field_note": "Weapons fire automatically after acquisition.\nBindings can be changed in SETTINGS.  /  AUTO SAVE",
   "title.begin": "BEGIN EXPEDITION",
   "title.input_hint": "ENTER  /  A  /  TAP",
@@ -240,5 +240,6 @@
   "weapon.flamethrower": "FLM",
   "weapon.entry": "{label} {rank}",
   "weapon.separator": "  ·  ",
-  "mobile.smash": "SMASH"
+  "mobile.smash": "SMASH",
+  "mobile.dash": "DASH"
 }
