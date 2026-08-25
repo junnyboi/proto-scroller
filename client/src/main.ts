@@ -15,6 +15,7 @@ import {
 
 type GodotConfig = {
   args: string[];
+  audioWorkletBase?: string;
   canvas: HTMLCanvasElement;
   canvasResizePolicy: number;
   emscriptenPoolSize: number;
@@ -206,10 +207,17 @@ async function startEngine(): Promise<void> {
 
   const useLocalGameFiles =
     import.meta.env.DEV && searchParameters.has("localGame");
-  const executable = useLocalGameFiles ? "/game/game" : REMOTE_ENGINE_PATH;
+  const useSplitWorkletSmoke =
+    useLocalGameFiles && searchParameters.has("splitWorklets");
+  const executable = useSplitWorkletSmoke
+    ? "/remote-engine/smoke-engine"
+    : useLocalGameFiles
+      ? "/game/game"
+      : REMOTE_ENGINE_PATH;
   const mainPack = useLocalGameFiles ? "/game/game.pck" : REMOTE_PACK_PATH;
   const engine = new Engine({
     args: [],
+    audioWorkletBase: "/game/game",
     canvas,
     canvasResizePolicy: 0,
     emscriptenPoolSize: 8,

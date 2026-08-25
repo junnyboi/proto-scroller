@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,12 @@ const SCREENSHOT_PATH = path.join(ARTIFACT_DIR, "upgrade-transition.png");
 const FAILURE_SCREENSHOT_PATH = path.join(
   ARTIFACT_DIR,
   "upgrade-transition-failure.png"
+);
+const SMOKE_ENGINE_DIR = path.join(
+  ROOT,
+  "client",
+  "public",
+  "remote-engine"
 );
 const PORT = Number(process.env.PROTO_SCROLLER_SMOKE_PORT ?? 4173);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -30,6 +36,12 @@ const EXPECTED_PHASES = [
 ];
 
 await mkdir(ARTIFACT_DIR, { recursive: true });
+await rm(SMOKE_ENGINE_DIR, { recursive: true, force: true });
+await mkdir(SMOKE_ENGINE_DIR, { recursive: true });
+await symlink(
+  path.join(ROOT, "client", "public", "game", "game.wasm"),
+  path.join(SMOKE_ENGINE_DIR, "smoke-engine.wasm")
+);
 
 const serverOutput = [];
 const browserErrors = [];
@@ -40,12 +52,13 @@ let browser;
 let page;
 let report = {
   status: "FAIL",
-  url: `${BASE_URL}/?localGame=1&webSmoke=upgrade`,
+  url: `${BASE_URL}/?localGame=1&splitWorklets=1&webSmoke=upgrade`,
   phases: [],
   audioContextStates: [],
   browserErrors,
   requestFailures,
   httpErrors,
+  workletModules: [],
 };
 
 try {
@@ -88,11 +101,32 @@ try {
   await page.addInitScript(() => {
     const NativeAudioContext = window.AudioContext ?? window.webkitAudioContext;
     window.__PROTO_SCROLLER_AUDIO_CONTEXTS__ = [];
+    window.__PROTO_SCROLLER_WORKLET_MODULES__ = [];
     if (!NativeAudioContext) return;
     const TrackingAudioContext = new Proxy(NativeAudioContext, {
       construct(Target, args) {
         const audioContext = Reflect.construct(Target, args);
         window.__PROTO_SCROLLER_AUDIO_CONTEXTS__.push(audioContext);
+        const nativeAddModule = audioContext.audioWorklet?.addModule?.bind(
+          audioContext.audioWorklet
+        );
+        if (nativeAddModule) {
+          audioContext.audioWorklet.addModule = async (url, options) => {
+            const entry = {
+              url: new URL(String(url), window.location.href).href,
+              state: "pending",
+            };
+            window.__PROTO_SCROLLER_WORKLET_MODULES__.push(entry);
+            try {
+              await nativeAddModule(url, options);
+              entry.state = "fulfilled";
+            } catch (error) {
+              entry.state = "rejected";
+              entry.error = error instanceof Error ? error.message : String(error);
+              throw error;
+            }
+          };
+        }
         return audioContext;
       },
     });
@@ -119,7 +153,11 @@ try {
   });
   page.on("requestfailed", request => {
     const url = request.url();
-    if (url.includes("/game/") || url.includes("/manus-storage/")) {
+    if (
+      url.includes("/game/") ||
+      url.includes("/manus-storage/") ||
+      url.includes("/remote-engine/")
+    ) {
       requestFailures.push(
         `${url}: ${request.failure()?.errorText ?? "unknown failure"}`
       );
@@ -160,6 +198,22 @@ try {
       `Web Audio did not unlock after launch gesture: ${JSON.stringify(audioContextStates)}`
     );
   }
+  const workletModules = await page.evaluate(() =>
+    (window.__PROTO_SCROLLER_WORKLET_MODULES__ ?? []).map(entry => ({ ...entry }))
+  );
+  const expectedWorklets = [
+    `${BASE_URL}/game/game.audio.position.worklet.js`,
+    `${BASE_URL}/game/game.audio.worklet.js`,
+  ];
+  const successfulWorklets = workletModules
+    .filter(module => module.state === "fulfilled")
+    .map(module => module.url)
+    .sort();
+  if (JSON.stringify(successfulWorklets) !== JSON.stringify(expectedWorklets)) {
+    throw new Error(
+      `audio worklet modules invalid: ${JSON.stringify(workletModules)}`
+    );
+  }
   await page.screenshot({ path: SCREENSHOT_PATH });
   await page.keyboard.press("Enter");
   await waitForPhase(page, "upgrade_resolved", 30_000);
@@ -190,6 +244,7 @@ try {
     status: "PASS",
     phases,
     audioContextStates,
+    workletModules,
     screenshot: path.relative(ROOT, SCREENSHOT_PATH),
   };
   console.log(`[WEB-GAMEPLAY-SMOKE-PASS] phases=${EXPECTED_PHASES.join(",")}`);
@@ -206,6 +261,7 @@ try {
   process.exitCode = 1;
 } finally {
   await writeFile(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  await rm(SMOKE_ENGINE_DIR, { recursive: true, force: true });
   if (browser) await browser.close();
   if (server?.pid && server.exitCode === null) {
     try {
