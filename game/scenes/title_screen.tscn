@@ -16,10 +16,10 @@ corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
-content_margin_left = 18.0
-content_margin_top = 10.0
-content_margin_right = 18.0
-content_margin_bottom = 10.0
+content_margin_left = 22.0
+content_margin_top = 14.0
+content_margin_right = 22.0
+content_margin_bottom = 14.0
 
 [sub_resource type="StyleBoxFlat" id="StyleChipPanel"]
 bg_color = Color(0.00392157, 0.027451, 0.0509804, 0.76)
@@ -261,62 +261,12 @@ theme_override_styles/panel = SubResource("StyleStatusPanel")
 
 [node name="InfoContent" type="VBoxContainer" parent="StatusRail"]
 layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="StatusItems" type="HBoxContainer" parent="StatusRail/InfoContent"]
-layout_mode = 2
-theme_override_constants/separation = 24
-
-[node name="Objective" type="VBoxContainer" parent="StatusRail/InfoContent/StatusItems"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 0
-
-[node name="Key" type="Label" parent="StatusRail/InfoContent/StatusItems/Objective"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
-text = ""
-
-[node name="Value" type="Label" parent="StatusRail/InfoContent/StatusItems/Objective"]
-layout_mode = 2
-text = ""
-
-[node name="Threat" type="VBoxContainer" parent="StatusRail/InfoContent/StatusItems"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 0
-
-[node name="Key" type="Label" parent="StatusRail/InfoContent/StatusItems/Threat"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
-text = ""
-
-[node name="Value" type="Label" parent="StatusRail/InfoContent/StatusItems/Threat"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.945098, 0.701961, 0.435294, 1)
-text = ""
-
-[node name="Upgrades" type="VBoxContainer" parent="StatusRail/InfoContent/StatusItems"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 0
-
-[node name="Key" type="Label" parent="StatusRail/InfoContent/StatusItems/Upgrades"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.294118, 0.811765, 0.741176, 1)
-text = ""
-
-[node name="Value" type="Label" parent="StatusRail/InfoContent/StatusItems/Upgrades"]
-layout_mode = 2
-text = ""
-
-[node name="InfoDivider" type="HSeparator" parent="StatusRail/InfoContent"]
-layout_mode = 2
 
 [node name="ControlsLabel" type="Label" parent="StatusRail/InfoContent"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_constants/line_spacing = 10
 text = ""
 autowrap_mode = 2
 

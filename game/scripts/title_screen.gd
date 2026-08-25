@@ -440,24 +440,6 @@ func _apply_localized_text() -> void:
 	instruction_label.text = L10n.t(
 		"title.deployment_authorized" if initialized else "title.command_hook"
 	)
-	($StatusRail/InfoContent/StatusItems/Objective/Key as Label).text = L10n.t(
-		"title.status_objective"
-	)
-	($StatusRail/InfoContent/StatusItems/Objective/Value as Label).text = L10n.t(
-		"title.status_survive"
-	)
-	($StatusRail/InfoContent/StatusItems/Threat/Key as Label).text = L10n.t(
-		"title.status_threat"
-	)
-	($StatusRail/InfoContent/StatusItems/Threat/Value as Label).text = L10n.t(
-		"title.status_ground_air"
-	)
-	($StatusRail/InfoContent/StatusItems/Upgrades/Key as Label).text = L10n.t(
-		"title.status_upgrades"
-	)
-	($StatusRail/InfoContent/StatusItems/Upgrades/Value as Label).text = L10n.t(
-		"title.status_during_run"
-	)
 	initialize_button.text = (
 		L10n.t("title.deploying")
 		if initialized
@@ -529,7 +511,7 @@ func _apply_landscape_layout() -> void:
 	_set_rect(initialize_button, Rect2(52.0, 400.0, 360.0, 72.0))
 	_set_rect($HintLabel, Rect2(430.0, 412.0, 190.0, 46.0))
 	_set_rect(language_selector, Rect2(52.0, 486.0, 282.0, 48.0))
-	_set_rect($StatusRail, Rect2(52.0, 536.0, 760.0, 162.0))
+	_set_rect($StatusRail, Rect2(52.0, 550.0, 760.0, 94.0))
 	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
 	_set_rect(settings_button, Rect2(1068.0, 16.0, 196.0, 48.0))
 	_set_rect(settings_panel, Rect2(330.0, 100.0, 620.0, 520.0))
@@ -544,8 +526,8 @@ func _apply_portrait_layout() -> void:
 	_set_rect(initialize_button, Rect2(104.0, 790.0, 512.0, 92.0))
 	_set_rect($HintLabel, Rect2(260.0, 888.0, 200.0, 46.0))
 	_set_rect(language_selector, Rect2(174.0, 940.0, 372.0, 52.0))
-	_set_rect($StatusRail, Rect2(54.0, 1004.0, 612.0, 194.0))
-	_set_rect(briefing_toggle, Rect2(174.0, 1224.0, 372.0, 48.0))
+	_set_rect($StatusRail, Rect2(54.0, 1012.0, 612.0, 140.0))
+	_set_rect(briefing_toggle, Rect2(174.0, 1190.0, 372.0, 58.0))
 	_set_rect(settings_button, Rect2(504.0, 20.0, 200.0, 56.0))
 	_set_rect(settings_panel, Rect2(54.0, 300.0, 612.0, 610.0))
 	_set_font_sizes(24, 48, 24)
@@ -562,6 +544,10 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 		var label: Label = label_node as Label
 		label.add_theme_font_size_override(&"font_size", body_size)
 	(%TitleLabel as Label).add_theme_font_size_override(&"font_size", title_size)
+	(%ControlsLabel as Label).add_theme_font_size_override(
+		&"font_size",
+		maxi(18, body_size - 4)
+	)
 	initialize_button.add_theme_font_size_override(&"font_size", button_size)
 	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
 	settings_button.add_theme_font_size_override(&"font_size", body_size)
