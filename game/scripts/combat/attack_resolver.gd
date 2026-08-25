@@ -44,19 +44,12 @@ func resolve(
 	opening_compression: bool = false
 ) -> AttackSpec:
 	if actual_speed_ratio >= jab_cross_speed_threshold:
-		return AttackSpec.new(
-			AttackSpec.Mode.JAB_CROSS,
+		return resolve_jab_cross(
 			attack_id,
 			facing,
 			actual_speed_ratio,
-			jab_cross_anticipation_seconds,
-			jab_cross_active_seconds,
-			jab_cross_recovery_seconds,
-			jab_cross_actor_damage,
-			jab_cross_structural_damage * structure_multiplier,
-			jab_cross_impulse_per_mass * force_multiplier,
-			jab_cross_hit_size,
-			jab_cross_hit_offset,
+			force_multiplier,
+			structure_multiplier,
 			opening_compression
 		)
 	return AttackSpec.new(
@@ -72,4 +65,31 @@ func resolve(
 		ground_impulse_per_mass * force_multiplier,
 		Vector2.ONE * ground_radius * 2.0,
 		Vector2.ZERO
+	)
+
+
+func resolve_jab_cross(
+	attack_id: int,
+	facing: int,
+	momentum_ratio: float,
+	force_multiplier: float = 1.0,
+	structure_multiplier: float = 1.0,
+	opening_compression: bool = false,
+	output_ratio: float = 1.0
+) -> AttackSpec:
+	var clamped_output_ratio: float = clampf(output_ratio, 0.0, 4.0)
+	return AttackSpec.new(
+		AttackSpec.Mode.JAB_CROSS,
+		attack_id,
+		facing,
+		momentum_ratio,
+		jab_cross_anticipation_seconds,
+		jab_cross_active_seconds,
+		jab_cross_recovery_seconds,
+		jab_cross_actor_damage * clamped_output_ratio,
+		jab_cross_structural_damage * structure_multiplier * clamped_output_ratio,
+		jab_cross_impulse_per_mass * force_multiplier * clamped_output_ratio,
+		jab_cross_hit_size,
+		jab_cross_hit_offset,
+		opening_compression
 	)

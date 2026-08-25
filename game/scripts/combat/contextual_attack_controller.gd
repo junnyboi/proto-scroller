@@ -13,6 +13,8 @@ enum Phase {
 	RECOVERY,
 }
 
+const DODGE_CANCEL_MELEE_MOMENTUM_RATIO: float = 0.50
+
 var current_spec: AttackSpec
 var resolver: AttackResolver
 var jab_cross_impact: JabCrossImpact
@@ -71,7 +73,14 @@ func _ready() -> void:
 func request_attack() -> int:
 	if _busy:
 		return 0
-	if _robot == null or not _robot.can_request_attack():
+	if _robot == null:
+		return 0
+	var dodge_cancel_direction: int = 0
+	if _robot.locomotion_state == GiantRobotController.LocomotionState.DODGE:
+		dodge_cancel_direction = _robot.facing
+		if not _robot.cancel_dodge():
+			return 0
+	if not _robot.can_request_attack():
 		return 0
 	var attack_id: int = _robot.reserve_attack_id()
 	var overdrive_started: bool = (
@@ -86,16 +95,28 @@ func request_attack() -> int:
 	var structure_multiplier: float = (
 		overdrive_session.structure_multiplier() if overdrive_session != null else 1.0
 	)
-	current_spec = resolver.resolve(
-		attack_id,
-		_robot.facing,
-		speed_ratio,
-		_robot.stomp_damage,
-		_robot.stomp_impulse_per_mass,
-		_robot.stomp_radius,
-		force_multiplier,
-		structure_multiplier,
-		overdrive_started
+	current_spec = (
+		resolver.resolve_jab_cross(
+			attack_id,
+			dodge_cancel_direction,
+			DODGE_CANCEL_MELEE_MOMENTUM_RATIO,
+			force_multiplier,
+			structure_multiplier,
+			overdrive_started,
+			DODGE_CANCEL_MELEE_MOMENTUM_RATIO
+		)
+		if dodge_cancel_direction != 0
+		else resolver.resolve(
+			attack_id,
+			_robot.facing,
+			speed_ratio,
+			_robot.stomp_damage,
+			_robot.stomp_impulse_per_mass,
+			_robot.stomp_radius,
+			force_multiplier,
+			structure_multiplier,
+			overdrive_started
+		)
 	)
 	if kinetic_field_runtime != null:
 		current_spec = kinetic_field_runtime.decorate_attack(current_spec)

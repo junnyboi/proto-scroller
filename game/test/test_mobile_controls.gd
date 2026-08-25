@@ -186,6 +186,40 @@ func test_mobile_joystick_double_flick_dodges_in_selected_direction() -> void:
 	_record_test_execution()
 
 
+func test_mobile_smash_touch_cancels_dodge_into_half_momentum_melee() -> void:
+	get_tree().root.size = Vector2i(1280, 720)
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	city.mobile_detection_override = 1
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	assert_true(city.robot._start_dodge(-1))
+	var smash_position: Vector2 = city.mobile_controls.smash_bounds().get_center()
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(31, smash_position, true)
+	)
+	var spec: AttackSpec = city.contextual_attacks.current_spec
+	assert_not_null(spec)
+	if spec == null:
+		return
+	assert_eq(city.mobile_controls.smash_press_count, 1)
+	assert_true(spec.is_jab_cross())
+	assert_eq(spec.facing, -1)
+	assert_almost_eq(spec.speed_ratio, 0.50, 0.0001)
+	assert_almost_eq(spec.impulse_per_mass, 540.0, 0.001)
+	assert_eq(
+		city.robot.locomotion_state,
+		GiantRobotController.LocomotionState.ATTACK_LOCKED
+	)
+	assert_false(city.robot.dodge_invulnerable)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(31, smash_position, false)
+	)
+	_record_test_execution()
+
+
 func _screen_touch(
 	index: int,
 	position: Vector2,

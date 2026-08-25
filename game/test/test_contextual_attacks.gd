@@ -213,6 +213,71 @@ func test_space_during_recovery_remains_attack_only() -> void:
 	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.IDLE)
 
 
+func test_melee_cancels_dodge_into_half_momentum_attack_in_dodge_direction() -> void:
+	var city: CitySlice = await _city()
+	var robot: GiantRobotController = city.robot
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	_tune_short_attack(attacks.resolver)
+	robot.global_position = Vector2(900.0, 460.0)
+	robot.collision_mask = 0
+	robot.gravity = 0.0
+	city.car.freeze = true
+	city.car.global_position = robot.global_position + Vector2(-135.0, 95.0)
+	city.car.current_health = 1.0
+	city.streetlamp.global_position = robot.global_position + Vector2(100.0, 20.0)
+	city.streetlamp.current_health = 1.0
+	assert_true(robot._start_dodge(-1))
+	assert_true(presenter.dodging)
+	var spent_cooldown: float = robot.dodge_cooldown_remaining
+	var attack_id: int = robot.request_attack()
+	var spec: AttackSpec = attacks.current_spec
+	assert_gt(attack_id, 0)
+	assert_true(spec.is_jab_cross())
+	assert_eq(spec.facing, -1)
+	assert_almost_eq(spec.speed_ratio, 0.50, 0.0001)
+	assert_almost_eq(spec.actor_damage, 72.5, 0.001)
+	assert_almost_eq(spec.structural_damage, 62.5, 0.001)
+	assert_almost_eq(spec.impulse_per_mass, 540.0, 0.001)
+	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
+	assert_almost_eq(robot.velocity.x, 0.0, 0.001)
+	assert_almost_eq(robot.dodge_cooldown_remaining, spent_cooldown, 0.001)
+	assert_false(robot.dodge_invulnerable)
+	assert_false(presenter.dodging)
+	assert_true(presenter.attacking)
+	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
+	await get_tree().physics_frame
+	assert_true(city.car.is_broken)
+	assert_false(city.streetlamp.is_broken)
+	assert_eq(attacks.jab_cross_impact.last_accepted_targets, 1)
+	_record_test_execution()
+
+
+func test_mapped_stomp_action_cancels_east_dodge_into_half_momentum_melee() -> void:
+	var city: CitySlice = await _city()
+	var robot: GiantRobotController = city.robot
+	_tune_short_attack(city.contextual_attacks.resolver)
+	robot.collision_mask = 0
+	robot.gravity = 0.0
+	assert_true(robot._start_dodge(1))
+	Input.action_press(&"stomp")
+	robot._physics_process(1.0 / 60.0)
+	Input.action_release(&"stomp")
+	var spec: AttackSpec = city.contextual_attacks.current_spec
+	assert_not_null(spec)
+	if spec == null:
+		return
+	assert_true(spec.is_jab_cross())
+	assert_eq(spec.facing, 1)
+	assert_almost_eq(spec.speed_ratio, 0.50, 0.0001)
+	assert_almost_eq(spec.actor_damage, 72.5, 0.001)
+	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
+	assert_false(robot.dodge_invulnerable)
+	_record_test_execution()
+
+
 func test_recovery_double_tap_buffers_directional_dodge_with_300ms_invulnerability() -> void:
 	var city: CitySlice = await _city()
 	city.robot.global_position = Vector2(400.0, 460.0)
@@ -307,6 +372,9 @@ func _tune_short_attack(resolver: AttackResolver) -> void:
 	resolver.ground_anticipation_seconds = 0.01
 	resolver.ground_active_seconds = 0.01
 	resolver.ground_recovery_seconds = 0.04
+	resolver.jab_cross_anticipation_seconds = 0.01
+	resolver.jab_cross_active_seconds = 0.01
+	resolver.jab_cross_recovery_seconds = 0.04
 
 
 func _wait_for_phase(controller: ContextualAttackController, expected: int) -> void:
