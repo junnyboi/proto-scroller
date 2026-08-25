@@ -32,10 +32,10 @@ const PROFILES: Dictionary = {
 		"faces_right": true,
 		"display": Vector2(116.85, 108.0), "collision": Vector2(48.0, 100.0),
 		"spawn_y": 540.0, "health": 110.0, "speed": 64.0, "acceleration": 430.0,
-		"preferred_range": 230.0, "minimum_range": 120.0, "attack_interval": 1.45,
-		"projectile_kind": &"bullet", "projectile_speed": 690.0, "damage": 7.0,
+		"preferred_range": 420.0, "minimum_range": 220.0, "attack_interval": 1.65,
+		"projectile_kind": &"bullet", "projectile_speed": 760.0, "damage": 4.0,
 		"anticipation": 0.48, "behavior": &"ground_standoff", "movement_style": &"shield_march",
-		"attack_style": &"shield_burst", "xp": 650, "threat": 1, "remains": &"infantry",
+		"attack_style": &"shield_shot", "xp": 650, "threat": 1, "remains": &"infantry",
 	},
 	&"jackal": {
 		"display_name": "JACKAL RECON BUGGY", "family": &"light", "airborne": false,

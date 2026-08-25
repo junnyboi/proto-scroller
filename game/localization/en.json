@@ -112,7 +112,7 @@
   "tutorial.jab_cross.title": "STRIKE AT SPEED",
   "tutorial.jab_cross.body": "Build speed, then press {smash}, {pad_smash}, or mobile SMASH to Jab-Cross forward.",
   "tutorial.direction_dodge.title": "DOUBLE-TAP DODGE",
-  "tutorial.direction_dodge.body": "Double-tap {move_left} or {move_right}, flick twice, or press {dodge} / {pad_dodge} to dash through danger.",
+  "tutorial.direction_dodge.body": "Double-tap {move_left} or {move_right}, flick twice, or press {dodge} / {pad_dodge} to dash. Press {smash} during the dash to cancel into a 50% stronger Jab-Cross.",
   "tutorial.complete.title": "COMBAT UPLINK COMPLETE",
   "tutorial.complete.body": "Dash Amplifier upgrades this dodge. Keep moving; weapons fire automatically.",
 
@@ -157,7 +157,7 @@
   "upgrade.choice": "CHOICE {current} OF {total}",
   "upgrade.rank": "RANK {current}  >  {next} / {maximum}",
   "upgrade.shockwave.name": "SHOCKWAVE +1",
-  "upgrade.shockwave.description": "Ground Smash emits a longer-lived expanding shockwave ring.",
+  "upgrade.shockwave.description": "Ground Smash emits a damaging shockwave; ranks increase damage and duration.",
   "upgrade.punch_shockwave.name": "PUNCH SHOCKWAVE",
   "upgrade.punch_shockwave.description": "Jab-Cross fires two fast shockwaves in the punch direction.",
   "upgrade.missile.name": "MISSILE +1",

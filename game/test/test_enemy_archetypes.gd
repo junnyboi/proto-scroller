@@ -220,6 +220,31 @@ func test_shielded_bulwark_faces_player_from_both_sides() -> void:
 	assert_true(bulwark.visual.flip_h)
 
 
+func test_bulwark_fires_light_projectile_instead_of_idling_at_infantry_range() -> void:
+	city.robot.global_position = Vector2(700.0, 460.0)
+	var bulwark: ProceduralEnemy = runtime.acquire(
+		&"bulwark",
+		Vector2(1160.0, 540.0)
+	) as ProceduralEnemy
+	assert_not_null(bulwark)
+	bulwark.set_physics_process(false)
+	bulwark._cooldown = 0.0
+	bulwark._physics_process(0.01)
+	assert_eq(bulwark.attack_style, &"shield_shot")
+	assert_eq(bulwark.state, ProceduralEnemy.State.ANTICIPATE)
+	assert_eq(city.projectile_root.reservation_count(&"bullet"), 1)
+	bulwark._physics_process(bulwark.anticipation_duration + 0.01)
+	var projectile: Projectile2D = city.projectile_root.last_acquired
+	assert_not_null(projectile)
+	if projectile == null:
+		return
+	assert_true(projectile.active)
+	assert_same(projectile.source, bulwark)
+	assert_eq(projectile.damage_type, &"bullet")
+	assert_almost_eq(projectile.damage, 4.0, 0.001)
+	assert_lt(projectile.velocity.x, 0.0)
+
+
 func test_every_procedural_sprite_faces_player_from_both_sides() -> void:
 	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
 		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)

@@ -81,16 +81,21 @@ func advance(delta: float) -> void:
 		return
 	if cooldown_remaining > 0.0:
 		return
-	var direction: Vector2 = Vector2(float(arsenal.robot.facing), 0.0)
-	if not resolver.has_actor_target(
+	var forward: Vector2 = Vector2(float(arsenal.robot.facing), 0.0)
+	var next_drone: WeaponDroneVisual2D = _peek_next_drone()
+	var target_origin: Vector2 = (
+		next_drone.muzzle_global_position() if next_drone != null else emitter.global_position
+	)
+	var target: EnemyActor2D = resolver.acquire_actor_target(
 		arsenal,
-		emitter.global_position,
-		direction,
+		target_origin,
+		forward,
 		flame_range(),
 		half_angle()
-	):
+	)
+	if target == null:
 		return
-	_start_burst(direction)
+	_start_burst(target.global_position)
 	_advance_burst(0.0)
 
 
@@ -195,9 +200,8 @@ func active_scorch_count() -> int:
 	return total
 
 
-func _start_burst(direction: Vector2) -> void:
+func _start_burst(target_position: Vector2) -> void:
 	burst_active = true
-	burst_direction = direction
 	burst_root_attack_id = arsenal.reserve_attack_id()
 	ticks_remaining = tick_count()
 	tick_remaining = 0.0
@@ -206,7 +210,11 @@ func _start_burst(direction: Vector2) -> void:
 	if active_drone != null:
 		mount = active_drone
 		emitter = active_drone.muzzle
-		active_drone.aim_at(direction)
+	burst_direction = emitter.global_position.direction_to(target_position)
+	if burst_direction.is_zero_approx():
+		burst_direction = Vector2(float(arsenal.robot.facing), 0.0)
+	if active_drone != null:
+		active_drone.aim_at(burst_direction)
 	_start_loop_audio()
 
 
@@ -257,11 +265,18 @@ func _stop_loop_audio() -> void:
 	loop_audio.stop()
 
 
-func _next_drone() -> WeaponDroneVisual2D:
+func _peek_next_drone() -> WeaponDroneVisual2D:
 	if current_rank <= 0 or drones.is_empty():
 		return null
 	var active_total: int = mini(current_rank, drones.size())
-	var drone: WeaponDroneVisual2D = drones[_drone_cursor % active_total]
+	return drones[_drone_cursor % active_total]
+
+
+func _next_drone() -> WeaponDroneVisual2D:
+	var drone: WeaponDroneVisual2D = _peek_next_drone()
+	if drone == null:
+		return null
+	var active_total: int = mini(current_rank, drones.size())
 	_drone_cursor = (_drone_cursor + 1) % active_total
 	return drone
 

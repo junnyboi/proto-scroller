@@ -99,6 +99,37 @@ func test_shockwave_is_one_zero_reward_cue_per_ground_smash() -> void:
 	assert_eq(runtime.rings[1].lifetime, 3.0)
 
 
+func test_shockwave_deals_meaningful_rank_scaled_damage_at_ring_radius() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.encounter_runtime.release_all()
+	var runtime: ShockwaveUpgradeRuntime = (
+		city.upgrade_assembler.runtimes[&"SHOCKWAVE"] as ShockwaveUpgradeRuntime
+	)
+	var visual_ground: Node2D = city.robot.get_node(
+		^"VisualRoot/VisualGroundOrigin"
+	) as Node2D
+	var target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"tank",
+		visual_ground.global_position + Vector2(220.0, 0.0)
+	)
+	target.set_physics_process(false)
+	await get_tree().physics_frame
+	var score_before: int = city.rampage_session.current_score()
+	var experience_before: int = city.rampage_session.run_experience.total_experience
+	runtime.apply_rank(1)
+	var health_before: float = target.current_health
+	runtime.call(&"_on_attack_active", _attack(AttackSpec.Mode.GROUND_SMASH, 710))
+	assert_almost_eq(target.current_health, health_before - 35.0, 0.001)
+	runtime.apply_rank(3)
+	health_before = target.current_health
+	runtime.call(&"_on_attack_active", _attack(AttackSpec.Mode.GROUND_SMASH, 711))
+	assert_almost_eq(target.current_health, health_before - 75.0, 0.001)
+	assert_eq(city.rampage_session.current_score(), score_before)
+	assert_eq(city.rampage_session.run_experience.total_experience, experience_before)
+
+
 func test_shockwave_strictly_denies_eleventh_ring_without_node_growth() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)

@@ -14,6 +14,8 @@ enum Phase {
 	RECOVERY,
 }
 
+const DODGE_CANCEL_POWER_BONUS: float = 0.50
+
 var current_spec: AttackSpec
 var resolver: AttackResolver
 var jab_cross_impact: JabCrossImpact
@@ -22,6 +24,7 @@ var directive_session: DirectiveSession
 var kinetic_field_runtime: KineticFieldRuntime
 var phase: Phase = Phase.READY
 var buffered_dodge_count: int = 0
+var dodge_cancel_attack_count: int = 0
 var _robot: GiantRobotController
 var _visual_root: Node2D
 var _rest_position: Vector2
@@ -70,9 +73,10 @@ func _ready() -> void:
 
 
 func request_attack() -> int:
-	if _busy:
+	if _busy or _robot == null:
 		return 0
-	if _robot == null or not _robot.can_request_attack():
+	var dodge_direction: int = _robot.cancel_dodge_for_attack()
+	if not _robot.can_request_attack():
 		return 0
 	var attack_id: int = _robot.reserve_attack_id()
 	var overdrive_started: bool = (
@@ -80,7 +84,11 @@ func request_attack() -> int:
 		if overdrive_session != null
 		else false
 	)
-	var speed_ratio: float = absf(_robot.velocity.x) / maxf(_robot.max_speed, 1.0)
+	var speed_ratio: float = (
+		1.0
+		if dodge_direction != 0
+		else absf(_robot.velocity.x) / maxf(_robot.max_speed, 1.0)
+	)
 	var force_multiplier: float = (
 		overdrive_session.force_multiplier() if overdrive_session != null else 1.0
 	)
@@ -89,7 +97,7 @@ func request_attack() -> int:
 	)
 	current_spec = resolver.resolve(
 		attack_id,
-		_robot.facing,
+		dodge_direction if dodge_direction != 0 else _robot.facing,
 		speed_ratio,
 		_robot.stomp_damage,
 		_robot.stomp_impulse_per_mass,
@@ -102,6 +110,9 @@ func request_attack() -> int:
 		current_spec = kinetic_field_runtime.decorate_attack(current_spec)
 	if directive_session != null:
 		current_spec = directive_session.decorate_attack(current_spec)
+	if dodge_direction != 0:
+		current_spec = _with_power_bonus(current_spec, DODGE_CANCEL_POWER_BONUS)
+		dodge_cancel_attack_count += 1
 	_busy = true
 	_buffered_dodge_direction = 0
 	phase = Phase.ANTICIPATION
@@ -110,6 +121,27 @@ func request_attack() -> int:
 	attack_started.emit(current_spec)
 	_run_attack(current_spec)
 	return attack_id
+
+
+func _with_power_bonus(spec: AttackSpec, bonus: float) -> AttackSpec:
+	var multiplier: float = 1.0 + maxf(bonus, 0.0)
+	return AttackSpec.new(
+		spec.mode,
+		spec.attack_id,
+		spec.facing,
+		spec.speed_ratio,
+		spec.anticipation_seconds,
+		spec.active_seconds,
+		spec.recovery_seconds,
+		spec.actor_damage * multiplier,
+		spec.structural_damage * multiplier,
+		spec.impulse_per_mass * multiplier,
+		spec.hit_size,
+		spec.hit_offset,
+		spec.opening_compression,
+		spec.effect_flags,
+		spec.kinetic_debris_bonus
+	)
 
 
 func request_dodge(direction: int) -> bool:

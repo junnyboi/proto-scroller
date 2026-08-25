@@ -368,6 +368,19 @@ func _start_dodge(direction: int = 0) -> bool:
 	return true
 
 
+func cancel_dodge_for_attack() -> int:
+	if locomotion_state != LocomotionState.DODGE:
+		return 0
+	var dodge_direction: int = facing
+	_dodge_remaining = 0.0
+	_invulnerable_remaining = 0.0
+	_dodge_recovery_remaining = 0.0
+	velocity.x = 0.0
+	_set_locomotion_state(LocomotionState.IDLE)
+	dodge_finished.emit()
+	return dodge_direction
+
+
 func set_disabled(disabled: bool) -> void:
 	_control_enabled = not disabled
 	if disabled:

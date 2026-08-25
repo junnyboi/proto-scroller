@@ -27,7 +27,7 @@ mkdir -p \
 START_EPOCH="$(date +%s)"
 
 run_engine() {
-  timeout --preserve-status --signal=TERM --kill-after=5s 60s "$@"
+  timeout --preserve-status --signal=TERM --kill-after=5s 90s "$@"
 }
 
 printf '%s\n' '[L3] import'

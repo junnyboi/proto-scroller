@@ -40,6 +40,29 @@ func test_flamethrower_requires_target_and_latches_direction_for_unique_ticks() 
 	assert_eq(flame.cooldown_remaining, 1.20)
 
 
+func test_flamethrower_drone_aims_at_off_axis_target() -> void:
+	var city: CitySlice = await _spawn_isolated_city()
+	var flame: FlamethrowerRuntime = _flame(city)
+	flame.set_process(false)
+	flame.apply_rank(1)
+	var target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"soldier",
+		flame.emitter.global_position + Vector2(170.0, 82.0)
+	)
+	target.set_physics_process(false)
+	target.current_health = 45.0
+	await get_tree().physics_frame
+	flame.advance(0.0)
+	assert_true(flame.burst_active)
+	assert_gt(flame.burst_direction.y, 0.20)
+	assert_almost_eq(
+		flame.active_drone.weapon_pivot.rotation,
+		flame.burst_direction.angle(),
+		0.001
+	)
+	assert_eq(target.current_health, 33.0)
+
+
 func test_flamethrower_rank_five_tuning_and_visual_caps_are_exact() -> void:
 	var city: CitySlice = await _spawn_isolated_city()
 	var flame: FlamethrowerRuntime = _flame(city)

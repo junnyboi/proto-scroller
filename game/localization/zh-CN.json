@@ -112,7 +112,7 @@
   "tutorial.jab_cross.title": "高速出击",
   "tutorial.jab_cross.body": "加速后，按 {smash}、{pad_smash} 或移动端“重击”向前发动刺拳连击。",
   "tutorial.direction_dodge.title": "双击方向闪避",
-  "tutorial.direction_dodge.body": "双击 {move_left} 或 {move_right}、向同一方向拨动摇杆两次，或按 {dodge} / {pad_dodge} 即可冲刺穿过危险。",
+  "tutorial.direction_dodge.body": "双击 {move_left} 或 {move_right}、向同一方向拨动摇杆两次，或按 {dodge} / {pad_dodge} 即可冲刺。冲刺时按 {smash}，发动强化 50% 的刺拳连击。",
   "tutorial.complete.title": "战斗连接完成",
   "tutorial.complete.body": "“冲刺增幅器”会强化闪避。保持移动；武器会自动开火。",
 
@@ -157,7 +157,7 @@
   "upgrade.choice": "选择 {current} / {total}",
   "upgrade.rank": "阶级 {current}  >  {next} / {maximum}",
   "upgrade.shockwave.name": "冲击波 +1",
-  "upgrade.shockwave.description": "地面重击会释放持续时间更长的扩散冲击波。",
+  "upgrade.shockwave.description": "地面重击会释放伤害性冲击波；后续阶级提高伤害与持续时间。",
   "upgrade.punch_shockwave.name": "拳击冲击波",
   "upgrade.punch_shockwave.description": "刺拳连击会向出拳方向发射两道高速冲击波。",
   "upgrade.missile.name": "导弹 +1",
