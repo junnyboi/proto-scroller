@@ -109,6 +109,7 @@ func test_flamethrower_pause_freezes_burst_and_loop_audio_policy() -> void:
 	await get_tree().physics_frame
 	flame.advance(0.0)
 	assert_true(flame.loop_audio_active)
+	assert_eq(flame.loop_audio.global_position, flame.emitter.global_position)
 	var ticks_before_pause: int = flame.ticks_delivered
 	var remaining_before_pause: float = flame.tick_remaining
 	flame.set_paused(true)
@@ -116,8 +117,10 @@ func test_flamethrower_pause_freezes_burst_and_loop_audio_policy() -> void:
 	flame.advance(1.0)
 	assert_eq(flame.ticks_delivered, ticks_before_pause)
 	assert_eq(flame.tick_remaining, remaining_before_pause)
+	flame.emitter.global_position += Vector2(1800.0, 0.0)
 	flame.set_paused(false)
 	assert_true(flame.loop_audio_active)
+	assert_eq(flame.loop_audio.global_position, flame.emitter.global_position)
 	flame.advance(0.20)
 	assert_eq(flame.ticks_delivered, ticks_before_pause + 1)
 	assert_false(InputMap.has_action(&"flamethrower"))

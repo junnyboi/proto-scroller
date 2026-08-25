@@ -527,6 +527,7 @@ func _play_mechanics(
 		return
 	player.stop()
 	player.stream = stream
+	player.global_position = robot.global_position if robot != null else Vector2.ZERO
 	player.volume_db = volume_db
 	player.pitch_scale = pitch_scale
 	_voice_started_order += 1

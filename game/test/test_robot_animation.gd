@@ -492,6 +492,35 @@ func test_robot_mechanics_priority_stealing_protects_signature_cues() -> void:
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 
 
+func test_robot_mechanics_audio_follows_progression_after_upgrade_pause() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	robot.global_position = Vector2(2800.0, 466.5)
+	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
+	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
+	var cues: Array = [
+		[RobotAnimationPresenter.FOOTSTEP_SFX, &"walk_footstep"],
+		[RobotAnimationPresenter.SERVO_SFX, &"attack_windup"],
+		[RobotAnimationPresenter.DASH_WARP_SFX, &"dash_warp"],
+		[RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX, &"ground_slam_impact"],
+		[RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX, &"double_punch_impact"],
+	]
+	for cue_data: Array in cues:
+		var stream: AudioStream = cue_data[0] as AudioStream
+		presenter._play_mechanics(stream, cue_data[1] as StringName, 0.0, 1.0)
+		var voice: AudioStreamPlayer2D = _voice_for_stream(presenter, stream)
+		assert_not_null(voice)
+		assert_eq(voice.global_position, robot.global_position)
+		assert_lt(voice.global_position.distance_to(robot.global_position), voice.max_distance)
+		voice.stop()
+	assert_eq(presenter.audio_drop_count, 0)
+	assert_eq(presenter.audio_play_count, cues.size())
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
 func test_dodge_recharge_sfx_plays_once_when_cooldown_completes() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
@@ -675,6 +704,16 @@ func _assert_cue_volume(
 		matching_voices += 1
 		assert_almost_eq(player.volume_db, expected_volume_db, 0.0001)
 	assert_eq(matching_voices, 1)
+
+
+func _voice_for_stream(
+	presenter: RobotAnimationPresenter,
+	stream: AudioStream
+) -> AudioStreamPlayer2D:
+	for player: AudioStreamPlayer2D in presenter._audio_players:
+		if player.stream == stream:
+			return player
+	return null
 
 
 func _assert_compact_voice_cue(stream: AudioStream) -> void:

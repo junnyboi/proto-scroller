@@ -211,6 +211,7 @@ func _start_burst(direction: Vector2) -> void:
 
 
 func _advance_burst(delta: float) -> void:
+	_sync_loop_audio_position()
 	tick_remaining -= delta
 	while burst_active and tick_remaining <= 0.0:
 		_deliver_tick()
@@ -248,6 +249,7 @@ func _deliver_tick() -> void:
 
 func _start_loop_audio() -> void:
 	loop_audio_active = true
+	_sync_loop_audio_position()
 	if loop_audio.stream != null and not loop_audio.playing:
 		loop_audio.play()
 
@@ -255,6 +257,11 @@ func _start_loop_audio() -> void:
 func _stop_loop_audio() -> void:
 	loop_audio_active = false
 	loop_audio.stop()
+
+
+func _sync_loop_audio_position() -> void:
+	if loop_audio != null and emitter != null:
+		loop_audio.global_position = emitter.global_position
 
 
 func _next_drone() -> WeaponDroneVisual2D:
