@@ -32,7 +32,7 @@ const SOLDIER_DEFEATS: int = 8
 const WRECKS: int = 4
 const PARTICLE_SLOTS: int = 8
 const AUDIO_VOICES: int = 8
-const ROBOT_AUDIO_VOICES: int = 5
+const ROBOT_AUDIO_VOICES: int = 7
 const AIR_TARGET_VOICES: int = 1
 const AIR_TARGET_RETICLES: int = 1
 const RARE_TAG_ROWS: int = 3
@@ -76,6 +76,8 @@ const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_DUST_SLOTS: int = DodgeDustPool2D.CAPACITY
 const CRITICAL_SMOKE_EMITTERS: int = 1
 const MELEE_CHARGE_EMITTERS: int = 1
+const MELEE_CHARGE_PARTICLES: int = RobotAnimationPresenter.CHARGE_PARTICLE_CAPACITY
+const MELEE_CHARGE_VISUALS: int = 3
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
 const HAZARD_ACTORS: int = 12
 const HAZARD_VFX_SLOTS: int = 16
@@ -125,6 +127,8 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"dodge_dust_slots": _robot_dust_slot_count(city),
 		"critical_smoke_emitters": _robot_smoke_emitter_count(city),
 		"melee_charge_emitters": _robot_charge_emitter_count(city),
+		"melee_charge_particles": _robot_charge_particle_capacity(city),
+		"melee_charge_visuals": _robot_charge_visual_count(city),
 		"elite_spawn_effect_slots": city.encounter_runtime.elite_spawn_effect_pool.slot_count(),
 		"hazard_total": city.urban_siege.hazards.total_count(),
 		"hazard_active": city.urban_siege.hazards.active_count(),
@@ -233,6 +237,8 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "dodge_dust_slots", DODGE_DUST_SLOTS)
 	_check_equal(errors, data, "critical_smoke_emitters", CRITICAL_SMOKE_EMITTERS)
 	_check_equal(errors, data, "melee_charge_emitters", MELEE_CHARGE_EMITTERS)
+	_check_equal(errors, data, "melee_charge_particles", MELEE_CHARGE_PARTICLES)
+	_check_equal(errors, data, "melee_charge_visuals", MELEE_CHARGE_VISUALS)
 	_check_equal(
 		errors,
 		data,
@@ -397,6 +403,20 @@ static func _robot_charge_emitter_count(city: CitySlice) -> int:
 		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
 	return presenter.charge_particle_emitter_count() if presenter != null else 0
+
+
+static func _robot_charge_particle_capacity(city: CitySlice) -> int:
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	return presenter.charge_particle_capacity() if presenter != null else 0
+
+
+static func _robot_charge_visual_count(city: CitySlice) -> int:
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	return presenter.charge_visual_count() if presenter != null else 0
 
 
 static func _weapon_drone_count(city: CitySlice) -> int:

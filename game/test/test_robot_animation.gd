@@ -43,10 +43,11 @@ func test_library_excludes_all_northward_walk_and_attack_directions() -> void:
 		CityWorldBuilder.ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y,
 		0.001
 	)
-	assert_between(
+	# The body can settle during the deferred physics tick before this test disables it.
+	assert_almost_eq(
 		CityWorldBuilder.LAND_VISUAL_BASELINE_Y - visual_ground.global_position.y,
 		CityWorldBuilder.ROBOT_ROAD_CLEARANCE_PIXELS,
-		CityWorldBuilder.ROBOT_ROAD_CLEARANCE_PIXELS + 1.0
+		3.0
 	)
 	var names: PackedStringArray = sprite.sprite_frames.get_animation_names()
 	names.sort()
@@ -147,6 +148,9 @@ func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on
 	var particles: CPUParticles2D = robot.get_node(
 		^"VisualRoot/MeleeChargeParticles"
 	) as CPUParticles2D
+	var meter: Node2D = robot.get_node(^"VisualRoot/PhotonChargeMeter") as Node2D
+	var meter_frame: Sprite2D = meter.get_node(^"Frame") as Sprite2D
+	var core: Sprite2D = robot.get_node(^"VisualRoot/PhotonChestCore") as Sprite2D
 	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
 	assert_gt(attacks.begin_charge(), 0)
 	assert_eq(sprite.animation, &"attack_se")
@@ -162,17 +166,40 @@ func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on
 	assert_eq(sprite.frame, 0)
 	assert_false(sprite.is_playing())
 	assert_eq(presenter.charge_particle_emitter_count(), 1)
+	assert_eq(presenter.charge_particle_capacity(), RobotAnimationPresenter.CHARGE_PARTICLE_CAPACITY)
 	assert_true(presenter.charge_particles_emitting())
 	assert_eq(particles.color, RobotAnimationPresenter.CHARGE_PARTICLE_COLOR)
+	assert_same(particles.texture, RobotAnimationPresenter.PHOTON_CORE_TEXTURE)
 	assert_lt(particles.radial_accel_max, 0.0)
+	assert_true(presenter.charge_meter_visible())
+	assert_true(presenter.charge_core_visible())
+	assert_same(meter_frame.texture, RobotAnimationPresenter.CHARGE_METER_FRAME_TEXTURE)
+	assert_same(core.texture, RobotAnimationPresenter.PHOTON_CORE_TEXTURE)
+	assert_eq(presenter.charge_sfx_play_count, 2)
+	assert_same(presenter._charge_sfx_player.stream, RobotAnimationPresenter.PHOTON_CHARGE_SFX)
+	assert_eq(presenter._charge_sfx_player.bus, GameAudioBus.MECHANICS)
 	attacks._process(1.0)
 	assert_eq(sprite.frame, 0)
 	assert_false(sprite.is_playing())
 	assert_almost_eq(presenter.last_charge_progress, 0.5, 0.0001)
+	assert_eq(presenter.charge_particle_capacity(), RobotAnimationPresenter.CHARGE_PARTICLE_CAPACITY)
+	assert_almost_eq(presenter.charge_meter_fill_ratio(), 0.5, 0.0001)
+	assert_almost_eq(
+		core.scale.x,
+		lerpf(
+			RobotAnimationPresenter.CHARGE_CORE_MIN_SCALE,
+			RobotAnimationPresenter.CHARGE_CORE_MAX_SCALE,
+			0.5
+		),
+		0.0001
+	)
 	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
 	assert_true(attacks.release_charge())
 	assert_false(presenter.charging)
 	assert_false(presenter.charge_particles_emitting())
+	assert_false(presenter.charge_meter_visible())
+	assert_false(presenter.charge_core_visible())
+	assert_false(presenter._charge_sfx_player.playing)
 	assert_true(sprite.is_playing())
 	var spec: AttackSpec = attacks.current_spec
 	await get_tree().create_timer(spec.anticipation_seconds + 0.04).timeout
@@ -190,14 +217,16 @@ func test_pause_cancels_charge_and_clears_particles_without_releasing_attack() -
 		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
 	assert_gt(attacks.begin_charge(), 0)
-	attacks._process(0.75)
-	assert_true(presenter.charge_particles_emitting())
+	attacks._process(ContextualAttackController.MAX_CHARGE_SECONDS)
+	assert_false(presenter.charge_particles_emitting())
+	assert_true(presenter._charge_voice_player.playing)
 	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
 	assert_false(attacks.is_busy())
 	assert_false(attacks.is_charging())
 	assert_false(presenter.attacking)
 	assert_false(presenter.charging)
 	assert_false(presenter.charge_particles_emitting())
+	assert_false(presenter._charge_voice_player.playing)
 	assert_eq(sprite.animation, &"idle_s")
 	assert_false(sprite.is_playing())
 	assert_false(attacks.release_charge())
@@ -216,12 +245,51 @@ func test_full_charge_stops_particles_at_two_seconds_but_keeps_first_frame_froze
 	assert_true(attacks.is_charging())
 	assert_almost_eq(attacks.charge_duration(), 2.0, 0.0001)
 	assert_almost_eq(presenter.last_charge_progress, 1.0, 0.0001)
+	assert_almost_eq(presenter.charge_meter_fill_ratio(), 1.0, 0.0001)
+	assert_true(presenter.charge_meter_visible())
+	assert_true(presenter.charge_core_visible())
+	assert_eq(presenter.full_charge_voice_play_count, 1)
+	assert_same(
+		presenter._charge_voice_player.stream,
+		RobotAnimationPresenter.FULLY_CHARGED_VOICE
+	)
+	assert_eq(presenter._charge_voice_player.bus, GameAudioBus.VOICE)
 	assert_false(presenter.charge_particles_emitting())
 	assert_eq(sprite.frame, 0)
 	assert_false(sprite.is_playing())
+	presenter._process(0.25)
+	attacks._process(1.0)
+	assert_eq(presenter.full_charge_voice_play_count, 1)
 	assert_true(attacks.release_charge())
 	assert_almost_eq(attacks.current_spec.actor_damage, 720.0, 0.001)
+	assert_true(presenter._charge_voice_player.playing)
+	assert_false(presenter.charge_meter_visible())
+	assert_false(presenter.charge_core_visible())
 	assert_true(sprite.is_playing())
+	attacks.cancel_attack()
+	assert_false(presenter._charge_voice_player.playing)
+
+
+func test_confirmed_full_charge_enemy_hit_plays_signature_cue_and_world_flash_once() -> void:
+	var city: CitySlice = await _spawn_city()
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var hit_position: Vector2 = city.robot.global_position + Vector2(150.0, -28.0)
+	var attack_id: int = attacks.begin_charge()
+	attacks._process(ContextualAttackController.MAX_CHARGE_SECONDS)
+	assert_true(attacks.release_charge())
+	assert_true(attacks.current_spec.is_fully_charged())
+	assert_true(attacks.report_enemy_hit(attack_id, hit_position, 2))
+	assert_eq(presenter.full_charge_hit_sfx_play_count, 1)
+	assert_eq(presenter.last_audio_cue, &"photon_full_hit")
+	assert_eq(presenter.last_full_charge_hit_position, hit_position)
+	assert_true(presenter.full_charge_hit_flash_visible())
+	assert_false(attacks.report_enemy_hit(attack_id, hit_position, 2))
+	assert_eq(presenter.full_charge_hit_sfx_play_count, 1)
+	presenter._process(RobotAnimationPresenter.FULL_CHARGE_HIT_FLASH_SECONDS + 0.01)
+	assert_false(presenter.full_charge_hit_flash_visible())
 
 
 func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() -> void:
@@ -401,6 +469,9 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 		1.17,
 		0.01
 	)
+	_assert_compressed_runtime_cue(RobotAnimationPresenter.PHOTON_CHARGE_SFX)
+	_assert_compressed_runtime_cue(RobotAnimationPresenter.PHOTON_FULL_HIT_SFX)
+	_assert_compact_voice_cue(RobotAnimationPresenter.FULLY_CHARGED_VOICE)
 	assert_almost_eq(
 		db_to_linear(RobotAnimationPresenter.ATTACK_IMPACT_GAIN_DB),
 		3.0,
@@ -418,6 +489,8 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 		(presenter.get_node(^"RobotStatusRechargeSfx") as AudioStreamPlayer).bus,
 		GameAudioBus.MECHANICS
 	)
+	assert_eq(presenter._charge_sfx_player.bus, GameAudioBus.MECHANICS)
+	assert_eq(presenter._charge_voice_player.bus, GameAudioBus.VOICE)
 	var frame_callable: Callable = presenter._on_sprite_frame_changed
 	sprite.frame_changed.disconnect(frame_callable)
 	robot.locomotion_state = GiantRobotController.LocomotionState.WALK

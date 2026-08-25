@@ -2,6 +2,7 @@ class_name DestructionDirector
 extends Node2D
 
 signal explosion_resolved(origin: Vector2, accepted_targets: int)
+signal enemy_hits_resolved(attack_id: int, world_position: Vector2, enemy_count: int)
 
 const GROUND_SMASH_PROP_DAMAGE_SCALE: float = 5.0
 
@@ -91,6 +92,8 @@ func _resolve_explosion(data: Dictionary) -> void:
 	)
 	var seen: Dictionary[int, bool] = {}
 	var accepted_targets: int = 0
+	var enemy_count: int = 0
+	var enemy_hit_position: Vector2 = origin
 	var structural_targets: int = 0
 	var debris_targets: int = 0
 	for result: Dictionary in results:
@@ -153,7 +156,13 @@ func _resolve_explosion(data: Dictionary) -> void:
 		_apply_rigid_impulse(target_node, scaled_event)
 		if accepted:
 			accepted_targets += 1
+			if receiver is EnemyActor2D:
+				enemy_count += 1
+				if enemy_count == 1:
+					enemy_hit_position = target_node.global_position
 	explosion_resolved.emit(origin, accepted_targets)
+	if enemy_count > 0:
+		enemy_hits_resolved.emit(int(data.attack_id), enemy_hit_position, enemy_count)
 
 
 func _is_source_related(candidate: Node, source: Node) -> bool:
