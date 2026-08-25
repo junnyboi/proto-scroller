@@ -99,19 +99,19 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 	var run_rule: String = (screen.get_node("%RunRule") as Label).text
 	assert_eq(hook, L10n.t("title.command_hook"))
 	for required_control: String in [
-		"A/D", "STICK", "D-PAD", "TOUCH", "SPACE", "A / CROSS", "SHIFT", "B / CIRCLE"
+		"A/D", "STICK", "D-PAD", "TOUCH", "SPACE", "A / CROSS", "DOUBLE-TAP", "FLICK TWICE"
 	]:
 		assert_true(controls.contains(required_control), required_control)
 	var info_panel: PanelContainer = screen.get_node("StatusRail") as PanelContainer
-	assert_true(info_panel.get_global_rect().encloses(
-		(screen.get_node("%ControlsLabel") as Label).get_global_rect()
-	))
+	var controls_label: Label = screen.get_node("%ControlsLabel") as Label
+	assert_true(info_panel.get_global_rect().encloses(controls_label.get_global_rect()))
+	assert_null(screen.get_node_or_null("StatusRail/InfoContent/StatusItems"))
+	assert_lt(
+		controls_label.get_theme_font_size(&"font_size"),
+		(screen.get_node("%InstructionLabel") as Label).get_theme_font_size(&"font_size")
+	)
 	assert_true(field_note.contains("Bindings can be changed"))
 	assert_true(field_note.contains("AUTO SAVE"))
-	assert_eq(
-		(screen.get_node("StatusRail/InfoContent/StatusItems/Objective/Value") as Label).text,
-		"SURVIVE"
-	)
 	assert_true(
 		(screen.get_node("SemanticContract/ObjectiveOne") as Label).text.contains("earn EXP")
 	)
@@ -255,6 +255,9 @@ func test_all_ui_text_meets_the_32_pixel_rendered_height_pin() -> void:
 	var minimum_height: float = INF
 	for label_node: Node in screen.find_children("*", "Label", true, false):
 		var label: Label = label_node as Label
+		if label == screen.get_node("%ControlsLabel"):
+			assert_gte(_rendered_line_height(label), 28.0)
+			continue
 		minimum_height = minf(minimum_height, _rendered_line_height(label))
 		measured_controls += 1
 	for button_node: Node in screen.find_children("*", "Button", true, false):

@@ -76,7 +76,7 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	_set_viewport(LANDSCAPE_SIZE)
 	await get_tree().process_frame
 	assert_false(screen.is_portrait_layout())
-	assert_eq((screen.get_node("StatusRail") as Control).position, Vector2(52.0, 536.0))
+	assert_eq((screen.get_node("StatusRail") as Control).position, Vector2(52.0, 550.0))
 	assert_eq(background.texture.resource_path, "res://art/ui/title_screen/command_deck_landscape.jpg")
 	assert_true(_inside_viewport(briefing_toggle, LANDSCAPE_SIZE))
 	assert_true(_inside_viewport(settings_button, LANDSCAPE_SIZE))

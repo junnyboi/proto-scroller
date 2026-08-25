@@ -115,8 +115,11 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 		"敌军已控制城市。全面报复。"
 	)
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
-	assert_true(controls.contains("MOVE A/D"))
-	assert_true(controls.contains("SMASH SPACE · A / CROSS"))
+	assert_true(controls.contains("移动 A/D"))
+	assert_true(controls.contains("重击   SPACE / A / CROSS"))
+	assert_true(controls.contains("闪避   双击 A / D"))
+	assert_true(controls.contains("连拨两次"))
+	assert_false(controls.contains("DODGE"))
 	assert_eq((screen.get_node("%EnglishButton") as Button).text, "EN")
 	assert_eq((screen.get_node("%ChineseButton") as Button).text, "CN")
 	assert_null(screen.get_node_or_null("%AutomaticButton"))
