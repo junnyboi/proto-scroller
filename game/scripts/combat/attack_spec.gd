@@ -111,3 +111,24 @@ func is_ground_smash() -> bool:
 
 func is_jab_cross() -> bool:
 	return _mode == Mode.JAB_CROSS
+
+
+func with_damage_multiplier(multiplier: float) -> AttackSpec:
+	var clamped_multiplier: float = clampf(multiplier, 1.0, 2.0)
+	return AttackSpec.new(
+		_mode,
+		_attack_id,
+		_facing,
+		_speed_ratio,
+		_anticipation_seconds,
+		_active_seconds,
+		_recovery_seconds,
+		_actor_damage * clamped_multiplier,
+		_structural_damage * clamped_multiplier,
+		_impulse_per_mass,
+		_hit_size,
+		_hit_offset,
+		_opening_compression,
+		_effect_flags,
+		_kinetic_debris_bonus
+	)

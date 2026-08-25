@@ -17,7 +17,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 rm -rf artifacts
 mkdir -p \
-  artifacts/title_screen \
+	  artifacts/charge_attack \
+	  artifacts/title_screen \
   artifacts/city_slice \
 	  artifacts/endless_terrain \
 	  artifacts/enemy_variety \
@@ -27,7 +28,7 @@ mkdir -p \
 	  artifacts/weapon_drones
 : > artifacts/.gdignore
 START_EPOCH="$(date +%s)"
-ENGINE_TIMEOUT_SECONDS=60
+ENGINE_TIMEOUT_SECONDS=120
 EXPORT_TIMEOUT_SECONDS=300
 PCK_BUDGET_BYTES=$((16 * 1024 * 1024))
 
@@ -73,7 +74,7 @@ for cue in \
 	  audio/voice/target_destroyed.wav \
 	  audio/sfx/debris/debris_enemy_thud.wav; do
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
-	test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
+		test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
 done
 DASH_WARP_DURATION="$(
 	ffprobe -v error -show_entries format=duration -of csv=p=0 \
@@ -82,10 +83,17 @@ DASH_WARP_DURATION="$(
 awk -v duration="$DASH_WARP_DURATION" 'BEGIN {
 	exit !(duration >= 1.0 && duration <= 3.0)
 }'
+PARSE_LOG="artifacts/parse-lint.log"
+: > "$PARSE_LOG"
 while IFS= read -r -d '' script; do
-  gdlint "$script"
-  run_engine "$GODOT" --headless --path . --check-only -s "$script"
+	  gdlint "$script"
+	  run_engine "$GODOT" --headless --path . --check-only -s "$script" 2>&1 \
+	    | tee -a "$PARSE_LOG"
 done < <(find scripts selftest test -type f -name '*.gd' -print0 | sort -z)
+if grep -Eq 'SCRIPT ERROR|Parse Error|ERROR:|FATAL|CRASH' "$PARSE_LOG"; then
+	printf '%s\n' '[PARSE-FAIL] Godot logged a script or resource diagnostic' >&2
+	exit 1
+fi
 
 printf '%s\n' '[L2] GUT unit suite'
 run_engine "$GODOT" --headless -d -s addons/gut/gut_cmdln.gd -gdir=res://test -gexit \
@@ -120,9 +128,15 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/city_slice/report.json >/dev/null
 
+printf '%s\n' '[L4] charged-smash headless scenario'
+run_engine "$GODOT" --headless --fixed-fps 60 --path . \
+	-s selftest/charge_attack_scenario.gd
+jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
+	artifacts/charge_attack/report.json >/dev/null
+
 printf '%s\n' '[L4] directive-card headless lifecycle scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
-  -s selftest/directive_card_visual_scenario.gd
+	-s selftest/directive_card_visual_scenario.gd
 
 printf '%s\n' '[L4] district-building gallery headless scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
@@ -218,7 +232,27 @@ if [[ "$MODE" == "full" ]]; then
 		  cp artifacts/city_slice/city-slice-rubble-landscape.png \
 		    artifacts/city_slice/city-slice-rubble.png
 
-	  printf '%s\n' '[L5] landscape district-building gallery scenario'
+		  printf '%s\n' '[L5] landscape charged-smash visual scenario'
+		  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+		    -s selftest/charge_attack_scenario.gd
+		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+		    artifacts/charge_attack/report.json >/dev/null
+		  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/charge-attack.png)"
+		  mv artifacts/charge_attack/charge-attack.png \
+		    artifacts/charge_attack/charge-attack-landscape.png
+
+		  printf '%s\n' '[L5] portrait charged-smash visual scenario'
+		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+		    --resolution 720x1280 -s selftest/charge_attack_scenario.gd
+		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+		    artifacts/charge_attack/report.json >/dev/null
+		  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/charge-attack.png)"
+		  mv artifacts/charge_attack/charge-attack.png \
+		    artifacts/charge_attack/charge-attack-portrait.png
+		  cp artifacts/charge_attack/charge-attack-landscape.png \
+		    artifacts/charge_attack/charge-attack.png
+
+		  printf '%s\n' '[L5] landscape district-building gallery scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
 	    -s selftest/district_building_gallery_scenario.gd
 	  jq -e '.done == true and .result == "PASS" and (.districts | length) == 5' \
@@ -389,9 +423,12 @@ if [[ "$MODE" == "full" ]]; then
 	  )
 	  jq -e '
 	    .status == "PASS"
-	    and (.phases | map(.status)) == [
-	      "ready",
-	      "attack_started",
+		    and (.phases | map(.status)) == [
+		      "ready",
+		      "charge_started",
+		      "charge_progress",
+		      "charge_released",
+		      "attack_started",
 	      "upgrade_visible",
 	      "upgrade_resolved",
 	      "east_walk_ok",

@@ -362,17 +362,19 @@ func _build_hud() -> void:
 func _on_robot_heavy_impact(
 	origin: Vector2,
 	radius: float,
-	damage: float,
+	actor_damage: float,
+	structural_damage: float,
 	impulse_per_mass: float,
 	attack_id: int
 ) -> void:
 	var options: DamageQueryOptions = DamageQueryOptions.new()
 	options.damage_type = &"ground_smash"
+	options.structural_damage_scale = structural_damage / maxf(actor_damage, 0.001)
 	upgrade_assembler.decorate_damage_options(options, contextual_attacks.current_spec)
 	destruction_director.queue_explosion(
 		origin,
 		radius,
-		damage,
+		actor_damage,
 		impulse_per_mass,
 		attack_id,
 		robot,

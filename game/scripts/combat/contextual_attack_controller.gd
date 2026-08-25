@@ -5,15 +5,21 @@ signal attack_started(spec: AttackSpec)
 signal attack_active(spec: AttackSpec)
 signal attack_finished(spec: AttackSpec)
 signal dodge_buffered(attack_id: int, direction: int)
+signal charge_started(spec: AttackSpec)
+signal charge_updated(spec: AttackSpec, duration: float, progress: float, multiplier: float)
+signal charge_released(spec: AttackSpec, duration: float, multiplier: float)
 
 enum Phase {
 	READY,
+	CHARGING,
 	ANTICIPATION,
 	ACTIVE,
 	RECOVERY,
 }
 
 const DODGE_CANCEL_MELEE_MOMENTUM_RATIO: float = 0.50
+const MAX_CHARGE_SECONDS: float = 2.0
+const MAX_CHARGE_DAMAGE_MULTIPLIER: float = 2.0
 
 var current_spec: AttackSpec
 var resolver: AttackResolver
@@ -30,6 +36,8 @@ var _rest_scale: Vector2 = Vector2.ONE
 var _rest_rotation: float = 0.0
 var _busy: bool = false
 var _buffered_dodge_direction: int = 0
+var _charging: bool = false
+var _charge_duration: float = 0.0
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -70,7 +78,31 @@ func _ready() -> void:
 			presenter.bind_attacks(self)
 
 
+func _process(delta: float) -> void:
+	if not _charging or current_spec == null:
+		return
+	var previous_duration: float = _charge_duration
+	_charge_duration = minf(
+		_charge_duration + maxf(delta, 0.0),
+		MAX_CHARGE_SECONDS
+	)
+	if not is_equal_approx(previous_duration, _charge_duration):
+		charge_updated.emit(
+			current_spec,
+			_charge_duration,
+			charge_progress(),
+			charge_damage_multiplier()
+		)
+
+
 func request_attack() -> int:
+	var attack_id: int = begin_charge()
+	if attack_id > 0:
+		release_charge()
+	return attack_id
+
+
+func begin_charge() -> int:
 	if _busy:
 		return 0
 	if _robot == null:
@@ -123,13 +155,45 @@ func request_attack() -> int:
 	if directive_session != null:
 		current_spec = directive_session.decorate_attack(current_spec)
 	_busy = true
+	_charging = true
+	_charge_duration = 0.0
 	_buffered_dodge_direction = 0
-	phase = Phase.ANTICIPATION
+	phase = Phase.CHARGING
 	_robot._set_attack_locked(true)
 	_robot.notify_attack_selected(current_spec.mode, current_spec.attack_id)
 	attack_started.emit(current_spec)
-	_run_attack(current_spec)
+	charge_started.emit(current_spec)
+	charge_updated.emit(current_spec, 0.0, 0.0, 1.0)
 	return attack_id
+
+
+func release_charge() -> bool:
+	if not _charging or current_spec == null:
+		return false
+	_charging = false
+	var release_duration: float = _charge_duration
+	var multiplier: float = charge_damage_multiplier()
+	current_spec = current_spec.with_damage_multiplier(multiplier)
+	phase = Phase.ANTICIPATION
+	charge_released.emit(current_spec, release_duration, multiplier)
+	_run_attack(current_spec)
+	return true
+
+
+func is_charging() -> bool:
+	return _charging
+
+
+func charge_duration() -> float:
+	return _charge_duration
+
+
+func charge_progress() -> float:
+	return clampf(_charge_duration / MAX_CHARGE_SECONDS, 0.0, 1.0)
+
+
+func charge_damage_multiplier() -> float:
+	return lerpf(1.0, MAX_CHARGE_DAMAGE_MULTIPLIER, charge_progress())
 
 
 func request_dodge(direction: int) -> bool:
@@ -154,6 +218,8 @@ func cancel_attack() -> void:
 	var cancelled_spec: AttackSpec = current_spec
 	current_spec = null
 	_busy = false
+	_charging = false
+	_charge_duration = 0.0
 	_buffered_dodge_direction = 0
 	phase = Phase.READY
 	if _robot != null:
@@ -173,7 +239,13 @@ func _run_attack(spec: AttackSpec) -> void:
 	_apply_active_pose(spec)
 	if spec.is_ground_smash():
 		_robot.velocity.x = 0.0
-		_robot.execute_ground_smash(spec.attack_id)
+		_robot.execute_ground_smash(
+			spec.attack_id,
+			spec.actor_damage,
+			spec.structural_damage,
+			spec.impulse_per_mass,
+			spec.hit_size.x * 0.5
+		)
 	else:
 		_robot.velocity.x = 0.0
 		jab_cross_impact.resolve(spec, _robot)
@@ -194,6 +266,7 @@ func _run_attack(spec: AttackSpec) -> void:
 	_restore_pose()
 	current_spec = null
 	_busy = false
+	_charge_duration = 0.0
 	phase = Phase.READY
 	_robot._set_attack_locked(false)
 	attack_finished.emit(spec)

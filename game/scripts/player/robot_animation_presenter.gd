@@ -10,7 +10,14 @@ const AFTERIMAGE_LIFETIME: float = 0.22
 const AFTERIMAGE_ALPHA: float = 0.34
 const DUST_INTERVAL: float = 0.055
 const CRITICAL_HEALTH_RATIO: float = 0.25
+const ATTACK_IMPACT_BASE_VOLUME_DB: float = 1.5
+const ATTACK_IMPACT_GAIN_DB: float = 9.5424250941
+const ATTACK_IMPACT_VOLUME_DB: float = (
+	ATTACK_IMPACT_BASE_VOLUME_DB + ATTACK_IMPACT_GAIN_DB
+)
 const CRITICAL_SMOKE_OFFSET: Vector2 = Vector2(28.0, -42.0)
+const CHARGE_PARTICLE_OFFSET: Vector2 = Vector2(0.0, 34.0)
+const CHARGE_PARTICLE_COLOR: Color = Color(1.0, 0.72, 0.16, 0.92)
 const CRITICAL_SMOKE_TEXTURE: Texture2D = preload(
 	"res://art/player/weapons/missile_explosion_smoke.png"
 )
@@ -53,6 +60,8 @@ var last_preempted_priority: int = AudioVoicePriority.UNUSED
 var last_audio_cue: StringName = &""
 var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
+var charging: bool = false
+var last_charge_progress: float = 0.0
 var dust_intensity_scale: float = 1.0
 var _audio_players: Array[AudioStreamPlayer2D] = []
 var _status_sfx_player: AudioStreamPlayer
@@ -66,6 +75,7 @@ var _dust_pool: DodgeDustPool2D
 var _dust_elapsed: float = 0.0
 var _dodge_facing: int = 1
 var _critical_smoke: CPUParticles2D
+var _charge_particles: CPUParticles2D
 
 
 func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
@@ -84,12 +94,16 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	_prewarm_afterimages()
 	_prewarm_dust()
 	_prewarm_critical_smoke()
+	_prewarm_charge_particles()
 	_on_health_changed(robot.current_health, robot.max_health)
 	_show_idle()
 
 
 func bind_attacks(controller: ContextualAttackController) -> void:
 	controller.attack_finished.connect(_on_attack_finished)
+	controller.charge_started.connect(_on_charge_started)
+	controller.charge_updated.connect(_on_charge_updated)
+	controller.charge_released.connect(_on_charge_released)
 
 
 func audio_voice_count() -> int:
@@ -122,6 +136,14 @@ func critical_smoke_emitter_count() -> int:
 
 func critical_smoke_emitting() -> bool:
 	return _critical_smoke != null and _critical_smoke.emitting
+
+
+func charge_particle_emitter_count() -> int:
+	return 1 if _charge_particles != null else 0
+
+
+func charge_particles_emitting() -> bool:
+	return _charge_particles != null and _charge_particles.emitting
 
 
 func _process(delta: float) -> void:
@@ -173,15 +195,66 @@ func _on_attack_selected(mode: int, attack_id: int) -> void:
 	_play_mechanics(SERVO_SFX, &"attack_windup", 2.5, pitch)
 
 
+func _on_charge_started(spec: AttackSpec) -> void:
+	if spec == null or spec.attack_id != selected_attack_id:
+		return
+	charging = true
+	last_charge_progress = 0.0
+	sprite.pause()
+	sprite.set_frame_and_progress(0, 0.0)
+	if _charge_particles != null:
+		_charge_particles.emitting = true
+
+
+func _on_charge_updated(
+	spec: AttackSpec,
+	_duration: float,
+	progress: float,
+	_multiplier: float
+) -> void:
+	if spec == null or spec.attack_id != selected_attack_id or not charging:
+		return
+	last_charge_progress = clampf(progress, 0.0, 1.0)
+	if _charge_particles != null:
+		_charge_particles.emitting = last_charge_progress < 1.0
+		_charge_particles.amount = 28 + roundi(last_charge_progress * 28.0)
+		_charge_particles.initial_velocity_min = 44.0 + last_charge_progress * 24.0
+		_charge_particles.initial_velocity_max = 104.0 + last_charge_progress * 46.0
+
+
+func _on_charge_released(
+	spec: AttackSpec,
+	_duration: float,
+	_multiplier: float
+) -> void:
+	if spec == null or spec.attack_id != selected_attack_id:
+		return
+	charging = false
+	if _charge_particles != null:
+		_charge_particles.emitting = false
+	sprite.speed_scale = 1.0
+	sprite.play()
+
+
 func _on_attack_committed(mode: int, attack_id: int) -> void:
 	if not attacking or attack_id != selected_attack_id:
 		return
 	if sprite.frame < ATTACK_EVENT_FRAME:
 		sprite.set_frame_and_progress(ATTACK_EVENT_FRAME, 0.0)
 	if mode == AttackSpec.Mode.GROUND_SMASH:
-		_play_mechanics(GROUND_SLAM_IMPACT_SFX, &"ground_slam_impact", 1.5, 1.0)
+		_play_mechanics(
+			GROUND_SLAM_IMPACT_SFX,
+			&"ground_slam_impact",
+			ATTACK_IMPACT_VOLUME_DB,
+			1.0
+		)
 	else:
-		_play_mechanics(DOUBLE_PUNCH_IMPACT_SFX, &"double_punch_impact", 1.5, 1.0)
+		_play_mechanics(
+			DOUBLE_PUNCH_IMPACT_SFX,
+			&"double_punch_impact",
+			ATTACK_IMPACT_VOLUME_DB,
+			1.0
+		)
 
 
 func _on_attack_finished(spec: AttackSpec) -> void:
@@ -191,6 +264,10 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 	if sprite.frame == RobotSpriteFramesBuilder.FRAME_COUNT - 1:
 		completed_full_attack_count += 1
 	attacking = false
+	charging = false
+	last_charge_progress = 0.0
+	if _charge_particles != null:
+		_charge_particles.emitting = false
 	selected_attack_id = 0
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
 		_play_walk()
@@ -322,6 +399,36 @@ func _prewarm_critical_smoke() -> void:
 	_critical_smoke.emitting = false
 	visual_root.add_child(_critical_smoke)
 	_update_emitter_facing()
+
+
+func _prewarm_charge_particles() -> void:
+	var visual_root: Node2D = robot.get_node_or_null(^"VisualRoot") as Node2D
+	if visual_root == null:
+		return
+	_charge_particles = CPUParticles2D.new()
+	_charge_particles.name = "MeleeChargeParticles"
+	_charge_particles.position = CHARGE_PARTICLE_OFFSET
+	_charge_particles.amount = 28
+	_charge_particles.lifetime = 0.72
+	_charge_particles.preprocess = 0.35
+	_charge_particles.randomness = 0.82
+	_charge_particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_charge_particles.emission_sphere_radius = 165.0
+	_charge_particles.direction = Vector2.ZERO
+	_charge_particles.spread = 180.0
+	_charge_particles.gravity = Vector2.ZERO
+	_charge_particles.initial_velocity_min = 44.0
+	_charge_particles.initial_velocity_max = 104.0
+	_charge_particles.radial_accel_min = -300.0
+	_charge_particles.radial_accel_max = -190.0
+	_charge_particles.damping_min = 18.0
+	_charge_particles.damping_max = 30.0
+	_charge_particles.scale_amount_min = 3.0
+	_charge_particles.scale_amount_max = 7.0
+	_charge_particles.color = CHARGE_PARTICLE_COLOR
+	_charge_particles.z_index = 2
+	_charge_particles.emitting = false
+	visual_root.add_child(_charge_particles)
 
 
 func _prewarm_audio() -> void:

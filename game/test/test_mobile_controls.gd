@@ -40,6 +40,7 @@ func test_mobile_detection_floating_joystick_and_smash_multitouch() -> void:
 	assert_lte(controls.movement_axis(), -0.8)
 	controls.handle_touch_input(_screen_touch(9, smash_position, false))
 	assert_eq(controls.smash_touch_index(), -1)
+	assert_eq(controls.smash_release_count, 1)
 	assert_true(controls.joystick_active)
 	assert_lte(controls.movement_axis(), -0.8)
 	controls.process_controls(controls.smash_cooldown)
@@ -47,11 +48,31 @@ func test_mobile_detection_floating_joystick_and_smash_multitouch() -> void:
 	assert_eq(controls.smash_press_count, 2)
 	assert_eq(controls.smash_touch_index(), 10)
 	controls.handle_touch_input(_screen_touch(10, smash_position, false))
+	assert_eq(controls.smash_release_count, 2)
 	controls.handle_touch_input(_screen_touch(3, Vector2(330.0, 520.0), false))
 	for settle_step: int in range(5):
 		controls.process_controls(1.0 / 60.0)
 	assert_false(controls.joystick_active)
 	assert_lt(absf(controls.movement_axis()), 0.05)
+	_record_test_execution()
+
+
+func test_disabling_mobile_controls_does_not_release_a_held_smash() -> void:
+	get_tree().root.size = Vector2i(1280, 720)
+	var controls: MobileControls = MobileControls.new()
+	controls.detection_override = 1
+	add_child_autofree(controls)
+	await get_tree().process_frame
+	var smash_position: Vector2 = controls.smash_bounds().get_center()
+	controls.handle_touch_input(_screen_touch(41, smash_position, true))
+	assert_eq(controls.smash_press_count, 1)
+	assert_eq(controls.smash_release_count, 0)
+	assert_eq(controls.smash_touch_index(), 41)
+	controls.set_controls_enabled(false)
+	assert_eq(controls.smash_touch_index(), -1)
+	assert_eq(controls.smash_release_count, 0)
+	controls.handle_touch_input(_screen_touch(41, smash_position, false))
+	assert_eq(controls.smash_release_count, 0)
 	_record_test_execution()
 
 
@@ -143,18 +164,21 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 		_screen_touch(8, smash_position, true)
 	)
 	assert_true(city.contextual_attacks.current_spec.is_ground_smash())
+	assert_true(city.contextual_attacks.is_charging())
 	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
 	assert_eq(city.mobile_controls.smash_touch_index(), 8)
 	assert_eq(city.haptics_adapter.request_count, 0)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(8, smash_position, false)
+	)
+	assert_false(city.contextual_attacks.is_charging())
+	assert_eq(city.mobile_controls.smash_release_count, 1)
 	var ground_spec: AttackSpec = city.contextual_attacks.current_spec
 	await get_tree().create_timer(ground_spec.anticipation_seconds + 0.03).timeout
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(city.car.is_broken)
 	assert_eq(city.haptics_adapter.request_count, 1)
-	city.mobile_controls.handle_touch_input(
-		_screen_touch(8, smash_position, false)
-	)
 	await get_tree().create_timer(
 		ground_spec.active_seconds + ground_spec.recovery_seconds + 0.03
 	).timeout
@@ -175,8 +199,14 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	if city.contextual_attacks.current_spec == null:
 		return
 	assert_true(city.contextual_attacks.current_spec.is_jab_cross())
+	assert_true(city.contextual_attacks.is_charging())
 	assert_eq(city.mobile_controls.joystick_touch_index(), 2)
 	assert_eq(city.mobile_controls.smash_touch_index(), 9)
+	city.mobile_controls.handle_touch_input(
+		_screen_touch(9, smash_position, false)
+	)
+	assert_false(city.contextual_attacks.is_charging())
+	assert_eq(city.mobile_controls.smash_release_count, 2)
 	var jab_spec: AttackSpec = city.contextual_attacks.current_spec
 	await get_tree().create_timer(jab_spec.anticipation_seconds + 0.03).timeout
 	await get_tree().physics_frame
@@ -185,9 +215,6 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	assert_gt(city.contextual_attacks.jab_cross_impact.last_accepted_targets, 0)
 	assert_lt(city.tank.current_health, city.tank.max_health)
 	assert_eq(city.haptics_adapter.request_count, haptic_count_after_upgrade + 1)
-	city.mobile_controls.handle_touch_input(
-		_screen_touch(9, smash_position, false)
-	)
 	assert_true(city.mobile_controls.joystick_active)
 	var structural_cell: Destructible2D = city.building.get_cell(0, 1)
 	assert_true(
@@ -262,6 +289,7 @@ func test_mobile_smash_touch_cancels_dodge_into_half_momentum_melee() -> void:
 	if spec == null:
 		return
 	assert_eq(city.mobile_controls.smash_press_count, 1)
+	assert_true(city.contextual_attacks.is_charging())
 	assert_true(spec.is_jab_cross())
 	assert_eq(spec.facing, -1)
 	assert_almost_eq(spec.speed_ratio, 0.50, 0.0001)
@@ -271,9 +299,16 @@ func test_mobile_smash_touch_cancels_dodge_into_half_momentum_melee() -> void:
 		GiantRobotController.LocomotionState.ATTACK_LOCKED
 	)
 	assert_false(city.robot.dodge_invulnerable)
+	city.contextual_attacks._process(1.0)
 	city.mobile_controls.handle_touch_input(
 		_screen_touch(31, smash_position, false)
 	)
+	assert_false(city.contextual_attacks.is_charging())
+	assert_eq(city.mobile_controls.smash_release_count, 1)
+	spec = city.contextual_attacks.current_spec
+	assert_almost_eq(spec.actor_damage, 108.75, 0.001)
+	assert_almost_eq(spec.structural_damage, 93.75, 0.001)
+	assert_almost_eq(spec.impulse_per_mass, 540.0, 0.001)
 	_record_test_execution()
 
 

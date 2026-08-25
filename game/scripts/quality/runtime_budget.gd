@@ -75,6 +75,7 @@ const PLAYER_ATTACK_REACTION_RUNTIMES: int = 1
 const DODGE_AFTERIMAGE_SLOTS: int = 8
 const DODGE_DUST_SLOTS: int = DodgeDustPool2D.CAPACITY
 const CRITICAL_SMOKE_EMITTERS: int = 1
+const MELEE_CHARGE_EMITTERS: int = 1
 const ELITE_SPAWN_EFFECT_SLOTS: int = 6
 const HAZARD_ACTORS: int = 12
 const HAZARD_VFX_SLOTS: int = 16
@@ -123,6 +124,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"dodge_afterimage_slots": _robot_afterimage_slot_count(city),
 		"dodge_dust_slots": _robot_dust_slot_count(city),
 		"critical_smoke_emitters": _robot_smoke_emitter_count(city),
+		"melee_charge_emitters": _robot_charge_emitter_count(city),
 		"elite_spawn_effect_slots": city.encounter_runtime.elite_spawn_effect_pool.slot_count(),
 		"hazard_total": city.urban_siege.hazards.total_count(),
 		"hazard_active": city.urban_siege.hazards.active_count(),
@@ -230,6 +232,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "dodge_afterimage_slots", DODGE_AFTERIMAGE_SLOTS)
 	_check_equal(errors, data, "dodge_dust_slots", DODGE_DUST_SLOTS)
 	_check_equal(errors, data, "critical_smoke_emitters", CRITICAL_SMOKE_EMITTERS)
+	_check_equal(errors, data, "melee_charge_emitters", MELEE_CHARGE_EMITTERS)
 	_check_equal(
 		errors,
 		data,
@@ -387,6 +390,13 @@ static func _robot_smoke_emitter_count(city: CitySlice) -> int:
 		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
 	)
 	return presenter.critical_smoke_emitter_count() if presenter != null else 0
+
+
+static func _robot_charge_emitter_count(city: CitySlice) -> int:
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node_or_null(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	return presenter.charge_particle_emitter_count() if presenter != null else 0
 
 
 static func _weapon_drone_count(city: CitySlice) -> int:

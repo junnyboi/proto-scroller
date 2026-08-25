@@ -25,16 +25,20 @@ func setup(p_city: Node) -> void:
 
 func _run() -> void:
 	_prepare_environment()
-	var main: Main = city.get_parent() as Main
+	var main: Node = city.get_parent()
+	var background_music_player: AudioStreamPlayer = null
+	if main != null:
+		background_music_player = main.get("background_music_player") as AudioStreamPlayer
 	_publish(&"ready", {
 		"animation": String(sprite.animation),
 		"background_music_playing": (
-			main != null
-			and main.background_music_player != null
-			and main.background_music_player.playing
+			background_music_player != null
+			and background_music_player.playing
 		),
 		"facing": robot.facing,
 	})
+	if not await _run_charged_input():
+		return
 	if not await _run_upgrade_transition():
 		return
 	if not await _run_east_walk():
@@ -50,6 +54,45 @@ func _prepare_environment() -> void:
 	robot.collision_mask = 0
 	robot.gravity = 0.0
 	robot.velocity = Vector2.ZERO
+
+
+func _run_charged_input() -> bool:
+	if not await _wait_until(func() -> bool: return city.contextual_attacks.is_charging()):
+		_fail("browser smash key-down did not begin charging")
+		return false
+	_publish(&"charge_started", {
+		"animation": String(sprite.animation),
+		"frame": sprite.frame,
+		"particles": presenter.charge_particles_emitting(),
+	})
+	if not await _wait_until(
+		func() -> bool: return city.contextual_attacks.charge_progress() >= 0.35
+	):
+		_fail("held browser smash did not advance charge progress")
+		return false
+	_publish(&"charge_progress", {
+		"duration": city.contextual_attacks.charge_duration(),
+		"progress": city.contextual_attacks.charge_progress(),
+		"multiplier": city.contextual_attacks.charge_damage_multiplier(),
+		"frame": sprite.frame,
+	})
+	if not await _wait_until(func() -> bool: return not city.contextual_attacks.is_charging()):
+		_fail("browser smash key-up did not release charge")
+		return false
+	var released_spec: AttackSpec = city.contextual_attacks.current_spec
+	if released_spec == null:
+		_fail("released browser charge lost its attack specification")
+		return false
+	_publish(&"charge_released", {
+		"damage": released_spec.actor_damage,
+		"animation": String(sprite.animation),
+		"frame": sprite.frame,
+		"playing": sprite.is_playing(),
+	})
+	if not await _wait_until(func() -> bool: return not city.contextual_attacks.is_busy()):
+		_fail("released browser charge did not finish its melee animation")
+		return false
+	return true
 
 
 func _run_upgrade_transition() -> bool:

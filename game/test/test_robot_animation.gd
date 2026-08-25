@@ -131,6 +131,94 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	assert_eq(sprite.animation, &"idle_s")
 
 
+func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on_release() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var particles: CPUParticles2D = robot.get_node(
+		^"VisualRoot/MeleeChargeParticles"
+	) as CPUParticles2D
+	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
+	assert_gt(attacks.begin_charge(), 0)
+	assert_eq(sprite.animation, &"attack_se")
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	attacks.cancel_attack()
+	assert_eq(sprite.animation, &"idle_s")
+	robot.velocity.x = robot.max_speed
+	assert_gt(attacks.begin_charge(), 0)
+	assert_true(presenter.attacking)
+	assert_true(presenter.charging)
+	assert_eq(sprite.animation, &"attack_e")
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	assert_eq(presenter.charge_particle_emitter_count(), 1)
+	assert_true(presenter.charge_particles_emitting())
+	assert_eq(particles.color, RobotAnimationPresenter.CHARGE_PARTICLE_COLOR)
+	assert_lt(particles.radial_accel_max, 0.0)
+	attacks._process(1.0)
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	assert_almost_eq(presenter.last_charge_progress, 0.5, 0.0001)
+	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
+	assert_true(attacks.release_charge())
+	assert_false(presenter.charging)
+	assert_false(presenter.charge_particles_emitting())
+	assert_true(sprite.is_playing())
+	var spec: AttackSpec = attacks.current_spec
+	await get_tree().create_timer(spec.anticipation_seconds + 0.04).timeout
+	assert_gte(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
+	assert_almost_eq(spec.actor_damage, 217.5, 0.001)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
+func test_pause_cancels_charge_and_clears_particles_without_releasing_attack() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	assert_gt(attacks.begin_charge(), 0)
+	attacks._process(0.75)
+	assert_true(presenter.charge_particles_emitting())
+	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
+	assert_false(attacks.is_busy())
+	assert_false(attacks.is_charging())
+	assert_false(presenter.attacking)
+	assert_false(presenter.charging)
+	assert_false(presenter.charge_particles_emitting())
+	assert_eq(sprite.animation, &"idle_s")
+	assert_false(sprite.is_playing())
+	assert_false(attacks.release_charge())
+	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
+
+
+func test_full_charge_stops_particles_at_two_seconds_but_keeps_first_frame_frozen() -> void:
+	var city: CitySlice = await _spawn_city()
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	assert_gt(attacks.begin_charge(), 0)
+	attacks._process(2.5)
+	assert_true(attacks.is_charging())
+	assert_almost_eq(attacks.charge_duration(), 2.0, 0.0001)
+	assert_almost_eq(presenter.last_charge_progress, 1.0, 0.0001)
+	assert_false(presenter.charge_particles_emitting())
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	assert_true(attacks.release_charge())
+	assert_almost_eq(attacks.current_spec.actor_damage, 360.0, 0.001)
+	assert_true(sprite.is_playing())
+
+
 func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
@@ -294,6 +382,11 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_RECHARGED_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX)
+	assert_almost_eq(
+		db_to_linear(RobotAnimationPresenter.ATTACK_IMPACT_GAIN_DB),
+		3.0,
+		0.0001
+	)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	for audio_node: Node in presenter.find_children("RobotMechanicsAudio*", "AudioStreamPlayer2D"):
 		assert_eq((audio_node as AudioStreamPlayer2D).bus, GameAudioBus.MECHANICS)
@@ -330,10 +423,20 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	presenter._on_attack_committed(AttackSpec.Mode.GROUND_SMASH, 501)
 	assert_eq(presenter.attack_impact_play_count, 1)
 	assert_eq(presenter.last_audio_cue, &"ground_slam_impact")
+	_assert_cue_volume(
+		presenter,
+		RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX,
+		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB
+	)
 	assert_eq(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
 	presenter._on_attack_committed(AttackSpec.Mode.JAB_CROSS, 501)
 	assert_eq(presenter.attack_impact_play_count, 2)
 	assert_eq(presenter.last_audio_cue, &"double_punch_impact")
+	_assert_cue_volume(
+		presenter,
+		RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX,
+		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB
+	)
 	for cycle_index: int in range(8):
 		presenter.attacking = false
 		_set_walk_audio_frame(presenter, sprite, 2 if cycle_index % 2 == 0 else 5)
@@ -558,6 +661,20 @@ func _assert_compressed_runtime_cue(stream: AudioStream) -> void:
 	assert_false(wav.stereo)
 	assert_gt(wav.get_length(), 1.0)
 	assert_lt(wav.get_length(), 2.1)
+
+
+func _assert_cue_volume(
+	presenter: RobotAnimationPresenter,
+	stream: AudioStream,
+	expected_volume_db: float
+) -> void:
+	var matching_voices: int = 0
+	for player: AudioStreamPlayer2D in presenter._audio_players:
+		if player.stream != stream:
+			continue
+		matching_voices += 1
+		assert_almost_eq(player.volume_db, expected_volume_db, 0.0001)
+	assert_eq(matching_voices, 1)
 
 
 func _assert_compact_voice_cue(stream: AudioStream) -> void:
