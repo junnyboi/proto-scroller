@@ -39,6 +39,7 @@ let report = {
   status: "FAIL",
   url: `${BASE_URL}/?localGame=1&webSmoke=upgrade`,
   phases: [],
+  audioContextStates: [],
   browserErrors,
   requestFailures,
   httpErrors,
@@ -81,6 +82,22 @@ try {
     viewport: { width: 1280, height: 720 },
   });
   page = await context.newPage();
+  await page.addInitScript(() => {
+    const NativeAudioContext = window.AudioContext ?? window.webkitAudioContext;
+    window.__PROTO_SCROLLER_AUDIO_CONTEXTS__ = [];
+    if (!NativeAudioContext) return;
+    const TrackingAudioContext = new Proxy(NativeAudioContext, {
+      construct(Target, args) {
+        const audioContext = Reflect.construct(Target, args);
+        window.__PROTO_SCROLLER_AUDIO_CONTEXTS__.push(audioContext);
+        return audioContext;
+      },
+    });
+    window.AudioContext = TrackingAudioContext;
+    if (window.webkitAudioContext) {
+      window.webkitAudioContext = TrackingAudioContext;
+    }
+  });
   page.on("pageerror", error =>
     browserErrors.push(`pageerror: ${error.message}`)
   );
@@ -119,6 +136,17 @@ try {
   );
   await page.keyboard.press("Enter");
   await waitForPhase(page, "upgrade_visible", 30_000);
+  const audioContextStates = await page.evaluate(() =>
+    (window.__PROTO_SCROLLER_AUDIO_CONTEXTS__ ?? []).map(context => context.state)
+  );
+  if (
+    audioContextStates.length === 0 ||
+    !audioContextStates.includes("running")
+  ) {
+    throw new Error(
+      `Web Audio did not unlock after launch gesture: ${JSON.stringify(audioContextStates)}`
+    );
+  }
   await page.screenshot({ path: SCREENSHOT_PATH });
   await page.keyboard.press("Enter");
   await waitForPhase(page, "upgrade_resolved", 30_000);
@@ -148,6 +176,7 @@ try {
     ...report,
     status: "PASS",
     phases,
+    audioContextStates,
     screenshot: path.relative(ROOT, SCREENSHOT_PATH),
   };
   console.log(`[WEB-GAMEPLAY-SMOKE-PASS] phases=${EXPECTED_PHASES.join(",")}`);

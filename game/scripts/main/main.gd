@@ -39,7 +39,17 @@ func _release_background_music() -> void:
 
 
 func background_music_output_available() -> bool:
-	return AudioServer.get_driver_name() != DUMMY_AUDIO_DRIVER_NAME
+	return _background_music_output_available_for_environment(
+		AudioServer.get_driver_name(),
+		OS.has_feature("web")
+	)
+
+
+func _background_music_output_available_for_environment(
+	driver_name: String,
+	is_web: bool
+) -> bool:
+	return is_web or driver_name != DUMMY_AUDIO_DRIVER_NAME
 
 
 func _start_background_music() -> void:
@@ -50,6 +60,7 @@ func _start_background_music() -> void:
 
 
 func start_game() -> void:
+	_start_background_music()
 	if city_slice != null:
 		return
 	if title_screen != null:
