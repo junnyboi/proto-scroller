@@ -293,6 +293,11 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_RECHARGED_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX)
+	assert_almost_eq(
+		db_to_linear(RobotAnimationPresenter.ATTACK_IMPACT_GAIN_DB),
+		3.0,
+		0.0001
+	)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	for audio_node: Node in presenter.find_children("RobotMechanicsAudio*", "AudioStreamPlayer2D"):
 		assert_eq((audio_node as AudioStreamPlayer2D).bus, GameAudioBus.MECHANICS)
@@ -329,10 +334,20 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	presenter._on_attack_committed(AttackSpec.Mode.GROUND_SMASH, 501)
 	assert_eq(presenter.attack_impact_play_count, 1)
 	assert_eq(presenter.last_audio_cue, &"ground_slam_impact")
+	_assert_cue_volume(
+		presenter,
+		RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX,
+		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB
+	)
 	assert_eq(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
 	presenter._on_attack_committed(AttackSpec.Mode.JAB_CROSS, 501)
 	assert_eq(presenter.attack_impact_play_count, 2)
 	assert_eq(presenter.last_audio_cue, &"double_punch_impact")
+	_assert_cue_volume(
+		presenter,
+		RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX,
+		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB
+	)
 	for cycle_index: int in range(8):
 		presenter.attacking = false
 		_set_walk_audio_frame(presenter, sprite, 2 if cycle_index % 2 == 0 else 5)
@@ -553,6 +568,20 @@ func _assert_compressed_runtime_cue(stream: AudioStream) -> void:
 	assert_false(wav.stereo)
 	assert_gt(wav.get_length(), 1.0)
 	assert_lt(wav.get_length(), 2.1)
+
+
+func _assert_cue_volume(
+	presenter: RobotAnimationPresenter,
+	stream: AudioStream,
+	expected_volume_db: float
+) -> void:
+	var matching_voices: int = 0
+	for player: AudioStreamPlayer2D in presenter._audio_players:
+		if player.stream != stream:
+			continue
+		matching_voices += 1
+		assert_almost_eq(player.volume_db, expected_volume_db, 0.0001)
+	assert_eq(matching_voices, 1)
 
 
 func _assert_compact_voice_cue(stream: AudioStream) -> void:

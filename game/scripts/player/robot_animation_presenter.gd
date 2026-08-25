@@ -10,6 +10,11 @@ const AFTERIMAGE_LIFETIME: float = 0.22
 const AFTERIMAGE_ALPHA: float = 0.34
 const DUST_INTERVAL: float = 0.055
 const CRITICAL_HEALTH_RATIO: float = 0.25
+const ATTACK_IMPACT_BASE_VOLUME_DB: float = 1.5
+const ATTACK_IMPACT_GAIN_DB: float = 9.5424250941
+const ATTACK_IMPACT_VOLUME_DB: float = (
+	ATTACK_IMPACT_BASE_VOLUME_DB + ATTACK_IMPACT_GAIN_DB
+)
 const CRITICAL_SMOKE_OFFSET: Vector2 = Vector2(28.0, -42.0)
 const CRITICAL_SMOKE_TEXTURE: Texture2D = preload(
 	"res://art/player/weapons/missile_explosion_smoke.png"
@@ -179,9 +184,19 @@ func _on_attack_committed(mode: int, attack_id: int) -> void:
 	if sprite.frame < ATTACK_EVENT_FRAME:
 		sprite.set_frame_and_progress(ATTACK_EVENT_FRAME, 0.0)
 	if mode == AttackSpec.Mode.GROUND_SMASH:
-		_play_mechanics(GROUND_SLAM_IMPACT_SFX, &"ground_slam_impact", 1.5, 1.0)
+		_play_mechanics(
+			GROUND_SLAM_IMPACT_SFX,
+			&"ground_slam_impact",
+			ATTACK_IMPACT_VOLUME_DB,
+			1.0
+		)
 	else:
-		_play_mechanics(DOUBLE_PUNCH_IMPACT_SFX, &"double_punch_impact", 1.5, 1.0)
+		_play_mechanics(
+			DOUBLE_PUNCH_IMPACT_SFX,
+			&"double_punch_impact",
+			ATTACK_IMPACT_VOLUME_DB,
+			1.0
+		)
 
 
 func _on_attack_finished(spec: AttackSpec) -> void:
