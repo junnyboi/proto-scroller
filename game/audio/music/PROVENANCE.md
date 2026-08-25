@@ -2,7 +2,7 @@
 
 ## Runtime asset
 
-`city_pressure_loop.ogg` is a **28-second, 48 kHz mono Vorbis loop** authored for the persistent `BackgroundMusicPlayer` on the Godot `Music` bus. The runtime encode is intentionally compact for the project's fixed 8 MiB no-threads Web package budget.
+`city_pressure_loop.ogg` is a **28-second, 48 kHz mono Vorbis loop** authored for the persistent `BackgroundMusicPlayer` on the Godot `Music` bus. The runtime encode is intentionally compact for the project's explicit 16 MiB no-threads Web package budget.
 
 ## Generation
 

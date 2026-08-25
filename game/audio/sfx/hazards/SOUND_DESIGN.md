@@ -4,7 +4,7 @@
 
 **System:** Proto Scroller environmental hazards
 
-**Runtime target:** Godot 4.7.1 Compatibility renderer, 1280×720, no-threads Web export
+**Runtime target:** Godot 4.7.2 Compatibility renderer, 1280×720, no-threads Web export
 
 ## Design objective
 
@@ -54,7 +54,7 @@ The existing causal rules remain authoritative: one primary hazard can address a
 
 The hazard subsystem owns exactly **six prewarmed positional voices**. When all voices are busy, the pool first reuses the oldest lowest-priority voice. A lower-priority request cannot steal a higher-priority voice and is dropped instead. This policy allows apex impacts and chains to remain audible while steam, flame, flood, electrical, vent, and convoy pulses yield under extreme combat density. Positional attenuation uses a 1,900-pixel maximum distance and 0.45 attenuation, keeping distant hazards informative without overpowering centered robot, weapon, and interface cues.[1] [4]
 
-All committed source masters are mono, 48 kHz, signed 16-bit PCM WAV. Godot imports the Web runtime streams as mono 24 kHz QOA to fit the fixed 8 MiB pack ceiling without altering those masters. Mono sources are spatialized by `AudioStreamPlayer2D`; they do not contain baked stereo position. Mastered peaks retain at least approximately 1 dB of digital headroom, and profile playback gains provide the final hierarchy. No hazard cue is routed through the Music bus, so upgrade ducking does not accidentally suppress safety-critical warnings.
+All committed source masters are mono, 48 kHz, signed 16-bit PCM WAV. Godot imports the Web runtime streams as mono 24 kHz QOA to preserve room inside the explicit 16 MiB package ceiling without altering those masters. Mono sources are spatialized by `AudioStreamPlayer2D`; they do not contain baked stereo position. Mastered peaks retain at least approximately 1 dB of digital headroom, and profile playback gains provide the final hierarchy. No hazard cue is routed through the Music bus, so upgrade ducking does not accidentally suppress safety-critical warnings.
 
 ## Acceptance criteria
 

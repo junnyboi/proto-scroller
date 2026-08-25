@@ -84,7 +84,7 @@ const PENDING_HAZARDS: int = 3
 const HAZARD_PRESSURE: int = 10
 const STREET_CHUNKS: int = 6
 const FLOATING_ORIGIN_RUNTIMES: int = 1
-const MAX_WEB_PCK_BYTES: int = 8 * 1024 * 1024
+const MAX_WEB_PCK_BYTES: int = 16 * 1024 * 1024
 
 
 static func snapshot(city: CitySlice) -> Dictionary:

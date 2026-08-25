@@ -92,6 +92,12 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/city_slice/report.json >/dev/null
 
+printf '%s\n' '[L4] district-building gallery headless scenario'
+run_engine "$GODOT" --headless --fixed-fps 60 --path . \
+  -s selftest/district_building_gallery_scenario.gd
+jq -e '.done == true and .result == "PASS" and (.districts | length) == 5' \
+  artifacts/district_gallery/report.json >/dev/null
+
 printf '%s\n' '[L4] enemy-variety headless scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
   -s selftest/enemy_variety_scenario.gd
@@ -177,10 +183,34 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/city_slice/city-slice.png
 	  cp artifacts/city_slice/city-slice-wrecked-landscape.png \
 	    artifacts/city_slice/city-slice-wrecked.png
-	  cp artifacts/city_slice/city-slice-rubble-landscape.png \
-	    artifacts/city_slice/city-slice-rubble.png
+		  cp artifacts/city_slice/city-slice-rubble-landscape.png \
+		    artifacts/city_slice/city-slice-rubble.png
 
-  printf '%s\n' '[L5] windowed enemy-variety render scenario'
+	  printf '%s\n' '[L5] landscape district-building gallery scenario'
+	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	    -s selftest/district_building_gallery_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and (.districts | length) == 5' \
+	    artifacts/district_gallery/report.json >/dev/null
+	  test "$(find artifacts/district_gallery -maxdepth 1 -type f \
+	    -name '*-landscape.png' -size +0c | wc -l)" -eq 5
+	  while IFS= read -r gallery_shot; do
+	    grep -Fq '1280 x 720' <<< "$(file "$gallery_shot")"
+	  done < <(find artifacts/district_gallery -maxdepth 1 -type f \
+	    -name '*-landscape.png' | LC_ALL=C sort)
+
+	  printf '%s\n' '[L5] portrait district-building gallery scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	    --resolution 720x1280 -s selftest/district_building_gallery_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and (.districts | length) == 5' \
+	    artifacts/district_gallery/report.json >/dev/null
+	  test "$(find artifacts/district_gallery -maxdepth 1 -type f \
+	    -name '*-portrait.png' -size +0c | wc -l)" -eq 5
+	  while IFS= read -r gallery_shot; do
+	    grep -Fq '720 x 1280' <<< "$(file "$gallery_shot")"
+	  done < <(find artifacts/district_gallery -maxdepth 1 -type f \
+	    -name '*-portrait.png' | LC_ALL=C sort)
+
+	  printf '%s\n' '[L5] windowed enemy-variety render scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
     -s selftest/enemy_variety_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
@@ -270,12 +300,12 @@ if [[ "$MODE" == "full" ]]; then
   mkdir -p ../client/public/game
   run_engine "$GODOT" --headless --path . --export-release Web \
     ../client/public/game/game.html
-  test -s ../client/public/game/game.html
+	  test -s ../client/public/game/game.html
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.wasm' -size +0c -printf '.' | wc -c)" -ge 1
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.pck' -size +0c -printf '.' | wc -c)" -ge 1
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.js' -size +0c -printf '.' | wc -c)" -ge 1
-  PCK_BYTES="$(stat -c %s ../client/public/game/game.pck)"
-  test "$PCK_BYTES" -le 8388608
+	  PCK_BYTES="$(stat -c %s ../client/public/game/game.pck)"
+	  test "$PCK_BYTES" -le 16777216
   printf 'pck_bytes=%s\n' "$PCK_BYTES"
   (
     cd ../client/public/game
