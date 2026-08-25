@@ -1,6 +1,10 @@
 # Proto Scroller
 
-A Godot 4.7.1 city-destruction slice with a giant robot, four-band unobstructed parallax city, a six-cell mixed-material structural building, destructible props, combined-arms enemies, and a WebAssembly host.
+A Godot 4.7.2 city-destruction slice with a giant robot, four-band unobstructed parallax city, a six-cell mixed-material structural building, destructible props, combined-arms enemies, and a WebAssembly host.
+
+## Engine requirements
+
+Use **Godot 4.7.2-stable** with the matching **4.7.2 non-threaded Web export templates**. The verification harness rejects other engine patch versions, and the Web preset requires both thread support and extension support to remain disabled.
 
 ## Project layout
 
@@ -16,7 +20,25 @@ cd game
 ./verify.sh --full
 ```
 
-The full gate runs import, GDScript lint/parse checks, all GUT suites, headless boot, deterministic movement/turn/destruction scenarios, fresh landscape and portrait renders, a cache-bypassed Web export, and a required Chromium gameplay smoke. The browser smoke enters gameplay, begins a melee animation, triggers and resolves a real upgrade offer, then proves both east and west walk clips advance afterward without another attack. A required render SKIP, browser phase failure, or zero-test run is blocking.
+The standard gate performs a direct import, GDScript lint and parse checks, the complete GUT suite, a bounded headless boot, and deterministic title-screen, city-slice, enemy-variety, street-volatility, and endless-terrain scenarios. The full gate adds Xvfb visual scenarios at **1280×720** and **720×1280**, produces a cache-bypassed release export through the repository's `Web` preset, and runs a required Chromium gameplay smoke. The browser lane enters gameplay, begins a melee animation, triggers and resolves a real upgrade offer, then proves both east and west walk clips advance without another attack. A required render `SKIP`, browser phase failure, zero-test run, missing export artifact, oversized PCK, or nonzero process exit is blocking.
+
+### Latest verified baseline
+
+The full harness last passed on **2026-08-25** against gameplay revision `23390fa322c00c47570f1ddfd05832a755629c84` using `Godot 4.7.2.stable.official.ed1daf0bf`.
+
+| Check | Result |
+|---|---|
+| Harness command | `./verify.sh --full` |
+| Process result | Exit `0`; `[VERIFY-PASS] mode=full` |
+| GUT suite | 47 scripts; 261 of 261 tests passed; 26,776 assertions |
+| Headless scenarios | Title screen, city slice, enemy variety, street volatility, and endless terrain passed |
+| Visual scenarios | Required landscape and portrait renders passed |
+| Reference title render | SHA-256 `3e3ff3478dab903541c1b41c90017a2136c5431e16cec5b0c5f16fc25e2f58f3` |
+| Web release export | 9 files; HTML, JavaScript, WebAssembly, and PCK present |
+| PCK size | 8,373,812 bytes, below the 8 MiB harness limit |
+| Browser gameplay smoke | `ready → attack_started → upgrade_visible → upgrade_resolved → east_walk_ok → pass` |
+| Error scan | No script, parse, browser console, request, fatal, or crash errors |
+| Duration | 537 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
@@ -24,7 +46,9 @@ To run only the browser lane after producing a fresh Web export:
 pnpm smoke:web
 ```
 
-The smoke uses the local exported WASM/PCK bundle and system Chromium (`/usr/bin/chromium` by default, overridable with `CHROMIUM_PATH`). It writes its ordered phase report and screenshot beneath `game/artifacts/browser/`.
+The smoke uses the local exported WASM/PCK bundle and system Chromium (`/usr/bin/chromium` by default, overridable with `CHROMIUM_PATH`). It writes its ordered phase report and screenshot beneath `game/artifacts/browser/`. GitHub Actions runs the complete full gate for pull requests, pushes to `main`, and manual dispatches.
+
+In the headless sandbox, unavailable ALSA hardware caused Godot to fall back to its dummy audio driver. This environmental warning was non-blocking; the harness completed successfully with no gameplay or export errors.
 
 ## Run the web host
 
