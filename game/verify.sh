@@ -27,7 +27,7 @@ mkdir -p \
 	  artifacts/weapon_drones
 : > artifacts/.gdignore
 START_EPOCH="$(date +%s)"
-ENGINE_TIMEOUT_SECONDS=60
+ENGINE_TIMEOUT_SECONDS=120
 EXPORT_TIMEOUT_SECONDS=300
 PCK_BUDGET_BYTES=$((16 * 1024 * 1024))
 

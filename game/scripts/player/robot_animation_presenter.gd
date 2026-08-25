@@ -211,6 +211,7 @@ func _on_charge_updated(
 		return
 	last_charge_progress = clampf(progress, 0.0, 1.0)
 	if _charge_particles != null:
+		_charge_particles.emitting = last_charge_progress < 1.0
 		_charge_particles.amount = 28 + roundi(last_charge_progress * 28.0)
 		_charge_particles.initial_velocity_min = 44.0 + last_charge_progress * 24.0
 		_charge_particles.initial_velocity_max = 104.0 + last_charge_progress * 46.0

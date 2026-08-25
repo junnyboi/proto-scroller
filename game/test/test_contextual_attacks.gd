@@ -154,6 +154,27 @@ func test_half_charge_freezes_robot_then_release_deals_150_percent_jab_damage() 
 	_record_test_execution()
 
 
+func test_airborne_charge_freezes_vertical_and_horizontal_motion_until_release() -> void:
+	var city: CitySlice = await _city()
+	var robot: GiantRobotController = city.robot
+	var attacks: ContextualAttackController = city.contextual_attacks
+	robot.global_position = Vector2(760.0, 240.0)
+	robot.velocity = Vector2(310.0, -420.0)
+	var locked_position: Vector2 = robot.global_position
+	assert_gt(attacks.begin_charge(), 0)
+	robot.physics_step(1.0, 0.5)
+	assert_eq(robot.global_position, locked_position)
+	assert_eq(robot.velocity, Vector2.ZERO)
+	attacks._process(1.0)
+	robot.physics_step(-1.0, 0.5)
+	assert_eq(robot.global_position, locked_position)
+	assert_eq(robot.velocity, Vector2.ZERO)
+	assert_true(attacks.release_charge())
+	robot.physics_step(0.0, 0.1)
+	assert_gt(robot.global_position.y, locked_position.y)
+	_record_test_execution()
+
+
 func test_attack_locks_horizontal_movement_through_telegraph_and_recovery() -> void:
 	var city: CitySlice = await _city()
 	city.robot.velocity.x = city.robot.max_speed * 0.8

@@ -199,6 +199,26 @@ func test_pause_cancels_charge_and_clears_particles_without_releasing_attack() -
 	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
 
 
+func test_full_charge_stops_particles_at_two_seconds_but_keeps_first_frame_frozen() -> void:
+	var city: CitySlice = await _spawn_city()
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	assert_gt(attacks.begin_charge(), 0)
+	attacks._process(2.5)
+	assert_true(attacks.is_charging())
+	assert_almost_eq(attacks.charge_duration(), 2.0, 0.0001)
+	assert_almost_eq(presenter.last_charge_progress, 1.0, 0.0001)
+	assert_false(presenter.charge_particles_emitting())
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	assert_true(attacks.release_charge())
+	assert_almost_eq(attacks.current_spec.actor_damage, 360.0, 0.001)
+	assert_true(sprite.is_playing())
+
+
 func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot

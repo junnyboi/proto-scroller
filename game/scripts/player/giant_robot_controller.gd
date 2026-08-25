@@ -195,6 +195,9 @@ func physics_step(input_axis: float, delta: float) -> void:
 		_apply_gravity(delta)
 		move_and_slide()
 		return
+	if attack_controller != null and attack_controller.is_charging():
+		velocity = Vector2.ZERO
+		return
 	_was_on_floor = is_on_floor()
 	_pre_move_vertical_speed = velocity.y
 	_apply_gravity(delta)
