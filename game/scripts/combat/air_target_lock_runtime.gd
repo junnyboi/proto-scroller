@@ -48,6 +48,7 @@ func _ready() -> void:
 		_attacks.attack_started.connect(_on_attack_started)
 		_attacks.attack_active.connect(_on_attack_active)
 		_attacks.attack_finished.connect(_on_attack_finished)
+		_attacks.attack_canceled.connect(_on_attack_finished)
 
 
 func _process(delta: float) -> void:

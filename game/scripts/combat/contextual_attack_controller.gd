@@ -4,6 +4,7 @@ extends Node
 signal attack_started(spec: AttackSpec)
 signal attack_active(spec: AttackSpec)
 signal attack_finished(spec: AttackSpec)
+signal attack_canceled(spec: AttackSpec)
 signal dodge_buffered(attack_id: int, direction: int)
 
 enum Phase {
@@ -130,6 +131,7 @@ func is_busy() -> bool:
 
 
 func cancel_attack() -> void:
+	var canceled_spec: AttackSpec = current_spec
 	current_spec = null
 	_busy = false
 	_buffered_dodge_direction = 0
@@ -137,6 +139,8 @@ func cancel_attack() -> void:
 	if _robot != null:
 		_robot._set_attack_locked(false)
 	_restore_pose()
+	if canceled_spec != null:
+		attack_canceled.emit(canceled_spec)
 
 
 func _run_attack(spec: AttackSpec) -> void:

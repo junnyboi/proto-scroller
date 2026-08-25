@@ -90,6 +90,7 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 
 func bind_attacks(controller: ContextualAttackController) -> void:
 	controller.attack_finished.connect(_on_attack_finished)
+	controller.attack_canceled.connect(_on_attack_canceled)
 
 
 func audio_voice_count() -> int:
@@ -190,6 +191,16 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 	last_completed_attack_frame = sprite.frame
 	if sprite.frame == RobotSpriteFramesBuilder.FRAME_COUNT - 1:
 		completed_full_attack_count += 1
+	_clear_attack_state()
+
+
+func _on_attack_canceled(spec: AttackSpec) -> void:
+	if spec == null or spec.attack_id != selected_attack_id:
+		return
+	_clear_attack_state()
+
+
+func _clear_attack_state() -> void:
 	attacking = false
 	selected_attack_id = 0
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:

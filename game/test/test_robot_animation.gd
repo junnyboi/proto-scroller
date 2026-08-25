@@ -131,6 +131,45 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	assert_eq(sprite.animation, &"idle_s")
 
 
+func test_upgrade_selection_cancels_attack_and_restores_walking_animation() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var sprite: AnimatedSprite2D = _sprite(city)
+	robot.global_position = Vector2(80.0, 460.0)
+	robot.stomp_damage = 0.0
+	robot.stomp_radius = 1.0
+	assert_gt(robot.request_attack(), 0)
+	assert_true(presenter.attacking)
+	var reward: GameplayEvent = GameplayEvent.new(
+		&"animation-upgrade-cancel",
+		1,
+		GameplayEvent.Kind.ENEMY_DEFEATED,
+		GameplayEvent.SOLDIER_LAUNCH,
+		RunExperience.required_for_level(1)
+	)
+	assert_true(city.rampage_session.publish(reward))
+	await get_tree().process_frame
+	var session: UpgradeSession = city.upgrade_assembler.session
+	assert_true(city.urban_siege.pause_coordinator.is_paused())
+	assert_false(city.contextual_attacks.is_busy())
+	assert_not_null(session.active_offer)
+	if session.active_offer == null:
+		return
+	await get_tree().create_timer(1.10).timeout
+	var offer_sequence: int = session.active_offer.sequence
+	var selected: StringName = session.active_offer.choice_ids[0]
+	assert_true(session.select_choice(selected, offer_sequence))
+	assert_false(city.urban_siege.pause_coordinator.is_paused())
+	robot.physics_step(1.0, 0.10)
+	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.WALK)
+	assert_false(presenter.attacking)
+	assert_eq(sprite.animation, &"walk_e")
+	assert_true(sprite.is_playing())
+
+
 func test_critical_health_smoke_emits_at_or_below_twenty_five_percent() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
