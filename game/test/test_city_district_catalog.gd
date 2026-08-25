@@ -66,3 +66,22 @@ func test_all_buildings_are_directly_addressable() -> void:
 			)
 			addressed[variant.variant_id] = true
 	assert_eq(addressed.size(), CityDistrictCatalog.BUILDING_VARIANT_COUNT)
+
+
+func test_every_building_has_one_unique_grid_safe_production_facade() -> void:
+	var facade_paths: Dictionary[String, bool] = {}
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		for variant: StructuralBuildingVariant in district.building_variants:
+			var texture: Texture2D = variant.intact_texture
+			var resource_path: String = texture.resource_path
+			assert_true(
+				resource_path.begins_with(
+					"res://art/city/destructibles/districts/"
+				)
+			)
+			assert_false(facade_paths.has(resource_path))
+			facade_paths[resource_path] = true
+			assert_eq(posmod(texture.get_width(), 6), 0)
+			assert_eq(posmod(texture.get_height(), 6), 0)
+			assert_eq(variant.damaged_texture, variant.intact_texture)
+	assert_eq(facade_paths.size(), CityDistrictCatalog.BUILDING_VARIANT_COUNT)

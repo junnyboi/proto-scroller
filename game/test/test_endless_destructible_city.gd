@@ -134,7 +134,10 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 		StructuralBuilding2D.COLUMNS,
 		StructuralBuilding2D.ROWS
 	)
-	assert_eq(hollow_facade.region_rect.size * hollow_facade.scale, cell_size)
+	assert_lt(
+		(hollow_facade.region_rect.size * hollow_facade.scale - cell_size).length(),
+		0.01
+	)
 	assert_eq(
 		edge.cutout_parameter(&"hole_half_extents"),
 		BuildingRubbleEdge2D.HOLE_HALF_EXTENTS
