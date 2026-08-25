@@ -22,6 +22,7 @@ mkdir -p \
 	  artifacts/endless_terrain \
 	  artifacts/enemy_variety \
 	  artifacts/street_volatility \
+	  artifacts/directives \
 	  artifacts/upgrades \
 	  artifacts/weapon_drones
 : > artifacts/.gdignore
@@ -111,6 +112,10 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
   -s selftest/city_slice_scenario.gd
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/city_slice/report.json >/dev/null
+
+printf '%s\n' '[L4] directive-card headless lifecycle scenario'
+run_engine "$GODOT" --headless --fixed-fps 60 --path . \
+  -s selftest/directive_card_visual_scenario.gd
 
 printf '%s\n' '[L4] district-building gallery headless scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
@@ -311,6 +316,22 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/upgrades/upgrade-choice.png)"
 	  mv artifacts/upgrades/upgrade-choice.png \
 	    artifacts/upgrades/upgrade-choice-portrait.png
+
+	  printf '%s\n' '[L5] landscape failed-directive card scenario'
+	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	    -s selftest/directive_card_visual_scenario.gd
+	  test -s artifacts/directives/directive-failed.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/directives/directive-failed.png)"
+	  mv artifacts/directives/directive-failed.png \
+	    artifacts/directives/directive-failed-landscape.png
+
+	  printf '%s\n' '[L5] portrait failed-directive card scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	    --resolution 720x1280 -s selftest/directive_card_visual_scenario.gd
+	  test -s artifacts/directives/directive-failed.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/directives/directive-failed.png)"
+	  mv artifacts/directives/directive-failed.png \
+	    artifacts/directives/directive-failed-portrait.png
 
 	  printf '%s\n' '[L5] landscape weapon-drone visual scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \

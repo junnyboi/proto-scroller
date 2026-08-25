@@ -1,6 +1,6 @@
 # Proto Scroller
 
-A Godot 4.7.2 city-destruction slice with a giant robot, four-band unobstructed parallax city, a six-cell mixed-material structural building, destructible props, combined-arms enemies, and a WebAssembly host.
+A Godot 4.7.2 city-destruction slice with a giant robot, five forward-progressing spatial districts, 25 six-cell mixed-material destructible buildings, a four-band unobstructed parallax city, destructible props, combined-arms enemies, and a WebAssembly host.
 
 ## Engine requirements
 
@@ -20,7 +20,7 @@ cd game
 ./verify.sh --full
 ```
 
-The standard gate performs a direct import, GDScript lint and parse checks, the complete GUT suite, a bounded headless boot, and deterministic title-screen, city-slice, enemy-variety, street-volatility, and endless-terrain scenarios. The full gate adds Xvfb visual scenarios at **1280×720** and **720×1280**, produces a cache-bypassed release export through the repository's `Web` preset, and runs a required Chromium gameplay smoke. The browser lane enters gameplay, begins a melee animation, triggers and resolves a real upgrade offer, then proves both east and west walk clips advance without another attack. A required render `SKIP`, browser phase failure, zero-test run, missing export artifact, oversized PCK, or nonzero process exit is blocking.
+The standard gate performs a direct import, GDScript lint and parse checks, the complete GUT suite, a bounded headless boot, and deterministic title-screen, city-slice, district-gallery, enemy-variety, street-volatility, and endless-terrain scenarios. The endless lane traverses all five spatial districts, records district and variant identities with a catalog SHA-256, restores prior destruction after stream recycling, and rejects post-warm node growth. The full gate adds Xvfb visual scenarios at **1280×720** and **720×1280**, produces a cache-bypassed release export through the repository's `Web` preset, and runs a required Chromium gameplay smoke. The browser lane enters gameplay, begins a melee animation, triggers and resolves a real upgrade offer, then proves both east and west walk clips advance without another attack. A required render `SKIP`, browser phase failure, zero-test run, missing export artifact, oversized PCK, or nonzero process exit is blocking.
 
 ### Latest verified baseline
 
@@ -49,6 +49,20 @@ pnpm smoke:web
 The smoke uses the local exported WASM/PCK bundle and system Chromium (`/usr/bin/chromium` by default, overridable with `CHROMIUM_PATH`). It writes its ordered phase report and screenshot beneath `game/artifacts/browser/`. GitHub Actions runs the complete full gate for pull requests, pushes to `main`, and manual dispatches.
 
 In the headless sandbox, unavailable ALSA hardware caused Godot to fall back to its dummy audio driver. This environmental warning was non-blocking; the harness completed successfully with no gameplay or export errors.
+
+## Spatial districts and destructible buildings
+
+Forward logical-chunk progress selects geography independently of the six-act siege encounter model. Business remains active west of origin and through chunk 7; Residential occupies chunks 8–15, Entertainment 16–23, Military 24–31, and Royal begins at chunk 32 and continues indefinitely. Crossing a boundary changes the streamed facade family and road accent, emits typed district metadata, and presents a responsive transition banner below persistent HUD instrumentation.
+
+| District | Forward chunks | Destructible building roster |
+|---|---:|---|
+| **Business — The Ledger Spine** | ≤ 7 | Mercy Exchange Annex; Helix Clearinghouse Spine; Orison Custody Vault; Vanta Compliance Tribunal; Crown Reserve Data Treasury |
+| **Residential — Ashwater Commons** | 8–15 | Emberpot Canteen House; Bluewire Laundry Walkup; Rainvault Cooperative; Sixfold Balcony Court; Nightglass Mutual Clinic |
+| **Entertainment — The Afterglow Strip** | 16–23 | Voltage Chapel; Orpheum Vanta; Halcyon Stack Hotel; Prism Crown Revue; House of Static Casino Hotel |
+| **Military — The Iron Corridor** | 24–31 | Ordnance Transload Bastion; Revetment Armory Stack; Aegis Signal Citadel; Manticore Siege-Repair Gantry; Prefect War Keep |
+| **Royal — The Crownward** | ≥ 32 | Laureate Processional Gate; Aurelian Menagerie Conservatory; Tribunal of Nine Seals; Ministry of Privilege Spire; Palace of the Last Sovereign |
+
+All 25 buildings reuse the fixed six-building resident pool and the established three-column by two-row destruction topology. Variant changes reconfigure facade atlas regions, dimensions, material resistance, deterministic crack seeds, pipes, cables, hollow edges, and rubble geometry in place before mutation restore. The complete visual briefs and GPT Image 2 concept boards are documented in [`docs/DISTRICT_DESTRUCTION_DESIGN.md`](docs/DISTRICT_DESTRUCTION_DESIGN.md); phased architecture, risk controls, and measured gates are recorded in [`docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md`](docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md).
 
 ## Run the web host
 
