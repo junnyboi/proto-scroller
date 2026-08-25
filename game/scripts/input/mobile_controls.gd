@@ -4,6 +4,7 @@ extends Control
 signal move_axis_changed(axis: float)
 signal move_direction_tapped(direction: int)
 signal smash_pressed
+signal smash_released
 
 const JOYSTICK_RADIUS: float = 78.0
 const KNOB_RADIUS: float = 34.0
@@ -18,6 +19,7 @@ var mobile_device_detected: bool = false
 var joystick_active: bool = false
 var smash_button: Button
 var smash_press_count: int = 0
+var smash_release_count: int = 0
 var robot: GiantRobotController
 var _controls_enabled: bool = true
 var _joystick_touch_index: int = -1
@@ -29,6 +31,7 @@ var _target_axis: float = 0.0
 var _current_axis: float = 0.0
 var _smash_cooldown_remaining: float = 0.0
 var _preserve_touch_ownership_while_disabled: bool = false
+var _smash_press_accepted: bool = false
 
 
 func _ready() -> void:
@@ -41,7 +44,8 @@ func _ready() -> void:
 	if robot != null:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
 		move_direction_tapped.connect(robot._register_move_tap)
-		smash_pressed.connect(robot.request_attack)
+		smash_pressed.connect(robot.begin_attack_charge)
+		smash_released.connect(robot.release_attack_charge)
 	_build_smash_button()
 	L10n.apply_locale_font(self)
 	_sync_to_viewport()
@@ -119,7 +123,7 @@ func set_controls_enabled(enabled: bool, preserve_touch_ownership: bool = false)
 		smash_button.modulate.a = 1.0 if enabled else 0.35
 	if not enabled and not preserve_touch_ownership:
 		_release_joystick()
-		_release_smash()
+		_clear_smash_touch()
 		_current_axis = 0.0
 		move_axis_changed.emit(0.0)
 	elif enabled:
@@ -285,17 +289,28 @@ func _release_joystick() -> void:
 
 func _press_smash(touch_index: int) -> void:
 	_smash_touch_index = touch_index
+	_smash_press_accepted = false
 	smash_button.scale = Vector2(0.94, 0.94)
 	smash_button.pivot_offset = smash_button.size * 0.5
 	if _smash_cooldown_remaining > 0.0:
 		return
 	_smash_cooldown_remaining = smash_cooldown
+	_smash_press_accepted = true
 	smash_press_count += 1
 	smash_pressed.emit()
 
 
 func _release_smash() -> void:
+	var should_release: bool = _smash_press_accepted
+	_clear_smash_touch()
+	if should_release:
+		smash_release_count += 1
+		smash_released.emit()
+
+
+func _clear_smash_touch() -> void:
 	_smash_touch_index = -1
+	_smash_press_accepted = false
 	if smash_button != null:
 		smash_button.scale = Vector2.ONE
 

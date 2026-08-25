@@ -131,6 +131,74 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	assert_eq(sprite.animation, &"idle_s")
 
 
+func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on_release() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var particles: CPUParticles2D = robot.get_node(
+		^"VisualRoot/MeleeChargeParticles"
+	) as CPUParticles2D
+	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
+	assert_gt(attacks.begin_charge(), 0)
+	assert_eq(sprite.animation, &"attack_se")
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	attacks.cancel_attack()
+	assert_eq(sprite.animation, &"idle_s")
+	robot.velocity.x = robot.max_speed
+	assert_gt(attacks.begin_charge(), 0)
+	assert_true(presenter.attacking)
+	assert_true(presenter.charging)
+	assert_eq(sprite.animation, &"attack_e")
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	assert_eq(presenter.charge_particle_emitter_count(), 1)
+	assert_true(presenter.charge_particles_emitting())
+	assert_eq(particles.color, RobotAnimationPresenter.CHARGE_PARTICLE_COLOR)
+	assert_lt(particles.radial_accel_max, 0.0)
+	attacks._process(1.0)
+	assert_eq(sprite.frame, 0)
+	assert_false(sprite.is_playing())
+	assert_almost_eq(presenter.last_charge_progress, 0.5, 0.0001)
+	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
+	assert_true(attacks.release_charge())
+	assert_false(presenter.charging)
+	assert_false(presenter.charge_particles_emitting())
+	assert_true(sprite.is_playing())
+	var spec: AttackSpec = attacks.current_spec
+	await get_tree().create_timer(spec.anticipation_seconds + 0.04).timeout
+	assert_gte(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
+	assert_almost_eq(spec.actor_damage, 217.5, 0.001)
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
+func test_pause_cancels_charge_and_clears_particles_without_releasing_attack() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	assert_gt(attacks.begin_charge(), 0)
+	attacks._process(0.75)
+	assert_true(presenter.charge_particles_emitting())
+	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
+	assert_false(attacks.is_busy())
+	assert_false(attacks.is_charging())
+	assert_false(presenter.attacking)
+	assert_false(presenter.charging)
+	assert_false(presenter.charge_particles_emitting())
+	assert_eq(sprite.animation, &"idle_s")
+	assert_false(sprite.is_playing())
+	assert_false(attacks.release_charge())
+	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
+
+
 func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot

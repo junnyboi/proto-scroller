@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name GiantRobotController
 extends CharacterBody2D
 
@@ -15,7 +16,8 @@ signal dodge_cooldown_ready
 signal heavy_impact_requested(
 	origin: Vector2,
 	radius: float,
-	damage: float,
+	actor_damage: float,
+	structural_damage: float,
 	impulse_per_mass: float,
 	attack_id: int
 )
@@ -134,7 +136,9 @@ func _physics_process(delta: float) -> void:
 	if absf(virtual_move_axis) > absf(input_axis):
 		input_axis = virtual_move_axis
 	if _control_enabled and Input.is_action_just_pressed(&"stomp"):
-		request_attack()
+		begin_attack_charge()
+	if Input.is_action_just_released(&"stomp"):
+		release_attack_charge()
 	if _control_enabled and Input.is_action_just_pressed(&"dodge"):
 		request_dodge(_sign_to_facing(input_axis))
 	if _control_enabled and Input.is_action_just_pressed(&"move_left"):
@@ -409,6 +413,16 @@ func request_attack() -> int:
 	return request_stomp()
 
 
+func begin_attack_charge() -> int:
+	if attack_controller != null:
+		return attack_controller.begin_charge()
+	return request_stomp()
+
+
+func release_attack_charge() -> bool:
+	return attack_controller != null and attack_controller.release_charge()
+
+
 func reserve_attack_id() -> int:
 	_attack_id += 1
 	return _attack_id
@@ -423,7 +437,13 @@ func can_request_attack() -> bool:
 	)
 
 
-func execute_ground_smash(attack_id: int) -> void:
+func execute_ground_smash(
+	attack_id: int,
+	damage: float = -1.0,
+	structural_damage: float = -1.0,
+	impulse_per_mass: float = -1.0,
+	radius: float = -1.0
+) -> void:
 	var origin: Vector2 = (
 		_ground_impact_origin.global_position
 		if _ground_impact_origin != null
@@ -431,9 +451,10 @@ func execute_ground_smash(attack_id: int) -> void:
 	)
 	heavy_impact_requested.emit(
 		origin,
-		stomp_radius,
-		stomp_damage,
-		stomp_impulse_per_mass,
+		stomp_radius if radius < 0.0 else radius,
+		stomp_damage if damage < 0.0 else damage,
+		stomp_damage if structural_damage < 0.0 else structural_damage,
+		stomp_impulse_per_mass if impulse_per_mass < 0.0 else impulse_per_mass,
 		attack_id
 	)
 

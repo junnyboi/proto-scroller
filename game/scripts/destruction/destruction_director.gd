@@ -46,6 +46,9 @@ func queue_explosion(
 		"damage_type": options.damage_type if options != null else &"explosive",
 		"player_damage_scale": options.player_damage_scale if options != null else 1.0,
 		"enemy_damage_scale": options.enemy_damage_scale if options != null else 1.0,
+		"structural_damage_scale": (
+			options.structural_damage_scale if options != null else 1.0
+		),
 	})
 
 
@@ -170,6 +173,8 @@ func _damage_scale_for(receiver: Node, data: Dictionary) -> float:
 		return maxf(float(data.player_damage_scale), 0.0)
 	if receiver is EnemyActor2D:
 		return maxf(float(data.enemy_damage_scale), 0.0)
+	if receiver is Destructible2D or receiver is StructuralBuilding2D:
+		return maxf(float(data.structural_damage_scale), 0.0)
 	if receiver is DestructibleProp2D and StringName(data.damage_type) == &"ground_smash":
 		return GROUND_SMASH_PROP_DAMAGE_SCALE
 	return 1.0

@@ -61,6 +61,99 @@ func test_ground_smash_uses_locked_mode_after_velocity_changes() -> void:
 	_record_test_execution()
 
 
+func test_tap_charge_releases_normal_damage_and_full_charge_caps_at_double_damage() -> void:
+	var city: CitySlice = await _city()
+	var attacks: ContextualAttackController = city.contextual_attacks
+	assert_gt(attacks.begin_charge(), 0)
+	assert_true(attacks.is_charging())
+	assert_eq(attacks.phase, ContextualAttackController.Phase.CHARGING)
+	assert_almost_eq(attacks.charge_duration(), 0.0, 0.0001)
+	assert_almost_eq(attacks.charge_damage_multiplier(), 1.0, 0.0001)
+	assert_true(attacks.release_charge())
+	assert_almost_eq(attacks.current_spec.actor_damage, 180.0, 0.001)
+	assert_almost_eq(attacks.current_spec.structural_damage, 180.0, 0.001)
+	attacks.cancel_attack()
+	assert_gt(attacks.begin_charge(), 0)
+	attacks._process(3.5)
+	assert_almost_eq(
+		attacks.charge_duration(),
+		ContextualAttackController.MAX_CHARGE_SECONDS,
+		0.0001
+	)
+	assert_almost_eq(attacks.charge_progress(), 1.0, 0.0001)
+	assert_almost_eq(attacks.charge_damage_multiplier(), 2.0, 0.0001)
+	assert_true(attacks.release_charge())
+	assert_almost_eq(attacks.current_spec.actor_damage, 360.0, 0.001)
+	assert_almost_eq(attacks.current_spec.structural_damage, 360.0, 0.001)
+	assert_almost_eq(attacks.current_spec.impulse_per_mass, 1020.0, 0.001)
+	_record_test_execution()
+
+
+func test_full_charge_ground_commit_emits_double_damage_with_base_impulse_and_radius() -> void:
+	var city: CitySlice = await _city()
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var payloads: Array[Dictionary] = []
+	city.robot.heavy_impact_requested.connect(
+		func(
+			origin: Vector2,
+			radius: float,
+			actor_damage: float,
+			structural_damage: float,
+			impulse_per_mass: float,
+			attack_id: int
+		) -> void:
+			payloads.append({
+				"origin": origin,
+				"radius": radius,
+				"actor_damage": actor_damage,
+				"structural_damage": structural_damage,
+				"impulse_per_mass": impulse_per_mass,
+				"attack_id": attack_id,
+			})
+	)
+	_tune_short_attack(attacks.resolver)
+	var attack_id: int = attacks.begin_charge()
+	attacks._process(2.5)
+	assert_true(attacks.release_charge())
+	await get_tree().create_timer(attacks.current_spec.anticipation_seconds + 0.03).timeout
+	assert_eq(payloads.size(), 1)
+	assert_eq(int(payloads[0].attack_id), attack_id)
+	assert_almost_eq(float(payloads[0].actor_damage), 360.0, 0.001)
+	assert_almost_eq(float(payloads[0].structural_damage), 360.0, 0.001)
+	assert_almost_eq(float(payloads[0].impulse_per_mass), 1020.0, 0.001)
+	assert_almost_eq(float(payloads[0].radius), 320.0, 0.001)
+	_record_test_execution()
+
+
+func test_half_charge_freezes_robot_then_release_deals_150_percent_jab_damage() -> void:
+	var city: CitySlice = await _city()
+	var robot: GiantRobotController = city.robot
+	var attacks: ContextualAttackController = city.contextual_attacks
+	robot.global_position = Vector2(900.0, 460.0)
+	robot.velocity.x = robot.max_speed
+	city.car.freeze = true
+	city.car.global_position = robot.global_position + Vector2(135.0, 95.0)
+	city.car.current_health = 500.0
+	assert_gt(attacks.begin_charge(), 0)
+	assert_true(attacks.current_spec.is_jab_cross())
+	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
+	var locked_x: float = robot.global_position.x
+	attacks._process(1.0)
+	robot.physics_step(-1.0, 1.0)
+	assert_almost_eq(robot.global_position.x, locked_x, 0.001)
+	assert_almost_eq(attacks.charge_damage_multiplier(), 1.5, 0.0001)
+	assert_true(attacks.release_charge())
+	var charged_spec: AttackSpec = attacks.current_spec
+	assert_almost_eq(charged_spec.actor_damage, 217.5, 0.001)
+	assert_almost_eq(charged_spec.structural_damage, 187.5, 0.001)
+	assert_almost_eq(charged_spec.impulse_per_mass, 1080.0, 0.001)
+	await get_tree().create_timer(charged_spec.anticipation_seconds + 0.03).timeout
+	await get_tree().physics_frame
+	assert_almost_eq(city.car.current_health, 282.5, 0.01)
+	assert_eq(attacks.jab_cross_impact.last_accepted_targets, 1)
+	_record_test_execution()
+
+
 func test_attack_locks_horizontal_movement_through_telegraph_and_recovery() -> void:
 	var city: CitySlice = await _city()
 	city.robot.velocity.x = city.robot.max_speed * 0.8
@@ -264,7 +357,10 @@ func test_mapped_stomp_action_cancels_east_dodge_into_half_momentum_melee() -> v
 	assert_true(robot._start_dodge(1))
 	Input.action_press(&"stomp")
 	robot._physics_process(1.0 / 60.0)
+	assert_true(city.contextual_attacks.is_charging())
+	city.contextual_attacks._process(1.0)
 	Input.action_release(&"stomp")
+	robot._physics_process(1.0 / 60.0)
 	var spec: AttackSpec = city.contextual_attacks.current_spec
 	assert_not_null(spec)
 	if spec == null:
@@ -272,7 +368,9 @@ func test_mapped_stomp_action_cancels_east_dodge_into_half_momentum_melee() -> v
 	assert_true(spec.is_jab_cross())
 	assert_eq(spec.facing, 1)
 	assert_almost_eq(spec.speed_ratio, 0.50, 0.0001)
-	assert_almost_eq(spec.actor_damage, 72.5, 0.001)
+	assert_almost_eq(spec.actor_damage, 108.75, 0.001)
+	assert_almost_eq(spec.structural_damage, 93.75, 0.001)
+	assert_almost_eq(spec.impulse_per_mass, 540.0, 0.001)
 	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
 	assert_false(robot.dodge_invulnerable)
 	_record_test_execution()

@@ -19,6 +19,9 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH ?? "/usr/bin/chromium";
 const EXPECTED_PHASES = [
   "ready",
+  "charge_started",
+  "charge_progress",
+  "charge_released",
   "attack_started",
   "upgrade_visible",
   "upgrade_resolved",
@@ -117,6 +120,16 @@ try {
     { timeout: 120_000 }
   );
   await page.keyboard.press("Enter");
+  await waitForPhase(page, "ready", 30_000);
+  await page.keyboard.down("Space");
+  try {
+    await waitForPhase(page, "charge_started", 30_000);
+    await waitForPhase(page, "charge_progress", 30_000);
+    await new Promise(resolve => setTimeout(resolve, 250));
+  } finally {
+    await page.keyboard.up("Space");
+  }
+  await waitForPhase(page, "charge_released", 30_000);
   await waitForPhase(page, "upgrade_visible", 30_000);
   await page.screenshot({ path: SCREENSHOT_PATH });
   await page.keyboard.press("Enter");
@@ -229,11 +242,42 @@ function assertPhaseContract(phases) {
       );
     }
   });
-  const attack = phases[1];
-  const visible = phases[2];
-  const resolved = phases[3];
-  const east = phases[4];
-  const west = phases[5];
+  const chargeStarted = phases[1];
+  const chargeProgress = phases[2];
+  const chargeReleased = phases[3];
+  const attack = phases[4];
+  const visible = phases[5];
+  const resolved = phases[6];
+  const east = phases[7];
+  const west = phases[8];
+  if (
+    chargeStarted.details.frame !== 0 ||
+    chargeStarted.details.particles !== true ||
+    !String(chargeStarted.details.animation).startsWith("attack_")
+  ) {
+    throw new Error(
+      `charge did not freeze first frame with particles: ${JSON.stringify(chargeStarted.details)}`
+    );
+  }
+  if (
+    chargeProgress.details.progress < 0.35 ||
+    chargeProgress.details.multiplier <= 1.0 ||
+    chargeProgress.details.multiplier > 2.0 ||
+    chargeProgress.details.frame !== 0
+  ) {
+    throw new Error(
+      `charge progress contract failed: ${JSON.stringify(chargeProgress.details)}`
+    );
+  }
+  if (
+    chargeReleased.details.damage <= 180 ||
+    chargeReleased.details.damage > 360 ||
+    chargeReleased.details.playing !== true
+  ) {
+    throw new Error(
+      `charge release contract failed: ${JSON.stringify(chargeReleased.details)}`
+    );
+  }
   if (!String(attack.details.animation).startsWith("attack_")) {
     throw new Error(`melee animation missing: ${attack.details.animation}`);
   }
