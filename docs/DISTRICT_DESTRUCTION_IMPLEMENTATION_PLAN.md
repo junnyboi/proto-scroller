@@ -119,6 +119,7 @@ The primary risk is package growth. Runtime facade sprites are therefore compact
 | WP3A | Completed | This work-package commit | Four boundary transitions and responsive banner validated; 273 GUT tests passed with 27,879 assertions; all five trace IDs and catalog digest passed; post-integration standard harness passed in 463 s |
 | WP3B | Completed | This bugfix commit | Root cause confirmed as hash-modulo roster collisions (2/5 Entertainment and 3/5 Residential at seed zero). Full gate passed in 586 s with 288/288 tests and 28,467 assertions; all 25 live facade IDs and texture paths matched across five districts; landscape/portrait galleries and live Crownward renders passed; Web PCK measured 13,796,484 bytes; Chromium smoke passed. |
 | WP4 | Completed | `c85fb134d7a03d83b93e8692dceaf5469fff0a25` | 279/279 GUT tests and 27,935 assertions passed; full harness passed in 607 s; PCK 13,766,156 bytes; mission-card, district, mobile, melee-audio, export, and Chromium lanes passed; WebDev checkpoint `6f4645ed` published |
+| Post-WP4 presentation maintenance | Completed | This maintenance commit | Replaced the English title hook with the user-approved payback story, expanded responsive story bounds, and lifted only the robot visual root to a tested 15–16 px road-line clearance. Full gate passed in 711 s with 296/296 tests and 28,672 assertions; title and gameplay landscape/portrait renders, 9-file Web export, 13,823,212-byte PCK, and Chromium gameplay smoke passed. |
 
 ## Deployment Record
 
