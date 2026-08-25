@@ -65,6 +65,13 @@ func configure_transform(
 	particles.position = Vector2(0.0, _display_size.y * 0.82)
 
 
+func configure_seed(pattern_seed: int) -> void:
+	_sway_seed = float(pattern_seed) * 0.731
+	_sway_time = 0.0
+	sway_rotation_offset = 0.0
+	rotation = _base_rotation
+
+
 func set_attachment_visible(value: bool) -> void:
 	visible = value
 	set_process(value and kind == Kind.CABLE)
