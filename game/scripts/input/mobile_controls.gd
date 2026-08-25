@@ -4,6 +4,7 @@ extends Control
 signal move_axis_changed(axis: float)
 signal move_direction_tapped(direction: int)
 signal smash_pressed
+signal dash_pressed(direction: int)
 
 const JOYSTICK_RADIUS: float = 78.0
 const KNOB_RADIUS: float = 34.0
@@ -17,11 +18,14 @@ const EDGE_PADDING: float = 14.0
 var mobile_device_detected: bool = false
 var joystick_active: bool = false
 var smash_button: Button
+var dash_button: Button
 var smash_press_count: int = 0
+var dash_press_count: int = 0
 var robot: GiantRobotController
 var _controls_enabled: bool = true
 var _joystick_touch_index: int = -1
 var _smash_touch_index: int = -1
+var _dash_touch_index: int = -1
 var _touch_anchor: Vector2
 var _joystick_origin: Vector2
 var _knob_offset: Vector2
@@ -42,7 +46,9 @@ func _ready() -> void:
 		move_axis_changed.connect(robot.set_virtual_move_axis)
 		move_direction_tapped.connect(robot._register_move_tap)
 		smash_pressed.connect(robot.request_attack)
+		dash_pressed.connect(robot.request_dodge)
 	_build_smash_button()
+	_build_dash_button()
 	L10n.apply_locale_font(self)
 	_sync_to_viewport()
 	visible = mobile_device_detected
@@ -101,6 +107,10 @@ func smash_touch_index() -> int:
 	return _smash_touch_index
 
 
+func dash_touch_index() -> int:
+	return _dash_touch_index
+
+
 func setup(p_robot: GiantRobotController, p_detection_override: int = -1) -> void:
 	robot = p_robot
 	detection_override = p_detection_override
@@ -112,14 +122,23 @@ func smash_bounds() -> Rect2:
 	return smash_button.get_global_rect()
 
 
+func dash_bounds() -> Rect2:
+	if dash_button == null:
+		return Rect2()
+	return dash_button.get_global_rect()
+
+
 func set_controls_enabled(enabled: bool, preserve_touch_ownership: bool = false) -> void:
 	_controls_enabled = enabled
 	_preserve_touch_ownership_while_disabled = not enabled and preserve_touch_ownership
 	if smash_button != null:
 		smash_button.modulate.a = 1.0 if enabled else 0.35
+	if dash_button != null:
+		dash_button.modulate.a = 1.0 if enabled else 0.35
 	if not enabled and not preserve_touch_ownership:
 		_release_joystick()
 		_release_smash()
+		_release_dash()
 		_current_axis = 0.0
 		move_axis_changed.emit(0.0)
 	elif enabled:
@@ -154,6 +173,12 @@ func _sync_to_viewport() -> void:
 		smash_button.offset_top = -160.0 if portrait else -168.0
 		smash_button.offset_right = -24.0 if portrait else -36.0
 		smash_button.offset_bottom = -24.0 if portrait else -36.0
+	if dash_button != null:
+		var portrait: bool = viewport_size.y > viewport_size.x
+		dash_button.offset_left = -144.0 if portrait else -154.0
+		dash_button.offset_top = -252.0 if portrait else -256.0
+		dash_button.offset_right = -40.0 if portrait else -50.0
+		dash_button.offset_bottom = -180.0 if portrait else -184.0
 	if joystick_active:
 		var previous_origin: Vector2 = _joystick_origin
 		_joystick_origin.x = clampf(
@@ -199,19 +224,53 @@ func _build_smash_button() -> void:
 	add_child(smash_button)
 
 
+func _build_dash_button() -> void:
+	dash_button = Button.new()
+	dash_button.name = "DashButton"
+	dash_button.text = L10n.t("mobile.dash")
+	dash_button.focus_mode = Control.FOCUS_NONE
+	dash_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dash_button.anchor_left = 1.0
+	dash_button.anchor_top = 1.0
+	dash_button.anchor_right = 1.0
+	dash_button.anchor_bottom = 1.0
+	dash_button.offset_left = -154.0
+	dash_button.offset_top = -256.0
+	dash_button.offset_right = -50.0
+	dash_button.offset_bottom = -184.0
+	dash_button.add_theme_font_size_override(&"font_size", 18)
+	var normal_style: StyleBoxFlat = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.06, 0.16, 0.18, 0.88)
+	normal_style.border_color = Color(0.36, 0.82, 0.88, 0.92)
+	normal_style.set_border_width_all(3)
+	normal_style.corner_radius_top_left = 36
+	normal_style.corner_radius_top_right = 36
+	normal_style.corner_radius_bottom_left = 36
+	normal_style.corner_radius_bottom_right = 36
+	dash_button.add_theme_stylebox_override(&"normal", normal_style)
+	dash_button.add_theme_stylebox_override(&"hover", normal_style)
+	dash_button.add_theme_stylebox_override(&"focus", normal_style)
+	add_child(dash_button)
+
+
 func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 	if event.pressed:
 		if smash_bounds().has_point(event.position):
 			if event.index != _joystick_touch_index and _smash_touch_index == -1:
 				_press_smash(event.index)
+		elif dash_bounds().has_point(event.position):
+			if event.index != _joystick_touch_index and _dash_touch_index == -1:
+				_press_dash(event.index)
 		elif _joystick_touch_index == -1:
-			if event.index != _smash_touch_index:
+			if event.index != _smash_touch_index and event.index != _dash_touch_index:
 				_press_joystick(event.index, event.position)
 	else:
 		if event.index == _joystick_touch_index:
 			_release_joystick()
 		if event.index == _smash_touch_index:
 			_release_smash()
+		if event.index == _dash_touch_index:
+			_release_dash()
 	get_viewport().set_input_as_handled()
 
 
@@ -227,6 +286,8 @@ func _handle_disabled_release(event: InputEvent) -> void:
 		_release_joystick()
 	if touch.index == _smash_touch_index:
 		_release_smash()
+	if touch.index == _dash_touch_index:
+		_release_dash()
 
 
 func _handle_screen_drag(event: InputEventScreenDrag) -> void:
@@ -298,6 +359,28 @@ func _release_smash() -> void:
 	_smash_touch_index = -1
 	if smash_button != null:
 		smash_button.scale = Vector2.ONE
+
+
+func _press_dash(touch_index: int) -> void:
+	_dash_touch_index = touch_index
+	dash_button.scale = Vector2(0.94, 0.94)
+	dash_button.pivot_offset = dash_button.size * 0.5
+	var direction_axis: float = _target_axis
+	if absf(direction_axis) <= deadzone:
+		direction_axis = _current_axis
+	var direction: int = 0
+	if absf(direction_axis) > deadzone:
+		direction = 1 if direction_axis > 0.0 else -1
+	elif robot != null:
+		direction = robot.facing
+	dash_press_count += 1
+	dash_pressed.emit(direction)
+
+
+func _release_dash() -> void:
+	_dash_touch_index = -1
+	if dash_button != null:
+		dash_button.scale = Vector2.ONE
 
 
 func _apply_deadzone(raw_axis: float) -> float:

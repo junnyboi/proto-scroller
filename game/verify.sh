@@ -283,12 +283,20 @@ if [[ "$MODE" == "full" ]]; then
     --resolution 720x1280 -s selftest/city_slice_visual_scenario.gd
   PORTRAIT_CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice-initial.png)"
   grep -Fq '720 x 1280' <<< "$PORTRAIT_CITY_DIMENSIONS"
-  mv artifacts/city_slice/city-slice-initial.png \
-    artifacts/city_slice/city-slice-initial-portrait.png
-	  cp artifacts/city_slice/city-slice-initial-landscape.png \
-	    artifacts/city_slice/city-slice-initial.png
+	  mv artifacts/city_slice/city-slice-initial.png \
+	    artifacts/city_slice/city-slice-initial-portrait.png
+		  cp artifacts/city_slice/city-slice-initial-landscape.png \
+		    artifacts/city_slice/city-slice-initial.png
 
-	  printf '%s\n' '[L5] landscape upgrade overlay visual scenario'
+	  printf '%s\n' '[L5] portrait mobile-controls visual scenario'
+	  run_engine xvfb-run -a "$GODOT" --path . --resolution 720x1280 \
+	    -s selftest/mobile_controls_visual_scenario.gd
+	  test -s artifacts/mobile_controls/mobile-controls-portrait.png
+	  grep -Fq '720 x 1280' <<< "$(
+	    file artifacts/mobile_controls/mobile-controls-portrait.png
+	  )"
+
+		  printf '%s\n' '[L5] landscape upgrade overlay visual scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
 	    -s selftest/upgrade_overlay_visual_scenario.gd
 	  test -s artifacts/upgrades/upgrade-choice.png

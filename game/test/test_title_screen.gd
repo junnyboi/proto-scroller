@@ -99,7 +99,16 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 	var run_rule: String = (screen.get_node("%RunRule") as Label).text
 	assert_eq(hook, L10n.t("title.command_hook"))
 	for required_control: String in [
-		"A/D", "STICK", "D-PAD", "TOUCH", "SPACE", "A / CROSS", "DOUBLE-TAP", "FLICK TWICE"
+		"A/D",
+		"STICK",
+		"D-PAD",
+		"TOUCH",
+		"SPACE",
+		"A / CROSS",
+		"DASH",
+		"SHIFT",
+		"B / CIRCLE",
+		"DOUBLE-TAP",
 	]:
 		assert_true(controls.contains(required_control), required_control)
 	var info_panel: PanelContainer = screen.get_node("StatusRail") as PanelContainer

@@ -27,6 +27,32 @@ func test_project_maps_standard_gamepad_pilot_controls() -> void:
 	_record_test_execution()
 
 
+func test_physical_shift_event_starts_keyboard_dash() -> void:
+	var shift_press: InputEventKey = InputEventKey.new()
+	shift_press.physical_keycode = KEY_SHIFT
+	shift_press.pressed = true
+	assert_true(InputMap.event_is_action(shift_press, &"dodge"))
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var robot: GiantRobotController = city.robot
+	robot.collision_mask = 0
+	robot.gravity = 0.0
+	robot.facing = -1
+	Input.parse_input_event(shift_press)
+	await get_tree().physics_frame
+	var shift_release: InputEventKey = shift_press.duplicate() as InputEventKey
+	shift_release.pressed = false
+	Input.parse_input_event(shift_release)
+	await get_tree().physics_frame
+	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
+	assert_eq(robot.facing, -1)
+	assert_eq(robot.dodge_count, 1)
+	robot.set_physics_process(false)
+	robot.cancel_dodge()
+	_record_test_execution()
+
+
 func test_dedicated_dodge_uses_direction_then_falls_back_to_facing() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
