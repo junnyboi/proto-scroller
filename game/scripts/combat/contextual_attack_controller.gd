@@ -130,6 +130,7 @@ func is_busy() -> bool:
 
 
 func cancel_attack() -> void:
+	var cancelled_spec: AttackSpec = current_spec
 	current_spec = null
 	_busy = false
 	_buffered_dodge_direction = 0
@@ -137,6 +138,8 @@ func cancel_attack() -> void:
 	if _robot != null:
 		_robot._set_attack_locked(false)
 	_restore_pose()
+	if cancelled_spec != null:
+		attack_finished.emit(cancelled_spec)
 
 
 func _run_attack(spec: AttackSpec) -> void:

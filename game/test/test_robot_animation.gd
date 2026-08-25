@@ -131,6 +131,44 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	assert_eq(sprite.animation, &"idle_s")
 
 
+func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() -> void:
+	var city: CitySlice = await _spawn_city()
+	var robot: GiantRobotController = city.robot
+	var sprite: AnimatedSprite2D = _sprite(city)
+	var presenter: RobotAnimationPresenter = (
+		robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	robot.collision_mask = 0
+	robot.gravity = 0.0
+	robot.velocity.x = robot.max_speed
+	var terminal_specs: Array[AttackSpec] = []
+	city.contextual_attacks.attack_finished.connect(
+		func(spec: AttackSpec) -> void:
+			terminal_specs.append(spec)
+	)
+	assert_gt(robot.request_attack(), 0)
+	assert_true(city.contextual_attacks.is_busy())
+	assert_true(presenter.attacking)
+	assert_eq(sprite.animation, &"attack_e")
+	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
+	assert_false(city.contextual_attacks.is_busy())
+	assert_eq(terminal_specs.size(), 1)
+	city.contextual_attacks.cancel_attack()
+	assert_eq(terminal_specs.size(), 1)
+	assert_false(presenter.attacking)
+	assert_eq(sprite.animation, &"idle_s")
+	assert_false(sprite.is_playing())
+	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
+	robot.physics_step(1.0, 0.10)
+	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.WALK)
+	assert_eq(sprite.animation, &"walk_e")
+	assert_true(sprite.is_playing())
+	robot.facing = -1
+	robot.facing_changed.emit(robot.facing)
+	assert_eq(sprite.animation, &"walk_w")
+	assert_true(sprite.is_playing())
+
+
 func test_critical_health_smoke_emits_at_or_below_twenty_five_percent() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
