@@ -131,6 +131,13 @@ func is_destroyed() -> bool:
 	return _destroyed_cells >= CELL_COUNT
 
 
+func ground_passage_open() -> bool:
+	for column: int in range(COLUMNS):
+		if is_cell_destroyed(column, ROWS - 1):
+			return true
+	return false
+
+
 func is_chain_reaction_active() -> bool:
 	return _chain_reaction_active
 
@@ -189,6 +196,7 @@ func restore_stream_state(state: Dictionary) -> void:
 		_cells[cell_index].restore_stream_state(cell_state)
 		_destroyed_cells += 1 if _cells[cell_index].is_destroyed() else 0
 	_refresh_rubble_edges()
+	_refresh_ground_passage_collision()
 
 
 func _build_cells() -> void:
@@ -201,6 +209,7 @@ func _build_cells() -> void:
 			_cells.append(cell)
 			add_child(cell)
 	_refresh_rubble_edges()
+	_refresh_ground_passage_collision()
 
 
 func _create_cell(column: int, row: int) -> Destructible2D:
@@ -560,11 +569,29 @@ func _on_cell_destroyed(event: DamageEvent, column: int, row: int) -> void:
 	if row == ROWS - 1:
 		_damage_cell_above(column, row, event)
 	_refresh_rubble_edges()
+	_refresh_ground_passage_collision()
 	cell_destroyed.emit(column, row, event)
 	if is_destroyed():
 		destroyed.emit(event)
 		return
 	call_deferred("_evaluate_chain_reactions")
+
+
+func _refresh_ground_passage_collision() -> void:
+	var passage_open: bool = ground_passage_open()
+	for row: int in range(ROWS):
+		for column: int in range(COLUMNS):
+			var cell: Destructible2D = get_cell(column, row)
+			if cell == null:
+				continue
+			var collision: CollisionShape2D = cell.get_node_or_null(
+				^"IntactBody/CollisionShape2D"
+			) as CollisionShape2D
+			if collision != null:
+				collision.set_deferred(
+					"disabled",
+					passage_open or cell.is_destroyed()
+				)
 
 
 func _refresh_rubble_edges() -> void:

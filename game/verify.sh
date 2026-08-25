@@ -21,6 +21,7 @@ mkdir -p \
 	  artifacts/title_screen \
   artifacts/city_slice \
 	  artifacts/endless_terrain \
+	  artifacts/visible_facade_cycle \
 	  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/directives \
@@ -293,6 +294,42 @@ if [[ "$MODE" == "full" ]]; then
 	  while IFS= read -r gallery_shot; do
 	    grep -Fq '720 x 1280' <<< "$(file "$gallery_shot")"
 	  done < <(find artifacts/district_gallery -maxdepth 1 -type f \
+	    -name '*-portrait.png' | LC_ALL=C sort)
+
+	  printf '%s\n' '[L5] landscape natural five-facade traversal scenario'
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+	    --resolution 1280x720 \
+	    -s selftest/visible_facade_cycle_scenario.gd
+	  jq -e '
+	    .done == true
+	    and .result == "PASS"
+	    and .orientation == "landscape"
+	    and (.variants | length) == 5
+	    and ([.variants[]] | unique | length) == 5
+	  ' artifacts/visible_facade_cycle/report-landscape.json >/dev/null
+	  test "$(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
+	    -name '*-landscape.png' -size +0c | wc -l)" -eq 5
+	  while IFS= read -r facade_shot; do
+	    grep -Fq '1280 x 720' <<< "$(file "$facade_shot")"
+	  done < <(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
+	    -name '*-landscape.png' | LC_ALL=C sort)
+
+	  printf '%s\n' '[L5] portrait natural five-facade traversal scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+	    --audio-driver Dummy --path . --resolution 720x1280 \
+	    -s selftest/visible_facade_cycle_scenario.gd
+	  jq -e '
+	    .done == true
+	    and .result == "PASS"
+	    and .orientation == "portrait"
+	    and (.variants | length) == 5
+	    and ([.variants[]] | unique | length) == 5
+	  ' artifacts/visible_facade_cycle/report-portrait.json >/dev/null
+	  test "$(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
+	    -name '*-portrait.png' -size +0c | wc -l)" -eq 5
+	  while IFS= read -r facade_shot; do
+	    grep -Fq '720 x 1280' <<< "$(file "$facade_shot")"
+	  done < <(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
 	    -name '*-portrait.png' | LC_ALL=C sort)
 
 	  printf '%s\n' '[L5] windowed enemy-variety render scenario'

@@ -43,6 +43,10 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	await _move_to_logical_chunk(city, 0)
 	assert_eq(String(city.building.get_meta(&"stream_object_id")), "chunk:0:building")
 	assert_true(city.building.is_cell_destroyed(0, 1))
+	assert_true(city.building.ground_passage_open())
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			assert_true(_cell_collision(city.building, column, row).disabled)
 	var restored_partial: Destructible2D = city.building.get_cell(1, 1)
 	assert_almost_eq(restored_partial.current_health, partial_health, 0.01)
 	var restored_pattern: BuildingDamagePattern2D = restored_partial.get_node(
@@ -58,6 +62,34 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	assert_true(
 		city.building.get_instance_id() == original_building_slot
 		or city.streamed_destructibles.active_building_count() == 6
+	)
+	_record_test_execution()
+
+
+func test_one_ground_breach_opens_passage_to_the_next_live_facade() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	city.encounter_director.process_mode = Node.PROCESS_MODE_DISABLED
+	city.robot.set_physics_process(false)
+	city.robot.gravity = 0.0
+	city.robot.velocity = Vector2.ZERO
+	var first_variant: StringName = city.building.current_variant_id()
+	var breached_cell: Destructible2D = city.building.get_cell(0, 1)
+	assert_true(breached_cell.receive_damage(_fatal_event(city, breached_cell, 31_050)))
+	await get_tree().physics_frame
+	assert_true(city.building.ground_passage_open())
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			assert_true(_cell_collision(city.building, column, row).disabled)
+	for _frame: int in range(420):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		city.world_stream.advance_stream()
+		await get_tree().physics_frame
+	assert_eq(city.world_stream.current_logical_chunk, 1)
+	assert_ne(city.building.current_variant_id(), first_variant)
+	assert_eq(
+		city.building.current_variant_id(),
+		CityDistrictCatalog.variant_for_chunk(city.world_stream.run_seed, 1).variant_id
 	)
 	_record_test_execution()
 
@@ -273,6 +305,16 @@ func _fatal_event(
 	event.direction = Vector2.RIGHT
 	event.impulse_per_mass = 900.0
 	return event
+
+
+func _cell_collision(
+	building: StructuralBuilding2D,
+	column: int,
+	row: int
+) -> CollisionShape2D:
+	return building.get_cell(column, row).get_node(
+		^"IntactBody/CollisionShape2D"
+	) as CollisionShape2D
 
 
 func _record_test_execution() -> void:
