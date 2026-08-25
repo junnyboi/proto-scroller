@@ -289,7 +289,8 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	)
 	_assert_pcm_cue(RobotAnimationPresenter.FOOTSTEP_SFX)
 	_assert_pcm_cue(RobotAnimationPresenter.SERVO_SFX)
-	_assert_pcm_cue(RobotAnimationPresenter.DODGE_SERVO_SFX)
+	_assert_compressed_runtime_cue(RobotAnimationPresenter.DASH_WARP_SFX)
+	assert_almost_eq(RobotAnimationPresenter.DASH_WARP_SFX.get_length(), 1.70, 0.01)
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_RECHARGED_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX)
@@ -430,8 +431,12 @@ func test_dodge_uses_facing_lean_and_restores_clean_sprite_state() -> void:
 	robot.facing = -1
 	robot.facing_changed.emit(-1)
 	assert_true(robot._start_dodge())
-	assert_eq(presenter.dodge_servo_play_count, 1)
-	assert_eq(presenter.last_audio_cue, &"dodge_servo")
+	assert_eq(presenter.dash_warp_sfx_play_count, 1)
+	assert_eq(presenter.last_audio_cue, &"dash_warp")
+	assert_same(
+		presenter._audio_players[0].stream,
+		RobotAnimationPresenter.DASH_WARP_SFX
+	)
 	assert_eq(presenter.audio_voice_count(), RuntimeBudget.ROBOT_AUDIO_VOICES)
 	assert_true(presenter.dodging)
 	assert_gt(sprite.skew, 0.0)

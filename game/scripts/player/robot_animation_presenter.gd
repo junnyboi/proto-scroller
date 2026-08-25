@@ -22,8 +22,8 @@ const FOOTSTEP_SFX: AudioStream = preload(
 const SERVO_SFX: AudioStream = preload(
 	"res://audio/sfx/robot/robot_servo.wav"
 )
-const DODGE_SERVO_SFX: AudioStream = preload(
-	"res://audio/sfx/robot/robot_dodge_servo.wav"
+const DASH_WARP_SFX: AudioStream = preload(
+	"res://audio/sfx/robot/robot_dash_warp_drive.wav"
 )
 const DODGE_RECHARGED_SFX: AudioStream = preload(
 	"res://audio/sfx/robot/dodge_energy_recharged.wav"
@@ -43,7 +43,7 @@ var selected_attack_id: int = 0
 var audio_play_count: int = 0
 var footstep_play_count: int = 0
 var servo_play_count: int = 0
-var dodge_servo_play_count: int = 0
+var dash_warp_sfx_play_count: int = 0
 var dodge_recharged_sfx_play_count: int = 0
 var attack_impact_play_count: int = 0
 var audio_recycle_count: int = 0
@@ -201,7 +201,7 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 func _on_dodge_started(p_facing: int, _duration: float) -> void:
 	dodging = true
 	_dodge_facing = 1 if p_facing >= 0 else -1
-	_play_mechanics(DODGE_SERVO_SFX, &"dodge_servo", 1.5, 1.0)
+	_play_mechanics(DASH_WARP_SFX, &"dash_warp", 0.5, 1.0)
 	_show_idle()
 	sprite.skew = -float(p_facing) * 0.10
 	sprite.modulate = Color(0.72, 0.94, 1.0, 0.82)
@@ -433,8 +433,8 @@ func _play_mechanics(
 		attack_impact_play_count += 1
 	else:
 		servo_play_count += 1
-		if cue == &"dodge_servo":
-			dodge_servo_play_count += 1
+		if cue == &"dash_warp":
+			dash_warp_sfx_play_count += 1
 
 
 func _acquire_audio_voice(priority: int) -> AudioStreamPlayer2D:
@@ -455,7 +455,7 @@ func _acquire_audio_voice(priority: int) -> AudioStreamPlayer2D:
 
 func _priority_for_mechanics(cue: StringName) -> int:
 	match cue:
-		&"ground_slam_impact", &"double_punch_impact", &"dodge_servo":
+		&"ground_slam_impact", &"double_punch_impact", &"dash_warp":
 			return AudioVoicePriority.SIGNATURE
 		&"attack_windup":
 			return AudioVoicePriority.MAJOR

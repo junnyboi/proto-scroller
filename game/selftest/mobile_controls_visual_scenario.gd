@@ -35,6 +35,8 @@ func _run() -> void:
 	await process_frame
 	await physics_frame
 	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
 	var controls: MobileControls = city.mobile_controls
 	var dash_rect: Rect2 = controls.dash_bounds()
 	var smash_rect: Rect2 = controls.smash_bounds()
@@ -45,6 +47,20 @@ func _run() -> void:
 		or dash_rect.end.y >= smash_rect.position.y
 	):
 		push_error("Mobile DASH button failed portrait layout contract")
+		quit(1)
+		return
+	if not city.robot._start_dodge():
+		push_error("Mobile DASH button could not start cooldown")
+		quit(1)
+		return
+	city.robot.physics_step(0.0, city.robot.dodge_cooldown_seconds + 0.01)
+	controls.process_controls(0.15)
+	if (
+		not controls.dash_ready_feedback_active()
+		or controls.dash_ready_pulse_count() != 1
+		or controls.dash_button.scale.x <= 1.08
+	):
+		push_error("Mobile DASH button failed ready-pulse contract")
 		quit(1)
 		return
 	await RenderingServer.frame_post_draw

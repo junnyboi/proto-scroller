@@ -9,6 +9,9 @@ signal dash_pressed(direction: int)
 const JOYSTICK_RADIUS: float = 78.0
 const KNOB_RADIUS: float = 34.0
 const EDGE_PADDING: float = 14.0
+const DASH_READY_IDLE_PERIOD: float = 1.40
+const DASH_READY_BURST_DURATION: float = 0.90
+const DASH_READY_BURST_CYCLES: float = 3.0
 
 @export_range(-1, 1, 1) var detection_override: int = -1
 @export_range(0.0, 0.5, 0.01) var deadzone: float = 0.14
@@ -33,6 +36,12 @@ var _target_axis: float = 0.0
 var _current_axis: float = 0.0
 var _smash_cooldown_remaining: float = 0.0
 var _preserve_touch_ownership_while_disabled: bool = false
+var _dash_ready_feedback: bool = true
+var _dash_ready_phase: float = 0.0
+var _dash_ready_burst_remaining: float = 0.0
+var _dash_ready_pulse_count: int = 0
+var _dash_ready_style: StyleBoxFlat
+var _dash_cooldown_style: StyleBoxFlat
 
 
 func _ready() -> void:
@@ -47,6 +56,9 @@ func _ready() -> void:
 		move_direction_tapped.connect(robot._register_move_tap)
 		smash_pressed.connect(robot.request_attack)
 		dash_pressed.connect(robot.request_dodge)
+		robot.dodge_started.connect(_on_robot_dodge_started)
+		robot.dodge_cooldown_ready.connect(_on_robot_dodge_cooldown_ready)
+		_dash_ready_feedback = robot.dodge_ready
 	_build_smash_button()
 	_build_dash_button()
 	L10n.apply_locale_font(self)
@@ -54,6 +66,7 @@ func _ready() -> void:
 	visible = mobile_device_detected
 	set_process(mobile_device_detected)
 	set_process_input(mobile_device_detected)
+	_apply_dash_feedback()
 
 
 func _process(delta: float) -> void:
@@ -71,6 +84,7 @@ func process_controls(delta: float) -> void:
 		_smash_cooldown_remaining - delta,
 		0.0
 	)
+	_advance_dash_feedback(delta)
 	var previous_axis: float = _current_axis
 	_current_axis = move_toward(
 		_current_axis,
@@ -111,6 +125,14 @@ func dash_touch_index() -> int:
 	return _dash_touch_index
 
 
+func dash_ready_feedback_active() -> bool:
+	return _dash_ready_feedback
+
+
+func dash_ready_pulse_count() -> int:
+	return _dash_ready_pulse_count
+
+
 func setup(p_robot: GiantRobotController, p_detection_override: int = -1) -> void:
 	robot = p_robot
 	detection_override = p_detection_override
@@ -134,7 +156,7 @@ func set_controls_enabled(enabled: bool, preserve_touch_ownership: bool = false)
 	if smash_button != null:
 		smash_button.modulate.a = 1.0 if enabled else 0.35
 	if dash_button != null:
-		dash_button.modulate.a = 1.0 if enabled else 0.35
+		_apply_dash_feedback()
 	if not enabled and not preserve_touch_ownership:
 		_release_joystick()
 		_release_smash()
@@ -179,6 +201,7 @@ func _sync_to_viewport() -> void:
 		dash_button.offset_top = -252.0 if portrait else -256.0
 		dash_button.offset_right = -40.0 if portrait else -50.0
 		dash_button.offset_bottom = -180.0 if portrait else -184.0
+		dash_button.pivot_offset = dash_button.size * 0.5
 	if joystick_active:
 		var previous_origin: Vector2 = _joystick_origin
 		_joystick_origin.x = clampf(
@@ -239,17 +262,20 @@ func _build_dash_button() -> void:
 	dash_button.offset_right = -50.0
 	dash_button.offset_bottom = -184.0
 	dash_button.add_theme_font_size_override(&"font_size", 18)
-	var normal_style: StyleBoxFlat = StyleBoxFlat.new()
-	normal_style.bg_color = Color(0.06, 0.16, 0.18, 0.88)
-	normal_style.border_color = Color(0.36, 0.82, 0.88, 0.92)
-	normal_style.set_border_width_all(3)
-	normal_style.corner_radius_top_left = 36
-	normal_style.corner_radius_top_right = 36
-	normal_style.corner_radius_bottom_left = 36
-	normal_style.corner_radius_bottom_right = 36
-	dash_button.add_theme_stylebox_override(&"normal", normal_style)
-	dash_button.add_theme_stylebox_override(&"hover", normal_style)
-	dash_button.add_theme_stylebox_override(&"focus", normal_style)
+	_dash_ready_style = StyleBoxFlat.new()
+	_dash_ready_style.bg_color = Color(0.06, 0.16, 0.18, 0.92)
+	_dash_ready_style.border_color = Color(0.36, 0.82, 0.88, 0.98)
+	_dash_ready_style.set_border_width_all(3)
+	_dash_ready_style.corner_radius_top_left = 36
+	_dash_ready_style.corner_radius_top_right = 36
+	_dash_ready_style.corner_radius_bottom_left = 36
+	_dash_ready_style.corner_radius_bottom_right = 36
+	_dash_cooldown_style = _dash_ready_style.duplicate() as StyleBoxFlat
+	_dash_cooldown_style.bg_color = Color(0.05, 0.08, 0.10, 0.84)
+	_dash_cooldown_style.border_color = Color(0.20, 0.34, 0.38, 0.74)
+	dash_button.add_theme_stylebox_override(&"normal", _dash_ready_style)
+	dash_button.add_theme_stylebox_override(&"hover", _dash_ready_style)
+	dash_button.add_theme_stylebox_override(&"focus", _dash_ready_style)
 	add_child(dash_button)
 
 
@@ -380,7 +406,80 @@ func _press_dash(touch_index: int) -> void:
 func _release_dash() -> void:
 	_dash_touch_index = -1
 	if dash_button != null:
-		dash_button.scale = Vector2.ONE
+		_apply_dash_feedback()
+
+
+func _on_robot_dodge_started(_facing: int, _duration: float) -> void:
+	_dash_ready_feedback = false
+	_dash_ready_burst_remaining = 0.0
+	_dash_ready_phase = 0.0
+	_apply_dash_feedback()
+
+
+func _on_robot_dodge_cooldown_ready() -> void:
+	_dash_ready_feedback = true
+	_dash_ready_burst_remaining = DASH_READY_BURST_DURATION
+	_dash_ready_phase = 0.0
+	_dash_ready_pulse_count += 1
+	_apply_dash_feedback()
+
+
+func _advance_dash_feedback(delta: float) -> void:
+	if dash_button == null:
+		return
+	if _dash_ready_feedback:
+		_dash_ready_phase = fmod(
+			_dash_ready_phase + maxf(delta, 0.0),
+			DASH_READY_IDLE_PERIOD
+		)
+		_dash_ready_burst_remaining = maxf(
+			_dash_ready_burst_remaining - maxf(delta, 0.0),
+			0.0
+		)
+	_apply_dash_feedback()
+
+
+func _apply_dash_feedback() -> void:
+	if dash_button == null:
+		return
+	var style: StyleBoxFlat = (
+		_dash_ready_style if _dash_ready_feedback else _dash_cooldown_style
+	)
+	dash_button.add_theme_stylebox_override(&"normal", style)
+	dash_button.add_theme_stylebox_override(&"hover", style)
+	dash_button.add_theme_stylebox_override(&"focus", style)
+	if _dash_touch_index >= 0:
+		dash_button.scale = Vector2.ONE * 0.94
+	else:
+		dash_button.scale = Vector2.ONE * _dash_ready_scale()
+	var enabled_alpha: float = 1.0 if _controls_enabled else 0.35
+	if not _dash_ready_feedback:
+		dash_button.modulate = Color(0.62, 0.72, 0.76, 0.56 * enabled_alpha)
+		return
+	var glow: float = (_dash_ready_scale() - 1.0) / 0.11
+	dash_button.modulate = Color(
+		lerpf(0.78, 1.0, glow),
+		lerpf(0.92, 1.0, glow),
+		1.0,
+		enabled_alpha
+	)
+
+
+func _dash_ready_scale() -> float:
+	if not _dash_ready_feedback:
+		return 1.0
+	var idle_progress: float = _dash_ready_phase / DASH_READY_IDLE_PERIOD
+	var idle_wave: float = (sin(idle_progress * TAU) + 1.0) * 0.5
+	var scale_offset: float = lerpf(0.008, 0.028, idle_wave)
+	if _dash_ready_burst_remaining > 0.0:
+		var burst_progress: float = (
+			1.0 - _dash_ready_burst_remaining / DASH_READY_BURST_DURATION
+		)
+		var burst_wave: float = absf(
+			sin(burst_progress * PI * DASH_READY_BURST_CYCLES)
+		)
+		scale_offset = maxf(scale_offset, burst_wave * 0.11)
+	return 1.0 + scale_offset
 
 
 func _apply_deadzone(raw_axis: float) -> float:

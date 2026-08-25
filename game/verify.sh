@@ -64,7 +64,7 @@ for cue in \
 	  audio/sfx/upgrades/upgrade_confirm.wav \
 	  audio/sfx/robot/robot_footstep.wav \
 	  audio/sfx/robot/robot_servo.wav \
-	  audio/sfx/robot/robot_dodge_servo.wav \
+	  audio/sfx/robot/robot_dash_warp_drive.wav \
 	  audio/sfx/robot/dodge_energy_recharged.wav \
 	  audio/sfx/robot/ground_slam_impact.wav \
 	  audio/sfx/robot/double_punch_impact.wav \
@@ -73,8 +73,15 @@ for cue in \
 	  audio/voice/target_destroyed.wav \
 	  audio/sfx/debris/debris_enemy_thud.wav; do
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
-  test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
+	test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
 done
+DASH_WARP_DURATION="$(
+	ffprobe -v error -show_entries format=duration -of csv=p=0 \
+		audio/sfx/robot/robot_dash_warp_drive.wav
+)"
+awk -v duration="$DASH_WARP_DURATION" 'BEGIN {
+	exit !(duration >= 1.0 && duration <= 3.0)
+}'
 while IFS= read -r -d '' script; do
   gdlint "$script"
   run_engine "$GODOT" --headless --path . --check-only -s "$script"
