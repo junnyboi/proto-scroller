@@ -53,24 +53,44 @@ func test_streaming_reuses_six_buildings_across_all_district_boundaries() -> voi
 	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
 		building_ids.append(building.get_instance_id())
 	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
-	for logical_index: int in [0, 8, 16, 24, 32, 40]:
-		await _move_to_logical_chunk(city, logical_index)
-		var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(
-			city.world_stream.run_seed,
-			logical_index
+	var live_facade_paths: Dictionary[String, bool] = {}
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		var district_facade_paths: Dictionary[String, bool] = {}
+		for local_index: int in range(CityDistrictCatalog.VARIANTS_PER_DISTRICT):
+			var logical_index: int = district.start_chunk + local_index
+			await _move_to_logical_chunk(city, logical_index)
+			var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(
+				city.world_stream.run_seed,
+				logical_index
+			)
+			var building: StructuralBuilding2D = city.building
+			var sprite: Sprite2D = building.get_cell(0, 0).get_node(
+				^"IntactVisual"
+			) as Sprite2D
+			assert_eq(building.current_variant_id(), blueprint.building_variant_id)
+			assert_eq(building.get_meta(&"district_id"), blueprint.district_id)
+			assert_eq(building.get_meta(&"district_index"), blueprint.district_index)
+			assert_eq(building.display_size, blueprint.building_variant.display_size)
+			assert_eq(sprite.texture, blueprint.building_variant.intact_texture)
+			assert_eq(
+				sprite.texture.resource_path,
+				blueprint.building_variant.intact_texture.resource_path
+			)
+			district_facade_paths[sprite.texture.resource_path] = true
+			live_facade_paths[sprite.texture.resource_path] = true
+			for row: int in range(StructuralBuilding2D.ROWS):
+				for column: int in range(StructuralBuilding2D.COLUMNS):
+					assert_eq(
+						building.get_material_profile(column, row).material_id,
+						blueprint.building_variant.material_id_at(column, row)
+					)
+			assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
+		assert_eq(
+			district_facade_paths.size(),
+			CityDistrictCatalog.VARIANTS_PER_DISTRICT,
+			String(district.district_id)
 		)
-		var building: StructuralBuilding2D = city.building
-		assert_eq(building.current_variant_id(), blueprint.building_variant_id)
-		assert_eq(building.get_meta(&"district_id"), blueprint.district_id)
-		assert_eq(building.get_meta(&"district_index"), blueprint.district_index)
-		assert_eq(building.display_size, blueprint.building_variant.display_size)
-		for row: int in range(StructuralBuilding2D.ROWS):
-			for column: int in range(StructuralBuilding2D.COLUMNS):
-				assert_eq(
-					building.get_material_profile(column, row).material_id,
-					blueprint.building_variant.material_id_at(column, row)
-				)
-		assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
+	assert_eq(live_facade_paths.size(), CityDistrictCatalog.BUILDING_VARIANT_COUNT)
 	assert_eq(city.streamed_destructibles.active_building_count(), 6)
 	assert_eq(city.streamed_destructibles.post_warm_creation_count, 0)
 	for index: int in range(building_ids.size()):

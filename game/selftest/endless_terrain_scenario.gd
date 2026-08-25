@@ -49,15 +49,23 @@ func _run() -> void:
 	city.car.receive_damage(_fatal_event(city, city.car, 51_002))
 	for logical_index: int in range(-12, 49):
 		_move_to_logical_chunk(city, logical_index)
-		if logical_index in [-12, 0, 8, 16, 24, 32, 48]:
+		if logical_index in [-12, 48] or _is_roster_sample(logical_index):
 			var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(
 				city.world_stream.run_seed,
 				logical_index
 			)
+			var live_building: StructuralBuilding2D = city.building
+			var live_sprite: Sprite2D = live_building.get_cell(0, 0).get_node(
+				^"IntactVisual"
+			) as Sprite2D
 			district_trace.append({
 				"chunk": logical_index,
 				"district": blueprint.district_id,
 				"variant": blueprint.building_variant_id,
+				"expected_texture": blueprint.building_variant.intact_texture.resource_path,
+				"live_variant": live_building.current_variant_id(),
+				"live_texture": live_sprite.texture.resource_path,
+				"roster_sample": _is_roster_sample(logical_index),
 			})
 	for logical_index: int in range(48, 39, -1):
 		_move_to_logical_chunk(city, logical_index)
@@ -72,12 +80,48 @@ func _run() -> void:
 		"max_chunk=%d" % city.world_stream.maximum_visited_chunk
 	)
 	var traced_districts: Dictionary[StringName, bool] = {}
+	var traced_variants: Dictionary[StringName, bool] = {}
+	var district_rosters: Dictionary[StringName, Dictionary] = {}
+	var live_facade_mapping_valid: bool = true
 	for trace_item: Dictionary in district_trace:
-		traced_districts[StringName(trace_item.district)] = true
+		var district_id: StringName = StringName(trace_item.district)
+		traced_districts[district_id] = true
+		live_facade_mapping_valid = (
+			live_facade_mapping_valid
+			and trace_item.variant == trace_item.live_variant
+			and trace_item.expected_texture == trace_item.live_texture
+		)
+		if bool(trace_item.roster_sample):
+			var district_roster: Dictionary = district_rosters.get(district_id, {})
+			district_roster[StringName(trace_item.variant)] = true
+			district_rosters[district_id] = district_roster
+			traced_variants[StringName(trace_item.variant)] = true
 	_check(
 		"all_spatial_districts_traced",
 		traced_districts.size() == CityDistrictCatalog.DISTRICT_COUNT,
 		"districts=%s digest=%s" % [traced_districts.keys(), catalog_digest]
+	)
+	var complete_district_rosters: bool = true
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		var district_roster: Dictionary = district_rosters.get(
+			district.district_id,
+			{}
+		)
+		complete_district_rosters = (
+			complete_district_rosters
+			and district_roster.size() == CityDistrictCatalog.VARIANTS_PER_DISTRICT
+		)
+	_check(
+		"all_twenty_five_live_facades_mapped",
+		complete_district_rosters
+		and traced_variants.size() == CityDistrictCatalog.BUILDING_VARIANT_COUNT
+		and live_facade_mapping_valid,
+		"variants=%d districts=%d live_mapping=%s"
+		% [
+			traced_variants.size(),
+			district_rosters.size(),
+			live_facade_mapping_valid,
+		]
 	)
 	_check(
 		"floating_origin_applied",
@@ -197,6 +241,16 @@ func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
 		+ CityWorldStream.CHUNK_WIDTH * 0.5
 	)
 	city.world_stream.advance_stream()
+
+
+func _is_roster_sample(logical_index: int) -> bool:
+	if logical_index < 0:
+		return false
+	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_index)
+	return (
+		logical_index >= district.start_chunk
+		and logical_index < district.start_chunk + CityDistrictCatalog.VARIANTS_PER_DISTRICT
+	)
 
 
 func _fatal_event(city: CitySlice, target: Node2D, attack_id: int) -> DamageEvent:

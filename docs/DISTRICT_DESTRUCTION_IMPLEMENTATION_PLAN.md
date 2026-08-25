@@ -74,6 +74,14 @@ Extend the endless-terrain report with a SHA-256 catalog digest and selected dis
 
 **Regression gate:** focused transition tests, complete GUT suite, standard `./verify.sh`, and inspected 1280×720 plus 720×1280 Royal gameplay renders. Commit and push after green.
 
+### WP3B — Guaranteed live facade roster mapping
+
+Replace modulo selection from a per-chunk string hash with a deterministic, seed-aware permutation of each district's authored five-building roster. The first five forward chunks in every district must select all five variants exactly once; later chunks cycle through the same permutation. Preserve the original Mercy Exchange Annex at chunk zero while allowing the remaining Business entries and all later districts to permute reproducibly.
+
+Extend catalog tests to check complete roster coverage across multiple run seeds. Extend the pooled streaming test to traverse all 25 roster slots and compare each live cell sprite's resource path with its blueprint facade. Extend the endless-terrain report with expected/live variant and texture identities, and make `all_twenty_five_live_facades_mapped` a blocking runtime assertion while preserving six pooled buildings and zero post-warm allocation.
+
+**Regression gate:** focused catalog/stream tests, all-25 live endless traversal, `./verify.sh --full`, five landscape district galleries, portrait gallery inspection, representative live landscape/portrait frames, non-threaded Web export, and Chromium gameplay smoke. Commit and push after green.
+
 ### WP4 — Web runtime, Manus WebDev deployment, and continuity
 
 Re-fetch upstream and repeat affected gates if the revision moves. Export through the repository’s `Web` preset and require HTML, JavaScript, WASM, and PCK artifacts with recorded SHA-256 checksums and sizes. Serve over HTTP and run browser smoke checks for canvas readiness, movement, smash, district trace, mutation restore, portrait resize, request failures, console errors, MIME types, and WebGL context loss.
@@ -109,6 +117,7 @@ The primary risk is package growth. Runtime facade sprites are therefore compact
 | WP2 | Completed | This work-package commit | 25 profiles reconfigure six pooled building trees in place; 268 GUT tests passed; standard harness passed in 458 s; landscape and portrait Xvfb renders passed |
 | WP3 | Completed | This work-package commit | 25 GPT Image 2 facades bound and gallery-verified in both orientations; 269 GUT tests passed; Web PCK measured 13,817,516 bytes under the 16 MiB ceiling; standard harness passed in 474 s |
 | WP3A | Completed | This work-package commit | Four boundary transitions and responsive banner validated; 273 GUT tests passed with 27,879 assertions; all five trace IDs and catalog digest passed; post-integration standard harness passed in 463 s |
+| WP3B | Completed | This bugfix commit | Root cause confirmed as hash-modulo roster collisions (2/5 Entertainment and 3/5 Residential at seed zero). Full gate passed in 586 s with 288/288 tests and 28,467 assertions; all 25 live facade IDs and texture paths matched across five districts; landscape/portrait galleries and live Crownward renders passed; Web PCK measured 13,796,484 bytes; Chromium smoke passed. |
 | WP4 | Completed | `c85fb134d7a03d83b93e8692dceaf5469fff0a25` | 279/279 GUT tests and 27,935 assertions passed; full harness passed in 607 s; PCK 13,766,156 bytes; mission-card, district, mobile, melee-audio, export, and Chromium lanes passed; WebDev checkpoint `6f4645ed` published |
 
 ## Deployment Record

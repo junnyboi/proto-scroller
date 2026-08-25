@@ -137,13 +137,29 @@ static func variant_for_chunk(
 	logical_index: int
 ) -> StructuralBuildingVariant:
 	var district: CityDistrictProfile = district_for_chunk(logical_index)
-	if logical_index == 0:
-		return district.building_variants[0]
-	var selection_seed: int = hash(
-		"%d:%d:%s" % [run_seed, logical_index, district.district_id]
-	)
-	var variant_index: int = posmod(selection_seed, district.variant_count())
+	var local_index: int = logical_index - district.start_chunk
+	var order: PackedInt32Array = _variant_order(run_seed, district)
+	var roster_index: int = posmod(local_index, district.variant_count())
+	var variant_index: int = order[roster_index]
 	return district.building_variants[variant_index]
+
+
+static func _variant_order(
+	run_seed: int,
+	district: CityDistrictProfile
+) -> PackedInt32Array:
+	var order: PackedInt32Array = PackedInt32Array()
+	for variant_index: int in range(district.variant_count()):
+		order.append(variant_index)
+	var first_mutable_index: int = 1 if district.district_index == 0 else 0
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = hash("%d:%s:facade_order" % [run_seed, district.district_id])
+	for cursor: int in range(order.size() - 1, first_mutable_index, -1):
+		var swap_index: int = rng.randi_range(first_mutable_index, cursor)
+		var held_index: int = order[cursor]
+		order[cursor] = order[swap_index]
+		order[swap_index] = held_index
+	return order
 
 
 static func variant_by_id(variant_id: StringName) -> StructuralBuildingVariant:
