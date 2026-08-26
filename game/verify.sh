@@ -424,6 +424,22 @@ if [[ "$MODE" == "full" ]]; then
 	  mv artifacts/upgrades/upgrade-choice.png \
 	    artifacts/upgrades/upgrade-choice-portrait.png
 
+	  printf '%s\n' '[L5] landscape weapon-shop visual scenario'
+	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	    -s selftest/weapon_shop_visual_scenario.gd
+	  test -s artifacts/weapon_shop/weapon-shop.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
+	  mv artifacts/weapon_shop/weapon-shop.png \
+	    artifacts/weapon_shop/weapon-shop-landscape.png
+
+	  printf '%s\n' '[L5] portrait weapon-shop visual scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	    --resolution 720x1280 -s selftest/weapon_shop_visual_scenario.gd
+	  test -s artifacts/weapon_shop/weapon-shop.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
+	  mv artifacts/weapon_shop/weapon-shop.png \
+	    artifacts/weapon_shop/weapon-shop-portrait.png
+
 	  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
 	    -s selftest/directive_card_visual_scenario.gd

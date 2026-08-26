@@ -107,7 +107,10 @@ func damage_per_shot() -> float:
 
 
 func fire_interval() -> float:
-	return BASE_INTERVAL / (1.0 + 0.05 * float(maxi(current_rank - 1, 0)))
+	var base_interval: float = BASE_INTERVAL / (
+		1.0 + 0.05 * float(maxi(current_rank - 1, 0))
+	)
+	return arsenal.scale_cooldown(base_interval) if arsenal != null else base_interval
 
 
 func snapshot() -> Dictionary:
@@ -138,11 +141,17 @@ func _fire() -> void:
 		firing_drone.aim_at(direction)
 		origin = firing_drone.muzzle_global_position()
 	var attack_id: int = arsenal.reserve_attack_id()
+	var damage: float = arsenal.scale_damage(
+		damage_per_shot(),
+		&"machine_gun",
+		target,
+		attack_id
+	)
 	var projectile: Projectile2D = arsenal.projectile_pool.acquire(
 		origin,
 		direction,
 		BULLET_SPEED,
-		damage_per_shot(),
+		damage,
 		arsenal.robot,
 		TARGET_MASK,
 		&"machine_gun"

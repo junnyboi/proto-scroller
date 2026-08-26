@@ -8,6 +8,8 @@ const CATALOG: UpgradeCatalog = preload(
 var session: UpgradeSession
 var runtimes: Dictionary[StringName, UpgradeRuntime] = {}
 var drone_orbit: WeaponDroneOrbit2D
+var arsenal: PlayerArsenalRuntime
+var shop_effects: WeaponShopUpgradeRuntime
 var _last_upgrade_audio_msec: int = -1000
 
 
@@ -40,7 +42,7 @@ func setup(city: Node) -> PackedStringArray:
 	var debris_pool: DebrisPool = city.get("debris_pool") as DebrisPool
 	attacks.set_kinetic_field_runtime(kinetic)
 	debris_pool.set_kinetic_field_runtime(kinetic)
-	var arsenal: PlayerArsenalRuntime = PlayerArsenalRuntime.new()
+	arsenal = PlayerArsenalRuntime.new()
 	arsenal.name = "PlayerArsenalRuntime"
 	add_child(arsenal)
 	arsenal.setup(

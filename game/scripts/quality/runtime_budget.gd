@@ -57,6 +57,10 @@ const UPGRADE_SESSIONS: int = 1
 const UPGRADE_OVERLAYS: int = 1
 const UPGRADE_CARDS: int = 2
 const WEAPON_STATUS_STRIPS: int = 1
+const WEAPON_SHOP_SESSIONS: int = 1
+const WEAPON_SHOP_OVERLAYS: int = 1
+const WEAPON_SHOP_CARDS: int = WeaponShopCatalog.PRODUCTS_PER_DISTRICT
+const WEAPON_SHOP_EFFECT_RUNTIMES: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
 const DIRECTIONAL_SHOCKWAVE_SLOTS: int = DirectionalPunchShockwaveRuntime.CAPACITY
@@ -186,6 +190,12 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"upgrade_overlays": 1 if city.gameplay_hud.upgrade_choice_overlay != null else 0,
 		"upgrade_cards": city.gameplay_hud.upgrade_choice_overlay.cards.size(),
 		"weapon_status_strips": 1 if city.gameplay_hud.weapon_status_strip != null else 0,
+		"weapon_shop_sessions": 1 if city.weapon_shop_assembler.session != null else 0,
+		"weapon_shop_overlays": 1 if city.weapon_shop_assembler.overlay != null else 0,
+		"weapon_shop_cards": city.weapon_shop_assembler.overlay.cards.size(),
+		"weapon_shop_effect_runtimes": (
+			1 if city.weapon_shop_assembler.effects != null else 0
+		),
 		"cosmetic_debris_instances": CosmeticDebrisField2D.CAPACITY,
 		"shockwave_ring_slots": ShockwaveUpgradeRuntime.CAPACITY,
 		"directional_shockwave_slots": DirectionalPunchShockwaveRuntime.CAPACITY,
@@ -284,6 +294,15 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "upgrade_overlays", UPGRADE_OVERLAYS)
 	_check_equal(errors, data, "upgrade_cards", UPGRADE_CARDS)
 	_check_equal(errors, data, "weapon_status_strips", WEAPON_STATUS_STRIPS)
+	_check_equal(errors, data, "weapon_shop_sessions", WEAPON_SHOP_SESSIONS)
+	_check_equal(errors, data, "weapon_shop_overlays", WEAPON_SHOP_OVERLAYS)
+	_check_equal(errors, data, "weapon_shop_cards", WEAPON_SHOP_CARDS)
+	_check_equal(
+		errors,
+		data,
+		"weapon_shop_effect_runtimes",
+		WEAPON_SHOP_EFFECT_RUNTIMES
+	)
 	_check_equal(errors, data, "cosmetic_debris_instances", COSMETIC_DEBRIS_INSTANCES)
 	_check_equal(errors, data, "shockwave_ring_slots", SHOCKWAVE_RING_SLOTS)
 	_check_equal(errors, data, "directional_shockwave_slots", DIRECTIONAL_SHOCKWAVE_SLOTS)
