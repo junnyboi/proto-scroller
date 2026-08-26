@@ -25,21 +25,21 @@ The standard gate performs a direct import, strict GDScript lint and parse-log c
 
 ### Latest verified baseline
 
-The full harness passed on **2026-08-26** against integrated transition gameplay revision `9af9392b6a93b7f318c7edf9fe0c722da6dcb419` using `Godot 4.7.2.stable.official.ed1daf0bf`.
+The full harness passed on **2026-08-26** against branch-locked integrated gameplay revision `370997f27dd0b97f49c3c1e150fe93d714e0f9bc` using `Godot 4.7.2.stable.official.ed1daf0bf`.
 
 | Check | Result |
 |---|---|
 | Harness command | `./verify.sh --full` |
 | Process result | Exit `0`; `[VERIFY-PASS] mode=full` |
-| GUT suite | 53 scripts; 321 of 321 tests passed; 30,406 assertions |
-| Headless scenarios | Title screen, city slice, charged smash, directives, district gallery, enemy variety, street volatility, and endless terrain passed |
-| Visual scenarios | Required landscape and portrait renders passed, including the responsive three-product weapon shop |
+| GUT suite | 56 scripts; 348 of 348 tests passed; 31,960 assertions |
+| Headless scenarios | Title screen, city slice, charged smash, directives, district gallery, CHOIR narrative/enemy escalation, boss catalog, enemy variety, street volatility, and endless terrain passed |
+| Visual scenarios | Required landscape and portrait renders passed, including the responsive weapon shop, CHOIR black-lab reveal, hybrid enemy gallery, and weapon-drone states |
 | Reference title render | SHA-256 `92775e50df36c046d6c81347c2d672450c38d62167e1b48d723172067f34d590` |
 | Web release export | 9 generated Godot files plus two MP4 title loops and two static fallbacks; HTML, JavaScript, WebAssembly, and PCK present |
-| PCK size | 15,753,640 bytes, below the 16 MiB harness limit; 31 weapon-shop sources retain their authored WebP masters and use quality-0.8 runtime imports |
+| PCK size | 16,653,692 bytes, below the 16 MiB harness limit; optimized weapon-shop and CHOIR runtime imports preserve their source masters, while unreferenced boss-foundation portraits/scores remain outside the PCK until an encounter consumes them |
 | Browser gameplay smoke | Landscape 1280×720 and portrait 720×1280 title loops decoded, advanced, and selected correctly. Launch, fatal defeat, and Return to Title each passed `fade_out → black → black_ready → fade_in → complete`; all three held 1280×720 frames were fully black, and boom counts advanced exactly `1 → 2 → 3` only at full black. Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass → defeat_requested`; all audited SFX passed at progression distance with zero drops |
 | Error scan | No script, parse, browser console, request, fatal, or crash errors |
-| Duration | 752 seconds |
+| Duration | 885 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
