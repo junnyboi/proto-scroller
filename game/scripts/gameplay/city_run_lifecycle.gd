@@ -246,11 +246,13 @@ func _on_finale_choice_requested(snapshot: FinaleEligibilitySnapshot) -> void:
 
 
 func _on_purge_pressed() -> void:
-	city.urban_siege.resolve_finale(BossOutcome.PURGE)
+	# The world-space PURGE receiver owns the action; the overlay is informational.
+	city.gameplay_hud.set_objective("finale.receiver.purge_visible")
 
 
 func _on_disentangle_pressed() -> void:
-	city.urban_siege.resolve_finale(BossOutcome.DISENTANGLE)
+	# The world-space severance receiver owns the action and its five windows.
+	city.gameplay_hud.set_objective("finale.receiver.disentangle_visible")
 
 
 func _on_finale_resolved(outcome: int, _snapshot: FinaleEligibilitySnapshot) -> void:

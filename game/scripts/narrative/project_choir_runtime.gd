@@ -1,6 +1,8 @@
 class_name ProjectChoirRuntime
 extends Node
 
+const CROWN_PYLON_TRANSACTION_ID: StringName = &"boss:CHOIR_PRIME:crown_pylon"
+
 var campaign_progress: CampaignProgressStore
 var director: NarrativeDirector
 var facade_reveal: FacadeRevealRuntime
@@ -77,6 +79,48 @@ func commit_boss_completion(
 	canonical_evidence_event: Dictionary
 ) -> bool:
 	return director.handle_boss_completed(definition, canonical_evidence_event)
+
+
+func commit_crown_pylon_transaction() -> bool:
+	if campaign_progress == null:
+		return false
+	if campaign_progress.has_transaction(CROWN_PYLON_TRANSACTION_ID):
+		return true
+	return campaign_progress.commit_boss_transaction({
+		"transaction_id": CROWN_PYLON_TRANSACTION_ID,
+		"dossier_ids": [&"CROWN_05_CONSENT_EXCISION_ORDER"],
+		"evidence_ids": [&"CROWN"],
+		"boss_result": {
+			"crown_pylon_severed": true,
+			"armor_connection": BossRoyalFinaleController.CONNECTION_COUNT,
+		},
+	})
+
+
+func snapshot_finale_eligibility() -> FinaleEligibilitySnapshot:
+	if campaign_progress == null:
+		return FinaleEligibilitySnapshot.new()
+	var persisted: FinaleEligibilitySnapshot = campaign_progress.finale_snapshot()
+	if persisted != null:
+		return persisted
+	if not commit_crown_pylon_transaction():
+		return FinaleEligibilitySnapshot.new()
+	var snapshot: FinaleEligibilitySnapshot = FinaleEligibilitySnapshot.from_store(
+		campaign_progress
+	)
+	if not campaign_progress.commit_finale_snapshot(
+		snapshot, CROWN_PYLON_TRANSACTION_ID
+	):
+		return FinaleEligibilitySnapshot.new()
+	return campaign_progress.finale_snapshot()
+
+
+func commit_finale_ending(outcome: int, boss_result: Dictionary) -> bool:
+	if campaign_progress == null:
+		return false
+	return campaign_progress.commit_finale_ending_transaction(
+		outcome, boss_result, CROWN_PYLON_TRANSACTION_ID
+	)
 
 
 func _try_release_containment(

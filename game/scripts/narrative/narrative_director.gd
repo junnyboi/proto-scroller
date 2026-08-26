@@ -136,6 +136,12 @@ func handle_boss_completed(
 	if campaign_progress.has_transaction(transaction_id):
 		_active_boss = null
 		return true
+	if definition.evidence_flag_id == &"CROWN":
+		var crown_committed: bool = campaign_progress.has_transaction(
+			ProjectChoirRuntime.CROWN_PYLON_TRANSACTION_ID
+		)
+		_active_boss = null if crown_committed else _active_boss
+		return crown_committed
 	var capstone: DossierDefinition = DossierCatalog.capstone_for_boss(definition.boss_id)
 	if capstone == null:
 		return false

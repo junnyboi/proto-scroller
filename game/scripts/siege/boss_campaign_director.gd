@@ -222,6 +222,12 @@ func _on_boss_completed(_elapsed_seconds: float) -> void:
 	attempt_failed = false
 	siege.dependencies.gameplay_hud.hide_boss_status()
 	boss_completed.emit(completed_definition)
+	if completed_definition.boss_id == &"CHOIR_PRIME":
+		var outcome: int = int(
+			siege.boss_session.completion_payload().get("finale_outcome", -1)
+		)
+		if BossOutcome.is_valid(outcome):
+			siege.call_deferred("resolve_finale", outcome)
 
 
 func _refresh_hud(_state: StringName = &"") -> void:

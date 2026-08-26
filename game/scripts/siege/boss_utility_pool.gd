@@ -24,6 +24,7 @@ var escalation: BossEscalationController
 var motion_echo_recorder: MotionEchoRecorder
 var arena_adapter: BossStructuralAdapter
 var markers: Array[Marker2D] = []
+var marker_presentations: Array[Sprite2D] = []
 var lane_damage_areas: Array[BossAttackArea2D] = []
 var line_areas: Array[BossAttackArea2D] = []
 var collapse_listeners: Array[Node] = []
@@ -176,11 +177,63 @@ func present_royal_pylons(center: Vector2) -> void:
 		pylon.visible = true
 
 
-func set_royal_pylon_integrity(remaining: int) -> void:
-	var clamped_remaining: int = clampi(remaining, 0, pylon_presentations.size())
-	for index: int in range(pylon_presentations.size()):
-		var pylon: Node2D = pylon_presentations[index]
-		pylon.visible = index < clamped_remaining
+func configure_royal_pylon(index: int, pylon_id: StringName) -> bool:
+	if index < 0 or index >= pylon_presentations.size() or pylon_id.is_empty():
+		return false
+	var pylon: Node2D = pylon_presentations[index]
+	pylon.set_meta(&"pylon_id", pylon_id)
+	pylon.name = "Pylon%s" % String(pylon_id).to_pascal_case()
+	set_royal_pylon_active(index, false)
+	return true
+
+
+func set_royal_pylon_visible(index: int, visible_value: bool) -> bool:
+	if index < 0 or index >= pylon_presentations.size():
+		return false
+	pylon_presentations[index].visible = visible_value
+	return true
+
+
+func set_royal_pylon_active(index: int, active: bool) -> bool:
+	if index < 0 or index >= pylon_presentations.size():
+		return false
+	var pylon: Node2D = pylon_presentations[index]
+	var sprite: Sprite2D = pylon.get_child(0) as Sprite2D
+	if sprite != null:
+		sprite.modulate = (
+			Color(1.0, 0.78, 0.28, 1.0)
+			if active
+			else Color(0.72, 1.0, 0.95, 0.96)
+		)
+		sprite.scale = Vector2.ONE * (0.40 if active else 0.34)
+	return true
+
+
+func configure_royal_echo_presentation(
+	index: int,
+	texture: Texture2D,
+	world_position: Vector2,
+	display_size: Vector2
+) -> bool:
+	if index < 0 or index >= marker_presentations.size() or texture == null:
+		return false
+	var presentation: Sprite2D = marker_presentations[index]
+	presentation.texture = texture
+	presentation.global_position = world_position
+	var texture_size: Vector2 = texture.get_size()
+	var fit: float = minf(
+		display_size.x / maxf(texture_size.x, 1.0),
+		display_size.y / maxf(texture_size.y, 1.0)
+	)
+	presentation.scale = Vector2.ONE * fit
+	presentation.modulate = Color(0.35, 0.98, 1.0, 0.42)
+	presentation.visible = true
+	return true
+
+
+func hide_royal_echo_presentations() -> void:
+	for presentation: Sprite2D in marker_presentations:
+		presentation.visible = false
 
 
 func projection_count() -> int:
@@ -214,7 +267,8 @@ func configure_runtime(
 
 func configure_wreck_receivers(
 	wreck: EnemyWreck2D,
-	definition: BossEncounterDefinition
+	definition: BossEncounterDefinition,
+	receiver_callback: Callable = Callable()
 ) -> void:
 	for receiver: BossWreckReceiver2D in wreck_receivers:
 		receiver.deactivate()
@@ -224,13 +278,15 @@ func configure_wreck_receivers(
 	default_wreck_receiver.configure(
 		wreck,
 		BossOutcome.PURGE,
-		wreck.global_position + offsets[0]
+		wreck.global_position + offsets[0],
+		receiver_callback
 	)
 	if offsets.size() > 1:
 		royal_outcome_receiver.configure(
 			wreck,
 			BossOutcome.DISENTANGLE,
-			wreck.global_position + offsets[1]
+			wreck.global_position + offsets[1],
+			receiver_callback
 		)
 	# Campaign finishers are reachable only through the authored receiver areas.
 	wreck.collision_layer = 0
@@ -280,6 +336,13 @@ func _prewarm() -> void:
 		marker.name = "AttackMarker%02d" % index
 		arena_adapter.add_child(marker)
 		markers.append(marker)
+		var presentation: Sprite2D = Sprite2D.new()
+		presentation.name = "MarkerPresentation%02d" % index
+		presentation.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		presentation.z_index = 5
+		presentation.visible = false
+		marker.add_child(presentation)
+		marker_presentations.append(presentation)
 	for index: int in range(LANE_DAMAGE_AREA_CAPACITY):
 		lane_damage_areas.append(_make_area("LaneDamageArea%02d" % index))
 	for index: int in range(LINE_AREA_CAPACITY):
@@ -364,6 +427,7 @@ func _deactivate_records() -> void:
 	arena_adapter.unbind()
 	for record: Node2D in pylon_presentations:
 		record.visible = false
+	hide_royal_echo_presentations()
 	for record: Node2D in projection_slots:
 		record.visible = false
 	for record: Node2D in pod_visuals:

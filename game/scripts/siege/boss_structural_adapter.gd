@@ -91,6 +91,7 @@ func binding_for_mask(
 	var fallback: bool = weak_cell < 0
 	if fallback:
 		weak_cell = _fallback_cell(authored_cells)
+	var royal: bool = definition != null and definition.boss_id == &"CHOIR_PRIME"
 	return {
 		"mask": legal_mask,
 		"lower_passage": true,
@@ -101,6 +102,9 @@ func binding_for_mask(
 		"fallback_conductor": fallback,
 		"direct_damage_route": true,
 		"valid_finisher_receiver": true,
+		"palace_lower_route": true if royal else false,
+		"palace_upper_crownfall": true if royal else false,
+		"direct_core_fallback": true if royal else false,
 	}
 
 

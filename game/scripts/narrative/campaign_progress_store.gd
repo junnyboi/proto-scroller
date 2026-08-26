@@ -17,6 +17,7 @@ const FAIL_BEFORE_WRITE: StringName = &"BEFORE_WRITE"
 const FAIL_AFTER_TEMP_FLUSH: StringName = &"AFTER_TEMP_FLUSH"
 const FAIL_BEFORE_RENAME: StringName = &"BEFORE_RENAME"
 const FAIL_AFTER_RENAME: StringName = &"AFTER_RENAME"
+const FINALE_SNAPSHOT_TRANSACTION_ID: StringName = &"finale:CHOIR_PRIME:eligibility"
 
 var save_path: String = DEFAULT_PATH
 var last_error: Error = OK
@@ -119,6 +120,60 @@ func commit_boss_transaction(payload: Dictionary) -> bool:
 	_emit_transaction_changes(payload)
 	transaction_committed.emit(transaction_id, reward_grant_id)
 	return true
+
+
+func commit_finale_snapshot(
+	snapshot: FinaleEligibilitySnapshot,
+	crown_transaction_id: StringName
+) -> bool:
+	if snapshot == null or crown_transaction_id.is_empty():
+		return false
+	if not has_transaction(crown_transaction_id):
+		return false
+	if has_transaction(FINALE_SNAPSHOT_TRANSACTION_ID):
+		return true
+	var next_document: Dictionary = _document.duplicate(true)
+	var progress: Dictionary = next_document["progress"] as Dictionary
+	progress["finale_snapshot"] = snapshot.as_dictionary()
+	progress["finale_crown_transaction_id"] = String(crown_transaction_id)
+	var transactions: Array = progress.get("transaction_ids", []) as Array
+	transactions.append(String(FINALE_SNAPSHOT_TRANSACTION_ID))
+	progress["transaction_ids"] = transactions
+	next_document["progress"] = progress
+	next_document["sequence"] = int(next_document.get("sequence", 0)) + 1
+	return _commit_document(next_document)
+
+
+func finale_snapshot() -> FinaleEligibilitySnapshot:
+	var progress: Dictionary = _document.get("progress", {}) as Dictionary
+	var data: Dictionary = progress.get("finale_snapshot", {})
+	return FinaleEligibilitySnapshot.from_dictionary(data) if not data.is_empty() else null
+
+
+func commit_finale_ending_transaction(
+	outcome: int,
+	boss_result: Dictionary,
+	crown_transaction_id: StringName
+) -> bool:
+	if not BossOutcome.is_valid(outcome) or not has_transaction(crown_transaction_id):
+		return false
+	if not has_transaction(FINALE_SNAPSHOT_TRANSACTION_ID):
+		return false
+	var ending_id: StringName = BossOutcome.id_for(outcome)
+	var transaction_id: StringName = StringName("finale:CHOIR_PRIME:%s" % ending_id)
+	if has_transaction(transaction_id):
+		return true
+	var result: Dictionary = boss_result.duplicate(true)
+	result["ending_id"] = ending_id
+	result["crown_transaction_id"] = crown_transaction_id
+	result["finale_snapshot_transaction_id"] = FINALE_SNAPSHOT_TRANSACTION_ID
+	return commit_boss_transaction({
+		"transaction_id": transaction_id,
+		"boss_id": &"CHOIR_PRIME",
+		"ending_id": ending_id,
+		"boss_result": result,
+		"reward_grant_id": &"boss:CHOIR_PRIME:ending_reward",
+	})
 
 
 func consume_reward_grant(reward_grant_id: StringName) -> bool:
@@ -337,6 +392,10 @@ func snapshot() -> Dictionary:
 		"pending_reward_grants": pending_reward_grants(),
 		"applied_reward_transactions": _progress_ids("applied_reward_transactions"),
 		"boss_results": progress.get("boss_results", {}).duplicate(true),
+		"finale_snapshot": progress.get("finale_snapshot", {}).duplicate(true),
+		"finale_crown_transaction_id": String(
+			progress.get("finale_crown_transaction_id", "")
+		),
 		"echo7_resolved": echo7_resolved(),
 		"finale_eligible": finale_eligible(),
 	}
@@ -534,6 +593,8 @@ func _empty_progress() -> Dictionary:
 		"applied_reward_transactions": [],
 		"boss_results": {},
 		"continuity_generation": 0,
+		"finale_snapshot": {},
+		"finale_crown_transaction_id": "",
 	}
 
 

@@ -418,14 +418,25 @@ func show_cycle_choice(cycle: int, can_continue: bool) -> void:
 
 func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
 	overlay_title.text = L10n.t("finale.choice.title")
-	overlay_summary.text = L10n.t("finale.choice.summary", snapshot.as_dictionary())
+	overlay_summary.text = L10n.t(
+		"finale.choice.summary" if snapshot.disentangle_eligible else "finale.choice.summary_ineligible",
+		snapshot.as_dictionary()
+	)
 	retry_button.visible = false
 	extract_button.visible = false
 	continue_button.visible = false
 	purge_button.visible = true
 	disentangle_button.visible = true
+	disentangle_button.text = L10n.t(
+		"finale.choice.disentangle"
+		if snapshot.disentangle_eligible
+		else "finale.choice.ascension_warning"
+	)
+	disentangle_button.modulate = (
+		Color.WHITE if snapshot.disentangle_eligible else Color(1.0, 0.54, 0.42, 1.0)
+	)
 	game_over_overlay.visible = true
-	disentangle_button.grab_focus()
+	purge_button.grab_focus() if not snapshot.disentangle_eligible else disentangle_button.grab_focus()
 
 
 func _show_finale_result(outcome: int, cycle: int, can_continue: bool) -> void:

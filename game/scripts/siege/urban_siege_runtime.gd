@@ -200,15 +200,19 @@ func present_finale_choice() -> bool:
 func resolve_finale(requested_outcome: int) -> int:
 	if not finale_pending or finale_snapshot == null:
 		return -1
-	if requested_outcome != BossOutcome.PURGE and requested_outcome != BossOutcome.DISENTANGLE:
+	if not requested_outcome in [
+		BossOutcome.PURGE, BossOutcome.DISENTANGLE, BossOutcome.ASCENSION_FAILURE,
+	]:
 		return -1
 	var outcome: int = requested_outcome
 	if requested_outcome == BossOutcome.DISENTANGLE and not finale_snapshot.disentangle_eligible:
 		outcome = BossOutcome.ASCENSION_FAILURE
+	var choir: ProjectChoirRuntime = dependencies.city.project_choir_runtime
+	if choir == null or not choir.commit_finale_ending(
+		outcome, boss_session.completion_payload()
+	):
+		return -1
 	finale_pending = false
-	var progress: CampaignProgressStore = dependencies.city.project_choir_runtime.campaign_progress
-	if progress != null:
-		progress.mark_ending_seen(BossOutcome.id_for(outcome))
 	finale_resolved.emit(outcome, finale_snapshot)
 	return outcome
 
@@ -384,8 +388,16 @@ func _on_campaign_boss_completed(definition: BossEncounterDefinition) -> void:
 func _try_complete_finale_gate() -> void:
 	if finale_pending or not finale_arc_completed or not finale_boss_completed:
 		return
-	finale_snapshot = FinaleEligibilitySnapshot.from_store(
-		dependencies.city.project_choir_runtime.campaign_progress
+	var choir: ProjectChoirRuntime = dependencies.city.project_choir_runtime
+	var persisted_snapshot: FinaleEligibilitySnapshot = (
+		choir.campaign_progress.finale_snapshot() if choir != null else null
+	)
+	finale_snapshot = (
+		persisted_snapshot
+		if persisted_snapshot != null
+		else choir.snapshot_finale_eligibility()
+		if choir != null
+		else FinaleEligibilitySnapshot.new()
 	)
 	finale_pending = true
 	district_completed.emit()

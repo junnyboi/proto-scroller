@@ -1,84 +1,193 @@
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
-const SAVE_PATH: String = "user://project_choir_finale_test.cfg"
+const SAVE_PATH: String = "user://project_choir_finale_test.json"
 
 var city: CitySlice
 var store: CampaignProgressStore
+var session: CommandBossSession
+var royal: BossRoyalFinaleController
 
 
 func before_each() -> void:
 	_remove_saves()
-	city = CITY_SCENE.instantiate() as CitySlice
 	store = CampaignProgressStore.new()
-	store.save_path = SAVE_PATH
+	store.setup(SAVE_PATH)
+	city = CITY_SCENE.instantiate() as CitySlice
 	city.campaign_progress = store
 	add_child_autofree(store)
 	add_child_autofree(city)
 	await get_tree().process_frame
 	city.encounter_runtime.release_all()
+	session = city.urban_siege.boss_session
+	royal = session.royal_finale
 
 
 func after_each() -> void:
 	_remove_saves()
 
 
-func test_five_pylon_choir_prime_uses_generated_core_and_fixed_charge_steps() -> void:
-	var session: CommandBossSession = city.urban_siege.boss_session
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(&"CHOIR_PRIME")
-	assert_eq(definition.armor, 550.0)
-	assert_true(session.start_definition(definition))
-	assert_eq(session.boss.visual.texture.resource_path, "res://art/finale/choir-prime-core.png")
-	assert_eq(_visible_pylon_count(session), 5)
-	assert_eq(city.encounter_runtime.active_count(), 6)
-	for index: int in range(5):
-		assert_true(session.boss.receive_damage(_charged_event(1000 + index)))
-		assert_eq(_visible_pylon_count(session), 4 - index)
+func test_choir_prime_uses_five_pylons_three_connections_and_commits_crown_first() -> void:
+	_start_royal()
+	assert_eq(session.active_definition.armor, 330.0)
+	assert_eq(session.active_definition.armor_fixed_step, 110.0)
+	assert_eq(_visible_pylon_count(), 5)
+	assert_true(royal.all_pylons_distinct())
+	assert_eq(royal.live_support_count(), 0)
+	assert_false(royal.player_motion_history_recorded())
+	for index: int in range(BossRoyalFinaleController.CONNECTION_COUNT):
+		assert_true(session.boss.receive_damage(_charged_event(10_000 + index)))
+		assert_eq(royal.armor_connections, index + 1)
+	assert_eq(_visible_pylon_count(), 0)
 	assert_eq(session.state, CommandBossSession.STATE_EXPOSED)
-	assert_almost_eq(session.boss.boss_armor, 0.0, 0.001)
+	assert_true(store.has_transaction(ProjectChoirRuntime.CROWN_PYLON_TRANSACTION_ID))
+	assert_true(store.has_dossier(&"CROWN_05_CONSENT_EXCISION_ORDER"))
+	assert_true(store.has_evidence(&"CROWN"))
+	assert_false(store.echo7_resolved())
 
 
-func test_eligibility_requires_twenty_dossiers_and_all_five_evidence_flags() -> void:
-	_prepare_eligible_store()
-	var snapshot: FinaleEligibilitySnapshot = FinaleEligibilitySnapshot.from_store(store)
-	assert_true(snapshot.disentangle_eligible)
-	assert_eq(snapshot.dossier_count, 20)
-	assert_eq(snapshot.evidence_count, 5)
-	assert_eq(snapshot.continuity_generation, 2)
-	store.increment_continuity()
-	assert_true(FinaleEligibilitySnapshot.from_store(store).disentangle_eligible)
+func test_all_masks_keep_palace_routes_and_direct_core_fallback() -> void:
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(&"CHOIR_PRIME")
+	var adapter: BossStructuralAdapter = BossStructuralAdapter.new()
+	add_child_autofree(adapter)
+	adapter.definition = definition
+	for mask: int in range(BossStructuralAdapter.MASK_COUNT):
+		var binding: Dictionary = adapter.binding_for_mask(mask, definition.arena_cell_indices)
+		assert_true(bool(binding.palace_lower_route), "lower mask=%d" % mask)
+		assert_true(bool(binding.palace_upper_crownfall), "upper mask=%d" % mask)
+		assert_true(bool(binding.direct_core_fallback), "core mask=%d" % mask)
+		assert_true(bool(binding.valid_finisher_receiver), "finisher mask=%d" % mask)
 
 
-func test_completed_district_dossiers_do_not_replace_boss_evidence() -> void:
-	var business: Array[DossierDefinition] = DossierCatalog.district_definitions(&"BUSINESS")
-	for definition: DossierDefinition in business:
-		assert_true(store.collect_dossier(definition.dossier_id))
-	assert_eq(store.evidence_count(), 0)
-	assert_true(store.preserve_evidence(&"LEDGER"))
-	assert_eq(store.evidence_count(), 1)
-	assert_true(store.snapshot().evidence.has("LEDGER"))
+func test_five_testimonies_serialize_one_mechanic_and_noncolliding_echo() -> void:
+	_start_royal()
+	var seen: Dictionary[StringName, bool] = {}
+	for _index: int in range(BossRoyalFinaleController.PYLON_COUNT):
+		seen[royal.active_mechanic] = true
+		assert_eq(royal.active_mechanic_count(), 1)
+		assert_eq(royal.active_composition_echo_count(), 1)
+		assert_between(royal.composition_marker_count(), 1, BossUtilityPool.MARKER_CAPACITY)
+		assert_eq(royal.echo_collision_count(), 0)
+		assert_eq(royal.live_support_count(), 0)
+		assert_false(royal.player_motion_history_recorded())
+		royal.advance(BossRoyalFinaleController.TELEGRAPH_SECONDS)
+		royal.advance(BossRoyalFinaleController.ACTIVE_SECONDS)
+		royal.advance(BossRoyalFinaleController.RECOVERY_SECONDS)
+	assert_eq(seen.size(), BossRoyalFinaleController.PYLON_COUNT)
+	for mechanic_id: StringName in BossRoyalFinaleController.MECHANICS:
+		assert_true(seen.has(mechanic_id), mechanic_id)
 
 
-func test_purge_disentangle_and_failed_ascension_are_all_persistent() -> void:
-	var siege: UrbanSiegeRuntime = city.urban_siege
-	_prepare_finale(siege, false)
-	assert_eq(siege.resolve_finale(BossOutcome.PURGE), BossOutcome.PURGE)
-	assert_true(store.has_ending(&"PURGE"))
-	store.reset_memory()
-	_prepare_eligible_store()
-	_prepare_finale(siege, true)
-	assert_eq(siege.resolve_finale(BossOutcome.DISENTANGLE), BossOutcome.DISENTANGLE)
-	assert_true(store.has_ending(&"DISENTANGLE"))
-	store.reset_memory()
-	_prepare_finale(siege, false)
+func test_ineligible_disentangle_warns_and_commits_ascension_failure() -> void:
+	_start_royal()
+	_break_armor(20_000)
+	_kill_body(20_100)
+	var snapshot: FinaleEligibilitySnapshot = royal.finale_snapshot
+	assert_not_null(snapshot)
+	assert_false(snapshot.disentangle_eligible)
+	assert_lt(snapshot.dossier_count, FinaleEligibilitySnapshot.DOSSIER_REQUIREMENT)
+	var purge: BossWreckReceiver2D = session.utility_pool.default_wreck_receiver
+	var disentangle: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
+	assert_true(purge.active)
+	assert_true(disentangle.active)
+	assert_gt(
+		purge.global_position.distance_to(disentangle.global_position),
+		BossEncounterDefinition.DEFAULT_GROUND_SMASH_RADIUS
+	)
+	assert_true(disentangle.receive_damage(_smash_event(20_200)))
+	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 	assert_eq(
-		siege.resolve_finale(BossOutcome.DISENTANGLE),
+		int(session.completion_payload().finale_outcome),
 		BossOutcome.ASCENSION_FAILURE
 	)
-	assert_true(store.has_ending(&"ASCENSION_FAILURE"))
 
 
-func test_finale_choice_overlay_is_focus_safe_and_hides_legacy_actions() -> void:
+func test_eligible_disentangle_repeats_without_timeout_and_completes_five_windows() -> void:
+	_prepare_pre_crown_eligible_store()
+	_start_royal()
+	_break_armor(30_000)
+	_kill_body(30_100)
+	assert_true(royal.finale_snapshot.disentangle_eligible)
+	assert_eq(royal.finale_snapshot.dossier_count, 20)
+	var receiver: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
+	assert_true(receiver.receive_damage(_smash_event(30_200)))
+	assert_true(royal.severance_active)
+	assert_eq(royal.severance_completed, 0)
+	royal.advance(BossRoyalFinaleController.SEVERANCE_WINDOW_SECONDS * 3.1)
+	assert_true(royal.severance_active)
+	assert_gt(royal.severance_loop_count, 0)
+	for index: int in range(BossRoyalFinaleController.SEVERANCE_WINDOW_COUNT):
+		assert_eq(royal.active_mechanic_count(), 1)
+		assert_eq(royal.active_composition_echo_count(), 1)
+		assert_true(receiver.receive_damage(_smash_event(30_300 + index)))
+	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_eq(int(session.completion_payload().finale_outcome), BossOutcome.DISENTANGLE)
+	assert_eq(
+		int(session.completion_payload().severance_windows_completed),
+		BossRoyalFinaleController.SEVERANCE_WINDOW_COUNT
+	)
+
+
+func test_purge_succeeds_for_any_evidence_state_and_only_one_receiver_commits() -> void:
+	_start_royal()
+	_break_armor(40_000)
+	_kill_body(40_100)
+	var purge: BossWreckReceiver2D = session.utility_pool.default_wreck_receiver
+	var disentangle: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
+	assert_true(purge.receive_damage(_smash_event(40_200)))
+	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_eq(int(session.completion_payload().finale_outcome), BossOutcome.PURGE)
+	assert_false(disentangle.receive_damage(_smash_event(40_201)))
+	city.urban_siege.finale_snapshot = store.finale_snapshot()
+	city.urban_siege.finale_pending = true
+	assert_eq(city.urban_siege.resolve_finale(BossOutcome.PURGE), BossOutcome.PURGE)
+	assert_true(store.has_ending(&"PURGE"))
+
+
+func test_mid_attempt_retry_restores_pylons_attack_and_single_grammar() -> void:
+	_start_royal()
+	for index: int in range(2):
+		assert_true(session.boss.receive_damage(_charged_event(45_000 + index)))
+	royal.advance(BossRoyalFinaleController.TELEGRAPH_SECONDS)
+	var expected_mechanic: StringName = royal.active_mechanic
+	var snapshot: Dictionary = session.capture_attempt_state()
+	session.restore_attempt_state(snapshot)
+	assert_true(session.start_definition(BossCampaignCatalog.definition(&"CHOIR_PRIME")))
+	assert_eq(royal.armor_connections, 2)
+	assert_eq(royal.remaining_pylon_count(), 1)
+	assert_almost_eq(session.boss.boss_armor, 110.0, 0.001)
+	assert_eq(royal.active_mechanic, expected_mechanic)
+	assert_eq(royal.active_mechanic_count(), 1)
+	assert_eq(royal.active_composition_echo_count(), 1)
+	assert_eq(royal.live_support_count(), 0)
+
+
+func test_finale_snapshot_and_ending_are_immutable_idempotent_transactions() -> void:
+	_prepare_pre_crown_eligible_store()
+	_start_royal()
+	_break_armor(50_000)
+	_kill_body(50_100)
+	var before: Dictionary = royal.finale_snapshot.as_dictionary()
+	store.increment_continuity()
+	var persisted: FinaleEligibilitySnapshot = store.finale_snapshot()
+	assert_eq(persisted.as_dictionary(), before)
+	var payload: Dictionary = royal.completion_payload(BossOutcome.PURGE)
+	assert_true(city.project_choir_runtime.commit_finale_ending(BossOutcome.PURGE, payload))
+	assert_true(city.project_choir_runtime.commit_finale_ending(BossOutcome.PURGE, payload))
+	var reloaded: CampaignProgressStore = CampaignProgressStore.new()
+	reloaded.setup(SAVE_PATH)
+	add_child_autofree(reloaded)
+	assert_eq(reloaded.finale_snapshot().as_dictionary(), before)
+	assert_true(reloaded.has_ending(&"PURGE"))
+	assert_true(reloaded.has_transaction(&"finale:CHOIR_PRIME:PURGE"))
+	assert_eq(reloaded.pending_reward_grants().count("boss:CHOIR_PRIME:ending_reward"), 1)
+	assert_eq(
+		String(reloaded.snapshot().finale_crown_transaction_id),
+		String(ProjectChoirRuntime.CROWN_PYLON_TRANSACTION_ID)
+	)
+
+
+func test_finale_choice_overlay_warns_but_keeps_purge_visible() -> void:
 	var snapshot: FinaleEligibilitySnapshot = FinaleEligibilitySnapshot.from_store(store)
 	city.gameplay_hud._show_finale_choice(snapshot)
 	assert_true(city.gameplay_hud.game_over_overlay.visible)
@@ -86,8 +195,7 @@ func test_finale_choice_overlay_is_focus_safe_and_hides_legacy_actions() -> void
 	assert_true(city.gameplay_hud.disentangle_button.visible)
 	assert_false(city.gameplay_hud.retry_button.visible)
 	assert_false(city.gameplay_hud.extract_button.visible)
-	assert_false(city.gameplay_hud.continue_button.visible)
-	assert_true(city.gameplay_hud.disentangle_button.has_focus())
+	assert_true(city.gameplay_hud.purge_button.has_focus())
 
 
 func test_royal_arc_and_streamed_choir_prime_must_both_complete() -> void:
@@ -101,39 +209,40 @@ func test_royal_arc_and_streamed_choir_prime_must_both_complete() -> void:
 	assert_true(siege.finale_pending)
 
 
-func test_resolved_ending_offers_new_game_plus_before_extracting_summary() -> void:
-	var siege: UrbanSiegeRuntime = city.urban_siege
-	_prepare_finale(siege, false)
-	assert_eq(siege.resolve_finale(BossOutcome.PURGE), BossOutcome.PURGE)
-	assert_false(city.game_over_active)
-	assert_eq(city.run_lifecycle._pending_ending_id, &"PURGE")
-	assert_true(city.gameplay_hud.extract_button.visible)
-	assert_true(city.gameplay_hud.continue_button.visible)
-	assert_true(city.gameplay_hud.new_game_plus_badge.visible)
-	assert_false(city.gameplay_hud.purge_button.visible)
-	assert_true(city.gameplay_hud.overlay_title.text.contains("ASH PROTOCOL"))
-	city.run_lifecycle._on_extract_pressed()
-	assert_true(city.game_over_active)
-	assert_eq(city.rampage_session.frozen_summary.ending_id, &"PURGE")
+func _start_royal() -> void:
+	assert_true(session.start_definition(BossCampaignCatalog.definition(&"CHOIR_PRIME")))
+	assert_true(royal.active())
 
 
-func _prepare_eligible_store() -> void:
-	for index: int in range(20):
-		store.collect_dossier(DossierCatalog.definitions()[index].dossier_id)
-	for evidence_id: StringName in [
-		&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
-	]:
-		store.preserve_evidence(evidence_id)
-	store.increment_continuity()
-	store.increment_continuity()
+func _break_armor(base_attack_id: int) -> void:
+	for index: int in range(BossRoyalFinaleController.CONNECTION_COUNT):
+		assert_true(session.boss.receive_damage(_charged_event(base_attack_id + index)))
 
 
-func _prepare_finale(siege: UrbanSiegeRuntime, eligible: bool) -> void:
-	if eligible and store.dossier_count() < FinaleEligibilitySnapshot.DOSSIER_REQUIREMENT:
-		_prepare_eligible_store()
-	siege.finale_snapshot = FinaleEligibilitySnapshot.from_store(store)
-	siege.finale_pending = true
-	assert_true(siege.present_finale_choice())
+func _kill_body(attack_id: int) -> void:
+	assert_true(session.boss.receive_damage(DamageEvent.new(
+		attack_id,
+		city.robot,
+		session.active_definition.health,
+		&"impact",
+		session.boss.global_position,
+		Vector2.RIGHT
+	)))
+	assert_not_null(session.boss_wreck)
+	assert_eq(session.state, CommandBossSession.STATE_WRECK)
+
+
+func _prepare_pre_crown_eligible_store() -> void:
+	var collected: int = 0
+	for definition: DossierDefinition in DossierCatalog.definitions():
+		if definition.dossier_id == &"CROWN_05_CONSENT_EXCISION_ORDER":
+			continue
+		assert_true(store.collect_dossier(definition.dossier_id))
+		collected += 1
+		if collected == FinaleEligibilitySnapshot.DOSSIER_REQUIREMENT - 1:
+			break
+	for evidence_id: StringName in [&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL"]:
+		assert_true(store.preserve_evidence(evidence_id))
 
 
 func _charged_event(attack_id: int) -> DamageEvent:
@@ -145,18 +254,39 @@ func _charged_event(attack_id: int) -> DamageEvent:
 		Vector2.ZERO,
 		Vector2.RIGHT,
 		0.0,
-		0,
+		attack_id,
 		0,
 		DamageEvent.FLAG_FULL_CHARGE
 	)
 
 
-func _visible_pylon_count(session: CommandBossSession) -> int:
+func _smash_event(attack_id: int) -> DamageEvent:
+	return DamageEvent.new(
+		attack_id,
+		city.robot,
+		999.0,
+		&"ground_smash",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		0.0,
+		attack_id + 100_000
+	)
+
+
+func _visible_pylon_count() -> int:
 	var count: int = 0
 	for pylon: Node2D in session.utility_pool.pylon_presentations:
 		if pylon.visible:
 			count += 1
 	return count
+
+
+func _attack_cycle_seconds() -> float:
+	return (
+		BossRoyalFinaleController.TELEGRAPH_SECONDS
+		+ BossRoyalFinaleController.ACTIVE_SECONDS
+		+ BossRoyalFinaleController.RECOVERY_SECONDS
+	)
 
 
 func _remove_saves() -> void:

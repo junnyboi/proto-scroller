@@ -191,7 +191,7 @@ func test_royal_receivers_are_separated_and_only_one_can_commit() -> void:
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(&"CHOIR_PRIME")
 	assert_true(session.start_definition(definition))
 	var host: TankEnemy = session.boss
-	for index: int in range(5):
+	for index: int in range(BossRoyalFinaleController.CONNECTION_COUNT):
 		assert_true(host.receive_damage(_charged_event(3500 + index, 3500 + index)))
 	assert_true(host.receive_damage(DamageEvent.new(
 		3600, city.robot, definition.health, &"impact"

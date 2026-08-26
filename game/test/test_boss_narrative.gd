@@ -93,6 +93,10 @@ func test_crown_capstone_repeats_canon_without_premature_echo_resolution() -> vo
 	var definitions: Array[DossierDefinition] = DossierCatalog.definitions()
 	for index: int in range(18):
 		assert_true(store.collect_dossier(definitions[index].dossier_id))
+	var choir: ProjectChoirRuntime = ProjectChoirRuntime.new()
+	choir.campaign_progress = store
+	add_child_autofree(choir)
+	assert_true(choir.commit_crown_pylon_transaction())
 	assert_true(director.handle_boss_completed(BossCampaignCatalog.definition(&"CHOIR_PRIME")))
 	assert_true(store.has_evidence(&"CROWN"))
 	assert_eq(store.dossier_count(), 19)

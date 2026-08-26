@@ -530,5 +530,21 @@
   "narrative.dossier.entertainment_house_of_static.result_preserved": "The 04:17 biological termination and continuity boot record survived. STAGE corroboration was preserved.",
   "narrative.dossier.entertainment_house_of_static.result_lost": "The continuity packet was lost. The route stayed open; STAGE remains recoverable from a later elite.",
   "narrative.dossier.military_prefect_war_keep.result_preserved": "Off-city Pale Engine destinations and human guidance maps survived. ARSENAL corroboration was preserved.",
-  "narrative.dossier.military_prefect_war_keep.result_lost": "The export packet was lost. The route stayed open; ARSENAL remains recoverable from a later elite."
+  "narrative.dossier.military_prefect_war_keep.result_lost": "The export packet was lost. The route stayed open; ARSENAL remains recoverable from a later elite.",
+  "finale.choice.summary_ineligible": "CHOIR Prime is open. PURGE remains safe and visible. DISENTANGLE is incomplete and will cause ASCENSION FAILURE. Dossiers: {dossier_count}/{dossier_requirement}. Evidence: {evidence_count}/{evidence_requirement}.",
+  "finale.choice.ascension_warning": "DISENTANGLE // ASCENSION RISK",
+  "finale.receiver.purge_visible": "PURGE CORE VISIBLE // ALWAYS AVAILABLE",
+  "finale.receiver.disentangle_visible": "STRIKE THE CYAN PLINTH TO BEGIN SEVERANCE",
+  "finale.receiver.eligible": "DISENTANGLE READY // PURGE REMAINS VISIBLE",
+  "finale.receiver.warning": "ASCENSION FAILURE WARNED // PURGE REMAINS VISIBLE",
+  "boss.objective.royal.connect": "SEVER ARMOR CONNECTIONS {current}/{total}",
+  "boss.objective.royal.severance": "SEVERANCE WINDOWS {current}/{total} // NO TIMEOUT",
+  "boss.objective.royal.ineligible": "PURGE OR ACCEPT WARNED ASCENSION FAILURE",
+  "boss.record.crown_pending": "CROWN-05 TRANSACTION PENDING",
+  "boss.record.crown_committed": "CROWN-05 + CROWN TRANSMITTED",
+  "boss.attack.ledger_settlement_sweep": "LEDGER // SETTLEMENT SWEEP",
+  "boss.attack.nursery_braced_shock": "NURSERY // BRACED SHOCK",
+  "boss.attack.stage_armed_ring": "STAGE // ARMED RING",
+  "boss.attack.arsenal_production_lanes": "ARSENAL // PRODUCTION LANES",
+  "boss.attack.crown_radial_verdict": "CROWN // RADIAL VERDICT"
 }

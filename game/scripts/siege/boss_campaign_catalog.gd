@@ -287,7 +287,7 @@ static func _ensure_catalog() -> void:
 			),
 		]
 	var finale: BossEncounterDefinition = _definitions.back()
-	finale.armor = 550.0
+	finale.armor = 330.0
 	finale.armor_fixed_step = 110.0
 	_definitions_by_id.clear()
 	_definitions_by_trigger.clear()

@@ -1,3 +1,4 @@
+# gdlint: disable=max-returns
 class_name CommandBossSession
 extends Node
 
@@ -17,19 +18,12 @@ const HEALTH: float = 320.0
 const SCREEN_DURATION: float = 4.0
 const TARGET_DURATION: float = 60.0
 const CHOIR_PRIME_TEXTURE: Texture2D = preload("res://art/finale/choir-prime-core.png")
-const CHOIR_GAUNTLET: Array[StringName] = [
-	&"reclaimed_breacher",
-	&"graft_runner",
-	&"choir_siren",
-	&"ossuary_crawler",
-	&"seraph_carrier",
-]
-
 var dependencies: UrbanSiegeDependencies
 var state: StringName = STATE_IDLE
 var boss: TankEnemy
 var boss_wreck: EnemyWreck2D
 var utility_pool: BossUtilityPool
+var royal_finale: BossRoyalFinaleController
 var active_definition: BossEncounterDefinition
 var elapsed_seconds: float = 0.0
 var generation_token: int = 0
@@ -50,6 +44,11 @@ func setup(p_dependencies: UrbanSiegeDependencies) -> void:
 		dependencies.encounter_runtime,
 		dependencies.projectile_pool
 	)
+	royal_finale = BossRoyalFinaleController.new()
+	royal_finale.name = "BossRoyalFinaleController"
+	royal_finale.setup(utility_pool, dependencies.encounter_runtime)
+	royal_finale.severance_receiver_moved.connect(_on_severance_receiver_moved)
+	add_child(royal_finale)
 
 
 func start() -> bool:
@@ -117,6 +116,7 @@ func advance(delta: float) -> void:
 	if utility_pool != null:
 		utility_pool.vertical_slice.advance(delta)
 		utility_pool.escalation.advance(delta)
+		royal_finale.advance(delta)
 	var screen_duration: float = (
 		SCREEN_DURATION if active_definition == null else active_definition.screen_seconds
 	)
@@ -169,6 +169,9 @@ func capture_attempt_state() -> Dictionary:
 			if utility_pool.escalation.active()
 			else {}
 		),
+		"royal_finale": (
+			royal_finale.capture_state() if royal_finale.active() else {}
+		),
 	}
 
 
@@ -188,6 +191,8 @@ func live_boss_feedback() -> Dictionary:
 		return utility_pool.vertical_slice.hud_feedback()
 	if utility_pool.escalation.active():
 		return utility_pool.escalation.hud_feedback()
+	if royal_finale.active():
+		return royal_finale.hud_feedback()
 	return {}
 
 
@@ -216,6 +221,9 @@ func _apply_pending_attempt_restore() -> void:
 	var escalation_state: Dictionary = _pending_attempt_restore.get("escalation", {})
 	if not escalation_state.is_empty() and utility_pool.escalation.active():
 		utility_pool.escalation.restore_state(escalation_state)
+	var royal_state: Dictionary = _pending_attempt_restore.get("royal_finale", {})
+	if not royal_state.is_empty() and royal_finale.active():
+		royal_finale.restore_state(royal_state)
 	_pending_attempt_restore.clear()
 
 
@@ -225,11 +233,13 @@ func _on_boss_health_changed(current: float, maximum: float) -> void:
 
 func _on_boss_armor_changed(current: float, maximum: float) -> void:
 	if _is_choir_prime():
-		var remaining: int = ceili(
-			clampf(current / maxf(maximum, 1.0), 0.0, 1.0)
-			* BossUtilityPool.PYLON_PRESENTATION_CAPACITY
+		var connection_count: int = roundi(
+			(maximum - current) / maxf(active_definition.armor_fixed_step, 1.0)
 		)
-		utility_pool.set_royal_pylon_integrity(remaining)
+		while royal_finale.armor_connections < connection_count:
+			royal_finale.register_armor_connection()
+		if connection_count >= BossRoyalFinaleController.CONNECTION_COUNT:
+			_commit_crown_pylon_transaction()
 	elif utility_pool.vertical_slice.active():
 		var connection_count: int = roundi(
 			(maximum - current) / maxf(active_definition.armor_fixed_step, 1.0)
@@ -256,6 +266,9 @@ func _on_boss_armor_broken() -> void:
 		if utility_pool.escalation.active()
 		else {}
 	)
+	var royal_state: Dictionary = (
+		royal_finale.capture_state() if royal_finale.active() else {}
+	)
 	_next_generation()
 	if active_definition != null:
 		_configure_campaign_runtime()
@@ -263,6 +276,8 @@ func _on_boss_armor_broken() -> void:
 			utility_pool.vertical_slice.restore_state(slice_state)
 		if not escalation_state.is_empty() and utility_pool.escalation.active():
 			utility_pool.escalation.restore_state(escalation_state)
+		if not royal_state.is_empty() and royal_finale.active():
+			royal_finale.restore_state(royal_state)
 		if active_definition.phases.size() > 1:
 			utility_pool.controller.begin_phase(
 				active_definition.phases[1],
@@ -276,16 +291,6 @@ func _present_choir_prime() -> void:
 		boss.visual.texture = CHOIR_PRIME_TEXTURE
 		boss.visual.scale = Vector2(0.42, 0.42)
 		boss.visual.position = Vector2(0.0, -88.0)
-	utility_pool.present_royal_pylons(boss.global_position)
-	for index: int in range(CHOIR_GAUNTLET.size()):
-		var horizontal: float = -440.0 + float(index) * 220.0
-		for copy_index: int in range(EnemySpawnTuning.QUANTITY_MULTIPLIER):
-			dependencies.encounter_runtime.acquire(
-				CHOIR_GAUNTLET[index],
-				boss.global_position
-				+ Vector2(horizontal, -30.0)
-				+ EnemySpawnTuning.offset_for_copy(copy_index, 72.0)
-			)
 
 
 func _configure_campaign_runtime() -> void:
@@ -329,6 +334,13 @@ func _configure_campaign_runtime() -> void:
 			boss.global_position,
 			portrait
 		)
+	elif active_definition.boss_id == &"CHOIR_PRIME":
+		royal_finale.start(
+			active_definition,
+			generation_token,
+			boss.global_position,
+			portrait
+		)
 
 
 func _is_choir_prime() -> bool:
@@ -355,12 +367,23 @@ func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> v
 func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 	if enemy != boss:
 		return
+	var royal_state: Dictionary = (
+		royal_finale.capture_state() if royal_finale.active() else {}
+	)
 	_next_generation()
 	boss_wreck = wreck
 	if active_definition == null:
 		boss_wreck.configure_finisher_policy(true, wreck.fatal_event)
 	else:
-		utility_pool.configure_wreck_receivers(boss_wreck, active_definition)
+		if _is_choir_prime():
+			_configure_campaign_runtime()
+			if not royal_state.is_empty():
+				royal_finale.restore_state(royal_state)
+			var snapshot: FinaleEligibilitySnapshot = _snapshot_royal_eligibility()
+			royal_finale.begin_wreck(snapshot)
+		utility_pool.configure_wreck_receivers(
+			boss_wreck, active_definition, _on_wreck_receiver_damage
+		)
 	_set_state(STATE_WRECK)
 
 
@@ -371,6 +394,59 @@ func _on_wreck_scrapped(wreck: EnemyWreck2D, _event: DamageEvent, _points: int) 
 	boss_wreck = null
 	_set_state(STATE_COMPLETE)
 	completed.emit(elapsed_seconds)
+
+
+func _commit_crown_pylon_transaction() -> bool:
+	if not _is_choir_prime() or dependencies.city == null:
+		return false
+	var choir: ProjectChoirRuntime = dependencies.city.project_choir_runtime
+	return choir != null and choir.commit_crown_pylon_transaction()
+
+
+func _snapshot_royal_eligibility() -> FinaleEligibilitySnapshot:
+	var choir: ProjectChoirRuntime = dependencies.city.project_choir_runtime
+	if choir == null:
+		return FinaleEligibilitySnapshot.new()
+	return choir.snapshot_finale_eligibility()
+
+
+func _on_wreck_receiver_damage(
+	receiver: BossWreckReceiver2D,
+	event: DamageEvent
+) -> bool:
+	if (
+		receiver == null
+		or event == null
+		or boss_wreck == null
+		or boss_wreck.scrapped_state
+		or event.damage_type != &"ground_smash"
+	):
+		return false
+	if receiver.outcome_id == BossOutcome.PURGE:
+		royal_finale.cancel_pressure()
+		_completion_payload = royal_finale.completion_payload(BossOutcome.PURGE)
+		return boss_wreck.receive_damage(event)
+	var snapshot: FinaleEligibilitySnapshot = royal_finale.finale_snapshot
+	if snapshot == null or not snapshot.disentangle_eligible:
+		royal_finale.cancel_pressure()
+		_completion_payload = royal_finale.completion_payload(
+			BossOutcome.ASCENSION_FAILURE
+		)
+		return boss_wreck.receive_damage(event)
+	if not royal_finale.severance_active:
+		return royal_finale.begin_severance()
+	if not royal_finale.complete_severance_window():
+		return false
+	if royal_finale.severance_completed < BossRoyalFinaleController.SEVERANCE_WINDOW_COUNT:
+		return true
+	_completion_payload = royal_finale.completion_payload(BossOutcome.DISENTANGLE)
+	return boss_wreck.receive_damage(event)
+
+
+func _on_severance_receiver_moved(offset: Vector2) -> void:
+	if boss_wreck == null or utility_pool.royal_outcome_receiver == null:
+		return
+	utility_pool.royal_outcome_receiver.global_position = boss_wreck.global_position + offset
 
 
 func _set_state(next_state: StringName) -> void:
