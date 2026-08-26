@@ -1124,10 +1124,10 @@ function assertPhaseContract(phases) {
       );
     }
   }
-  if (
-    postUpgradeSfx.details.punch.length_seconds < 1.16 ||
-    postUpgradeSfx.details.punch.length_seconds > 1.18
-  ) {
+	if (
+		postUpgradeSfx.details.punch.length_seconds < 0.46 ||
+		postUpgradeSfx.details.punch.length_seconds > 0.48
+	) {
     throw new Error(
       `synchronized punch cue length invalid: ${JSON.stringify(postUpgradeSfx.details.punch)}`
     );

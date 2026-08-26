@@ -137,10 +137,10 @@ PUNCH_DURATION="$(
 		audio/sfx/robot/double_punch_impact.wav
 )"
 awk -v duration="$PUNCH_DURATION" 'BEGIN {
-	exit !(duration >= 1.17 && duration <= 1.19)
+	exit !(duration >= 0.46 && duration <= 0.48)
 }'
 test "$(sha256sum audio/sfx/robot/double_punch_impact.wav | cut -d' ' -f1)" = \
-	"ac4dc961a2828c14c58f856f58a9cef817391d02cd35bb858c5315c22bab0793"
+	"070c680f847e87f66a62cb41df4daf2e841946ef46b83dba4eaebec651af31ea"
 for photon_cue in \
 	audio/sfx/robot/photon_charge.wav \
 	audio/sfx/robot/photon_full_hit.wav; do
