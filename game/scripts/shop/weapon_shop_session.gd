@@ -8,7 +8,15 @@ signal shop_opened(
 )
 signal purchase_completed(product: WeaponShopProduct, remaining_score: int)
 signal purchase_rejected(product: WeaponShopProduct, reason: StringName)
-signal shop_closed(district: CityDistrictProfile, logical_chunk: int)
+signal shop_closed(district: CityDistrictProfile, act_index: int, terminal: bool)
+
+const ACT_SHOP_DISTRICTS: Dictionary = {
+	0: &"BUSINESS",
+	1: &"RESIDENTIAL",
+	2: &"ENTERTAINMENT",
+	3: &"MILITARY",
+}
+const ROYAL_ACT_INDEX: int = 5
 
 var pause: RunPauseCoordinator
 var run_score: RunScore
@@ -17,12 +25,16 @@ var robot: GiantRobotController
 var telegraphs: TelegraphPresenter2D
 var active_district: CityDistrictProfile
 var active_products: Array[WeaponShopProduct] = []
-var active_chunk: int = 0
+var active_act_index: int = -1
+var active_cycle: int = 1
+var active_terminal: bool = false
 var pause_token: int = 0
 var purchased: Dictionary[StringName, bool] = {}
-var visited_boundaries: Dictionary[int, bool] = {}
+var visited_acts: Dictionary[StringName, bool] = {}
 var pending_district: CityDistrictProfile
-var pending_chunk: int = 0
+var pending_act_index: int = -1
+var pending_cycle: int = 1
+var pending_terminal: bool = false
 var active: bool = false
 
 
@@ -38,7 +50,9 @@ func setup(
 	effects = p_effects
 	robot = p_robot
 	telegraphs = p_telegraphs
-	return WeaponShopCatalog.validation_errors()
+	var errors: PackedStringArray = WeaponShopCatalog.validation_errors()
+	errors.append_array(WeaponShopVisualCatalog.validation_errors())
+	return errors
 
 
 func _process(_delta: float) -> void:
@@ -46,23 +60,19 @@ func _process(_delta: float) -> void:
 		_open_pending()
 
 
-func queue_transition(
-	previous_district_id: StringName,
-	district: CityDistrictProfile,
-	logical_chunk: int
-) -> bool:
-	if (
-		district == null
-		or district.district_index <= _district_index(previous_district_id)
-		or logical_chunk <= 0
-		or visited_boundaries.has(logical_chunk)
-	):
+func queue_act_completion(act_index: int, cycle: int) -> bool:
+	if not ACT_SHOP_DISTRICTS.has(act_index):
 		return false
-	visited_boundaries[logical_chunk] = true
-	pending_district = district
-	pending_chunk = logical_chunk
-	_open_pending()
-	return true
+	return _queue_shop(
+		ACT_SHOP_DISTRICTS[act_index] as StringName,
+		act_index,
+		cycle,
+		false
+	)
+
+
+func queue_royal_completion(cycle: int) -> bool:
+	return _queue_shop(&"ROYAL", ROYAL_ACT_INDEX, cycle, true)
 
 
 func purchase(product_id: StringName) -> bool:
@@ -87,14 +97,17 @@ func close_shop() -> bool:
 	if not active or active_district == null:
 		return false
 	var closed_district: CityDistrictProfile = active_district
-	var closed_chunk: int = active_chunk
+	var closed_act_index: int = active_act_index
+	var closed_terminal: bool = active_terminal
 	active = false
 	active_products.clear()
 	active_district = null
+	active_act_index = -1
+	active_terminal = false
 	if pause != null and pause_token != 0:
 		pause.release(pause_token)
 	pause_token = 0
-	shop_closed.emit(closed_district, closed_chunk)
+	shop_closed.emit(closed_district, closed_act_index, closed_terminal)
 	return true
 
 
@@ -114,9 +127,29 @@ func reset_run() -> void:
 	if active:
 		close_shop()
 	purchased.clear()
-	visited_boundaries.clear()
-	pending_district = null
-	pending_chunk = 0
+	visited_acts.clear()
+	_clear_pending()
+
+
+func _queue_shop(
+	district_id: StringName,
+	act_index: int,
+	cycle: int,
+	terminal: bool
+) -> bool:
+	var key: StringName = StringName("%d:%d:%s" % [cycle, act_index, district_id])
+	if active or pending_district != null or visited_acts.has(key):
+		return false
+	var district: CityDistrictProfile = _district(district_id)
+	if district == null:
+		return false
+	visited_acts[key] = true
+	pending_district = district
+	pending_act_index = act_index
+	pending_cycle = maxi(cycle, 1)
+	pending_terminal = terminal
+	_open_pending()
+	return true
 
 
 func _open_pending() -> void:
@@ -125,15 +158,23 @@ func _open_pending() -> void:
 	if telegraphs != null and telegraphs.active_count() > 0:
 		return
 	active_district = pending_district
-	active_chunk = pending_chunk
-	pending_district = null
-	pending_chunk = 0
+	active_act_index = pending_act_index
+	active_cycle = pending_cycle
+	active_terminal = pending_terminal
+	_clear_pending()
 	active_products = WeaponShopCatalog.products_for(active_district.district_id)
 	if run_score != null:
 		run_score.bank_all()
 	pause_token = pause.acquire(&"weapon_shop")
 	active = true
 	shop_opened.emit(active_district, active_products, run_score.score)
+
+
+func _clear_pending() -> void:
+	pending_district = null
+	pending_act_index = -1
+	pending_cycle = 1
+	pending_terminal = false
 
 
 func _active_product(product_id: StringName) -> WeaponShopProduct:
@@ -143,8 +184,8 @@ func _active_product(product_id: StringName) -> WeaponShopProduct:
 	return null
 
 
-func _district_index(district_id: StringName) -> int:
+func _district(district_id: StringName) -> CityDistrictProfile:
 	for district: CityDistrictProfile in CityDistrictCatalog.districts():
 		if district.district_id == district_id:
-			return district.district_index
-	return -1
+			return district
+	return null

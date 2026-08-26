@@ -1,7 +1,7 @@
 # Weapon Shop Completion and New Game+ Implementation Plan
 
 **Author:** Manus AI
-**Status:** In implementation — Phase 1 complete
+**Status:** In implementation — Phase 2 complete
 **Canonical repository:** `https://github.com/junnyboi/proto-scroller`
 **Engine:** Godot 4.7.2-stable with matching non-threaded Web templates
 
@@ -106,6 +106,8 @@ Both cues must remain audible under ducked music, stay below clipping, and pass 
 ### Phase record
 
 **Phase 1 — Plan and asset foundation: complete.** GPT Image 2 produced 21 static UI/FX masters, two SFX carrier anchors, and five district-specific sets covering all fifteen products. The deterministic runtime pipeline generated 31 WebP files totaling 1,211,952 bytes. The synchronized carrier workflow produced separate 48 kHz mono PCM16 purchase and repair cues with verified durations, peaks, hashes, waveforms, and provenance.
+
+**Phase 2 — Interstitial architecture and dialogue: complete.** Shops now open at deterministic act-completion boundaries rather than spatial district crossings: Business after Act 1, Residential after Act 2, Entertainment after Act 3, Military after Act 4, and Royal only after the terminal boss. The next act is held until checkout, milestone/directive presentation waits behind the shop, spatial district banners remain independent, score banking occurs on entry, and a generated-portrait operator dialogue explains the Rampage Score tradeoff before product interaction. Royal checkout now precedes terminal cycle choices.
 
 ## 8. Acceptance criteria
 

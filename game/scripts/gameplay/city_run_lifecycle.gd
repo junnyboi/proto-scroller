@@ -179,6 +179,12 @@ func _on_directive_withdrawn() -> void:
 
 
 func _on_district_completed() -> void:
+	if city.weapon_shop_assembler != null and city.weapon_shop_assembler.queue_royal_completion():
+		return
+	_on_royal_shop_closed()
+
+
+func _on_royal_shop_closed() -> void:
 	city.urban_siege.prepare_terminal_choice()
 	city.gameplay_hud.show_cycle_choice(
 		city.urban_siege.cycle_count,

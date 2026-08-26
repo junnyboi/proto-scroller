@@ -5,14 +5,17 @@ signal purchase_requested(product_id: StringName)
 signal continue_requested
 
 var shade: ColorRect
+var backplate: TextureRect
 var frame: PanelContainer
 var title_label: Label
 var tagline_label: Label
+var credit_icon: TextureRect
 var score_caption: Label
 var score_label: Label
 var warning_label: Label
 var feedback_label: Label
 var continue_button: Button
+var dialogue_panel: WeaponShopDialoguePanel
 var cards: Array[WeaponShopCard] = []
 var district: CityDistrictProfile
 var active: bool = false
@@ -34,6 +37,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not active or Engine.get_process_frames() < _input_armed_frame:
 		return
 	if event.is_action_pressed(&"ui_cancel"):
+		if dialogue_panel != null and dialogue_panel.active:
+			return
 		continue_requested.emit()
 		get_viewport().set_input_as_handled()
 
@@ -48,6 +53,7 @@ func show_shop(
 		return
 	district = p_district
 	var accent: Color = district.accent_color.lightened(0.24)
+	backplate.texture = WeaponShopVisualCatalog.backplate(district.district_id)
 	title_label.text = L10n.t(WeaponShopCatalog.shop_title_key(district.district_id))
 	tagline_label.text = L10n.t(WeaponShopCatalog.shop_tagline_key(district.district_id))
 	for index: int in range(cards.size()):
@@ -66,7 +72,7 @@ func show_shop(
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	apply_responsive_layout()
 	_input_armed_frame = Engine.get_process_frames() + 2
-	_focus_first_available()
+	dialogue_panel.show_dialogue(district.district_id)
 
 
 func hide_shop() -> void:
@@ -74,6 +80,7 @@ func hide_shop() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dialogue_panel.hide_dialogue()
 	release_focus()
 
 
@@ -97,6 +104,7 @@ func apply_responsive_layout() -> void:
 	if shade == null:
 		return
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	backplate.size = viewport_size
 	shade.size = viewport_size
 	frame.position = Vector2(18.0, 18.0)
 	frame.size = viewport_size - Vector2(36.0, 36.0)
@@ -107,8 +115,13 @@ func apply_responsive_layout() -> void:
 
 
 func _build_controls() -> void:
+	backplate = TextureRect.new()
+	backplate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	backplate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	backplate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(backplate)
 	shade = ColorRect.new()
-	shade.color = Color(0.004, 0.01, 0.016, 0.94)
+	shade.color = Color(0.004, 0.01, 0.016, 0.60)
 	add_child(shade)
 	frame = PanelContainer.new()
 	var frame_style: StyleBoxFlat = StyleBoxFlat.new()
@@ -125,6 +138,12 @@ func _build_controls() -> void:
 	add_child(title_label)
 	tagline_label = _label(17, Color("9fb0b8"))
 	add_child(tagline_label)
+	credit_icon = TextureRect.new()
+	credit_icon.texture = WeaponShopVisualCatalog.RAMPAGE_CREDIT
+	credit_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	credit_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	credit_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(credit_icon)
 	score_caption = _label(16, Color("f1b36f"))
 	score_caption.text = L10n.t("shop.credit")
 	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -153,6 +172,9 @@ func _build_controls() -> void:
 	continue_button.add_theme_font_size_override(&"font_size", 22)
 	continue_button.pressed.connect(continue_requested.emit)
 	add_child(continue_button)
+	dialogue_panel = WeaponShopDialoguePanel.new()
+	dialogue_panel.dismissed.connect(_on_dialogue_dismissed)
+	add_child(dialogue_panel)
 
 
 func _apply_landscape(viewport_size: Vector2) -> void:
@@ -164,6 +186,8 @@ func _apply_landscape(viewport_size: Vector2) -> void:
 	score_caption.position = Vector2(viewport_size.x - 350.0, 48.0)
 	score_caption.size = Vector2(290.0, 24.0)
 	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	credit_icon.position = Vector2(viewport_size.x - 394.0, 50.0)
+	credit_icon.size = Vector2(42.0, 42.0)
 	score_label.position = Vector2(viewport_size.x - 350.0, 72.0)
 	score_label.size = Vector2(290.0, 38.0)
 	var gap: float = 22.0
@@ -193,6 +217,9 @@ func _apply_portrait(viewport_size: Vector2) -> void:
 	score_caption.position = Vector2(44.0, 164.0)
 	score_caption.size = Vector2(220.0, 24.0)
 	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	credit_icon.position = Vector2(44.0, 154.0)
+	credit_icon.size = Vector2(44.0, 44.0)
+	score_caption.position.x = 94.0
 	score_label.position = Vector2(viewport_size.x - 302.0, 158.0)
 	score_label.size = Vector2(258.0, 38.0)
 	var card_width: float = viewport_size.x - 88.0
@@ -230,7 +257,11 @@ func _set_accent(accent: Color) -> void:
 
 func _focus_first_available() -> void:
 	for card: WeaponShopCard in cards:
-		if not card.disabled:
+		if card.available():
 			card.grab_focus()
 			return
 	continue_button.grab_focus()
+
+
+func _on_dialogue_dismissed() -> void:
+	_focus_first_available()

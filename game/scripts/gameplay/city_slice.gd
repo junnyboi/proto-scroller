@@ -155,6 +155,7 @@ func _ready() -> void:
 	add_child(weapon_shop_assembler)
 	var shop_errors: PackedStringArray = weapon_shop_assembler.setup(self)
 	assert(shop_errors.is_empty(), "Shop setup failed: %s" % [shop_errors])
+	weapon_shop_assembler.royal_shop_closed.connect(run_lifecycle._on_royal_shop_closed)
 	if _web_gameplay_smoke_requested():
 		var smoke_probe: Node = WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT.new() as Node
 		add_child(smoke_probe)
@@ -319,13 +320,12 @@ func _on_stream_window_changed(_logical_index: int) -> void:
 
 
 func _on_spatial_district_changed(
-	previous_district_id: StringName,
+	_previous_district_id: StringName,
 	_district_id: StringName,
 	logical_chunk: int
 ) -> void:
 	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_chunk)
-	if not weapon_shop_assembler.queue_transition(previous_district_id, district, logical_chunk):
-		district_transition_banner.present(district, logical_chunk)
+	district_transition_banner.present(district, logical_chunk)
 
 
 func _refresh_primary_destructibles() -> void:
