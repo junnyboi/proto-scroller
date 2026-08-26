@@ -27,6 +27,7 @@ mkdir -p \
 	  artifacts/project_choir_finale \
 	  artifacts/enemy_variety \
 	  artifacts/street_volatility \
+	  artifacts/power_box_repair \
 	  artifacts/directives \
 	  artifacts/upgrades \
 	  artifacts/weapon_drones
@@ -498,11 +499,28 @@ if [[ "$MODE" == "full" ]]; then
     -s selftest/street_volatility_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/street_volatility/report.json >/dev/null
-  test -s artifacts/street_volatility/street-volatility.png
-  STREET_VOLATILITY_DIMENSIONS="$(file artifacts/street_volatility/street-volatility.png)"
-  grep -Fq '1280 x 720' <<< "$STREET_VOLATILITY_DIMENSIONS"
+	  test -s artifacts/street_volatility/street-volatility.png
+	  STREET_VOLATILITY_DIMENSIONS="$(file artifacts/street_volatility/street-volatility.png)"
+	  grep -Fq '1280 x 720' <<< "$STREET_VOLATILITY_DIMENSIONS"
 
-  printf '%s\n' '[L5] windowed endless-terrain render scenario'
+	  printf '%s\n' '[L5] windowed power-box repair render scenario'
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
+	    -s selftest/power_box_repair_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+	    artifacts/power_box_repair/report-landscape.json >/dev/null
+	  test -s artifacts/power_box_repair/power-box-landscape.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/power_box_repair/power-box-landscape.png)"
+
+	  printf '%s\n' '[L5] portrait power-box repair render scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+	    --audio-driver Dummy --path . --resolution 720x1280 \
+	    -s selftest/power_box_repair_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+	    artifacts/power_box_repair/report-portrait.json >/dev/null
+	  test -s artifacts/power_box_repair/power-box-portrait.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/power_box_repair/power-box-portrait.png)"
+
+	  printf '%s\n' '[L5] windowed endless-terrain render scenario'
   run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/endless_terrain_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \

@@ -39,6 +39,7 @@ const RARE_TAG_ROWS: int = 3
 const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
 const ACTIVE_CATALYSTS: int = 2
+const REPAIR_PICKUP_SLOTS: int = CATALYST_SLOTS
 const ACTOR_RESERVATIONS: int = 9
 const PENDING_BEAT_RECORDS: int = 24
 const CATALYST_QUERY_RESULTS: int = 12
@@ -185,6 +186,11 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"catalyst_active": (
 			city.urban_siege.catalysts.active_count() if city.urban_siege != null else 0
 		),
+		"repair_pickup_slots": (
+			city.urban_siege.catalysts.repair_pickup_count()
+			if city.urban_siege != null
+			else 0
+		),
 		"actor_reservation_peak": (
 			city.urban_siege.director.ledger.peak_pending if city.urban_siege != null else 0
 		),
@@ -327,6 +333,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "rare_rows", RARE_TAG_ROWS)
 	_check_equal(errors, data, "enemy_post_warm_creations", 0)
 	_check_equal(errors, data, "catalyst_total", CATALYST_SLOTS)
+	_check_equal(errors, data, "repair_pickup_slots", REPAIR_PICKUP_SLOTS)
 	_check_equal(errors, data, "directive_sessions", DIRECTIVE_SESSIONS)
 	_check_equal(errors, data, "directive_cards", DIRECTIVE_CARDS)
 	_check_equal(errors, data, "directive_overlays", DIRECTIVE_OVERLAYS)

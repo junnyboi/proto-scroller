@@ -172,6 +172,16 @@ func receive_damage(event: DamageEvent) -> bool:
 	return true
 
 
+func repair_chassis(amount: float) -> float:
+	if amount <= 0.0 or current_health <= 0.0 or current_health >= max_health:
+		return 0.0
+	var previous_health: float = current_health
+	current_health = minf(current_health + amount, max_health)
+	var repaired_health: float = current_health - previous_health
+	health_changed.emit(current_health, max_health)
+	return repaired_health
+
+
 func _is_friendly_damage(event: DamageEvent) -> bool:
 	if event.source == null:
 		return false
