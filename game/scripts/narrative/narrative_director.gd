@@ -165,6 +165,33 @@ func handle_boss_completed(
 				int(canonical_evidence_event.get("rescue_tally", 4)), 0, 4
 			),
 		}
+	elif definition.boss_id == &"MIMESIS_04":
+		var record_preserved: bool = bool(canonical_evidence_event.get(
+			"stage_record_preserved", false
+		))
+		if record_preserved:
+			evidence_ids.append(&"STAGE")
+		optional_result = {
+			"stage_record_preserved": record_preserved,
+			"biological_termination_time": String(canonical_evidence_event.get(
+				"biological_termination_time", ""
+			)),
+			"continuity_boot_delay_seconds": float(canonical_evidence_event.get(
+				"continuity_boot_delay_seconds", 0.0
+			)),
+		}
+	elif definition.boss_id == &"CANTOR_31_PALE_ENGINE":
+		var export_preserved: bool = bool(canonical_evidence_event.get(
+			"arsenal_record_preserved", false
+		))
+		if export_preserved:
+			evidence_ids.append(&"ARSENAL")
+		optional_result = {
+			"arsenal_record_preserved": export_preserved,
+			"export_destinations": canonical_evidence_event.get(
+				"export_destinations", PackedStringArray()
+			),
+		}
 	var committed: bool = campaign_progress.commit_boss_transaction({
 		"transaction_id": transaction_id,
 		"boss_id": definition.boss_id,

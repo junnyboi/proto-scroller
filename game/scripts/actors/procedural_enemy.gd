@@ -86,12 +86,16 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 
 
 func configure_boss_support(presentation_id: StringName) -> bool:
-	if not presentation_id in [&"reclaimed_breacher", &"graft_runner"]:
+	if not presentation_id in [
+		&"reclaimed_breacher", &"graft_runner", &"choir_siren",
+	]:
 		return false
 	if (
 		presentation_id == &"reclaimed_breacher" and family != &"siege"
 	) or (
 		presentation_id == &"graft_runner" and family != &"light"
+	) or (
+		presentation_id == &"choir_siren" and family != &"air"
 	):
 		return false
 	var presentation: Dictionary = EnemyArchetypeCatalog.profile(presentation_id)
