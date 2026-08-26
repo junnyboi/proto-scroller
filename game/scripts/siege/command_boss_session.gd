@@ -44,6 +44,10 @@ func setup(p_dependencies: UrbanSiegeDependencies) -> void:
 	utility_pool = BossUtilityPool.new()
 	utility_pool.name = "BossUtilityPool"
 	add_child(utility_pool)
+	utility_pool.configure_runtime(
+		dependencies.encounter_runtime,
+		dependencies.projectile_pool
+	)
 
 
 func start() -> bool:
@@ -84,6 +88,7 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 			active_definition.armor_policy,
 			active_definition.armor_fixed_step
 		)
+		_configure_campaign_runtime()
 	if _is_choir_prime():
 		_present_choir_prime()
 	if not boss.boss_armor_changed.is_connected(_on_boss_armor_changed):
@@ -120,7 +125,6 @@ func stop() -> void:
 	elif boss != null and boss.active:
 		dependencies.encounter_runtime.release(boss)
 	if boss_wreck != null:
-		boss_wreck.finisher_requires_ground_smash = false
 		dependencies.remains_factory.release_wreck(boss_wreck)
 	boss = null
 	boss_wreck = null
@@ -174,6 +178,13 @@ func _on_boss_armor_changed(current: float, maximum: float) -> void:
 
 func _on_boss_armor_broken() -> void:
 	_next_generation()
+	if active_definition != null:
+		_configure_campaign_runtime()
+		if active_definition.phases.size() > 1:
+			utility_pool.controller.begin_phase(
+				active_definition.phases[1],
+				generation_token
+			)
 	_set_state(STATE_EXPOSED)
 
 
@@ -188,6 +199,31 @@ func _present_choir_prime() -> void:
 		dependencies.encounter_runtime.acquire(
 			CHOIR_GAUNTLET[index],
 			boss.global_position + Vector2(horizontal, -30.0)
+		)
+
+
+func _configure_campaign_runtime() -> void:
+	var portrait: bool = (
+		dependencies.city != null
+		and dependencies.city.get_viewport_rect().size.y
+		> dependencies.city.get_viewport_rect().size.x
+	)
+	utility_pool.rig.configure(active_definition, boss, portrait)
+	boss.set_hidden_authority(true)
+	var campaign: BossCampaignDirector = (
+		dependencies.city.urban_siege.boss_campaign
+		if dependencies.city != null and dependencies.city.urban_siege != null
+		else null
+	)
+	if campaign != null and campaign.arena_lease.active:
+		utility_pool.arena_adapter.bind(
+			campaign.arena_lease.arena_building,
+			active_definition
+		)
+	if not active_definition.phases.is_empty():
+		utility_pool.controller.begin_phase(
+			active_definition.phases[0],
+			generation_token
 		)
 
 
@@ -206,7 +242,10 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 		return
 	_next_generation()
 	boss_wreck = wreck
-	boss_wreck.finisher_requires_ground_smash = true
+	if active_definition == null:
+		boss_wreck.configure_finisher_policy(true, wreck.fatal_event)
+	else:
+		utility_pool.configure_wreck_receivers(boss_wreck, active_definition)
 	_set_state(STATE_WRECK)
 
 

@@ -17,9 +17,9 @@ const CHOIR_PYLON_OFFSETS: Array[Vector2] = [
 	Vector2(180.0, -245.0), Vector2(360.0, -160.0),
 ]
 
-var rig: Node2D
-var controller: Node
-var arena_adapter: Node2D
+var rig: BossRig2D
+var controller: BossPhaseRuntime
+var arena_adapter: BossStructuralAdapter
 var markers: Array[Marker2D] = []
 var lane_damage_areas: Array[Area2D] = []
 var line_areas: Array[Area2D] = []
@@ -28,9 +28,9 @@ var pod_visuals: Array[Node2D] = []
 var reclamation_anchor_records: Array[Node2D] = []
 var pylon_presentations: Array[Node2D] = []
 var projection_slots: Array[Node2D] = []
-var wreck_receivers: Array[Area2D] = []
-var default_wreck_receiver: Area2D
-var royal_outcome_receiver: Area2D
+var wreck_receivers: Array[BossWreckReceiver2D] = []
+var default_wreck_receiver: BossWreckReceiver2D
+var royal_outcome_receiver: BossWreckReceiver2D
 var generation_token: int = 0
 var post_warm_creation_count: int = 0
 var warmed: bool = false
@@ -200,6 +200,37 @@ func wreck_receiver_count() -> int:
 	return wreck_receivers.size()
 
 
+func configure_runtime(
+	encounter_runtime: EncounterRuntime,
+	projectile_pool: ProjectilePool
+) -> void:
+	controller.setup(self, encounter_runtime, projectile_pool)
+
+
+func configure_wreck_receivers(
+	wreck: EnemyWreck2D,
+	definition: BossEncounterDefinition
+) -> void:
+	for receiver: BossWreckReceiver2D in wreck_receivers:
+		receiver.deactivate()
+	if wreck == null or definition == null:
+		return
+	var offsets: PackedVector2Array = definition.wreck_receiver_offsets
+	default_wreck_receiver.configure(
+		wreck,
+		BossOutcome.PURGE,
+		wreck.global_position + offsets[0]
+	)
+	if offsets.size() > 1:
+		royal_outcome_receiver.configure(
+			wreck,
+			BossOutcome.DISENTANGLE,
+			wreck.global_position + offsets[1]
+		)
+	# Campaign finishers are reachable only through the authored receiver areas.
+	wreck.collision_layer = 0
+
+
 func rig_count() -> int:
 	return 1 if rig != null else 0
 
@@ -215,14 +246,12 @@ func arena_adapter_count() -> int:
 func _prewarm() -> void:
 	if warmed:
 		return
-	rig = Node2D.new()
-	rig.name = "BossRig"
+	rig = BossRig2D.new()
 	add_child(rig)
-	controller = Node.new()
+	controller = BossPhaseRuntime.new()
 	controller.name = "BossBehaviorController"
 	add_child(controller)
-	arena_adapter = Node2D.new()
-	arena_adapter.name = "BossArenaAdapter"
+	arena_adapter = BossStructuralAdapter.new()
 	add_child(arena_adapter)
 	for index: int in range(PYLON_PRESENTATION_CAPACITY):
 		var pylon: Node2D = _make_record("PylonPresentation%02d" % index, rig)
@@ -254,8 +283,8 @@ func _prewarm() -> void:
 	for index: int in range(RECLAMATION_ANCHOR_CAPACITY):
 		var anchor: Node2D = _make_record("ReclamationAnchor%02d" % index, arena_adapter)
 		reclamation_anchor_records.append(anchor)
-	default_wreck_receiver = _make_area("DefaultWreckReceiver")
-	royal_outcome_receiver = _make_area("RoyalOutcomeReceiver")
+	default_wreck_receiver = _make_wreck_receiver("DefaultWreckReceiver")
+	royal_outcome_receiver = _make_wreck_receiver("RoyalOutcomeReceiver")
 	wreck_receivers.assign([default_wreck_receiver, royal_outcome_receiver])
 	warmed = true
 	_deactivate_records()
@@ -286,6 +315,20 @@ func _make_area(area_name: String) -> Area2D:
 	return area
 
 
+func _make_wreck_receiver(area_name: String) -> BossWreckReceiver2D:
+	var receiver: BossWreckReceiver2D = BossWreckReceiver2D.new()
+	receiver.name = area_name
+	var collision: CollisionShape2D = CollisionShape2D.new()
+	collision.name = "Collision"
+	var shape: CircleShape2D = CircleShape2D.new()
+	shape.radius = BossEncounterDefinition.DEFAULT_GROUND_SMASH_RADIUS * 0.42
+	collision.shape = shape
+	receiver.add_child(collision)
+	arena_adapter.add_child(receiver)
+	receiver.deactivate()
+	return receiver
+
+
 func _cleanup_current_generation() -> void:
 	for callback: Callable in _cleanup_callbacks:
 		if callback.is_valid():
@@ -296,8 +339,8 @@ func _cleanup_current_generation() -> void:
 
 
 func _deactivate_records() -> void:
-	rig.visible = false
-	arena_adapter.visible = false
+	rig.deactivate()
+	arena_adapter.unbind()
 	for record: Node2D in pylon_presentations:
 		record.visible = false
 	for record: Node2D in projection_slots:
@@ -306,7 +349,9 @@ func _deactivate_records() -> void:
 		record.visible = false
 	for record: Node2D in reclamation_anchor_records:
 		record.visible = false
-	for area: Area2D in lane_damage_areas + line_areas + wreck_receivers:
+	for receiver: BossWreckReceiver2D in wreck_receivers:
+		receiver.deactivate()
+	for area: Area2D in lane_damage_areas + line_areas:
 		area.monitoring = false
 		area.monitorable = false
 		area.collision_layer = 0

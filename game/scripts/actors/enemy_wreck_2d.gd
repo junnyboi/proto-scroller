@@ -29,6 +29,8 @@ var crash_landing_count: int = 0
 var crash_impact_count: int = 0
 var finisher_requires_ground_smash: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
+var _seen_root_attacks: Dictionary[int, bool] = {}
+var _finisher_receiver_active: bool = true
 var _crash_attack_id: int = 0
 var _crash_impact_targets: Dictionary[int, bool] = {}
 var _last_crash_velocity: Vector2 = Vector2.ZERO
@@ -60,7 +62,8 @@ func activate(
 	p_scrap_health: float,
 	spawn_position: Vector2,
 	p_fatal_event: DamageEvent,
-	p_airborne_crash: bool = false
+	p_airborne_crash: bool = false,
+	p_finisher_requires_ground_smash: bool = false
 ) -> void:
 	wreck_kind = p_wreck_kind
 	wreck_texture = p_wreck_texture
@@ -73,8 +76,7 @@ func activate(
 	airborne_crash = p_airborne_crash
 	crash_landing_count = 0
 	crash_impact_count = 0
-	finisher_requires_ground_smash = false
-	_seen_attacks.clear()
+	configure_finisher_policy(p_finisher_requires_ground_smash, p_fatal_event)
 	_crash_impact_targets.clear()
 	_crash_attack_id = _allocate_crash_attack_id() if airborne_crash else 0
 	_last_crash_velocity = Vector2.ZERO
@@ -113,6 +115,9 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	airborne_crash = false
 	crash_impact_count = 0
 	finisher_requires_ground_smash = false
+	_finisher_receiver_active = false
+	_seen_attacks.clear()
+	_seen_root_attacks.clear()
 	_crash_attack_id = 0
 	_crash_impact_targets.clear()
 	_last_crash_velocity = Vector2.ZERO
@@ -129,14 +134,23 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 
 
 func receive_damage(event: DamageEvent) -> bool:
-	if scrapped_state or event == null or event.amount <= 0.0:
+	if (
+		scrapped_state
+		or not _finisher_receiver_active
+		or event == null
+		or event.amount <= 0.0
+	):
 		return false
 	if finisher_requires_ground_smash and event.damage_type != &"ground_smash":
 		return false
 	if event.attack_id != 0 and _seen_attacks.has(event.attack_id):
 		return false
+	if event.root_attack_id != 0 and _seen_root_attacks.has(event.root_attack_id):
+		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
+	if event.root_attack_id != 0:
+		_seen_root_attacks[event.root_attack_id] = true
 	current_scrap_health = maxf(current_scrap_health - event.amount, 0.0)
 	var direction: Vector2 = event.direction
 	if direction.is_zero_approx():
@@ -146,6 +160,21 @@ func receive_damage(event: DamageEvent) -> bool:
 	if current_scrap_health <= 0.0:
 		_turn_to_scrap(event)
 	return true
+
+
+func configure_finisher_policy(
+	requires_ground_smash: bool,
+	p_fatal_event: DamageEvent = fatal_event
+) -> void:
+	finisher_requires_ground_smash = requires_ground_smash
+	_seen_attacks.clear()
+	_seen_root_attacks.clear()
+	if p_fatal_event != null:
+		if p_fatal_event.attack_id != 0:
+			_seen_attacks[p_fatal_event.attack_id] = true
+		if p_fatal_event.root_attack_id != 0:
+			_seen_root_attacks[p_fatal_event.root_attack_id] = true
+	_finisher_receiver_active = true
 
 
 func get_material_profile() -> StructuralMaterialProfile:
