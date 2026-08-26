@@ -1,7 +1,7 @@
 # Forward-Only Progression and Left-Side Culling Implementation Plan
 
 **Author:** Manus AI  
-**Status:** Runtime complete; source and WebDev delivery in progress  
+**Status:** Complete  
 **Target branch:** `main`  
 **Engine:** Godot 4.7.2-stable
 
@@ -102,10 +102,14 @@ The highest risk is disabling pooled collisions without restoring mutation-sensi
 | Phase | Status | Revision | Notes |
 |---|---|---|---|
 | 1 — Contracts and plan | Complete | `8324c7e` | Existing eight-chunk design and boss assumptions reviewed; exact forward-ratchet contract recorded. |
-| 2 — Rear frontier/culling | Complete | Pending final integration SHA | Monotonic 500-pixel frontier, invisible rear wall, pooled chunk culling/restoration, spawn-bound clamping, and actor release implemented. |
-| 3 — Clear-driven unlocks | Complete | Pending final integration SHA | Sequential eastbound gate advances across five unique facades; district and boss caps now align at five-chunk intervals. |
-| 4 — Contract updates | Complete | Pending final integration SHA | Streaming, district, boss, narrative, persistence, localization, and scenario contracts updated without executing release-gate suites per project override. |
-| 5 — Source/WebDev delivery | In progress | Pending | Final upstream integration, source push, fresh Godot Web export, WebDev synchronization, and checkpoint remain. |
+| 2 — Rear frontier/culling | Complete | `fca74d1` | Monotonic 500-pixel frontier, invisible rear wall, pooled chunk culling/restoration, spawn-bound clamping, and actor release implemented. |
+| 3 — Clear-driven unlocks | Complete | `fca74d1` | Sequential eastbound gate advances across five unique facades; district and boss caps now align at five-chunk intervals. |
+| 4 — Contract updates | Complete | `fca74d1` | Streaming, district, boss, narrative, persistence, localization, and scenario contracts updated without executing release-gate suites per project override. |
+| 5 — Source/WebDev delivery | Complete | `fca74d1` / WebDev `c0da9c13` | Shared `main` updated non-force; fresh Godot 4.7.2 Web export synchronized to immutable WASM/PCK payloads and saved in the existing host checkpoint. |
+
+## Delivered Runtime
+
+The final gameplay revision is `fca74d1`. WebDev checkpoint `c0da9c13` maps `/manus-storage/game_8d935fb5.wasm` (39,514,754 bytes) and `/manus-storage/game_b0b43373.pck` (11,473,084 bytes). Full release-gate certification was intentionally not executed under the project-level user override.
 
 ## References
 
