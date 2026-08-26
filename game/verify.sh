@@ -704,6 +704,23 @@ if [[ "$MODE" == "full" ]]; then
 		  mv artifacts/new_game_plus/new-game-plus.png \
 		    artifacts/new_game_plus/new-game-plus-portrait.png
 
+		  printf '%s\n' '[L5] landscape kill-combo visual scenario'
+		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+		    --resolution 1280x720 -s selftest/kill_combo_visual_scenario.gd
+		  test -s artifacts/kill_combo/kill-combo.png
+		  grep -Fq '1280 x 720' <<< "$(file artifacts/kill_combo/kill-combo.png)"
+		  mv artifacts/kill_combo/kill-combo.png \
+		    artifacts/kill_combo/kill-combo-landscape.png
+
+		  printf '%s\n' '[L5] portrait kill-combo visual scenario'
+		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+		    --audio-driver Dummy --path . --resolution 720x1280 \
+		    -s selftest/kill_combo_visual_scenario.gd
+		  test -s artifacts/kill_combo/kill-combo.png
+		  grep -Fq '720 x 1280' <<< "$(file artifacts/kill_combo/kill-combo.png)"
+		  mv artifacts/kill_combo/kill-combo.png \
+		    artifacts/kill_combo/kill-combo-portrait.png
+
 		  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 	    -s selftest/directive_card_visual_scenario.gd

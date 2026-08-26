@@ -17,21 +17,27 @@ func test_pending_premium_banks_after_one_second() -> void:
 	assert_eq(score.pending_bank.value, 0)
 
 
-func test_heavy_hit_discards_half_pending_and_one_combo_tier() -> void:
+func test_damage_breaks_kill_combo_and_heavy_hit_discards_half_pending() -> void:
 	var session: RampageSession = RampageSession.new()
 	add_child_autofree(session)
 	for index: int in range(4):
 		session.publish(GameplayEvent.new(
 			StringName("action_%d" % index),
 			10 + index,
-			GameplayEvent.Kind.PROP_DESTROYED,
+			GameplayEvent.Kind.ENEMY_DEFEATED,
 			StringName("TAG_%d" % index),
 			100,
 			0.0,
 			true
 		))
 	var pending_before: int = session.run_score.pending_bank.value
-	var multiplier_before: int = session.current_multiplier()
+	assert_eq(session.current_multiplier(), 4)
+	session.publish(GameplayEvent.new(
+		&"damage", 98, GameplayEvent.Kind.PLAYER_DAMAGE_TAKEN
+	))
+	assert_eq(session.current_multiplier(), 1)
+	assert_eq(session.combo_tracker.current_chain_count, 0)
+	assert_eq(session.run_score.pending_bank.value, pending_before)
 	session.publish(GameplayEvent.new(
 		&"heavy", 99, GameplayEvent.Kind.PLAYER_HEAVY_HIT, &"PLAYER_HIT"
 	))
@@ -40,8 +46,8 @@ func test_heavy_hit_discards_half_pending_and_one_combo_tier() -> void:
 		session.run_score.pending_bank.value,
 		pending_before - floori(float(pending_before) / 2.0)
 	)
-	assert_eq(session.current_multiplier(), multiplier_before - 1)
-	assert_gt(session.combo_tracker.current_chain_count, 0)
+	assert_eq(session.current_multiplier(), 1)
+	assert_eq(session.combo_tracker.current_chain_count, 0)
 	assert_eq(session.heavy_hit_count, 1)
 
 

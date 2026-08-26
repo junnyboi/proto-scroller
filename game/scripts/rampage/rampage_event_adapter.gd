@@ -123,10 +123,10 @@ func enemy_defeated(
 		),
 		0,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
-		GameplayEvent.SOLDIER_LAUNCH if is_soldier else &"",
+		GameplayEvent.SOLDIER_LAUNCH if is_soldier else GameplayEvent.ENEMY_KILL,
 		points,
 		_enemy_momentum_delta(enemy),
-		is_soldier,
+		true,
 		enemy.global_position
 	)
 	return _publish_damage(gameplay_event, event, enemy, robot)
@@ -179,13 +179,30 @@ func aerial_hit(
 	return _publish_damage(gameplay_event, event, target, robot)
 
 
-func player_heavy_hit(
+func player_damage_received(
 	event: DamageEvent,
 	accepted_damage: float,
 	robot: GiantRobotController
 ) -> bool:
-	if accepted_damage < 30.0:
+	if accepted_damage <= 0.0:
 		return false
+	var damage_key: StringName = (
+		StringName("player_damage:%d" % event.attack_id)
+		if event.attack_id != 0
+		else &""
+	)
+	var damage_published: bool = _publish_damage(GameplayEvent.new(
+		damage_key,
+		0,
+		GameplayEvent.Kind.PLAYER_DAMAGE_TAKEN,
+		&"",
+		0,
+		0.0,
+		false,
+		event.hit_position
+	), event, robot)
+	if accepted_damage < 30.0:
+		return damage_published
 	var dedupe_key: StringName = (
 		StringName("heavy_hit:%d" % event.attack_id)
 		if event.attack_id != 0
@@ -201,7 +218,8 @@ func player_heavy_hit(
 		false,
 		event.hit_position
 	)
-	return _publish_damage(gameplay_event, event, robot)
+	var heavy_published: bool = _publish_damage(gameplay_event, event, robot)
+	return damage_published or heavy_published
 
 
 func legacy_score(points: int) -> bool:

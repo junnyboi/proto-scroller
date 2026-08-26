@@ -587,7 +587,7 @@ func _on_ground_debris_impact_accepted(
 
 
 func _on_robot_damage_received(event: DamageEvent, accepted_damage: float) -> void:
-	rampage_events.player_heavy_hit(event, accepted_damage, robot)
+	rampage_events.player_damage_received(event, accepted_damage, robot)
 
 
 func _on_score_changed(next_score: int, _awarded: int) -> void:

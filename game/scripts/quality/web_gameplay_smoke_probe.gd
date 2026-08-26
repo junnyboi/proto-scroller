@@ -43,6 +43,8 @@ func _run() -> void:
 		return
 	if not await _run_post_upgrade_sfx():
 		return
+	if not _run_kill_combo():
+		return
 	if not await _run_east_walk():
 		return
 	if not await _run_west_walk():
@@ -182,6 +184,51 @@ func _run_post_upgrade_sfx() -> bool:
 		"audio_drop_count": presenter.audio_drop_count,
 	})
 	return feedback.cue_play_count >= 1 and presenter.audio_drop_count == 0
+
+
+func _run_kill_combo() -> bool:
+	var score_before: int = city.score
+	var targets: Array[EnemyActor2D] = [city.soldier, city.tank, city.helicopter]
+	for index: int in range(targets.size()):
+		if not city.rampage_events.enemy_defeated(
+			targets[index],
+			DamageEvent.new(EVENT_ID + 100 + index, robot, 999.0, &"smoke_kill"),
+			100,
+			robot
+		):
+			_fail("exported runtime rejected deterministic kill combo event")
+			return false
+	var awarded: int = city.score - score_before
+	if city.rampage_session.current_multiplier() != 3 or awarded != 600:
+		_fail("exported runtime kill multiplier did not award 1x + 2x + 3x score")
+		return false
+	_publish(&"kill_combo_ok", {
+		"awarded": awarded,
+		"multiplier": city.rampage_session.current_multiplier(),
+		"label": city.gameplay_hud.combo_label.text,
+	})
+	var pending_before: int = city.rampage_session.run_score.pending_bank.value
+	if not robot.receive_damage(DamageEvent.new(
+		EVENT_ID + 200,
+		city.soldier,
+		1.0,
+		&"smoke_damage"
+	)):
+		_fail("exported runtime rejected deterministic combo-break damage")
+		return false
+	if (
+		city.rampage_session.current_multiplier() != 1
+		or city.rampage_session.combo_tracker.current_chain_count != 0
+		or city.rampage_session.run_score.pending_bank.value != pending_before
+	):
+		_fail("accepted light damage did not break only the kill combo")
+		return false
+	_publish(&"kill_combo_reset_ok", {
+		"multiplier": city.rampage_session.current_multiplier(),
+		"pending": pending_before,
+		"health": robot.current_health,
+	})
+	return true
 
 
 func _capture_attack_sfx(

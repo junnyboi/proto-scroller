@@ -71,7 +71,7 @@
   "hud.pending_score": "+{value} AT RISK",
   "hud.safe": "SAFE",
   "hud.experience": "LEVEL {level}  EXP {current} / {required}",
-  "hud.combo": "x{multiplier} COMBO",
+  "hud.combo": "x{multiplier} KILL COMBO",
   "hud.overdrive_ready_portrait": "OVERDRIVE READY",
   "hud.overdrive_ready_landscape": "OVERDRIVE READY / PRESS SMASH",
   "hud.momentum": "MOMENTUM {percent}%",

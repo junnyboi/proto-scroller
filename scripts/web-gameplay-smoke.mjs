@@ -51,6 +51,8 @@ const EXPECTED_PHASES = [
   "upgrade_visible",
   "upgrade_resolved",
   "post_upgrade_sfx_ok",
+  "kill_combo_ok",
+  "kill_combo_reset_ok",
   "east_walk_ok",
   "pass",
   "defeat_requested",
@@ -453,6 +455,7 @@ try {
   await page.keyboard.press("Enter");
   await waitForPhase(page, "upgrade_resolved", 30_000);
   await waitForPhase(page, "post_upgrade_sfx_ok", 30_000);
+  await waitForPhase(page, "kill_combo_reset_ok", 30_000);
 
   await page.keyboard.down("d");
   try {
@@ -1057,8 +1060,10 @@ function assertPhaseContract(phases) {
   const visible = phases[5];
   const resolved = phases[6];
   const postUpgradeSfx = phases[7];
-  const east = phases[8];
-  const west = phases[9];
+  const killCombo = phases[8];
+  const killComboReset = phases[9];
+  const east = phases[10];
+  const west = phases[11];
   if (
     chargeStarted.details.frame !== 0 ||
     chargeStarted.details.particles !== false ||
@@ -1136,11 +1141,22 @@ function assertPhaseContract(phases) {
     }
   }
   if (
-    postUpgradeSfx.details.upgrade_confirm_count < 1 ||
+	postUpgradeSfx.details.upgrade_confirm_count < 1 ||
     postUpgradeSfx.details.audio_drop_count !== 0
   ) {
     throw new Error(
       `post-upgrade SFX audit failed: ${JSON.stringify(postUpgradeSfx.details)}`
+    );
+  }
+  if (
+    killCombo.details.awarded !== 600 ||
+    killCombo.details.multiplier !== 3 ||
+    killCombo.details.label !== "x3 KILL COMBO" ||
+    killComboReset.details.multiplier !== 1 ||
+    killComboReset.details.pending !== 300
+  ) {
+    throw new Error(
+      `kill combo contract failed: ${JSON.stringify({ killCombo, killComboReset })}`
     );
   }
   if (
