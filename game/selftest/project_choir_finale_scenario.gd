@@ -46,27 +46,19 @@ func _run() -> void:
 	city.gameplay_hud._show_finale_choice(snapshot)
 	await _settle_render_frames()
 	var choice_shot: String = await _capture("ending-choice-%s.png" % orientation)
-	var summary: RunSummarySnapshot = RunSummarySnapshot.new(
-		120000,
-		5,
-		18,
-		6,
-		4,
-		{},
-		{
-			"completed": true,
-			"grade": &"S",
-			"mastery_points": 999,
-			"ending_id": &"DISENTANGLE",
-		}
-	)
-	city.gameplay_hud._set_campaign_summary(
-		snapshot.dossier_count,
-		snapshot.continuity_generation
-	)
-	city.gameplay_hud.show_district_complete(summary)
+	city.gameplay_hud._show_finale_result(BossOutcome.DISENTANGLE, 1, true)
 	await _settle_render_frames()
 	var ending_shot: String = await _capture("ending-severance-%s.png" % orientation)
+	var ending_actions_valid: bool = (
+		city.gameplay_hud.game_over_overlay.visible
+		and city.gameplay_hud.extract_button.visible
+		and city.gameplay_hud.continue_button.visible
+		and city.gameplay_hud.new_game_plus_badge.visible
+		and not city.gameplay_hud.purge_button.visible
+		and not city.gameplay_hud.disentangle_button.visible
+		and city.gameplay_hud.continue_button.has_focus()
+	)
+	_check("ending_actions_valid", ending_actions_valid)
 	_report = {
 		"done": true,
 		"result": "PASS" if _failures.is_empty() else "FAIL",
@@ -77,6 +69,7 @@ func _run() -> void:
 		"boss_shot": boss_shot,
 		"choice_shot": choice_shot,
 		"ending_shot": ending_shot,
+		"ending_actions_valid": ending_actions_valid,
 		"failures": Array(_failures),
 	}
 	_write_report(orientation)

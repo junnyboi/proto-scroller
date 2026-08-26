@@ -466,11 +466,12 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '720 x 1280' \
 	    <<< "$(file artifacts/project_choir_enemies/hybrid-gallery-portrait.png)"
 
-	  printf '%s\n' '[L5] Project CHOIR finale landscape'
-	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
-	    --resolution 1280x720 -s selftest/project_choir_finale_scenario.gd
-	  jq -e '.done == true and .result == "PASS" and .pylon_count == 5' \
-	    artifacts/project_choir_finale/report-landscape.json >/dev/null
+		  printf '%s\n' '[L5] Project CHOIR finale landscape'
+		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+		    --resolution 1280x720 -s selftest/project_choir_finale_scenario.gd
+		  jq -e '.done == true and .result == "PASS" and .pylon_count == 5
+		    and .ending_actions_valid == true' \
+		    artifacts/project_choir_finale/report-landscape.json >/dev/null
 	  test "$(find artifacts/project_choir_finale -maxdepth 1 -type f \
 	    -name '*-landscape.png' -size +0c | wc -l)" -eq 3
 	  while IFS= read -r finale_shot; do
@@ -479,11 +480,12 @@ if [[ "$MODE" == "full" ]]; then
 	    -name '*-landscape.png' | LC_ALL=C sort)
 
 	  printf '%s\n' '[L5] Project CHOIR finale portrait'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
-	    --audio-driver Dummy --path . --resolution 720x1280 \
-	    -s selftest/project_choir_finale_scenario.gd
-	  jq -e '.done == true and .result == "PASS" and .pylon_count == 5' \
-	    artifacts/project_choir_finale/report-portrait.json >/dev/null
+		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+		    --audio-driver Dummy --path . --resolution 720x1280 \
+		    -s selftest/project_choir_finale_scenario.gd
+		  jq -e '.done == true and .result == "PASS" and .pylon_count == 5
+		    and .ending_actions_valid == true' \
+		    artifacts/project_choir_finale/report-portrait.json >/dev/null
 	  test "$(find artifacts/project_choir_finale -maxdepth 1 -type f \
 	    -name '*-portrait.png' -size +0c | wc -l)" -eq 3
 	  while IFS= read -r finale_shot; do
