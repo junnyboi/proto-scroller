@@ -160,6 +160,8 @@ const TITLE_AUDIO_MAX_OUTPUT_LATENCY_SECONDS = 0.2;
 const TITLE_PREWARM_TIMEOUT_MS = 1_250;
 const TITLE_SCHEDULER_TIMEOUT_MS = 9_500;
 const TITLE_SOURCE_CAPTURE_TIMEOUT_MS = 500;
+const forceTitleVideoReject =
+  new URLSearchParams(window.location.search).get("forceTitleVideoReject") === "1";
 type TrackedAudioContext = AudioContext;
 const trackedAudioContexts = new Set<TrackedAudioContext>();
 let titleSourceLocked = false;
@@ -417,6 +419,7 @@ async function runTitleBeatScheduler(
   }
   if (telemetry.prewarmStatus !== "restored") telemetry.prewarmStatus = "timed-out";
   try {
+    if (forceTitleVideoReject) throw new Error("forced title video rejection");
     await titleVideoBackdrop.play();
   } catch {
     commitTitleMusic(

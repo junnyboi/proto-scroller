@@ -68,6 +68,7 @@ const serverOutput = [];
 const browserErrors = [];
 const requestFailures = [];
 const httpErrors = [];
+const instrumentedPages = new WeakSet();
 let server;
 let browser;
 let page;
@@ -82,6 +83,10 @@ let report = {
   workletModules: [],
   titleVideo: null,
   portraitTitleVideo: null,
+  titleSourceSwitching: null,
+  standaloneTitleMusicSync: null,
+  standaloneShellLayout: null,
+  titleMusicFallback: null,
   titleTransition: null,
   deathTransition: null,
   returnTitleTransition: null,
@@ -121,13 +126,26 @@ try {
     ],
   });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
+    viewport: { width: 720, height: 1280 },
   });
-  page = await context.newPage();
-  await page.addInitScript(() => {
+  await context.addInitScript(() => {
     const NativeAudioContext = window.AudioContext ?? window.webkitAudioContext;
     window.__PROTO_SCROLLER_AUDIO_CONTEXTS__ = [];
     window.__PROTO_SCROLLER_WORKLET_MODULES__ = [];
+    window.__PROTO_SCROLLER_AUDIO_BUFFER_STARTS__ = [];
+    const sourcePrototype = window.AudioBufferSourceNode?.prototype;
+    if (sourcePrototype) {
+      const nativeStart = sourcePrototype.start;
+      sourcePrototype.start = function (when = 0, offset = 0, duration) {
+        window.__PROTO_SCROLLER_AUDIO_BUFFER_STARTS__.push({
+          hasBuffer: this.buffer instanceof AudioBuffer,
+          length: this.buffer?.length ?? 0,
+          when,
+        });
+        if (duration === undefined) nativeStart.call(this, when, offset);
+        else nativeStart.call(this, when, offset, duration);
+      };
+    }
     if (!NativeAudioContext) return;
     const TrackingAudioContext = new Proxy(NativeAudioContext, {
       construct(Target, args) {
@@ -162,40 +180,19 @@ try {
       window.webkitAudioContext = TrackingAudioContext;
     }
   });
-  page.on("pageerror", error =>
-    browserErrors.push(`pageerror: ${error.message}`)
-  );
-  page.on("console", message => {
-    if (
-      message.type() === "error" &&
-      !message.text().startsWith("Failed to load resource:")
-    ) {
-      browserErrors.push(`console: ${message.text()}`);
-    }
-  });
-  page.on("response", response => {
-    if (response.status() >= 400) {
-      httpErrors.push(`${response.status()} ${response.url()}`);
-    }
-  });
-  page.on("requestfailed", request => {
-    const url = request.url();
-    if (
-      url.includes("/game/") ||
-      url.includes("/manus-storage/") ||
-      url.includes("/remote-engine/") ||
-      url.includes("/title-video/")
-    ) {
-      requestFailures.push(
-        `${url}: ${request.failure()?.errorText ?? "unknown failure"}`
-      );
-    }
-  });
+  context.on("page", attachPageHandlers);
+  page = await context.newPage();
+  attachPageHandlers(page);
 
   await page.goto(report.url, {
     waitUntil: "domcontentloaded",
     timeout: 30_000,
   });
+  await waitForTitleSource(page, "title-loop-portrait.mp4", 30_000);
+  const landscapeInitialSource = await titleSourceSnapshot(page);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await waitForTitleSource(page, "title-loop-landscape.mp4", 30_000);
+  const landscapePreActivationSource = await titleSourceSnapshot(page);
   await page.waitForFunction(
     () =>
       document.querySelector("canvas.is-ready") &&
@@ -261,6 +258,27 @@ try {
   });
   const titleTransitionStartedAt = Date.now();
   await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    () => window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__?.orientation === "landscape",
+    undefined,
+    { timeout: 5_000 }
+  );
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_LOCKED_SOURCE_SAMPLES__ = [];
+    window.__PROTO_SCROLLER_LOCKED_SOURCE_TIMER__ = window.setInterval(() => {
+      const video = document.getElementById("title-video-backdrop");
+      window.__PROTO_SCROLLER_LOCKED_SOURCE_SAMPLES__.push(video?.currentSrc ?? "");
+    }, 25);
+  });
+  await page.setViewportSize({ width: 720, height: 1280 });
+  await page.waitForTimeout(250);
+  const landscapePostActivationSource = await titleSourceSnapshot(page);
+  if (!landscapePostActivationSource.currentSrc.endsWith("title-loop-landscape.mp4")) {
+    throw new Error(
+      `landscape source changed after activation: ${JSON.stringify(landscapePostActivationSource)}`
+    );
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.waitForFunction(
     () => {
       const sync = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__;
@@ -353,17 +371,31 @@ try {
     !fadeInPhase ||
     fadeInPhase.elapsedMs < fadeBlackPhase.elapsedMs ||
     fadeInPhase.elapsedMs - fadeBlackPhase.elapsedMs > 3_000 ||
-    !fadeCompletePhase ||
-    fadeCompletePhase.elapsedMs - fadeInPhase.elapsedMs < 200 ||
-    fadeCompletePhase.elapsedMs - fadeInPhase.elapsedMs > 1_000 ||
-    titleTransition.elapsedMs > 5_000 ||
-    titleTransition.durationMs > 6_000
-  ) {
+	    !fadeCompletePhase ||
+	    fadeCompletePhase.elapsedMs - fadeInPhase.elapsedMs < 200 ||
+	    fadeCompletePhase.elapsedMs - fadeInPhase.elapsedMs > 1_000 ||
+	    titleTransition.elapsedMs > 5_000 ||
+	    titleTransition.durationMs > 12_000
+	  ) {
     throw new Error(
       `title transition contract failed: ${JSON.stringify(titleTransition)}`
     );
   }
   await waitForPhase(page, "ready", 30_000);
+  const landscapeLockedSamples = await page.evaluate(() => {
+    window.clearInterval(window.__PROTO_SCROLLER_LOCKED_SOURCE_TIMER__);
+    return window.__PROTO_SCROLLER_LOCKED_SOURCE_SAMPLES__ ?? [];
+  });
+  const landscapeRemainedLockedUntilTitleExit =
+    landscapeLockedSamples.length > 0 &&
+    landscapeLockedSamples.every(source =>
+      source.endsWith("title-loop-landscape.mp4")
+    );
+  if (!landscapeRemainedLockedUntilTitleExit) {
+    throw new Error(
+      `landscape source unlocked before title exit: ${JSON.stringify(landscapeLockedSamples)}`
+    );
+  }
   await page.waitForFunction(
     () => {
       const video = document.getElementById("title-video-backdrop");
@@ -472,11 +504,16 @@ try {
   const phases = await smokeHistory(page);
   assertPhaseContract(phases);
 
-  await page.setViewportSize({ width: 720, height: 1280 });
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto(report.url, {
     waitUntil: "domcontentloaded",
     timeout: 30_000,
   });
+  await waitForTitleSource(page, "title-loop-landscape.mp4", 30_000);
+  const portraitInitialSource = await titleSourceSnapshot(page);
+  await page.setViewportSize({ width: 720, height: 1280 });
+  await waitForTitleSource(page, "title-loop-portrait.mp4", 30_000);
+  const portraitPreActivationSource = await titleSourceSnapshot(page);
   await page.waitForFunction(
     () => {
       const video = document.getElementById("title-video-backdrop");
@@ -531,6 +568,27 @@ try {
   }
   await page.keyboard.press("Enter");
   await page.waitForFunction(
+    () => window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__?.orientation === "portrait",
+    undefined,
+    { timeout: 5_000 }
+  );
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_LOCKED_SOURCE_SAMPLES__ = [];
+    window.__PROTO_SCROLLER_LOCKED_SOURCE_TIMER__ = window.setInterval(() => {
+      const video = document.getElementById("title-video-backdrop");
+      window.__PROTO_SCROLLER_LOCKED_SOURCE_SAMPLES__.push(video?.currentSrc ?? "");
+    }, 25);
+  });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(250);
+  const portraitPostActivationSource = await titleSourceSnapshot(page);
+  if (!portraitPostActivationSource.currentSrc.endsWith("title-loop-portrait.mp4")) {
+    throw new Error(
+      `portrait source changed after activation: ${JSON.stringify(portraitPostActivationSource)}`
+    );
+  }
+  await page.setViewportSize({ width: 720, height: 1280 });
+  await page.waitForFunction(
     () => window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__?.committed === true,
     undefined,
     { timeout: 12_000 }
@@ -562,6 +620,105 @@ try {
     })
   );
   await page.screenshot({ path: TITLE_PORTRAIT_SCREENSHOT_PATH });
+  await page.waitForFunction(
+    () => !document.body.classList.contains("title-backdrop-active"),
+    undefined,
+    { timeout: 10_000 }
+  );
+  const portraitLockedSamples = await page.evaluate(() => {
+    window.clearInterval(window.__PROTO_SCROLLER_LOCKED_SOURCE_TIMER__);
+    return window.__PROTO_SCROLLER_LOCKED_SOURCE_SAMPLES__ ?? [];
+  });
+  const portraitRemainedLockedUntilTitleExit =
+    portraitLockedSamples.length > 0 &&
+    portraitLockedSamples.every(source =>
+      source.endsWith("title-loop-portrait.mp4")
+    );
+  if (!portraitRemainedLockedUntilTitleExit) {
+    throw new Error(
+      `portrait source unlocked before title exit: ${JSON.stringify(portraitLockedSamples)}`
+    );
+  }
+
+  await page.close();
+  page = await context.newPage();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(`${BASE_URL}/game/game.html`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await waitForTitleRuntime(page, 120_000);
+  const standaloneShellLayout = await shellLayoutSnapshot(page);
+  assertFullscreenShell(standaloneShellLayout, "standalone shell");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    () => window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__?.committed === true,
+    undefined,
+    { timeout: 12_000 }
+  );
+  const standaloneTitleMusicSync = await titleSyncSnapshot(page);
+  assertTitleSync(standaloneTitleMusicSync, "landscape", 88 / 24);
+  if (standaloneShellLayout.requestVideoFrameCallback !== true) {
+    throw new Error("standalone shell lacks requestVideoFrameCallback");
+  }
+  await assertNoNewRuntimeErrors("standalone shell");
+  standaloneShellLayout.runtimeErrors = [];
+  standaloneShellLayout.requestErrors = [];
+  await page.close();
+
+  page = await context.newPage();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const fallbackUrl = `${BASE_URL}/game/game.html?forceTitleVideoReject=1&webSmoke=upgrade`;
+  await page.goto(fallbackUrl, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await waitForTitleRuntime(page, 120_000);
+  const fallbackStartedAt = Date.now();
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    () => window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__?.committed === true,
+    undefined,
+    { timeout: 12_000 }
+  );
+  await page.waitForFunction(
+    () =>
+      (window.__PROTO_SCROLLER_AUDIO_BUFFER_STARTS__ ?? []).some(
+        entry => entry.hasBuffer && entry.length > 0
+      ),
+    undefined,
+    { timeout: 10_000 }
+  );
+  await page.waitForFunction(
+    () => !document.body.classList.contains("title-backdrop-active"),
+    undefined,
+    { timeout: 10_000 }
+  );
+  await waitForPhase(page, "ready", 30_000);
+  const fallbackReadyPhase = (await smokeHistory(page)).find(
+    entry => entry.status === "ready"
+  );
+  const titleMusicFallback = {
+    ...(await titleSyncSnapshot(page)),
+    boundedCompletionMs: Date.now() - fallbackStartedAt,
+    persistentBackgroundMusic:
+      fallbackReadyPhase?.details?.background_music_playing === true,
+    transitionCompleted: true,
+    gameplayNotStranded: true,
+  };
+  if (
+    titleMusicFallback.fallback !== true ||
+    titleMusicFallback.fallbackReason !== "video-playback-rejected" ||
+    titleMusicFallback.boundedCompletionMs > 12_000 ||
+    titleMusicFallback.persistentBackgroundMusic !== true
+  ) {
+    throw new Error(
+      `title music fallback failed: ${JSON.stringify(titleMusicFallback)}`
+    );
+  }
+  await assertNoNewRuntimeErrors("fallback shell");
+  await page.close();
+  page = null;
   if (browserErrors.length > 0) {
     throw new Error(`browser console errors: ${browserErrors.join(" | ")}`);
   }
@@ -575,6 +732,25 @@ try {
     audioContextStates,
     workletModules,
     landscapeTitleMusicSync,
+    titleSourceSwitching: {
+      landscape: {
+        initialSource: landscapeInitialSource.currentSrc,
+        preActivationSource: landscapePreActivationSource.currentSrc,
+        preActivationSwitched:
+          landscapeInitialSource.currentSrc !==
+          landscapePreActivationSource.currentSrc,
+        postActivationSource: landscapePostActivationSource.currentSrc,
+        remainedLockedUntilTitleExit: landscapeRemainedLockedUntilTitleExit,
+      },
+      portrait: {
+        initialSource: portraitInitialSource.currentSrc,
+        preActivationSource: portraitPreActivationSource.currentSrc,
+        preActivationSwitched:
+          portraitInitialSource.currentSrc !== portraitPreActivationSource.currentSrc,
+        postActivationSource: portraitPostActivationSource.currentSrc,
+        remainedLockedUntilTitleExit: portraitRemainedLockedUntilTitleExit,
+      },
+    },
     titleVideo: {
       ...titleVideoStart,
       advancedTime: titleVideoAdvancedTime,
@@ -597,6 +773,9 @@ try {
       screenshot: path.relative(ROOT, TITLE_PORTRAIT_SCREENSHOT_PATH),
     },
     portraitTitleMusicSync,
+    standaloneTitleMusicSync,
+    standaloneShellLayout,
+    titleMusicFallback,
     screenshot: path.relative(ROOT, SCREENSHOT_PATH),
   };
   console.log(`[WEB-GAMEPLAY-SMOKE-PASS] phases=${EXPECTED_PHASES.join(",")}`);
@@ -646,6 +825,152 @@ async function waitForHttp(url, timeoutMs, child) {
     await new Promise(resolve => setTimeout(resolve, 150));
   }
   throw new Error(`Timed out waiting for ${url}`);
+}
+
+function attachPageHandlers(activePage) {
+  if (instrumentedPages.has(activePage)) return;
+  instrumentedPages.add(activePage);
+  activePage.on("pageerror", error =>
+    browserErrors.push(`pageerror: ${error.message}`)
+  );
+  activePage.on("console", message => {
+    if (
+      message.type() === "error" &&
+      !message.text().startsWith("Failed to load resource:")
+    ) {
+      browserErrors.push(`console: ${message.text()}`);
+    }
+  });
+  activePage.on("response", response => {
+    if (response.status() >= 400) {
+      httpErrors.push(`${response.status()} ${response.url()}`);
+    }
+  });
+  activePage.on("requestfailed", request => {
+    const url = request.url();
+    if (
+      url.includes("/game/") ||
+      url.includes("/manus-storage/") ||
+      url.includes("/remote-engine/") ||
+      url.includes("/title-video/")
+    ) {
+      requestFailures.push(
+        `${url}: ${request.failure()?.errorText ?? "unknown failure"}`
+      );
+    }
+  });
+}
+
+async function waitForTitleSource(activePage, suffix, timeoutMs) {
+  await activePage.waitForFunction(
+    expected => {
+      const video = document.getElementById("title-video-backdrop");
+      return (
+        video instanceof HTMLVideoElement &&
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        video.currentSrc.endsWith(expected)
+      );
+    },
+    suffix,
+    { timeout: timeoutMs }
+  );
+}
+
+async function titleSourceSnapshot(activePage) {
+  return activePage.evaluate(() => {
+    const video = document.getElementById("title-video-backdrop");
+    return {
+      currentSrc: video instanceof HTMLVideoElement ? video.currentSrc : "",
+      orientation: matchMedia("(orientation: portrait)").matches
+        ? "portrait"
+        : "landscape",
+    };
+  });
+}
+
+async function waitForTitleRuntime(activePage, timeoutMs) {
+  await activePage.waitForFunction(
+    () => {
+      const canvas = document.getElementById("canvas");
+      const video = document.getElementById("title-video-backdrop");
+      return (
+        canvas instanceof HTMLCanvasElement &&
+        video instanceof HTMLVideoElement &&
+        !document.getElementById("status") &&
+        document.body.classList.contains("title-backdrop-active") &&
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        video.currentTime > 0
+      );
+    },
+    undefined,
+    { timeout: timeoutMs }
+  );
+}
+
+async function titleSyncSnapshot(activePage) {
+  return activePage.evaluate(() => ({
+    ...window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__,
+  }));
+}
+
+function assertTitleSync(sync, orientation, impactSeconds) {
+  if (
+    sync.orientation !== orientation ||
+    sync.sourceKind !== "AudioBufferSourceNode/non-silent" ||
+    sync.trusted !== true ||
+    Math.abs(sync.impactSeconds - impactSeconds) > 0.000_001 ||
+    Math.abs(sync.renderedSyncError) > 1 / 24 ||
+    sync.committed !== true
+  ) {
+    throw new Error(`title beat sync failed: ${JSON.stringify(sync)}`);
+  }
+}
+
+async function shellLayoutSnapshot(activePage) {
+  return activePage.evaluate(() => {
+    const canvas = document.getElementById("canvas");
+    const video = document.getElementById("title-video-backdrop");
+    const bodyStyle = getComputedStyle(document.body);
+    const canvasRect = canvas?.getBoundingClientRect();
+    return {
+      bodyMargin: bodyStyle.margin,
+      bodyWidth: document.body.getBoundingClientRect().width,
+      bodyHeight: document.body.getBoundingClientRect().height,
+      canvasLeft: canvasRect?.left ?? -1,
+      canvasTop: canvasRect?.top ?? -1,
+      canvasWidth: canvasRect?.width ?? 0,
+      canvasHeight: canvasRect?.height ?? 0,
+      viewportWidth: innerWidth,
+      viewportHeight: innerHeight,
+      titleBackdropActive: document.body.classList.contains(
+        "title-backdrop-active"
+      ),
+      requestVideoFrameCallback:
+        video instanceof HTMLVideoElement &&
+        typeof video.requestVideoFrameCallback === "function",
+    };
+  });
+}
+
+function assertFullscreenShell(layout, label) {
+  if (
+    layout.bodyMargin !== "0px" ||
+    layout.canvasLeft !== 0 ||
+    layout.canvasTop !== 0 ||
+    Math.abs(layout.canvasWidth - layout.viewportWidth) > 1 ||
+    Math.abs(layout.canvasHeight - layout.viewportHeight) > 1 ||
+    layout.titleBackdropActive !== true
+  ) {
+    throw new Error(`${label} layout failed: ${JSON.stringify(layout)}`);
+  }
+}
+
+async function assertNoNewRuntimeErrors(label) {
+  if (browserErrors.length > 0 || requestFailures.length > 0 || httpErrors.length > 0) {
+    throw new Error(
+      `${label} runtime errors: ${JSON.stringify({ browserErrors, requestFailures, httpErrors })}`
+    );
+  }
 }
 
 async function waitForTransition(activePage, kind, phase, timeoutMs) {

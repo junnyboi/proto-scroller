@@ -37,9 +37,10 @@ replaceOnce(
   "title backdrop bridge",
   "const GODOT_CONFIG = ",
   `const titleVideoBackdrop = document.getElementById('title-video-backdrop');
-const TITLE_SOURCES = { landscape: '/title-video/title-loop-landscape.mp4', portrait: '/title-video/title-loop-portrait.mp4' };
-const TITLE_IMPACTS = { landscape: 88 / 24, portrait: 66 / 24 };
-const titleAudioContexts = new Set();
+	const TITLE_SOURCES = { landscape: '/title-video/title-loop-landscape.mp4', portrait: '/title-video/title-loop-portrait.mp4' };
+	const TITLE_IMPACTS = { landscape: 88 / 24, portrait: 66 / 24 };
+	const forceTitleVideoReject = new URLSearchParams(location.search).get('forceTitleVideoReject') === '1';
+	const titleAudioContexts = new Set();
 let titleSourceLocked = false, titleLockedOrientation = null, titleGeneration = 0, titleFrame = 0, titleCapture = null;
 const titleOrientation = () => titleSourceLocked && titleLockedOrientation ? titleLockedOrientation : matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
 function selectTitleSource(force = false) {
@@ -107,7 +108,7 @@ window.protoScrollerScheduleTitleBeatCommit = function (commitCallback, calibrat
 		if (generation !== titleGeneration) return; const context = contexts.find(candidate => candidate.state === 'running'); telemetry.audioContextState = context?.state || 'unavailable'; telemetry.outputLatency = context ? boundedOutputLatency(context) : 0;
 		if (!context || !trusted) { commitTitleBeat(generation, commitCallback, calibrationCallback, 'trusted-running-audio-context-unavailable'); return; }
 		calibrationCallback?.('prewarm'); const prewarmDeadline = performance.now() + 1250; while (telemetry.prewarmStatus !== 'restored' && performance.now() < prewarmDeadline) await new Promise(resolve => requestAnimationFrame(resolve)); if (telemetry.prewarmStatus !== 'restored') telemetry.prewarmStatus = 'timed-out';
-		try { await titleVideoBackdrop.play(); } catch { commitTitleBeat(generation, commitCallback, calibrationCallback, 'video-playback-rejected'); return; }
+		try { if (forceTitleVideoReject) throw new Error('forced title video rejection'); await titleVideoBackdrop.play(); } catch { commitTitleBeat(generation, commitCallback, calibrationCallback, 'video-playback-rejected'); return; }
 		const deadline = performance.now() + 9500; const sample = () => { if (generation !== titleGeneration) return; telemetry.videoTime = titleVideoBackdrop.currentTime; const untilImpact = impactSeconds - titleVideoBackdrop.currentTime; if (untilImpact >= 0 && untilImpact <= telemetry.outputLatency + 1 / 120) { commitTitleBeat(generation, commitCallback, calibrationCallback); return; } if (performance.now() >= deadline || titleVideoBackdrop.error) { commitTitleBeat(generation, commitCallback, calibrationCallback, 'video-scheduler-timeout'); return; } titleFrame = requestAnimationFrame(sample); }; titleFrame = requestAnimationFrame(sample);
 	})(); return true;
 };

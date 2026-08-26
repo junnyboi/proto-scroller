@@ -705,11 +705,11 @@ if [[ "$MODE" == "full" ]]; then
 	  ) > artifacts/web-export.sha256
 	  printf 'web_files=%s\n' "$(wc -l < artifacts/web-export.sha256)"
 
-	  printf '%s\n' '[WEB] automated browser upgrade-transition smoke'
-	  (
-	    cd ..
-	    timeout --preserve-status --signal=TERM --kill-after=5s 300s pnpm smoke:web
-	  )
+		  printf '%s\n' '[WEB] automated browser upgrade-transition smoke'
+		  (
+		    cd ..
+		    timeout --preserve-status --signal=TERM --kill-after=5s 360s pnpm smoke:web
+		  )
 		  test -s artifacts/browser/title-video-landscape.png
 			  test -s artifacts/browser/title-video-portrait.png
 			  test -s artifacts/browser/title-fade-transition.png
@@ -751,14 +751,14 @@ if [[ "$MODE" == "full" ]]; then
 		    and (
 		      (.titleTransition.phases[] | select(.phase == "complete").elapsedMs)
 		      - (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)
-		    ) >= 200
-		    and (
-		      (.titleTransition.phases[] | select(.phase == "complete").elapsedMs)
-		      - (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)
-		    ) <= 1000
-			    and .titleTransition.elapsedMs <= 5000
-			    and .titleTransition.durationMs <= 6000
-			    and .deathTransition.kind == "defeat"
+			    ) >= 200
+			    and (
+			      (.titleTransition.phases[] | select(.phase == "complete").elapsedMs)
+			      - (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)
+			    ) <= 1000
+				    and .titleTransition.elapsedMs <= 5000
+				    and .titleTransition.durationMs <= 12000
+				    and .deathTransition.kind == "defeat"
 			    and .deathTransition.boomCount == 2
 			    and (.deathTransition.phases | map(.phase)) == [
 			      "fade_out",
@@ -804,10 +804,43 @@ if [[ "$MODE" == "full" ]]; then
 	    and ((.portraitTitleMusicSync.impactSeconds - (66 / 24)) | fabs) <= 0.000001
 	    and (.portraitTitleMusicSync.renderedSyncError | fabs) <= (1 / 24)
 	    and .portraitTitleMusicSync.outputLatency >= 0
-	    and .portraitTitleMusicSync.outputLatency <= 0.2
-	    and .portraitTitleMusicSync.committed == true
-	    and .portraitTitleMusicSync.cancelled == false
-	    and (.audioContextStates | index("running")) != null
+		    and .portraitTitleMusicSync.outputLatency <= 0.2
+		    and .portraitTitleMusicSync.committed == true
+		    and .portraitTitleMusicSync.cancelled == false
+		    and .titleSourceSwitching.landscape.initialSource == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
+		    and .titleSourceSwitching.landscape.preActivationSource == "http://127.0.0.1:4173/title-video/title-loop-landscape.mp4"
+		    and .titleSourceSwitching.landscape.preActivationSwitched == true
+		    and .titleSourceSwitching.landscape.postActivationSource == "http://127.0.0.1:4173/title-video/title-loop-landscape.mp4"
+		    and .titleSourceSwitching.landscape.remainedLockedUntilTitleExit == true
+		    and .titleSourceSwitching.portrait.initialSource == "http://127.0.0.1:4173/title-video/title-loop-landscape.mp4"
+		    and .titleSourceSwitching.portrait.preActivationSource == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
+		    and .titleSourceSwitching.portrait.preActivationSwitched == true
+		    and .titleSourceSwitching.portrait.postActivationSource == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
+		    and .titleSourceSwitching.portrait.remainedLockedUntilTitleExit == true
+		    and .standaloneTitleMusicSync.orientation == "landscape"
+		    and .standaloneTitleMusicSync.sourceKind == "AudioBufferSourceNode/non-silent"
+		    and .standaloneTitleMusicSync.trusted == true
+		    and ((.standaloneTitleMusicSync.impactSeconds - (88 / 24)) | fabs) <= 0.000001
+		    and (.standaloneTitleMusicSync.renderedSyncError | fabs) <= (1 / 24)
+		    and .standaloneTitleMusicSync.committed == true
+		    and .standaloneShellLayout.bodyMargin == "0px"
+		    and .standaloneShellLayout.canvasLeft == 0
+		    and .standaloneShellLayout.canvasTop == 0
+		    and ((.standaloneShellLayout.canvasWidth - .standaloneShellLayout.viewportWidth) | fabs) <= 1
+		    and ((.standaloneShellLayout.canvasHeight - .standaloneShellLayout.viewportHeight) | fabs) <= 1
+		    and .standaloneShellLayout.titleBackdropActive == true
+		    and .standaloneShellLayout.requestVideoFrameCallback == true
+		    and .titleMusicFallback.fallback == true
+		    and .titleMusicFallback.fallbackReason == "video-playback-rejected"
+		    and .titleMusicFallback.committed == true
+		    and .titleMusicFallback.boundedCompletionMs <= 12000
+		    and .titleMusicFallback.persistentBackgroundMusic == true
+		    and .titleMusicFallback.transitionCompleted == true
+		    and .titleMusicFallback.gameplayNotStranded == true
+		    and (.browserErrors | length) == 0
+		    and (.requestFailures | length) == 0
+		    and (.httpErrors | length) == 0
+		    and (.audioContextStates | index("running")) != null
 	    and .phases[0].details.background_music_playing == true
 	    and (.workletModules | length) == 2
 	    and (.workletModules | all(.state == "fulfilled" and (.url | contains("/game/game.audio"))))

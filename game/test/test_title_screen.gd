@@ -387,6 +387,8 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 		assert_true(runtime_source.contains("prototype.start"))
 		assert_true(runtime_source.contains("commitCallback"))
 		assert_true(runtime_source.contains("__PROTO_SCROLLER_TITLE_MUSIC_SYNC__"))
+		assert_true(runtime_source.contains("forceTitleVideoReject"))
+		assert_true(runtime_source.contains("video-playback-rejected"))
 	assert_true(host_source.contains("88 / 24"))
 	assert_true(host_source.contains("66 / 24"))
 	_record_test_execution()
