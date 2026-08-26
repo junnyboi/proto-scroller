@@ -1,8 +1,9 @@
 extends SceneTree
 
-const MAX_FRAMES: int = 210
+const MAX_FRAMES: int = 240
 const SHOT_PATH: String = "res://artifacts/weapon_shop/weapon-shop.png"
 const INTRO_PATH: String = "res://artifacts/weapon_shop/weapon-shop-intro.png"
+const CONFIRM_PATH: String = "res://artifacts/weapon_shop/weapon-shop-confirm.png"
 
 var elapsed_frames: int = 0
 var completed: bool = false
@@ -54,11 +55,21 @@ func _run() -> void:
 	overlay.dialogue_panel._dismiss()
 	await process_frame
 	await RenderingServer.frame_post_draw
-	if not _save_frame(SHOT_PATH, target_size):
+	if not overlay.preview_panel.visible or not _save_frame(SHOT_PATH, target_size):
+		quit(1)
+		return
+	overlay.cards[0]._on_pressed()
+	await process_frame
+	await RenderingServer.frame_post_draw
+	if not overlay.confirmation_panel.active or not _save_frame(CONFIRM_PATH, target_size):
 		quit(1)
 		return
 	completed = true
-	print("[WEAPON-SHOP-VISUAL-DONE] path=%s intro=%s" % [SHOT_PATH, INTRO_PATH])
+	print("[WEAPON-SHOP-VISUAL-DONE] shop=%s intro=%s confirm=%s" % [
+		SHOT_PATH,
+		INTRO_PATH,
+		CONFIRM_PATH,
+	])
 	quit(0)
 
 

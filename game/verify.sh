@@ -488,10 +488,14 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-landscape.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-landscape.png
+	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
+	    artifacts/weapon_shop/weapon-shop-confirm-landscape.png
 
 	  printf '%s\n' '[L5] portrait weapon-shop visual scenario'
 	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
@@ -500,10 +504,14 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-portrait.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-portrait.png
+	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
+	    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
 
 	  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \

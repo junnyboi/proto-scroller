@@ -99,6 +99,53 @@ func test_insufficient_score_and_full_health_reject_without_spending() -> void:
 	assert_eq(score.score, 1000)
 
 
+func test_hover_preview_confirmation_and_upgrade_feedback_are_transactional() -> void:
+	var city: CitySlice = await _spawn_city()
+	var score: RunScore = city.rampage_session.run_score
+	score.safe_score = 20_000
+	_open_act_shop(city, 0)
+	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
+	overlay.dialogue_panel._dismiss()
+	var card: WeaponShopCard = overlay.cards[0]
+	card._request_preview()
+	assert_true(overlay.preview_panel.visible)
+	assert_eq(overlay.preview_panel.active_product_id, card.product.product_id)
+	assert_string_contains(overlay.preview_panel.rows_label.text, "100%")
+	var score_before: int = score.score
+	card._on_pressed()
+	assert_true(overlay.confirmation_panel.active)
+	assert_eq(score.score, score_before)
+	assert_string_contains(overlay.confirmation_panel.score_label.text, ">>")
+	overlay.confirmation_panel._cancel()
+	assert_eq(score.score, score_before)
+	card._on_pressed()
+	overlay.confirmation_panel._confirm()
+	assert_eq(score.score, score_before - card.product.price)
+	assert_eq(
+		city.impact_feedback_pool.last_cue,
+		AudioCueRegistry.Cue.SHOP_PURCHASE
+	)
+	assert_eq(overlay.transaction_burst_count, 1)
+	assert_true(overlay.upgrade_particles.emitting)
+
+
+func test_repair_confirmation_uses_distinct_audio_and_repair_particles() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.rampage_session.run_score.safe_score = 20_000
+	city.robot.current_health = 40.0
+	_open_act_shop(city, 1)
+	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
+	overlay.dialogue_panel._dismiss()
+	var repair_card: WeaponShopCard = overlay.cards[0]
+	repair_card._request_preview()
+	assert_string_contains(overlay.preview_panel.rows_label.text, "CHASSIS INTEGRITY")
+	repair_card._on_pressed()
+	overlay.confirmation_panel._confirm()
+	assert_eq(city.impact_feedback_pool.last_cue, AudioCueRegistry.Cue.SHOP_REPAIR)
+	assert_true(overlay.repair_particles.emitting)
+	assert_gt(city.robot.current_health, 40.0)
+
+
 func test_shop_effects_scale_melee_weapons_cooldowns_and_incoming_damage() -> void:
 	var robot: GiantRobotController = GiantRobotController.new()
 	add_child_autofree(robot)
@@ -130,6 +177,12 @@ func test_shop_effects_scale_melee_weapons_cooldowns_and_incoming_damage() -> vo
 	var before: float = robot.current_health
 	assert_true(robot.receive_damage(DamageEvent.new(99, null, 40.0)))
 	assert_almost_eq(robot.current_health, before - 34.0, 0.01)
+	var crownfire_preview: Array[Dictionary] = effects.preview_for(
+		_product(&"crownfire_protocol", &"ROYAL")
+	)
+	assert_eq(crownfire_preview.size(), 1)
+	assert_almost_eq(float(crownfire_preview[0].before), 1.25, 0.001)
+	assert_almost_eq(float(crownfire_preview[0].after), 1.5625, 0.001)
 
 
 func test_portrait_overlay_keeps_dialogue_cards_and_continue_inside_viewport() -> void:
