@@ -15,6 +15,7 @@ func test_background_music_player_is_persistent_and_routes_to_music_bus() -> voi
 	assert_true(music_stream.loop)
 	assert_almost_eq(music_stream.get_length(), 28.0, 0.05)
 	assert_false(player.autoplay)
+	assert_not_null(main.title_screen)
 	assert_eq(player.playing, main.background_music_output_available())
 	assert_eq(player.bus, &"Music")
 	assert_eq(player.process_mode, Node.PROCESS_MODE_ALWAYS)
@@ -25,7 +26,7 @@ func test_background_music_player_is_persistent_and_routes_to_music_bus() -> voi
 	assert_eq(player.get_parent(), main)
 
 
-func test_native_music_starts_immediately_but_web_title_defers_commit() -> void:
+func test_title_queues_music_immediately_for_native_and_web_environments() -> void:
 	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)
 	await get_tree().process_frame
@@ -35,7 +36,8 @@ func test_native_music_starts_immediately_but_web_title_defers_commit() -> void:
 	)
 	main.background_music_player.stop()
 	main._start_background_music_for_environment(true)
-	assert_false(main.background_music_player.playing)
+	assert_true(main.background_music_player.playing)
+	main.background_music_player.stop()
 	main._start_background_music_for_environment(false)
 	assert_eq(
 		main.background_music_player.playing,
@@ -59,6 +61,7 @@ func test_title_sync_source_keeps_cached_callbacks_and_browser_commit_only() -> 
 	assert_true(source.contains("JavaScriptBridge.create_callback"))
 	assert_true(source.contains("protoScrollerScheduleTitleBeatCommit"))
 	assert_true(source.contains("protoScrollerCancelTitleBeatCommit"))
+	assert_true(source.contains("protoScrollerResumeTitleAudio"))
 	assert_true(source.contains("background_music_player.play(0.0)"))
 	assert_true(source.contains("TITLE_PREWARM_POSITION_SECONDS"))
 	assert_true(source.contains("AudioServer.set_bus_mute"))
@@ -67,6 +70,11 @@ func test_title_sync_source_keeps_cached_callbacks_and_browser_commit_only() -> 
 	assert_true(source.contains("audio_activation_requested.connect"))
 	assert_true(source.contains("_activate_title_music_from_interaction"))
 	assert_false(source.contains("func _process"))
+	var shell_patcher: String = FileAccess.get_file_as_string(
+		"res://../scripts/patch-title-video-shell.mjs"
+	)
+	assert_true(shell_patcher.contains("window.protoScrollerResumeTitleAudio"))
+	assert_true(shell_patcher.contains("title-interaction-resumed"))
 
 
 func test_background_music_releases_stream_on_main_exit() -> void:

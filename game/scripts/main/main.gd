@@ -54,7 +54,6 @@ func _ready() -> void:
 	responsive_viewport.setup()
 	_show_title()
 	_publish_title_transition_phase("idle")
-	_start_background_music_for_environment(OS.has_feature("web"))
 	if not background_music_player.tree_exiting.is_connected(_release_background_music):
 		background_music_player.tree_exiting.connect(_release_background_music)
 
@@ -89,15 +88,17 @@ func _background_music_output_available_for_environment(
 
 
 func _start_background_music() -> void:
-	if not background_music_output_available():
-		return
-	if background_music_player.stream != null and not background_music_player.playing:
-		background_music_player.play(0.0)
+	_start_background_music_for_environment(OS.has_feature("web"))
 
 
 func _start_background_music_for_environment(is_web: bool) -> void:
-	if not is_web:
-		_start_background_music()
+	if not _background_music_output_available_for_environment(
+		AudioServer.get_driver_name(),
+		is_web
+	):
+		return
+	if background_music_player.stream != null and not background_music_player.playing:
+		background_music_player.play(0.0)
 
 
 func _begin_title_music_sync() -> bool:
@@ -202,6 +203,15 @@ func _title_sync_fallback_delay_seconds() -> float:
 
 
 func _activate_title_music_from_interaction() -> void:
+	if OS.has_feature("web") and background_music_player.playing:
+		if _title_web_window == null:
+			_title_web_window = JavaScriptBridge.get_interface("window")
+		if _title_web_window != null:
+			_title_web_window.protoScrollerResumeTitleAudio()
+		_title_music_sync_pending = false
+		_title_music_committed = true
+		_title_music_commit_msec = Time.get_ticks_msec()
+		return
 	_begin_title_music_sync()
 
 
@@ -305,7 +315,11 @@ func _spawn_city_slice() -> void:
 
 func _show_title() -> void:
 	_cancel_title_music_sync("show-title")
-	_title_music_committed = background_music_player.playing
+	var music_was_playing: bool = background_music_player.playing
+	_start_background_music()
+	_title_music_committed = music_was_playing or (
+		not OS.has_feature("web") and background_music_player.playing
+	)
 	title_screen = TITLE_SCENE.instantiate() as TitleScreen
 	title_screen.configure_campaign(campaign_progress.snapshot())
 	title_screen.audio_activation_requested.connect(

@@ -1,6 +1,8 @@
 class_name WeaponShopStatPreviewPanel
 extends Control
 
+const PROJECTED_STAT_FONT_SIZE: int = 22
+
 var background_panel: Panel
 var heading_label: Label
 var product_label: Label
@@ -45,7 +47,7 @@ func _build_controls() -> void:
 	add_child(heading_label)
 	product_label = _label(20, Color("e8f3ef"))
 	add_child(product_label)
-	rows_label = _label(17, Color("7ae4ff"))
+	rows_label = _label(PROJECTED_STAT_FONT_SIZE, Color("7ae4ff"))
 	rows_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(rows_label)
 
@@ -57,10 +59,10 @@ func _apply_layout() -> void:
 	heading_label.size = Vector2(size.x - padding * 2.0, 22.0)
 	product_label.position = Vector2(padding, 30.0 if compact else 40.0)
 	product_label.size = Vector2(size.x - padding * 2.0, 30.0)
-	rows_label.position = Vector2(padding, 56.0 if compact else 78.0)
+	rows_label.position = Vector2(padding, 60.0 if compact else 78.0)
 	rows_label.size = Vector2(
 		size.x - padding * 2.0,
-		48.0 if compact else maxf(size.y - 100.0, 48.0)
+		68.0 if compact else maxf(size.y - 100.0, 68.0)
 	)
 
 
