@@ -43,7 +43,6 @@ func setup(city: CitySlice, progress: CampaignProgressStore) -> void:
 	city.run_lifecycle.run_finished.connect(_on_run_finished)
 	var boss_campaign: BossCampaignDirector = city.urban_siege.boss_campaign
 	boss_campaign.attempt_started.connect(director.handle_boss_attempt_started)
-	boss_campaign.boss_completed.connect(director.handle_boss_completed)
 	city.urban_siege.boss_session.state_changed.connect(director.handle_boss_state_changed)
 	var initial_district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(
 		city.world_stream.current_logical_chunk
@@ -71,6 +70,13 @@ func _on_building_cell_destroyed(
 
 func containment_release_count() -> int:
 	return _released_containment.size()
+
+
+func commit_boss_completion(
+	definition: BossEncounterDefinition,
+	canonical_evidence_event: Dictionary
+) -> bool:
+	return director.handle_boss_completed(definition, canonical_evidence_event)
 
 
 func _try_release_containment(

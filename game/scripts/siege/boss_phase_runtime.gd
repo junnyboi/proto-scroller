@@ -65,6 +65,18 @@ func acquire_support(
 	return support
 
 
+func track_support(support: EnemyActor2D) -> bool:
+	if (
+		not _phase_is_current()
+		or support == null
+		or not is_instance_valid(support)
+		or active_support.has(support)
+	):
+		return false
+	active_support.append(support)
+	return true
+
+
 func reserve_projectile(kind: StringName) -> int:
 	if not _phase_is_current() or projectile_pool == null:
 		return 0

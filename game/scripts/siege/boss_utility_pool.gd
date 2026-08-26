@@ -19,12 +19,13 @@ const CHOIR_PYLON_OFFSETS: Array[Vector2] = [
 
 var rig: BossRig2D
 var controller: BossPhaseRuntime
+var vertical_slice: BossVerticalSliceController
 var arena_adapter: BossStructuralAdapter
 var markers: Array[Marker2D] = []
-var lane_damage_areas: Array[Area2D] = []
-var line_areas: Array[Area2D] = []
+var lane_damage_areas: Array[BossAttackArea2D] = []
+var line_areas: Array[BossAttackArea2D] = []
 var collapse_listeners: Array[Node] = []
-var pod_visuals: Array[Node2D] = []
+var pod_visuals: Array[BossPodVisual2D] = []
 var reclamation_anchor_records: Array[Node2D] = []
 var pylon_presentations: Array[Node2D] = []
 var projection_slots: Array[Node2D] = []
@@ -205,6 +206,7 @@ func configure_runtime(
 	projectile_pool: ProjectilePool
 ) -> void:
 	controller.setup(self, encounter_runtime, projectile_pool)
+	vertical_slice.setup(self, encounter_runtime)
 
 
 func configure_wreck_receivers(
@@ -251,6 +253,9 @@ func _prewarm() -> void:
 	controller = BossPhaseRuntime.new()
 	controller.name = "BossBehaviorController"
 	add_child(controller)
+	vertical_slice = BossVerticalSliceController.new()
+	vertical_slice.name = "BossVerticalSliceController"
+	add_child(vertical_slice)
 	arena_adapter = BossStructuralAdapter.new()
 	add_child(arena_adapter)
 	for index: int in range(PYLON_PRESENTATION_CAPACITY):
@@ -279,7 +284,10 @@ func _prewarm() -> void:
 		arena_adapter.add_child(listener)
 		collapse_listeners.append(listener)
 	for index: int in range(POD_VISUAL_CAPACITY):
-		pod_visuals.append(_make_record("ProtectedPodVisual%02d" % index, rig))
+		var pod: BossPodVisual2D = BossPodVisual2D.new()
+		pod.name = "ProtectedPodVisual%02d" % index
+		rig.add_child(pod)
+		pod_visuals.append(pod)
 	for index: int in range(RECLAMATION_ANCHOR_CAPACITY):
 		var anchor: Node2D = _make_record("ReclamationAnchor%02d" % index, arena_adapter)
 		reclamation_anchor_records.append(anchor)
@@ -297,8 +305,8 @@ func _make_record(record_name: String, parent: Node) -> Node2D:
 	return record
 
 
-func _make_area(area_name: String) -> Area2D:
-	var area: Area2D = Area2D.new()
+func _make_area(area_name: String) -> BossAttackArea2D:
+	var area: BossAttackArea2D = BossAttackArea2D.new()
 	area.name = area_name
 	area.collision_layer = 0
 	area.collision_mask = 0
@@ -312,6 +320,7 @@ func _make_area(area_name: String) -> Area2D:
 	collision.disabled = true
 	area.add_child(collision)
 	arena_adapter.add_child(area)
+	area.deactivate()
 	return area
 
 
@@ -351,13 +360,8 @@ func _deactivate_records() -> void:
 		record.visible = false
 	for receiver: BossWreckReceiver2D in wreck_receivers:
 		receiver.deactivate()
-	for area: Area2D in lane_damage_areas + line_areas:
-		area.monitoring = false
-		area.monitorable = false
-		area.collision_layer = 0
-		area.collision_mask = 0
-		var collision: CollisionShape2D = area.get_node(^"Collision") as CollisionShape2D
-		collision.disabled = true
+	for area: BossAttackArea2D in lane_damage_areas + line_areas:
+		area.deactivate()
 
 
 func _can_reserve(requirements: Dictionary) -> bool:

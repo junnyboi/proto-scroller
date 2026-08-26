@@ -126,24 +126,61 @@ func handle_boss_state_changed(state: StringName) -> void:
 	)
 
 
-func handle_boss_completed(definition: BossEncounterDefinition) -> bool:
+func handle_boss_completed(
+	definition: BossEncounterDefinition,
+	canonical_evidence_event: Dictionary = {}
+) -> bool:
 	if campaign_progress == null or definition == null:
 		return false
+	var transaction_id: StringName = StringName("boss:%s:complete" % definition.boss_id)
+	if campaign_progress.has_transaction(transaction_id):
+		_active_boss = null
+		return true
 	var capstone: DossierDefinition = DossierCatalog.capstone_for_boss(definition.boss_id)
 	if capstone == null:
 		return false
 	var evidence_ids: Array[StringName] = []
+	var optional_result: Dictionary = {}
 	if definition.evidence_flag_id == &"CROWN":
 		evidence_ids.append(&"CROWN")
+	elif definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+		var archive_preserved: bool = bool(canonical_evidence_event.get(
+			"archive_preserved", false
+		))
+		if archive_preserved:
+			evidence_ids.append(&"LEDGER")
+		optional_result = {"archive_preserved": archive_preserved}
+	elif definition.boss_id == &"SAMARITAN_15":
+		var central_preserved: bool = bool(canonical_evidence_event.get(
+			"central_cradle_preserved", false
+		))
+		if central_preserved:
+			evidence_ids.append(&"NURSERY")
+		optional_result = {
+			"central_cradle_preserved": central_preserved,
+			"pod_loss_count": clampi(
+				int(canonical_evidence_event.get("pod_loss_count", 0)), 0, 4
+			),
+			"rescue_tally": clampi(
+				int(canonical_evidence_event.get("rescue_tally", 4)), 0, 4
+			),
+		}
 	var committed: bool = campaign_progress.commit_boss_transaction({
-		"transaction_id": StringName("boss:%s:complete" % definition.boss_id),
+		"transaction_id": transaction_id,
 		"boss_id": definition.boss_id,
 		"dossier_ids": [capstone.dossier_id],
 		"evidence_ids": evidence_ids,
+		"lost_evidence_ids": (
+			[definition.evidence_flag_id]
+			if definition.evidence_recovery_eligible and evidence_ids.is_empty()
+			else []
+		),
+		"boss_result": optional_result,
 		"unlock_chunk": definition.unlock_chunk,
 		"reward_grant_id": StringName("boss:%s:reward" % definition.boss_id),
 	})
-	_active_boss = null
+	if committed:
+		_active_boss = null
 	return committed
 
 

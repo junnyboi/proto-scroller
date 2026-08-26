@@ -34,6 +34,8 @@ var active_definition: BossEncounterDefinition
 var elapsed_seconds: float = 0.0
 var generation_token: int = 0
 var _state_elapsed: float = 0.0
+var _pending_attempt_restore: Dictionary = {}
+var _completion_payload: Dictionary = {}
 
 
 func setup(p_dependencies: UrbanSiegeDependencies) -> void:
@@ -99,6 +101,8 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		boss.health_changed.connect(_on_boss_health_changed)
 	elapsed_seconds = 0.0
 	_state_elapsed = 0.0
+	_completion_payload.clear()
+	_apply_pending_attempt_restore()
 	_set_state(STATE_SCREEN)
 	dependencies.encounter_runtime.set_attack_gate(false)
 	armor_changed.emit(boss.boss_armor, boss.boss_max_armor)
@@ -110,6 +114,8 @@ func advance(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 	_state_elapsed += delta
+	if utility_pool != null:
+		utility_pool.vertical_slice.advance(delta)
 	var screen_duration: float = (
 		SCREEN_DURATION if active_definition == null else active_definition.screen_seconds
 	)
@@ -145,21 +151,61 @@ func active() -> bool:
 func capture_attempt_state() -> Dictionary:
 	return {
 		"state": STATE_SCREEN,
-		"elapsed_seconds": 0.0,
-		"state_elapsed": 0.0,
-		"generation_token": generation_token,
+		"elapsed_seconds": elapsed_seconds,
+		"state_elapsed": _state_elapsed,
 		"definition_id": (
 			active_definition.boss_id if active_definition != null else &""
 		),
-		"armor": active_definition.armor if active_definition != null else ARMOR,
-		"health": active_definition.health if active_definition != null else HEALTH,
+		"armor": boss.boss_armor if boss != null else ARMOR,
+		"health": boss.current_health if boss != null else HEALTH,
+		"vertical_slice": (
+			utility_pool.vertical_slice.capture_state()
+			if utility_pool.vertical_slice.active()
+			else {}
+		),
 	}
 
 
 func restore_attempt_state(snapshot: Dictionary) -> void:
 	stop()
-	elapsed_seconds = float(snapshot.get("elapsed_seconds", 0.0))
-	_state_elapsed = float(snapshot.get("state_elapsed", 0.0))
+	_pending_attempt_restore = snapshot.duplicate(true)
+
+
+func completion_payload() -> Dictionary:
+	return _completion_payload.duplicate(true)
+
+
+func live_boss_feedback() -> Dictionary:
+	return (
+		utility_pool.vertical_slice.hud_feedback()
+		if utility_pool != null and utility_pool.vertical_slice.active()
+		else {}
+	)
+
+
+func _apply_pending_attempt_restore() -> void:
+	if _pending_attempt_restore.is_empty() or boss == null:
+		return
+	var definition_id: StringName = StringName(_pending_attempt_restore.get("definition_id", &""))
+	if active_definition == null or definition_id != active_definition.boss_id:
+		_pending_attempt_restore.clear()
+		return
+	elapsed_seconds = float(_pending_attempt_restore.get("elapsed_seconds", 0.0))
+	_state_elapsed = 0.0
+	boss.boss_armor = clampf(
+		float(_pending_attempt_restore.get("armor", active_definition.armor)),
+		0.0,
+		boss.boss_max_armor
+	)
+	boss.current_health = clampf(
+		float(_pending_attempt_restore.get("health", active_definition.health)),
+		0.0,
+		boss.max_health
+	)
+	var slice_state: Dictionary = _pending_attempt_restore.get("vertical_slice", {})
+	if not slice_state.is_empty() and utility_pool.vertical_slice.active():
+		utility_pool.vertical_slice.restore_state(slice_state)
+	_pending_attempt_restore.clear()
 
 
 func _on_boss_health_changed(current: float, maximum: float) -> void:
@@ -173,13 +219,26 @@ func _on_boss_armor_changed(current: float, maximum: float) -> void:
 			* BossUtilityPool.PYLON_PRESENTATION_CAPACITY
 		)
 		utility_pool.set_royal_pylon_integrity(remaining)
+	elif utility_pool.vertical_slice.active():
+		var connection_count: int = roundi(
+			(maximum - current) / maxf(active_definition.armor_fixed_step, 1.0)
+		)
+		while utility_pool.vertical_slice.armor_connections < connection_count:
+			utility_pool.vertical_slice.register_armor_connection()
 	armor_changed.emit(current, maximum)
 
 
 func _on_boss_armor_broken() -> void:
+	var slice_state: Dictionary = (
+		utility_pool.vertical_slice.capture_state()
+		if utility_pool.vertical_slice.active()
+		else {}
+	)
 	_next_generation()
 	if active_definition != null:
 		_configure_campaign_runtime()
+		if not slice_state.is_empty() and utility_pool.vertical_slice.active():
+			utility_pool.vertical_slice.restore_state(slice_state)
 		if active_definition.phases.size() > 1:
 			utility_pool.controller.begin_phase(
 				active_definition.phases[1],
@@ -225,6 +284,15 @@ func _configure_campaign_runtime() -> void:
 			active_definition.phases[0],
 			generation_token
 		)
+	if active_definition.boss_id in [
+		&"SETTLEMENT_ENGINE_S04", &"SAMARITAN_15",
+	]:
+		utility_pool.vertical_slice.start(
+			active_definition,
+			generation_token,
+			boss.global_position,
+			portrait
+		)
 
 
 func _is_choir_prime() -> bool:
@@ -233,7 +301,11 @@ func _is_choir_prime() -> bool:
 
 func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> void:
 	if enemy == boss:
-		body_changed.emit(0.0, boss.max_health)
+		if utility_pool.vertical_slice.active():
+			utility_pool.vertical_slice.reveal_archive()
+			utility_pool.vertical_slice.rescue_remaining_pods()
+			_completion_payload = utility_pool.vertical_slice.completion_payload()
+			utility_pool.vertical_slice.preserve_completion_state()
 		dependencies.encounter_runtime.set_attack_gate(false)
 
 

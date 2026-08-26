@@ -289,7 +289,8 @@ func set_campaign_boss_status(
 	armor_maximum: float,
 	body: float,
 	body_maximum: float,
-	evidence_id: StringName
+	evidence_id: StringName,
+	live_feedback: Dictionary = {}
 ) -> void:
 	if definition == null or state == &"IDLE" or state == &"COMPLETE":
 		hide_boss_status()
@@ -300,8 +301,14 @@ func set_campaign_boss_status(
 		"phase": L10n.t("boss.state.%s" % String(state).to_lower()),
 		"armor": "%03d" % roundi(clampf(armor / maxf(armor_maximum, 1.0), 0.0, 1.0) * 100.0),
 		"body": "%03d" % roundi(clampf(body / maxf(body_maximum, 1.0), 0.0, 1.0) * 100.0),
-		"objective": L10n.t("boss.objective.finish"),
-		"evidence": L10n.t("boss.evidence.%s" % String(evidence_id).to_lower()),
+		"objective": String(live_feedback.get(
+			"objective", L10n.t("boss.objective.finish")
+		)),
+		"evidence": String(live_feedback.get(
+			"consequence",
+			L10n.t("boss.evidence.%s" % String(evidence_id).to_lower())
+		)),
+		"attack": String(live_feedback.get("attack", L10n.t("boss.attack.none"))),
 	})
 
 

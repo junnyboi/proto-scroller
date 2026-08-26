@@ -31,18 +31,58 @@ func test_boss_lines_are_localized_observations_and_never_pause_control() -> voi
 	assert_ne(L10n.t(String(definition.voice_caption_keys[&"veyr"])), "")
 
 
-func test_boss_completion_commits_capstone_and_reward_once() -> void:
+func test_boss_completion_commits_capstone_evidence_result_and_reward_once() -> void:
 	var store: CampaignProgressStore = _store()
 	var director: NarrativeDirector = NarrativeDirector.new()
 	director.setup(store)
 	add_child_autofree(director)
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(&"SAMARITAN_15")
-	assert_true(director.handle_boss_completed(definition))
-	assert_false(director.handle_boss_completed(definition))
+	var canonical_event: Dictionary = {
+		"central_cradle_preserved": true,
+		"pod_loss_count": 1,
+		"rescue_tally": 3,
+	}
+	assert_true(director.handle_boss_completed(definition, canonical_event))
+	assert_true(director.handle_boss_completed(definition, canonical_event))
 	assert_true(store.has_dossier(&"ASHWATER_INTAKE_MANIFEST"))
-	assert_false(store.has_evidence(&"NURSERY"))
+	assert_true(store.has_evidence(&"NURSERY"))
 	assert_true(store.completed_boss_ids().has("SAMARITAN_15"))
 	assert_true(store.pending_reward_grants().has("boss:SAMARITAN_15:reward"))
+	assert_eq(int(store.snapshot().route_unlock_chunk), 16)
+	assert_eq(int(store.snapshot().boss_results.SAMARITAN_15.pod_loss_count), 1)
+
+
+func test_optional_archive_loss_preserves_capstone_and_route_but_not_ledger() -> void:
+	var store: CampaignProgressStore = _store()
+	var director: NarrativeDirector = NarrativeDirector.new()
+	director.setup(store)
+	add_child_autofree(director)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(
+		&"SETTLEMENT_ENGINE_S04"
+	)
+	assert_true(director.handle_boss_completed(definition, {
+		"archive_preserved": false,
+	}))
+	assert_true(store.has_dossier(&"B05_EASTBOUND_CONSIDERATION"))
+	assert_false(store.has_evidence(&"LEDGER"))
+	assert_true(store.lost_evidence_ids().has("LEDGER"))
+	assert_true(store.completed_boss_ids().has("SETTLEMENT_ENGINE_S04"))
+	assert_eq(int(store.snapshot().route_unlock_chunk), 8)
+	assert_false(bool(
+		store.snapshot().boss_results.SETTLEMENT_ENGINE_S04.archive_preserved
+	))
+
+
+func test_missing_optional_event_cannot_silently_preserve_evidence() -> void:
+	var store: CampaignProgressStore = _store()
+	var director: NarrativeDirector = NarrativeDirector.new()
+	director.setup(store)
+	add_child_autofree(director)
+	assert_true(director.handle_boss_completed(
+		BossCampaignCatalog.definition(&"SETTLEMENT_ENGINE_S04")
+	))
+	assert_false(store.has_evidence(&"LEDGER"))
+	assert_true(store.has_dossier(&"B05_EASTBOUND_CONSIDERATION"))
 
 
 func test_crown_capstone_repeats_canon_without_premature_echo_resolution() -> void:
@@ -62,18 +102,25 @@ func test_crown_capstone_repeats_canon_without_premature_echo_resolution() -> vo
 	assert_true(L10n.t(capstone.body_secondary_key).contains("Below twenty dossiers"))
 
 
-func test_all_boss_voice_and_capstone_keys_exist_in_both_locales() -> void:
+func test_vertical_slice_keys_exist_in_both_locales() -> void:
+	var keys: PackedStringArray = PackedStringArray([
+		"boss.objective.business.connect", "boss.objective.business.finish",
+		"boss.objective.residential.connect", "boss.objective.residential.rescue",
+		"boss.archive.preserved", "boss.archive.lost", "boss.rescue.tally",
+		"boss.attack.settlement_sweep", "boss.attack.double_entry_barrage",
+		"boss.attack.foreclosure_stamp", "boss.attack.audit_beam",
+		"boss.attack.foundation_cascade", "boss.attack.triage_sweep",
+		"boss.attack.pressure_sentence", "boss.attack.extraction_clamp",
+		"boss.attack.blackout_harvest",
+	])
 	for locale: String in L10n.available_locales():
 		assert_true(L10n.set_locale(locale))
-		assert_ne(L10n.t("narrative.speaker.veyr"), "narrative.speaker.veyr")
+		for key: String in keys:
+			assert_ne(L10n.t(key), key)
 		for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
 			assert_ne(
 				L10n.t(String(definition.voice_caption_keys[&"echo"])),
 				String(definition.voice_caption_keys[&"echo"])
-			)
-			assert_ne(
-				L10n.t(String(definition.voice_caption_keys[&"veyr"])),
-				String(definition.voice_caption_keys[&"veyr"])
 			)
 			var capstone: DossierDefinition = DossierCatalog.capstone_for_boss(
 				definition.boss_id
