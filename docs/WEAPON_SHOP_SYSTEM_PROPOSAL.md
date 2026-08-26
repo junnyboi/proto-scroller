@@ -22,23 +22,23 @@ The visual system stays within the existing game’s command-deck language: crea
 
 | District shop | Product | Price | Run effect | Strategic role |
 |---|---:|---:|---|---|
-| **Black Ledger Exchange** | Foreclosure Slugs | 3,200 | +15% machine-gun damage | Early ballistic specialization |
-|  | Hostile Leverage | 4,200 | +12% autonomous weapon damage | Broad early scaling |
-|  | Collateral Refinance | 2,400 | Repair 35% maximum chassis integrity | Cheap first-transition recovery |
-| **Ashwater Mutual Garage** | Patchwork Nanoweld | 2,800 | Repair 50% maximum chassis integrity | Efficient mid-run stabilization |
-|  | Scrapheap Magnetics | 4,800 | +35% launched-debris impact damage | Destruction-chain specialization |
-|  | Borrowed Shock Coils | 5,200 | +18% Ground Smash and Jab-Cross hit area | Crowd-control and structure coverage |
-| **Afterglow Mod Parlor** | Encore Capacitors | 6,200 | -15% autonomous weapon cooldowns | Fire-rate scaling |
-|  | Jackpot Chamber | 6,800 | 20% deterministic critical chance for 2× weapon damage | High-variance spectacle with replay-safe rolls |
-|  | Backstage Triage | 3,800 | Repair 65% maximum chassis integrity | Deep-run recovery |
-| **Iron Corridor Field Armory** | Siege Breaching Load | 8,200 | +25% structural damage | Accelerated district demolition |
-|  | Hunter-Killer Link | 9,000 | +20% autonomous damage to elites and bosses | Late-game retaliation countermeasure |
-|  | Gantry Overhaul | 5,000 | Full chassis repair | Expensive pre-Crownward reset |
-| **Crownward Reliquary** | Sovereign Aegis | 12,000 | Full repair and 15% less incoming damage | Premium survivability capstone |
-|  | Crownfire Protocol | 13,500 | +25% melee and autonomous weapon damage | Maximum offensive capstone |
-|  | Chronoseal Governor | 11,000 | -20% autonomous weapon cooldowns | Maximum cadence capstone |
+| **Black Ledger Exchange** | Foreclosure Slugs | 12,800 | +15% machine-gun damage | Early ballistic specialization |
+|  | Hostile Leverage | 16,800 | +12% autonomous weapon damage | Broad early scaling |
+|  | Collateral Refinance | 9,600 | Repair 35% maximum chassis integrity | First-transition recovery |
+| **Ashwater Mutual Garage** | Patchwork Nanoweld | 11,200 | Repair 50% maximum chassis integrity | Mid-run stabilization |
+|  | Scrapheap Magnetics | 19,200 | +35% launched-debris impact damage | Destruction-chain specialization |
+|  | Borrowed Shock Coils | 20,800 | +18% Ground Smash and Jab-Cross hit area | Crowd-control and structure coverage |
+| **Afterglow Mod Parlor** | Encore Capacitors | 24,800 | -15% autonomous weapon cooldowns | Fire-rate scaling |
+|  | Jackpot Chamber | 27,200 | 20% deterministic critical chance for 2× weapon damage | High-variance spectacle with replay-safe rolls |
+|  | Backstage Triage | 15,200 | Repair 65% maximum chassis integrity | Deep-run recovery |
+| **Iron Corridor Field Armory** | Siege Breaching Load | 32,800 | +25% structural damage | Accelerated district demolition |
+|  | Hunter-Killer Link | 36,000 | +20% autonomous damage to elites and bosses | Late-game retaliation countermeasure |
+|  | Gantry Overhaul | 20,000 | Full chassis repair | Expensive pre-Crownward reset |
+| **Crownward Reliquary** | Sovereign Aegis | 48,000 | Full repair and 15% less incoming damage | Premium survivability capstone |
+|  | Crownfire Protocol | 54,000 | +25% melee and autonomous weapon damage | Maximum offensive capstone |
+|  | Chronoseal Governor | 44,000 | -20% autonomous weapon cooldowns | Maximum cadence capstone |
 
-Prices deliberately escalate faster than ordinary repair value. Early purchases are accessible after a productive first district, while Royal modules require the player to surrender a visibly meaningful share of a successful run. Prices and percentages are data-driven and can be tuned without changing the overlay or transaction architecture.
+Every price is exactly four times its launch value. Even early purchases now require a deliberate high-score sacrifice, while Royal modules demand a major share of a successful run. Prices and percentages remain data-driven and can be tuned without changing the overlay or transaction architecture.
 
 ## District look and feel
 

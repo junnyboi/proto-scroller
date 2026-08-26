@@ -139,7 +139,16 @@ static func variant_for_chunk(
 	var district: CityDistrictProfile = district_for_chunk(logical_index)
 	var local_index: int = logical_index - district.start_chunk
 	var order: PackedInt32Array = _variant_order(run_seed, district)
-	var roster_index: int = posmod(local_index, district.variant_count())
+	var roster_offset: int = 0
+	if run_seed != 0:
+		roster_offset = posmod(
+			hash("%d:%s:facade_offset" % [run_seed, district.district_id]),
+			district.variant_count()
+		)
+	var roster_index: int = posmod(
+		local_index + roster_offset,
+		district.variant_count()
+	)
 	var variant_index: int = order[roster_index]
 	return district.building_variants[variant_index]
 
