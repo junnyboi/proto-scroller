@@ -2,6 +2,8 @@ extends SceneTree
 
 const REPORT_PATH: String = "res://artifacts/charge_attack/report.json"
 const SHOT_PATH: String = "res://artifacts/charge_attack/charge-attack.png"
+const MAX_SHOT_PATH: String = "res://artifacts/charge_attack/max-charge.png"
+const RELEASE_SHOT_PATH: String = "res://artifacts/charge_attack/release-shockwave.png"
 const HIT_SHOT_PATH: String = "res://artifacts/charge_attack/full-charge-hit.png"
 const MAX_FRAMES: int = 600
 
@@ -56,9 +58,28 @@ func _run() -> void:
 		city.robot.get_node(^"VisualRoot/PhotonChargeMeter/Frame") as Sprite2D
 	)
 	var core: Sprite2D = city.robot.get_node(^"VisualRoot/PhotonChestCore") as Sprite2D
+	var shockwave: Sprite2D = city.robot.get_node(
+		^"VisualRoot/FullChargeReleaseShockwave"
+	) as Sprite2D
 	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
 	var attack_id: int = city.contextual_attacks.begin_charge()
-	city.contextual_attacks._process(1.5)
+	city.contextual_attacks._process(
+		RobotAnimationPresenter.CHARGE_PARTICLE_DELAY_SECONDS - 0.001
+	)
+	_check(
+		"charge_particles_hidden_before_600ms",
+		not presenter.charge_particles_emitting(),
+		"duration=%.3f emitting=%s"
+		% [city.contextual_attacks.charge_duration(), particles.emitting]
+	)
+	city.contextual_attacks._process(0.001)
+	_check(
+		"charge_particles_begin_at_600ms",
+		presenter.charge_particles_emitting(),
+		"duration=%.3f emitting=%s"
+		% [city.contextual_attacks.charge_duration(), particles.emitting]
+	)
+	city.contextual_attacks._process(0.9)
 	for settle_frame: int in range(12):
 		await process_frame
 	_check("charge_started", attack_id > 0, "attack_id=%d" % attack_id)
@@ -115,6 +136,7 @@ func _run() -> void:
 			presenter.charge_core_visible()
 			and core.texture == RobotAnimationPresenter.PHOTON_CORE_TEXTURE
 			and core.scale.x > RobotAnimationPresenter.CHARGE_CORE_MIN_SCALE
+			and not presenter.charge_core_max_shifted()
 		),
 		(
 			"visible=%s scale=%.3f texture=%s"
@@ -171,8 +193,39 @@ func _run() -> void:
 			]
 		)
 	)
+	_check(
+		"max_charge_core_color_shift",
+		presenter.charge_core_max_shifted(),
+		"shifted=%s" % presenter.charge_core_max_shifted()
+	)
+	var max_shot_status: String = "SKIP"
+	var max_shot_path: String = ""
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		var max_image: Image = root.get_texture().get_image()
+		var max_save_error: Error = max_image.save_png(
+			ProjectSettings.globalize_path(MAX_SHOT_PATH)
+		)
+		_check("max_shot_saved", max_save_error == OK, "error=%s" % max_save_error)
+		max_shot_status = "PASS" if max_save_error == OK else "FAIL"
+		max_shot_path = MAX_SHOT_PATH
 	var released: bool = city.contextual_attacks.release_charge()
 	_check("charge_released", released, "released=%s" % released)
+	_check(
+		"full_charge_release_shockwave_started",
+		(
+			presenter.release_shockwave_visible()
+			and shockwave.texture == RobotAnimationPresenter.PHOTON_RELEASE_SHOCKWAVE_TEXTURE
+		),
+		(
+			"visible=%s scale=%.3f texture=%s"
+			% [
+				presenter.release_shockwave_visible(),
+				presenter.release_shockwave_scale(),
+				shockwave.texture,
+			]
+		)
+	)
 	_check(
 		"damage_scaled",
 		(
@@ -193,6 +246,32 @@ func _run() -> void:
 		sprite.is_playing() and not presenter.charge_particles_emitting(),
 		"playing=%s particles=%s" % [sprite.is_playing(), particles.emitting]
 	)
+	presenter._process(0.10)
+	_check(
+		"release_shockwave_expands",
+		(
+			presenter.release_shockwave_visible()
+			and presenter.release_shockwave_scale()
+			> RobotAnimationPresenter.RELEASE_SHOCKWAVE_START_SCALE
+		),
+		"visible=%s scale=%.3f"
+		% [presenter.release_shockwave_visible(), presenter.release_shockwave_scale()]
+	)
+	var release_shot_status: String = "SKIP"
+	var release_shot_path: String = ""
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		var release_image: Image = root.get_texture().get_image()
+		var release_save_error: Error = release_image.save_png(
+			ProjectSettings.globalize_path(RELEASE_SHOT_PATH)
+		)
+		_check(
+			"release_shot_saved",
+			release_save_error == OK,
+			"error=%s" % release_save_error
+		)
+		release_shot_status = "PASS" if release_save_error == OK else "FAIL"
+		release_shot_path = RELEASE_SHOT_PATH
 	var hit_position: Vector2 = city.robot.global_position + Vector2(170.0, -34.0)
 	_check(
 		"confirmed_full_charge_enemy_hit",
@@ -234,7 +313,16 @@ func _run() -> void:
 	await process_frame
 	# Work around godotengine/godot#76745 in fixed-FPS command-line runs.
 	OS.delay_msec(100)
-	_finish(shot_status, shot_path, hit_shot_status, hit_shot_path)
+	_finish(
+		shot_status,
+		shot_path,
+		max_shot_status,
+		max_shot_path,
+		release_shot_status,
+		release_shot_path,
+		hit_shot_status,
+		hit_shot_path
+	)
 
 
 func _target_size() -> Vector2i:
@@ -253,6 +341,10 @@ func _check(check_name: String, passed: bool, detail: String) -> void:
 func _finish(
 	shot_status: String,
 	shot_path: String,
+	max_shot_status: String = "SKIP",
+	max_shot_path: String = "",
+	release_shot_status: String = "SKIP",
+	release_shot_path: String = "",
 	hit_shot_status: String = "SKIP",
 	hit_shot_path: String = ""
 ) -> void:
@@ -267,6 +359,8 @@ func _finish(
 		"result": "PASS" if all_passed else "FAIL",
 		"checks": checks,
 		"shot": {"status": shot_status, "path": shot_path},
+		"max_shot": {"status": max_shot_status, "path": max_shot_path},
+		"release_shot": {"status": release_shot_status, "path": release_shot_path},
 		"hit_shot": {"status": hit_shot_status, "path": hit_shot_path},
 		"frames": elapsed_frames,
 	}

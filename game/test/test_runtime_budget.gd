@@ -34,6 +34,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.melee_charge_emitters, RuntimeBudget.MELEE_CHARGE_EMITTERS)
 	assert_eq(snapshot.melee_charge_particles, RuntimeBudget.MELEE_CHARGE_PARTICLES)
 	assert_eq(snapshot.melee_charge_visuals, RuntimeBudget.MELEE_CHARGE_VISUALS)
+	assert_eq(snapshot.melee_charge_visuals, 4)
 	assert_eq(snapshot.elite_spawn_effect_slots, 6)
 	assert_eq(snapshot.hazard_total, RuntimeBudget.HAZARD_ACTORS)
 	assert_eq(snapshot.hazard_vfx_slots, RuntimeBudget.HAZARD_VFX_SLOTS)

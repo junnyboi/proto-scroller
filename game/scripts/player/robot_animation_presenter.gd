@@ -25,12 +25,29 @@ const ATTACK_IMPACT_VOLUME_DB: float = (
 const CRITICAL_SMOKE_OFFSET: Vector2 = Vector2(28.0, -42.0)
 const CHARGE_PARTICLE_OFFSET: Vector2 = Vector2(0.0, 34.0)
 const CHARGE_PARTICLE_CAPACITY: int = 56
+const CHARGE_PARTICLE_DELAY_SECONDS: float = 0.60
 const CHARGE_METER_OFFSET: Vector2 = Vector2(0.0, -82.0)
 const CHARGE_METER_FILL_SIZE: Vector2 = Vector2(150.0, 7.0)
 const CHARGE_CORE_MIN_SCALE: float = 0.055
 const CHARGE_CORE_MAX_SCALE: float = 0.26
+const RELEASE_SHOCKWAVE_SECONDS: float = 0.38
+const RELEASE_SHOCKWAVE_START_SCALE: float = 0.12
+const RELEASE_SHOCKWAVE_END_SCALE: float = 0.92
 const FULL_CHARGE_HIT_FLASH_SECONDS: float = 0.26
 const CHARGE_PARTICLE_COLOR: Color = Color(1.0, 0.72, 0.16, 0.92)
+const FULL_CHARGE_CORE_COLOR: Color = Color(0.12, 0.42, 1.0, 1.0)
+const RELEASE_SHOCKWAVE_COLOR: Color = Color(0.72, 0.86, 1.0, 1.0)
+const FULL_CHARGE_CORE_SHADER_CODE: String = """
+shader_type canvas_item;
+uniform float shift_amount : hint_range(0.0, 1.0) = 0.0;
+uniform vec3 shift_color = vec3(0.12, 0.42, 1.0);
+void fragment() {
+	vec4 source = texture(TEXTURE, UV);
+	float luminance = dot(source.rgb, vec3(0.299, 0.587, 0.114));
+	vec3 shifted = shift_color * (0.32 + luminance * 0.92);
+	COLOR = vec4(mix(source.rgb, shifted, shift_amount), source.a) * COLOR;
+}
+"""
 const CRITICAL_SMOKE_TEXTURE: Texture2D = preload(
 	"res://art/player/weapons/missile_explosion_smoke.png"
 )
@@ -39,6 +56,9 @@ const CHARGE_METER_FRAME_TEXTURE: Texture2D = preload(
 )
 const PHOTON_CORE_TEXTURE: Texture2D = preload(
 	"res://art/player/vfx/photon_core_orb.png"
+)
+const PHOTON_RELEASE_SHOCKWAVE_TEXTURE: Texture2D = preload(
+	"res://art/player/vfx/photon_release_shockwave.png"
 )
 const WALK_SERVO_FRAMES: Array[int] = [2, 15]
 const WALK_CONTACT_FRAMES: Array[int] = [5, 18]
@@ -114,9 +134,12 @@ var _charge_meter_root: Node2D
 var _charge_meter_fill: ColorRect
 var _charge_meter_frame: Sprite2D
 var _charge_core: Sprite2D
+var _charge_core_material: ShaderMaterial
+var _release_shockwave: Sprite2D
 var _full_charge_hit_flash: Sprite2D
 var _full_charge_announced: bool = false
 var _charge_pulse_elapsed: float = 0.0
+var _release_shockwave_remaining: float = 0.0
 var _full_charge_hit_flash_remaining: float = 0.0
 
 
@@ -214,10 +237,25 @@ func charge_core_visible() -> bool:
 	return _charge_core != null and _charge_core.visible
 
 
+func charge_core_max_shifted() -> bool:
+	if _charge_core_material == null:
+		return false
+	return float(_charge_core_material.get_shader_parameter(&"shift_amount")) >= 1.0
+
+
+func release_shockwave_visible() -> bool:
+	return _release_shockwave != null and _release_shockwave.visible
+
+
+func release_shockwave_scale() -> float:
+	return _release_shockwave.scale.x if _release_shockwave != null else 0.0
+
+
 func charge_visual_count() -> int:
 	return (
 		(1 if _charge_meter_root != null else 0)
 		+ (1 if _charge_core != null else 0)
+		+ (1 if _release_shockwave != null else 0)
 		+ (1 if _full_charge_hit_flash != null else 0)
 	)
 
@@ -286,7 +324,7 @@ func _on_charge_started(spec: AttackSpec) -> void:
 	sprite.pause()
 	sprite.set_frame_and_progress(0, 0.0)
 	if _charge_particles != null:
-		_charge_particles.emitting = true
+		_charge_particles.emitting = false
 	if _charge_meter_root != null:
 		_charge_meter_root.visible = true
 	if _charge_meter_fill != null:
@@ -294,6 +332,9 @@ func _on_charge_started(spec: AttackSpec) -> void:
 	if _charge_core != null:
 		_charge_core.visible = true
 		_charge_core.scale = Vector2.ONE * CHARGE_CORE_MIN_SCALE
+	if _charge_core_material != null:
+		_charge_core_material.set_shader_parameter(&"shift_amount", 0.0)
+	_hide_release_shockwave()
 	if _charge_voice_player != null:
 		_charge_voice_player.stop()
 	if _charge_sfx_player != null:
@@ -305,7 +346,7 @@ func _on_charge_started(spec: AttackSpec) -> void:
 
 func _on_charge_updated(
 	spec: AttackSpec,
-	_duration: float,
+	duration: float,
 	progress: float,
 	_multiplier: float
 ) -> void:
@@ -313,7 +354,10 @@ func _on_charge_updated(
 		return
 	last_charge_progress = clampf(progress, 0.0, 1.0)
 	if _charge_particles != null:
-		_charge_particles.emitting = last_charge_progress < 1.0
+		_charge_particles.emitting = (
+			duration >= CHARGE_PARTICLE_DELAY_SECONDS
+			and last_charge_progress < 1.0
+		)
 		_charge_particles.initial_velocity_min = 44.0 + last_charge_progress * 24.0
 		_charge_particles.initial_velocity_max = 104.0 + last_charge_progress * 46.0
 		_charge_particles.radial_accel_min = -420.0 - last_charge_progress * 520.0
@@ -331,6 +375,11 @@ func _on_charge_updated(
 			last_charge_progress
 		)
 		_charge_core.scale = Vector2.ONE * core_scale
+	if _charge_core_material != null:
+		_charge_core_material.set_shader_parameter(
+			&"shift_amount",
+			1.0 if last_charge_progress >= 1.0 else 0.0
+		)
 	if last_charge_progress >= 1.0 and not _full_charge_announced:
 		_full_charge_announced = true
 		if _charge_voice_player != null:
@@ -348,6 +397,8 @@ func _on_charge_released(
 	if spec == null or spec.attack_id != selected_attack_id:
 		return
 	charging = false
+	if spec.is_fully_charged():
+		_start_release_shockwave()
 	if _charge_particles != null:
 		_charge_particles.emitting = false
 	_hide_charge_visuals()
@@ -360,6 +411,7 @@ func _on_attack_cancelled(spec: AttackSpec) -> void:
 		return
 	if _charge_voice_player != null:
 		_charge_voice_player.stop()
+	_hide_release_shockwave()
 
 
 func _on_attack_committed(mode: int, attack_id: int) -> void:
@@ -607,9 +659,30 @@ func _prewarm_charge_visuals() -> void:
 	_charge_core.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_charge_core.position = CHARGE_PARTICLE_OFFSET
 	_charge_core.scale = Vector2.ONE * CHARGE_CORE_MIN_SCALE
+	var core_shader: Shader = Shader.new()
+	core_shader.code = FULL_CHARGE_CORE_SHADER_CODE
+	_charge_core_material = ShaderMaterial.new()
+	_charge_core_material.shader = core_shader
+	_charge_core_material.set_shader_parameter(&"shift_amount", 0.0)
+	_charge_core_material.set_shader_parameter(&"shift_color", Vector3(
+		FULL_CHARGE_CORE_COLOR.r,
+		FULL_CHARGE_CORE_COLOR.g,
+		FULL_CHARGE_CORE_COLOR.b
+	))
+	_charge_core.material = _charge_core_material
 	_charge_core.z_index = 6
 	_charge_core.visible = false
 	visual_root.add_child(_charge_core)
+	_release_shockwave = Sprite2D.new()
+	_release_shockwave.name = "FullChargeReleaseShockwave"
+	_release_shockwave.texture = PHOTON_RELEASE_SHOCKWAVE_TEXTURE
+	_release_shockwave.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_release_shockwave.position = CHARGE_PARTICLE_OFFSET
+	_release_shockwave.scale = Vector2.ONE * RELEASE_SHOCKWAVE_START_SCALE
+	_release_shockwave.modulate = RELEASE_SHOCKWAVE_COLOR
+	_release_shockwave.z_index = 5
+	_release_shockwave.visible = false
+	visual_root.add_child(_release_shockwave)
 	_full_charge_hit_flash = Sprite2D.new()
 	_full_charge_hit_flash.name = "FullChargeHitFlash"
 	_full_charge_hit_flash.texture = PHOTON_CORE_TEXTURE
@@ -731,6 +804,25 @@ func _advance_charge_visuals(delta: float) -> void:
 		_charge_meter_root.scale = Vector2.ONE
 		if _charge_meter_frame != null:
 			_charge_meter_frame.modulate = Color.WHITE
+	if _release_shockwave != null and _release_shockwave.visible:
+		_release_shockwave_remaining = maxf(
+			_release_shockwave_remaining - maxf(delta, 0.0),
+			0.0
+		)
+		var shockwave_ratio: float = 1.0 - (
+			_release_shockwave_remaining / RELEASE_SHOCKWAVE_SECONDS
+		)
+		var shockwave_ease: float = 1.0 - pow(1.0 - shockwave_ratio, 3.0)
+		_release_shockwave.scale = Vector2.ONE * lerpf(
+			RELEASE_SHOCKWAVE_START_SCALE,
+			RELEASE_SHOCKWAVE_END_SCALE,
+			shockwave_ease
+		)
+		_release_shockwave.modulate = RELEASE_SHOCKWAVE_COLOR
+		_release_shockwave.modulate.a *= 1.0 - shockwave_ratio
+		_release_shockwave.rotation += maxf(delta, 0.0) * 0.46
+		if is_zero_approx(_release_shockwave_remaining):
+			_hide_release_shockwave()
 	if _full_charge_hit_flash == null or not _full_charge_hit_flash.visible:
 		return
 	_full_charge_hit_flash_remaining = maxf(
@@ -752,8 +844,30 @@ func _hide_charge_visuals() -> void:
 	if _charge_core != null:
 		_charge_core.visible = false
 		_charge_core.rotation = 0.0
+	if _charge_core_material != null:
+		_charge_core_material.set_shader_parameter(&"shift_amount", 0.0)
 	_full_charge_announced = false
 	_charge_pulse_elapsed = 0.0
+
+
+func _start_release_shockwave() -> void:
+	if _release_shockwave == null:
+		return
+	_release_shockwave_remaining = RELEASE_SHOCKWAVE_SECONDS
+	_release_shockwave.scale = Vector2.ONE * RELEASE_SHOCKWAVE_START_SCALE
+	_release_shockwave.modulate = RELEASE_SHOCKWAVE_COLOR
+	_release_shockwave.rotation = 0.0
+	_release_shockwave.visible = true
+
+
+func _hide_release_shockwave() -> void:
+	_release_shockwave_remaining = 0.0
+	if _release_shockwave == null:
+		return
+	_release_shockwave.visible = false
+	_release_shockwave.scale = Vector2.ONE * RELEASE_SHOCKWAVE_START_SCALE
+	_release_shockwave.modulate = RELEASE_SHOCKWAVE_COLOR
+	_release_shockwave.rotation = 0.0
 
 
 func _play_mechanics(
