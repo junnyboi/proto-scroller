@@ -74,6 +74,32 @@ func test_all_regular_soldiers_share_exact_pixel_height_and_face_the_player() ->
 	assert_true(tracked.visual.flip_h)
 
 
+func test_base_tank_uses_exact_double_ground_vehicle_geometry() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	var tank: TankEnemy = city.encounter_runtime.acquire(
+		&"tank",
+		Vector2(1180.0, 551.0)
+	) as TankEnemy
+	assert_not_null(tank)
+	var rendered_size: Vector2 = tank.visual.texture.get_size() * tank.visual.scale.abs()
+	var texture_size: Vector2 = tank.visual.texture.get_size()
+	var display_bounds: Vector2 = Vector2(470.0, 200.0)
+	var expected_fit: float = minf(
+		display_bounds.x / texture_size.x,
+		display_bounds.y / texture_size.y
+	)
+	assert_eq(rendered_size, texture_size * expected_fit)
+	var body: RectangleShape2D = (
+		tank.get_node(^"CollisionShape2D").shape as RectangleShape2D
+	)
+	assert_eq(body.size, Vector2(440.0, 156.0))
+	var hurtbox: RectangleShape2D = (
+		tank.get_node(^"Hurtbox/CollisionShape2D").shape as RectangleShape2D
+	)
+	assert_eq(hurtbox.size, Vector2(492.8, 174.72))
+
+
 func test_projectile_pool_is_partitioned_16_4_4_and_reservations_are_strict() -> void:
 	var city: CitySlice = await _spawn_city()
 	var pool: ProjectilePool = city.projectile_root

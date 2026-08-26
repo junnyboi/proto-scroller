@@ -56,6 +56,11 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 		var procedural: ProceduralEnemy = enemy as ProceduralEnemy
 		var display_size: Vector2 = procedural.profile.get("display", Vector2(235.0, 100.0)) as Vector2
 		var collision_size: Vector2 = procedural.profile.get("collision", Vector2(210.0, 78.0)) as Vector2
+		var presentation_scale: float = EnemyArchetypeCatalog.presentation_scale(
+			procedural.archetype_id
+		)
+		display_size *= presentation_scale
+		collision_size *= presentation_scale
 		wreck.activate(
 			procedural.archetype_id,
 			procedural.visual.texture,
@@ -71,8 +76,8 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 		wreck.activate(
 			&"tank",
 			_tank_texture,
-			Vector2(235.0, 100.0),
-			Vector2(220.0, 78.0),
+			Vector2(235.0, 100.0) * EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE,
+			Vector2(220.0, 78.0) * EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE,
 			65.0,
 			110.0,
 			enemy.global_position,

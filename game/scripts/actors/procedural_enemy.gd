@@ -113,12 +113,15 @@ func configure_boss_support(presentation_id: StringName) -> bool:
 	attack_style = StringName(presentation.attack_style)
 	if visual != null:
 		visual.texture = load(String(presentation.texture)) as Texture2D
-		var display_size: Vector2 = presentation.display as Vector2
+		var display_size: Vector2 = (
+			presentation.display as Vector2
+		) * EnemyArchetypeCatalog.presentation_scale(presentation_id)
 		var texture_size: Vector2 = visual.texture.get_size()
 		visual.scale = display_size / Vector2(
 			maxf(texture_size.x, 1.0),
 			maxf(texture_size.y, 1.0)
 		)
+		_visual_rest_scale = visual.scale
 	set_meta(&"boss_support_id", boss_support_id)
 	return true
 
@@ -271,7 +274,11 @@ func _can_attack() -> bool:
 
 
 func _begin_attack() -> void:
-	var origin: Vector2 = global_position + Vector2(float(facing) * 48.0, -18.0)
+	var presentation_scale: float = EnemyArchetypeCatalog.presentation_scale(archetype_id)
+	var origin: Vector2 = global_position + Vector2(
+		float(facing) * 48.0,
+		-18.0
+	) * presentation_scale
 	if airborne:
 		origin = global_position + Vector2(float(facing) * 52.0, 15.0)
 	var target_point: Vector2 = target.global_position + Vector2(0.0, 30.0)
