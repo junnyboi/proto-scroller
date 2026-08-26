@@ -20,7 +20,7 @@ func _run() -> void:
 	root.content_scale_size = viewport_size
 	root.size = viewport_size
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ARTIFACT_DIR))
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	_remove_saves()
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	root.add_child(city)
 	await process_frame
@@ -46,27 +46,19 @@ func _run() -> void:
 	city.gameplay_hud._show_finale_choice(snapshot)
 	await _settle_render_frames()
 	var choice_shot: String = await _capture("ending-choice-%s.png" % orientation)
-	var summary: RunSummarySnapshot = RunSummarySnapshot.new(
-		120000,
-		5,
-		18,
-		6,
-		4,
-		{},
-		{
-			"completed": true,
-			"grade": &"S",
-			"mastery_points": 999,
-			"ending_id": &"DISENTANGLE",
-		}
-	)
-	city.gameplay_hud._set_campaign_summary(
-		snapshot.dossier_count,
-		snapshot.continuity_generation
-	)
-	city.gameplay_hud.show_district_complete(summary)
+	city.gameplay_hud._show_finale_result(BossOutcome.DISENTANGLE, 1, true)
 	await _settle_render_frames()
 	var ending_shot: String = await _capture("ending-severance-%s.png" % orientation)
+	var ending_actions_valid: bool = (
+		city.gameplay_hud.game_over_overlay.visible
+		and city.gameplay_hud.extract_button.visible
+		and city.gameplay_hud.continue_button.visible
+		and city.gameplay_hud.new_game_plus_badge.visible
+		and not city.gameplay_hud.purge_button.visible
+		and not city.gameplay_hud.disentangle_button.visible
+		and city.gameplay_hud.continue_button.has_focus()
+	)
+	_check("ending_actions_valid", ending_actions_valid)
 	_report = {
 		"done": true,
 		"result": "PASS" if _failures.is_empty() else "FAIL",
@@ -77,19 +69,22 @@ func _run() -> void:
 		"boss_shot": boss_shot,
 		"choice_shot": choice_shot,
 		"ending_shot": ending_shot,
+		"ending_actions_valid": ending_actions_valid,
 		"failures": Array(_failures),
 	}
 	_write_report(orientation)
 	city.queue_free()
 	await process_frame
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	_remove_saves()
 	quit(0 if _failures.is_empty() else 1)
 
 
 func _prepare_eligible_store(store: CampaignProgressStore) -> void:
 	for index: int in range(FinaleEligibilitySnapshot.DOSSIER_REQUIREMENT):
 		store.collect_dossier(DossierCatalog.definitions()[index].dossier_id)
-	for evidence_id: StringName in [&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL"]:
+	for evidence_id: StringName in [
+		&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
+	]:
 		store.preserve_evidence(evidence_id)
 
 
@@ -132,3 +127,9 @@ func _write_report(orientation: String) -> void:
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(_report, "  "))
+
+
+func _remove_saves() -> void:
+	for path: String in [SAVE_PATH, SAVE_PATH + ".tmp", SAVE_PATH + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

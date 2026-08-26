@@ -10,6 +10,7 @@ const MUTED_COLOR: Color = Color("a8bbc2")
 var panel: ColorRect
 var heading_label: Label
 var progress_label: Label
+var evidence_label: Label
 var continuity_label: Label
 var endings_label: Label
 var codex_button: Button
@@ -35,6 +36,15 @@ func refresh_locale() -> void:
 		"dossiers": int(_snapshot.get("dossier_count", 0)),
 		"total": CityDistrictCatalog.BUILDING_VARIANT_COUNT,
 	})
+	evidence_label.text = L10n.t("narrative.campaign.evidence", {
+		"evidence": int(_snapshot.get("evidence_count", 0)),
+		"total": DossierCatalog.EVIDENCE_FLAGS.size(),
+		"echo_status": L10n.t(
+			"narrative.echo7.resolved"
+			if bool(_snapshot.get("echo7_resolved", false))
+			else "narrative.echo7.ambiguous"
+		),
+	})
 	continuity_label.text = L10n.t("narrative.campaign.continuity", {
 		"generation": int(_snapshot.get("continuity_generation", 0)),
 	})
@@ -45,18 +55,20 @@ func refresh_locale() -> void:
 func apply_responsive_layout(viewport_size: Vector2) -> void:
 	if viewport_size.y > viewport_size.x:
 		position = Vector2(28.0, 790.0)
-		size = Vector2(viewport_size.x - 56.0, 340.0)
+		size = Vector2(viewport_size.x - 56.0, 370.0)
 	else:
 		position = Vector2(viewport_size.x - 482.0, 310.0)
-		size = Vector2(430.0, 320.0)
+		size = Vector2(430.0, 350.0)
 	panel.size = size
 	heading_label.position = Vector2(22.0, 18.0)
 	heading_label.size = Vector2(size.x - 44.0, 60.0)
 	progress_label.position = Vector2(22.0, 82.0)
 	progress_label.size = Vector2(size.x - 44.0, 34.0)
-	continuity_label.position = Vector2(22.0, 120.0)
-	continuity_label.size = Vector2(size.x - 44.0, 54.0)
-	endings_label.position = Vector2(22.0, 178.0)
+	evidence_label.position = Vector2(22.0, 116.0)
+	evidence_label.size = Vector2(size.x - 44.0, 50.0)
+	continuity_label.position = Vector2(22.0, 168.0)
+	continuity_label.size = Vector2(size.x - 44.0, 42.0)
+	endings_label.position = Vector2(22.0, 212.0)
 	endings_label.size = Vector2(size.x - 44.0, 54.0)
 	codex_button.position = Vector2(22.0, size.y - 66.0)
 	codex_button.size = Vector2(size.x - 44.0, 44.0)
@@ -76,6 +88,11 @@ func _build() -> void:
 	progress_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	progress_label.add_theme_font_size_override(&"font_size", 20)
 	add_child(progress_label)
+	evidence_label = Label.new()
+	evidence_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	evidence_label.add_theme_font_size_override(&"font_size", 16)
+	evidence_label.modulate = ACCENT_COLOR
+	add_child(evidence_label)
 	continuity_label = Label.new()
 	continuity_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	continuity_label.add_theme_font_size_override(&"font_size", 18)

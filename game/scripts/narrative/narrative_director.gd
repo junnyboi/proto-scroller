@@ -18,6 +18,7 @@ signal facade_reveal_requested(
 	definition: DossierDefinition
 )
 signal district_arrived(district_id: StringName)
+signal evidence_recovered(evidence_id: StringName, drop_id: StringName)
 
 const DISTRICT_IDS: Array[StringName] = [
 	&"BUSINESS", &"RESIDENTIAL", &"ENTERTAINMENT", &"MILITARY", &"ROYAL",
@@ -31,6 +32,8 @@ var campaign_progress: CampaignProgressStore
 var run_seed: int = 0
 var _fired_events: Dictionary[StringName, bool] = {}
 var _arrived_districts: Dictionary[StringName, bool] = {}
+var _active_boss: BossEncounterDefinition
+var _elite_defeat_sequence: int = 0
 
 
 func setup(progress: CampaignProgressStore) -> void:
@@ -41,6 +44,8 @@ func begin_run(p_run_seed: int, initial_district_id: StringName = &"BUSINESS") -
 	run_seed = p_run_seed
 	_fired_events.clear()
 	_arrived_districts.clear()
+	_active_boss = null
+	_elite_defeat_sequence = 0
 	handle_spatial_district_arrival(initial_district_id)
 
 
@@ -69,7 +74,9 @@ func handle_building_cell_destroyed(
 	var definition: DossierDefinition = DossierCatalog.definition_for_variant(variant_id)
 	if definition == null or not definition.trigger_matches(column, row):
 		return
-	if not campaign_progress.collect_dossier(definition.dossier_id):
+	if definition.is_boss_capstone or not campaign_progress.collect_dossier(
+		definition.dossier_id
+	):
 		return
 	facade_reveal_requested.emit(building, definition)
 	dossier_collected.emit(
@@ -90,6 +97,82 @@ func handle_building_cell_destroyed(
 			"narrative.speaker.echo7",
 			"narrative.transmission.black_lab_revealed",
 			5.0,
+			4
+		)
+
+
+func handle_boss_attempt_started(definition: BossEncounterDefinition) -> void:
+	_active_boss = definition
+	if definition == null:
+		return
+	_queue_transmission(
+		StringName("boss_%s_echo" % String(definition.boss_id).to_lower()),
+		"narrative.speaker.echo7",
+		String(definition.voice_caption_keys.get(&"echo", "")),
+		4.4,
+		4
+	)
+
+
+func handle_boss_state_changed(state: StringName) -> void:
+	if _active_boss == null or state != CommandBossSession.STATE_EXPOSED:
+		return
+	_queue_transmission(
+		StringName("boss_%s_veyr" % String(_active_boss.boss_id).to_lower()),
+		"narrative.speaker.veyr",
+		String(_active_boss.voice_caption_keys.get(&"veyr", "")),
+		5.0,
+		5
+	)
+
+
+func handle_boss_completed(definition: BossEncounterDefinition) -> bool:
+	if campaign_progress == null or definition == null:
+		return false
+	var capstone: DossierDefinition = DossierCatalog.capstone_for_boss(definition.boss_id)
+	if capstone == null:
+		return false
+	var evidence_ids: Array[StringName] = []
+	if definition.evidence_flag_id == &"CROWN":
+		evidence_ids.append(&"CROWN")
+	var committed: bool = campaign_progress.commit_boss_transaction({
+		"transaction_id": StringName("boss:%s:complete" % definition.boss_id),
+		"boss_id": definition.boss_id,
+		"dossier_ids": [capstone.dossier_id],
+		"evidence_ids": evidence_ids,
+		"unlock_chunk": definition.unlock_chunk,
+		"reward_grant_id": StringName("boss:%s:reward" % definition.boss_id),
+	})
+	_active_boss = null
+	return committed
+
+
+func handle_enemy_defeated(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> void:
+	if campaign_progress == null or enemy == null:
+		return
+	if not enemy.trait_id in EnemyArchetypeCatalog.RANDOM_AFFIXES:
+		return
+	var evidence_id: StringName = campaign_progress.next_recoverable_evidence(
+		_elite_defeat_sequence
+	)
+	var drop_id: StringName = StringName(
+		"%d:%d:%s:%d" % [
+			run_seed,
+			_elite_defeat_sequence,
+			enemy.trait_id,
+			enemy.activation_generation,
+		]
+	)
+	_elite_defeat_sequence += 1
+	if evidence_id.is_empty():
+		return
+	if campaign_progress.recover_evidence_from_elite(evidence_id, drop_id):
+		evidence_recovered.emit(evidence_id, drop_id)
+		_queue_transmission(
+			StringName("elite_evidence_%s" % drop_id),
+			"narrative.speaker.protos",
+			"narrative.transmission.evidence_recovered",
+			3.8,
 			4
 		)
 
@@ -123,6 +206,12 @@ func handle_enemy_acquired(enemy: EnemyActor2D) -> void:
 	)
 
 
+func echo7_status_key() -> String:
+	if campaign_progress != null and campaign_progress.echo7_resolved():
+		return "narrative.echo7.resolved"
+	return "narrative.echo7.ambiguous"
+
+
 func fired_event_count() -> int:
 	return _fired_events.size()
 
@@ -138,7 +227,7 @@ func _queue_transmission(
 	duration: float,
 	priority: int
 ) -> void:
-	if _fired_events.has(event_id):
+	if event_id.is_empty() or line_key.is_empty() or _fired_events.has(event_id):
 		return
 	_fired_events[event_id] = true
 	transmission_requested.emit(event_id, speaker_key, line_key, duration, priority)
