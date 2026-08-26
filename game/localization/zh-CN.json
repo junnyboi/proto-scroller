@@ -71,7 +71,7 @@
   "hud.pending_score": "+{value} 分处于风险中",
   "hud.safe": "安全",
   "hud.experience": "等级 {level}  经验 {current} / {required}",
-  "hud.combo": "x{multiplier} 连击",
+  "hud.combo": "x{multiplier} 击杀连击",
   "hud.overdrive_ready_portrait": "超载就绪",
   "hud.overdrive_ready_landscape": "超载就绪 / 按下重击",
   "hud.momentum": "动能 {percent}%",

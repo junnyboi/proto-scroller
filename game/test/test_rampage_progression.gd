@@ -22,40 +22,40 @@ func test_event_hub_deduplicates_and_keeps_scene_local_ids() -> void:
 	_record_test_execution()
 
 
-func test_session_scores_before_combo_growth() -> void:
+func test_consecutive_kills_apply_the_growing_multiplier_immediately() -> void:
 	var session: RampageSession = _session()
-	assert_true(session.publish(_event(&"a1", &"smash", 100, 0.0, true)))
+	assert_true(session.publish(_kill(&"kill_1", 100)))
 	assert_eq(session.current_score(), 100)
 	assert_eq(session.current_multiplier(), 1)
-	assert_true(session.publish(_event(&"a2", &"smash", 100, 0.0, true)))
-	assert_eq(session.current_score(), 200)
+	assert_true(session.publish(_kill(&"kill_2", 100)))
+	assert_eq(session.current_score(), 300)
 	assert_eq(session.current_multiplier(), 2)
-	assert_true(session.publish(_event(&"a3", &"smash", 100, 0.0, true)))
-	assert_eq(session.current_score(), 400)
-	assert_eq(session.current_multiplier(), 2)
-	assert_true(session.publish(_event(&"b1", &"stomp", 100, 0.0, true)))
+	assert_true(session.publish(_kill(&"kill_3", 100)))
 	assert_eq(session.current_score(), 600)
 	assert_eq(session.current_multiplier(), 3)
+	assert_true(session.publish(_kill(&"kill_4", 100)))
+	assert_eq(session.current_score(), 1000)
+	assert_eq(session.current_multiplier(), 4)
 	_record_test_execution()
 
 
-func test_nonqualifying_score_ignores_active_multiplier() -> void:
+func test_nonkill_score_ignores_active_kill_multiplier() -> void:
 	var session: RampageSession = _session()
-	session.publish(_event(&"a1", &"smash", 10, 0.0, true))
-	session.publish(_event(&"a2", &"smash", 10, 0.0, true))
+	session.publish(_kill(&"kill_1", 10))
+	session.publish(_kill(&"kill_2", 10))
 	assert_eq(session.current_multiplier(), 2)
-	assert_true(session.publish(_event(&"prop", &"", 75, 0.0, false)))
-	assert_eq(session.current_score(), 95)
+	assert_true(session.publish(_event(&"prop", &"PROP", 75, 0.0, true)))
+	assert_eq(session.current_score(), 105)
 	assert_eq(session.current_multiplier(), 2)
 	assert_true(session.publish(_event(&"zero", &"", 0, 0.0, false)))
-	assert_eq(session.current_score(), 95)
+	assert_eq(session.current_score(), 105)
 	_record_test_execution()
 
 
 func test_combo_grace_breaks_at_exactly_three_seconds() -> void:
 	var combo: ComboTracker = ComboTracker.new()
 	add_child_autofree(combo)
-	assert_true(combo.register_event(_event(&"a", &"smash", 0, 0.0, true)))
+	assert_true(combo.register_event(_kill(&"kill_1", 0)))
 	combo.advance(2.999)
 	assert_eq(combo.current_chain_count, 1)
 	assert_gt(combo.grace_remaining, 0.0)
@@ -67,26 +67,39 @@ func test_combo_grace_breaks_at_exactly_three_seconds() -> void:
 	_record_test_execution()
 
 
-func test_combo_caps_suppresses_third_repeat_and_restores_variety_growth() -> void:
+func test_kill_combo_caps_at_five_and_tracks_the_complete_streak() -> void:
 	var combo: ComboTracker = ComboTracker.new()
 	add_child_autofree(combo)
-	combo.register_event(_event(&"a1", &"smash", 0, 0.0, true))
-	combo.register_event(_event(&"a2", &"smash", 0, 0.0, true))
-	assert_eq(combo.current_multiplier, 2)
-	combo.register_event(_event(&"a3", &"smash", 0, 0.0, true))
-	assert_eq(combo.current_multiplier, 2)
-	combo.register_event(_event(&"b1", &"stomp", 0, 0.0, true))
-	assert_eq(combo.current_multiplier, 3)
-	combo.register_event(_event(&"b2", &"stomp", 0, 0.0, true))
-	assert_eq(combo.current_multiplier, 4)
-	combo.register_event(_event(&"b3", &"stomp", 0, 0.0, true))
-	assert_eq(combo.current_multiplier, 4)
-	combo.register_event(_event(&"c1", &"throw", 0, 0.0, true))
-	assert_eq(combo.current_multiplier, 5)
-	combo.register_event(_event(&"d1", &"scrap", 0, 0.0, true))
-	assert_eq(combo.current_multiplier, 5)
+	for index: int in range(7):
+		assert_true(combo.register_event(_kill(StringName("kill_%d" % index), 0)))
+		assert_eq(combo.current_multiplier, mini(index + 1, 5))
 	assert_eq(combo.peak_multiplier, 5)
-	assert_eq(combo.best_chain_count, 8)
+	assert_eq(combo.best_chain_count, 7)
+	_record_test_execution()
+
+
+func test_any_damage_breaks_kill_combo_but_only_heavy_hits_penalize_score() -> void:
+	var session: RampageSession = _session()
+	for index: int in range(3):
+		session.publish(_kill(StringName("kill_%d" % index), 100))
+	var pending_before: int = session.run_score.pending_bank.value
+	assert_eq(session.current_multiplier(), 3)
+	assert_true(session.publish(GameplayEvent.new(
+		&"damage",
+		99,
+		GameplayEvent.Kind.PLAYER_DAMAGE_TAKEN
+	)))
+	assert_eq(session.current_multiplier(), 1)
+	assert_eq(session.combo_tracker.current_chain_count, 0)
+	assert_eq(session.run_score.pending_bank.value, pending_before)
+	assert_eq(session.heavy_hit_count, 0)
+	assert_true(session.publish(GameplayEvent.new(
+		&"heavy",
+		100,
+		GameplayEvent.Kind.PLAYER_HEAVY_HIT
+	)))
+	assert_lt(session.run_score.pending_bank.value, pending_before)
+	assert_eq(session.heavy_hit_count, 1)
 	_record_test_execution()
 
 
@@ -141,7 +154,7 @@ func test_ready_momentum_locks_gain_decay_and_event_loss() -> void:
 
 func test_session_reset_clears_all_run_state() -> void:
 	var session: RampageSession = _session()
-	var event: GameplayEvent = _event(&"run-key", &"smash", 100, 40.0, true)
+	var event: GameplayEvent = _kill(&"run-key", 100, 40.0)
 	assert_true(session.publish(event))
 	assert_gt(session.current_score(), 0)
 	assert_gt(session.momentum_value(), 0.0)
@@ -180,6 +193,22 @@ func _event(
 		base_points,
 		momentum_delta,
 		qualifies_for_combo
+	)
+
+
+func _kill(
+	dedupe_key: StringName,
+	base_points: int,
+	momentum_delta: float = 0.0
+) -> GameplayEvent:
+	return GameplayEvent.new(
+		dedupe_key,
+		0,
+		GameplayEvent.Kind.ENEMY_DEFEATED,
+		GameplayEvent.ENEMY_KILL,
+		base_points,
+		momentum_delta,
+		true
 	)
 
 
