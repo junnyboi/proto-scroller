@@ -620,7 +620,6 @@ func _on_projectile_requested(
 		kind
 	)
 
-
 func _on_robot_health_changed(current: float, maximum: float) -> void:
 	if gameplay_hud != null:
 		gameplay_hud.set_health(current, maximum)
