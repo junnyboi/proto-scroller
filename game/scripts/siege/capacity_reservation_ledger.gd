@@ -91,7 +91,9 @@ func counts_for_beat(beat: DistrictBeat) -> Dictionary[StringName, int]:
 		var key: StringName = EnemyArchetypeCatalog.reservation_key(kind)
 		counts[key] = (
 			int(counts.get(key, 0))
-			+ EnemyArchetypeCatalog.spawn_multiplier(kind)
+			+ EnemySpawnTuning.scaled_count(
+				EnemyArchetypeCatalog.spawn_multiplier(kind)
+			)
 		)
 	return counts
 

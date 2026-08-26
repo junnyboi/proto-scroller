@@ -71,6 +71,8 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	behavior = StringName(profile.get("behavior", &"ground_standoff"))
 	movement_style = StringName(profile.get("movement_style", &"heavy_march"))
 	attack_style = StringName(profile.get("attack_style", &"turret_burst"))
+	if attack_style in [&"incubation_drop", &"deploy", &"drone_launch"]:
+		attack_interval = EnemySpawnTuning.scaled_interval(attack_interval)
 	xp_value = int(profile.get("xp", 500))
 	threat_cost = int(profile.get("threat", 1))
 	remains_family = StringName(profile.get("remains", &"vehicle"))
@@ -353,11 +355,11 @@ func _complete_carrier_attack() -> bool:
 		if encounter_runtime != null:
 			encounter_runtime.apply_target_mark(MARK_DURATION + 2.0)
 			encounter_runtime.emit_hybrid_event(&"seraph_payload", self)
-		_try_spawn_reinforcements(3)
+		_try_spawn_reinforcements(EnemySpawnTuning.scaled_count(3))
 		finish_telegraph()
 		return true
 	if attack_style in [&"deploy", &"drone_launch"]:
-		_try_spawn_reinforcement()
+		_try_spawn_reinforcements(EnemySpawnTuning.QUANTITY_MULTIPLIER)
 		finish_telegraph()
 		return true
 	return false
@@ -452,7 +454,9 @@ func _try_spawn_reinforcement() -> bool:
 func _try_spawn_reinforcements(requested: int) -> int:
 	if encounter_runtime == null:
 		return 0
-	var spawn_limit: int = int(profile.get("spawn_limit", 0))
+	var spawn_limit: int = EnemySpawnTuning.scaled_count(
+		int(profile.get("spawn_limit", 0))
+	)
 	if _spawned_children >= spawn_limit:
 		return 0
 	var spawn_kind: StringName = StringName(profile.get("spawn_kind", &""))

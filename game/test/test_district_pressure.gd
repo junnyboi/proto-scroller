@@ -178,7 +178,10 @@ func test_absolute_threat_saturation_delays_and_then_releases_the_next_beat() ->
 	city.encounter_runtime.release_all()
 	director._try_start_next_beat()
 	assert_eq(director.current_beat_id(), &"COMMAND_TEST")
-	assert_lte(director.progression_peak_threat, DistrictPressureCatalog.MAX_LIVE_THREAT)
+	assert_lte(
+		director.progression_peak_threat,
+		EnemySpawnTuning.scaled_threat(DistrictPressureCatalog.MAX_LIVE_THREAT)
+	)
 	director._beat_pending.clear()
 	director.ledger.cancel_all()
 

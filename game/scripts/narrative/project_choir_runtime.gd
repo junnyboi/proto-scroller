@@ -97,11 +97,14 @@ func _try_release_containment(
 	):
 		return
 	var spawn_position: Vector2 = building.global_position + Vector2(0.0, 50.0)
-	var crawler: EnemyActor2D = _city.encounter_runtime.acquire(
-		&"ossuary_crawler",
-		spawn_position
-	)
-	if crawler != null:
+	var released: int = 0
+	for copy_index: int in range(EnemySpawnTuning.QUANTITY_MULTIPLIER):
+		var crawler: EnemyActor2D = _city.encounter_runtime.acquire(
+			&"ossuary_crawler",
+			spawn_position + EnemySpawnTuning.offset_for_copy(copy_index, 90.0)
+		)
+		released += 1 if crawler != null else 0
+	if released > 0:
 		_released_containment[definition.building_variant_id] = true
 
 

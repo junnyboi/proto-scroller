@@ -311,18 +311,19 @@ func deploy_business_support() -> Array[EnemyActor2D]:
 	):
 		return result
 	_business_support_deployed = true
-	var bulwark: EnemyActor2D = encounter_runtime.acquire(
-		&"bulwark", center + Vector2(-410.0, 0.0), &"SUPPRESSOR"
-	)
-	var sapper: EnemyActor2D = encounter_runtime.acquire(
-		&"sapper", center + Vector2(410.0, 0.0), &"ANCHOR"
-	)
-	if bulwark != null:
-		utility_pool.controller.track_support(bulwark)
-		result.append(bulwark)
-	if sapper != null:
-		utility_pool.controller.track_support(sapper)
-		result.append(sapper)
+	for copy_index: int in range(EnemySpawnTuning.QUANTITY_MULTIPLIER):
+		var copy_offset: Vector2 = EnemySpawnTuning.offset_for_copy(copy_index, 90.0)
+		var bulwark: EnemyActor2D = encounter_runtime.acquire(
+			&"bulwark", center + Vector2(-410.0, 0.0) + copy_offset, &"SUPPRESSOR"
+		)
+		var sapper: EnemyActor2D = encounter_runtime.acquire(
+			&"sapper", center + Vector2(410.0, 0.0) + copy_offset, &"ANCHOR"
+		)
+		for support: EnemyActor2D in [bulwark, sapper]:
+			if support == null:
+				continue
+			utility_pool.controller.track_support(support)
+			result.append(support)
 	return result
 
 

@@ -304,7 +304,10 @@ func _try_start_next_beat() -> void:
 		var target_duration: float = _scaled_target_duration(act)
 		if act_elapsed < target_duration:
 			return
-		var overrun_expired: bool = act_elapsed >= target_duration + MAXIMUM_ACT_OVERRUN
+		var overrun_expired: bool = (
+			act_elapsed
+			>= target_duration + EnemySpawnTuning.scaled_interval(MAXIMUM_ACT_OVERRUN)
+		)
 		if _threat_weight() > LOW_THREAT_WEIGHT:
 			if not overrun_expired:
 				return
@@ -340,7 +343,7 @@ func _try_start_next_beat() -> void:
 	var authored_threat_floor: int = _authored_threat(authored_beat)
 	var resolved_threat: int = _authored_threat(next_beat)
 	var beat_threat_ceiling: int = maxi(
-		current_pressure_profile.live_threat_ceiling,
+		EnemySpawnTuning.scaled_threat(current_pressure_profile.live_threat_ceiling),
 		authored_threat_floor
 	)
 	var admission_threat: int = (
@@ -360,7 +363,10 @@ func _try_start_next_beat() -> void:
 		var extra_entry: EnemySpawnEntry = next_beat.spawns[entry_index]
 		var extra_kind: StringName = StringName(extra_entry.kind)
 		var key: StringName = EnemyArchetypeCatalog.reservation_key(extra_kind)
-		counts[key] = int(counts.get(key, 0)) + int(progression_copies[entry_index])
+		counts[key] = (
+			int(counts.get(key, 0))
+			+ EnemySpawnTuning.scaled_count(int(progression_copies[entry_index]))
+		)
 	var reservation_id: int = ledger.reserve_counts(counts, runtime)
 	if reservation_id == 0 and not progression_copies.is_empty():
 		progression_degradation_count += 1
@@ -384,11 +390,13 @@ func _try_start_next_beat() -> void:
 		current_pressure_profile
 	)
 	var pending_index: int = 0
-	var cadence_scale: float = current_pressure_profile.cadence_scale
+	var cadence_scale: float = (
+		current_pressure_profile.cadence_scale * EnemySpawnTuning.INTERVAL_SCALE
+	)
 	for entry_index: int in range(next_beat.spawns.size()):
 		var entry: EnemySpawnEntry = next_beat.spawns[entry_index]
 		var kind: StringName = StringName(entry.kind)
-		var spawn_count: int = (
+		var spawn_count: int = EnemySpawnTuning.scaled_count(
 			EnemyArchetypeCatalog.spawn_multiplier(kind)
 			+ int(progression_copies.get(entry_index, 0))
 		)
@@ -398,14 +406,16 @@ func _try_start_next_beat() -> void:
 			var stagger: float = float(copy_index) * HUMAN_COPY_STAGGER * cadence_scale
 			if act.chaos_enabled:
 				stagger += float(pending_index) * act.spawn_stagger_seconds * cadence_scale
-				stagger += _chaos_rng.randf_range(0.0, act.spawn_jitter_seconds)
+				stagger += EnemySpawnTuning.scaled_interval(
+					_chaos_rng.randf_range(0.0, act.spawn_jitter_seconds)
+				)
 			var spawn_anchor: String = entry.spawn_anchor
 			if act.chaos_enabled and _chaos_rng.randf() < act.mirrored_flank_chance:
 				spawn_anchor = _mirrored_anchor(spawn_anchor)
 			var copy_direction: float = -1.0 if spawn_anchor in ["BEHIND", "CAMERA_LEFT"] else 1.0
 			_beat_pending.append({
 				"entry": entry,
-				"remaining": maxf(entry.delay + stagger, 0.0),
+				"remaining": EnemySpawnTuning.scaled_interval(entry.delay) + stagger,
 				"trait_id": elite_plan.get(entry_index, entry.trait_id),
 				"spawn_anchor": spawn_anchor,
 				"offset": Vector2(copy_direction * float(copy_index) * HUMAN_COPY_SPACING, 0.0),
@@ -425,12 +435,18 @@ func _try_start_next_beat() -> void:
 		peak_hazard_pending = maxi(peak_hazard_pending, _hazard_pending.size())
 	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
 	var trigger_scale: float = _trigger_scale(act)
-	pressure_remaining = next_beat.pressure_seconds * trigger_scale
+	pressure_remaining = EnemySpawnTuning.scaled_interval(
+		next_beat.pressure_seconds * trigger_scale
+	)
 	recovery_remaining = maxf(
-		RETALIATION_MINIMUM_RECOVERY if _is_retaliation(act) else 1.0,
-		next_beat.recovery_seconds
-		* trigger_scale
-		* current_pressure_profile.recovery_scale
+		EnemySpawnTuning.scaled_interval(
+			RETALIATION_MINIMUM_RECOVERY if _is_retaliation(act) else 1.0
+		),
+		EnemySpawnTuning.scaled_interval(
+			next_beat.recovery_seconds
+			* trigger_scale
+			* current_pressure_profile.recovery_scale
+		)
 	)
 	runtime.set_attack_gate(true)
 	state = STATE_PRESSURE
@@ -496,7 +512,9 @@ func _process_legacy(delta: float) -> void:
 	if not _pending.is_empty() or runtime.active_count() > 0:
 		return
 	if _respite_remaining <= 0.0:
-		_respite_remaining = waves[phase_index].minimum_respite
+		_respite_remaining = EnemySpawnTuning.scaled_interval(
+			waves[phase_index].minimum_respite
+		)
 	_respite_remaining = maxf(_respite_remaining - delta, 0.0)
 	if not is_zero_approx(_respite_remaining):
 		return
@@ -619,7 +637,11 @@ func _trigger_scale(act: DistrictAct) -> float:
 
 
 func _scaled_target_duration(act: DistrictAct) -> float:
-	return act.target_duration * _trigger_scale(act) if act != null else 0.0
+	return (
+		EnemySpawnTuning.scaled_interval(act.target_duration * _trigger_scale(act))
+		if act != null
+		else 0.0
+	)
 
 
 func _progression_copy_plan(
@@ -633,8 +655,10 @@ func _progression_copy_plan(
 	if beat == null or beat.spawns.is_empty() or profile.threat_allowance <= 0:
 		return plan
 	var available_threat: int = mini(
-		profile.threat_allowance,
-		profile.live_threat_ceiling - _threat_weight() - _planned_threat(beat, {})
+		EnemySpawnTuning.scaled_threat(profile.threat_allowance),
+		EnemySpawnTuning.scaled_threat(profile.live_threat_ceiling)
+		- _threat_weight()
+		- _planned_threat(beat, {})
 	)
 	if available_threat <= 0:
 		return plan
@@ -649,7 +673,9 @@ func _progression_copy_plan(
 		var entry: EnemySpawnEntry = beat.spawns[entry_index]
 		candidates.append({
 			"entry_index": entry_index,
-			"cost": EnemyArchetypeCatalog.threat_cost(StringName(entry.kind)),
+			"cost": EnemySpawnTuning.scaled_threat(
+				EnemyArchetypeCatalog.threat_cost(StringName(entry.kind))
+			),
 			"rotation": offset,
 		})
 	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -681,7 +707,7 @@ func _planned_threat(beat: DistrictBeat, extra_copies: Dictionary) -> int:
 	for entry_index: int in range(beat.spawns.size()):
 		var entry: EnemySpawnEntry = beat.spawns[entry_index]
 		var kind: StringName = StringName(entry.kind)
-		var count: int = (
+		var count: int = EnemySpawnTuning.scaled_count(
 			EnemyArchetypeCatalog.spawn_multiplier(kind)
 			+ int(extra_copies.get(entry_index, 0))
 		)
@@ -693,9 +719,8 @@ func _authored_threat(beat: DistrictBeat) -> int:
 	var threat: int = 0
 	for entry: EnemySpawnEntry in beat.spawns:
 		var kind: StringName = StringName(entry.kind)
-		threat += (
-			EnemyArchetypeCatalog.threat_cost(kind)
-			* EnemyArchetypeCatalog.spawn_multiplier(kind)
+		threat += EnemyArchetypeCatalog.threat_cost(kind) * EnemySpawnTuning.scaled_count(
+			EnemyArchetypeCatalog.spawn_multiplier(kind)
 		)
 	return threat
 

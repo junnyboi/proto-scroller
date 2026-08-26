@@ -279,10 +279,13 @@ func _present_choir_prime() -> void:
 	utility_pool.present_royal_pylons(boss.global_position)
 	for index: int in range(CHOIR_GAUNTLET.size()):
 		var horizontal: float = -440.0 + float(index) * 220.0
-		dependencies.encounter_runtime.acquire(
-			CHOIR_GAUNTLET[index],
-			boss.global_position + Vector2(horizontal, -30.0)
-		)
+		for copy_index: int in range(EnemySpawnTuning.QUANTITY_MULTIPLIER):
+			dependencies.encounter_runtime.acquire(
+				CHOIR_GAUNTLET[index],
+				boss.global_position
+				+ Vector2(horizontal, -30.0)
+				+ EnemySpawnTuning.offset_for_copy(copy_index, 72.0)
+			)
 
 
 func _configure_campaign_runtime() -> void:

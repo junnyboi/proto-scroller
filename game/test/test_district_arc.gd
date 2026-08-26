@@ -98,7 +98,7 @@ func test_retaliation_triggers_every_wave_25_percent_sooner() -> void:
 	)
 	assert_almost_eq(
 		director._scaled_target_duration(retaliation),
-		retaliation.target_duration * 0.75,
+		retaliation.target_duration * 0.75 * EnemySpawnTuning.INTERVAL_SCALE,
 		0.0001
 	)
 	director.stop()
@@ -113,12 +113,14 @@ func test_retaliation_triggers_every_wave_25_percent_sooner() -> void:
 		assert_eq(director.current_beat_id(), expected_beats[beat_index])
 		assert_almost_eq(
 			director.pressure_remaining,
-			baseline_pressure[beat_index] * 0.75,
+			baseline_pressure[beat_index] * 0.75 * EnemySpawnTuning.INTERVAL_SCALE,
 			0.0001
 		)
 		assert_almost_eq(
 			director.recovery_remaining,
-			retaliation.beats[beat_index].recovery_seconds * 0.75,
+			retaliation.beats[beat_index].recovery_seconds
+			* 0.75
+			* EnemySpawnTuning.INTERVAL_SCALE,
 			0.0001
 		)
 		assert_gt(director.pending_count(), 0)
@@ -198,8 +200,8 @@ func test_final_chaos_gauntlet_doubles_humans_and_staggers_the_swarm() -> void:
 	director.act_elapsed = 0.0
 	director._try_start_next_beat()
 	assert_eq(director.current_beat_id(), &"COMMAND_GAUNTLET")
-	assert_eq(director.pending_count(), 6)
-	assert_eq(director.ledger.pending_count(&"lobber"), 4)
+	assert_eq(director.pending_count(), 12)
+	assert_eq(director.ledger.pending_count(&"lobber"), 8)
 	var delays: Dictionary[float, bool] = {}
 	var infantry_offsets: int = 0
 	for record: Dictionary in director._beat_pending:
@@ -207,7 +209,7 @@ func test_final_chaos_gauntlet_doubles_humans_and_staggers_the_swarm() -> void:
 		if EnemyArchetypeCatalog.is_human_enemy(StringName(record.entry.kind)):
 			infantry_offsets += 1 if (record.offset as Vector2).x != 0.0 else 0
 	assert_gt(delays.size(), 1)
-	assert_eq(infantry_offsets, 2)
+	assert_eq(infantry_offsets, 6)
 
 
 func _elite_trace(p_seed: int) -> Array[Dictionary]:

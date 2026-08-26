@@ -1,14 +1,14 @@
 class_name RuntimeBudget
 extends RefCounted
 
-const SOLDIERS: int = 12
-const TANKS: int = 2
-const HELICOPTERS: int = 1
-const PROCEDURAL_INFANTRY: int = 12
-const PROCEDURAL_LIGHT: int = 3
-const PROCEDURAL_HEAVY: int = 4
-const PROCEDURAL_AIR: int = 4
-const PROCEDURAL_SIEGE: int = 2
+const SOLDIERS: int = 24
+const TANKS: int = 4
+const HELICOPTERS: int = 2
+const PROCEDURAL_INFANTRY: int = 24
+const PROCEDURAL_LIGHT: int = 6
+const PROCEDURAL_HEAVY: int = 8
+const PROCEDURAL_AIR: int = 8
+const PROCEDURAL_SIEGE: int = 4
 const PROCEDURAL_ENEMIES: int = (
 	PROCEDURAL_INFANTRY
 	+ PROCEDURAL_LIGHT
@@ -40,8 +40,8 @@ const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
 const ACTIVE_CATALYSTS: int = 2
 const REPAIR_PICKUP_SLOTS: int = CATALYST_SLOTS
-const ACTOR_RESERVATIONS: int = 9
-const PENDING_BEAT_RECORDS: int = 24
+const ACTOR_RESERVATIONS: int = 18
+const PENDING_BEAT_RECORDS: int = 48
 const CATALYST_QUERY_RESULTS: int = 12
 const DIRECTIVE_SESSIONS: int = 1
 const DIRECTIVE_CARDS: int = 1

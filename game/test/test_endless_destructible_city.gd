@@ -240,7 +240,10 @@ func test_district_readiness_scales_enemy_and_hazard_pressure_inside_caps() -> v
 	)
 	assert_eq(base_copies.size(), 0)
 	assert_gt(scaled_copies.size(), 0)
-	assert_lte(director._planned_threat(beat, scaled_copies), military.live_threat_ceiling)
+	assert_lte(
+		director._planned_threat(beat, scaled_copies),
+		EnemySpawnTuning.scaled_threat(military.live_threat_ceiling)
+	)
 	var base_elites: Dictionary[int, StringName] = director._roll_elite_plan(act, beat, 0)
 	var scaled_elites: Dictionary[int, StringName] = director._roll_elite_plan(act, beat, 3)
 	assert_gte(scaled_elites.size(), base_elites.size())
@@ -278,9 +281,15 @@ func test_district_readiness_scales_enemy_and_hazard_pressure_inside_caps() -> v
 	var authored_count: int = 0
 	for entry: EnemySpawnEntry in beat.spawns:
 		authored_count += EnemyArchetypeCatalog.spawn_multiplier(StringName(entry.kind))
-	assert_eq(director._beat_pending.size(), authored_count + scaled_copies.size())
+	assert_eq(
+		director._beat_pending.size(),
+		EnemySpawnTuning.scaled_count(authored_count + scaled_copies.size())
+	)
 	assert_eq(director.progression_peak_tier, 3)
-	assert_lte(director.progression_peak_threat, military.live_threat_ceiling)
+	assert_lte(
+		director.progression_peak_threat,
+		EnemySpawnTuning.scaled_threat(military.live_threat_ceiling)
+	)
 	assert_lte(director._hazard_pending.size(), RuntimeBudget.PENDING_HAZARDS)
 	_record_test_execution()
 

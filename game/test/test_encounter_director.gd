@@ -9,14 +9,14 @@ const RETALIATION: EnemyWave = preload("res://resources/encounters/wave_04_retal
 
 func test_runtime_prewarms_exact_enemy_caps_without_post_warm_creation() -> void:
 	var city: CitySlice = await _spawn_city()
-	assert_eq(city.encounter_runtime.total_count(&"soldier"), 12)
-	assert_eq(city.encounter_runtime.total_count(&"tank"), 2)
-	assert_eq(city.encounter_runtime.total_count(&"helicopter"), 1)
-	assert_eq(city.encounter_runtime.family_capacity(&"infantry"), 12)
-	assert_eq(city.encounter_runtime.family_capacity(&"light"), 3)
-	assert_eq(city.encounter_runtime.family_capacity(&"heavy"), 4)
-	assert_eq(city.encounter_runtime.family_capacity(&"air"), 4)
-	assert_eq(city.encounter_runtime.family_capacity(&"siege"), 2)
+	assert_eq(city.encounter_runtime.total_count(&"soldier"), 24)
+	assert_eq(city.encounter_runtime.total_count(&"tank"), 4)
+	assert_eq(city.encounter_runtime.total_count(&"helicopter"), 2)
+	assert_eq(city.encounter_runtime.family_capacity(&"infantry"), 24)
+	assert_eq(city.encounter_runtime.family_capacity(&"light"), 6)
+	assert_eq(city.encounter_runtime.family_capacity(&"heavy"), 8)
+	assert_eq(city.encounter_runtime.family_capacity(&"air"), 8)
+	assert_eq(city.encounter_runtime.family_capacity(&"siege"), 4)
 	assert_eq(
 		city.encounter_runtime.total_count(),
 		RuntimeBudget.SOLDIERS
@@ -139,15 +139,18 @@ func test_wave_progression_waits_for_active_enemies_then_advances() -> void:
 	var director: EncounterDirector = city.encounter_director
 	director.setup(city.encounter_runtime, [CONTACT, ARMOR])
 	director.start()
-	director._process(2.4)
+	assert_eq(director.pending_count(), 8)
+	director._process(1.2)
 	assert_eq(director.phase_index, 0)
-	assert_eq(city.encounter_runtime.active_count(&"soldier"), 3)
-	director._process(0.2)
 	assert_eq(city.encounter_runtime.active_count(&"soldier"), 4)
+	director._process(0.15)
+	assert_eq(city.encounter_runtime.active_count(&"soldier"), 7)
+	director._process(0.04)
+	assert_eq(city.encounter_runtime.active_count(&"soldier"), 8)
 	director._process(8.0)
 	assert_eq(director.phase_index, 0)
 	city.encounter_runtime.release_all()
-	director._process(1.1)
+	director._process(0.6)
 	assert_eq(director.phase_index, 1)
 	assert_eq(director.current_phase_name(), "encounter.armor_response")
 

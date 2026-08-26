@@ -47,7 +47,9 @@ func _process(delta: float) -> void:
 	if not _pending.is_empty() or runtime.active_count() > 0:
 		return
 	if _respite_remaining <= 0.0:
-		_respite_remaining = waves[phase_index].minimum_respite
+		_respite_remaining = EnemySpawnTuning.scaled_interval(
+			waves[phase_index].minimum_respite
+		)
 	_respite_remaining = maxf(_respite_remaining - delta, 0.0)
 	if not is_zero_approx(_respite_remaining):
 		return
@@ -75,10 +77,15 @@ func _advance_phase() -> void:
 	var wave: EnemyWave = waves[phase_index]
 	for spawn: EnemySpawnEntry in wave.spawns:
 		var kind: StringName = StringName(spawn.kind)
-		for copy_index: int in range(EnemyArchetypeCatalog.spawn_multiplier(kind)):
+		var spawn_count: int = EnemySpawnTuning.scaled_count(
+			EnemyArchetypeCatalog.spawn_multiplier(kind)
+		)
+		for copy_index: int in range(spawn_count):
 			_pending.append({
 				"entry": spawn,
-				"remaining": wave.opening_delay + spawn.delay + float(copy_index) * 0.14,
+				"remaining": EnemySpawnTuning.scaled_interval(
+					wave.opening_delay + spawn.delay + float(copy_index) * 0.14
+				),
 				"offset": Vector2(float(copy_index) * 52.0, 0.0),
 			})
 	phase_changed.emit(phase_index, wave.display_name)

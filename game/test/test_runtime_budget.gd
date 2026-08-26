@@ -48,7 +48,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	)
 	assert_lte(
 		snapshot.district_pressure_peak_threat,
-		DistrictPressureCatalog.MAX_LIVE_THREAT
+		EnemySpawnTuning.scaled_threat(DistrictPressureCatalog.MAX_LIVE_THREAT)
 	)
 	assert_gte(snapshot.district_copy_degradations, 0)
 	assert_eq(snapshot.street_chunks, RuntimeBudget.STREET_CHUNKS)

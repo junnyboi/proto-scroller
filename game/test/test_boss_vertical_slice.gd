@@ -35,14 +35,17 @@ func test_business_and_residential_each_cover_all_64_facade_masks() -> void:
 		assert_eq(rows, 64)
 
 
-func test_business_has_exactly_five_attacks_and_bounded_one_time_support() -> void:
+func test_business_has_exactly_five_attacks_and_bounded_doubled_one_time_support() -> void:
 	_start(&"SETTLEMENT_ENGINE_S04")
 	assert_eq(slice.active_attack_choices(), BossVerticalSliceController.BUSINESS_ATTACKS)
 	assert_eq(slice.active_attack_choices().size(), 5)
 	var support: Array[EnemyActor2D] = slice.deploy_business_support()
-	assert_eq(support.size(), 2)
+	assert_eq(support.size(), EnemySpawnTuning.scaled_count(2))
 	assert_eq(slice.deploy_business_support().size(), 0)
-	assert_eq(city.encounter_runtime.active_family_count(&"infantry"), 2)
+	assert_eq(
+		city.encounter_runtime.active_family_count(&"infantry"),
+		EnemySpawnTuning.scaled_count(2)
+	)
 	assert_eq(city.encounter_runtime.active_family_count(&"siege"), 0)
 	assert_eq(city.encounter_runtime.active_family_count(&"light"), 0)
 

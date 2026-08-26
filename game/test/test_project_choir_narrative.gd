@@ -117,7 +117,7 @@ func test_city_narrative_collects_once_reveals_and_survives_one_finish() -> void
 	assert_true(city.gameplay_hud.overlay_summary.text.contains("GENERATION 1"))
 
 
-func test_entertainment_containment_breach_releases_one_bounded_crawler() -> void:
+func test_entertainment_containment_breach_releases_two_bounded_crawlers() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -133,7 +133,10 @@ func test_entertainment_containment_breach_releases_one_bounded_crawler() -> voi
 		definition.trigger_row,
 		null
 	)
-	assert_eq(city.encounter_runtime.active_count(&"ossuary_crawler"), 1)
+	assert_eq(
+		city.encounter_runtime.active_count(&"ossuary_crawler"),
+		EnemySpawnTuning.QUANTITY_MULTIPLIER
+	)
 	assert_eq(city.project_choir_runtime.containment_release_count(), 1)
 	city.project_choir_runtime._on_building_cell_destroyed(
 		city.building,
@@ -141,7 +144,10 @@ func test_entertainment_containment_breach_releases_one_bounded_crawler() -> voi
 		definition.trigger_row,
 		null
 	)
-	assert_eq(city.encounter_runtime.active_count(&"ossuary_crawler"), 1)
+	assert_eq(
+		city.encounter_runtime.active_count(&"ossuary_crawler"),
+		EnemySpawnTuning.QUANTITY_MULTIPLIER
+	)
 	assert_eq(city.project_choir_runtime.containment_release_count(), 1)
 
 
