@@ -85,7 +85,6 @@ func _on_shop_opened(
 func _on_purchase_completed(product: WeaponShopProduct, remaining_score: int) -> void:
 	overlay.set_score(remaining_score)
 	overlay.update_status(product.product_id, &"sold")
-	overlay.show_feedback("shop.purchase_complete")
 	overlay.play_transaction_success(product)
 	impact_feedback_pool.play_cue(
 		AudioCueRegistry.Cue.SHOP_REPAIR
@@ -98,7 +97,6 @@ func _on_purchase_completed(product: WeaponShopProduct, remaining_score: int) ->
 
 func _on_purchase_rejected(product: WeaponShopProduct, reason: StringName) -> void:
 	overlay.update_status(product.product_id, reason)
-	overlay.show_feedback("shop.rejected.%s" % String(reason))
 
 
 func _on_shop_closed(

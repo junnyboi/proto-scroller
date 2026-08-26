@@ -38,7 +38,7 @@ func _run() -> void:
 	city._on_score_changed(12_450, 0)
 	city.robot.current_health = 58.0
 	city.robot.health_changed.emit(city.robot.current_health, city.robot.max_health)
-	city.urban_siege.act_completed.emit(2, &"ESCALATION", "encounter.escalation")
+	city.urban_siege.act_completed.emit(0, &"CONTACT", "encounter.contact")
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
@@ -53,12 +53,13 @@ func _run() -> void:
 		quit(1)
 		return
 	overlay.dialogue_panel._dismiss()
+	overlay.cards[2]._request_preview()
 	await process_frame
 	await RenderingServer.frame_post_draw
 	if not overlay.preview_panel.visible or not _save_frame(SHOT_PATH, target_size):
 		quit(1)
 		return
-	overlay.cards[0]._on_pressed()
+	overlay.cards[2]._on_pressed()
 	await process_frame
 	await RenderingServer.frame_post_draw
 	if not overlay.confirmation_panel.active or not _save_frame(CONFIRM_PATH, target_size):
