@@ -11,6 +11,7 @@ const APEX_PAIRS: Array[Array] = [
 	[&"ammo_convoy", &"skybridge"],
 ]
 const CHAIN_PAIR_SPACING: float = 160.0
+const MINIMUM_EVENT_SPACING: float = 0.75
 
 var runtime: HazardRuntime
 var assignments: Array[Dictionary] = []
@@ -18,6 +19,7 @@ var roll_count: int = 0
 var last_used_budget: int = 0
 var peak_used_budget: int = 0
 var last_progression_tier: int = 0
+var last_pressure_profile_id: StringName = &"BUSINESS"
 var _seed: int = SYSTEM_SALT
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -34,6 +36,7 @@ func configure(run_seed: int, cycle: int) -> void:
 	last_used_budget = 0
 	peak_used_budget = 0
 	last_progression_tier = 0
+	last_pressure_profile_id = &"BUSINESS"
 
 
 func reset_sequence() -> void:
@@ -55,18 +58,22 @@ func plan_for_beat(
 	act: DistrictAct,
 	beat: DistrictBeat,
 	robot_x: float,
-	progression_tier: int = 0
+	pressure_source: Variant = 0
 ) -> Array[Dictionary]:
 	var plan: Array[Dictionary] = []
 	last_used_budget = 0
-	last_progression_tier = clampi(progression_tier, 0, CityWorldStream.MAX_PROGRESSION_TIER)
+	var pressure_profile: DistrictPressureProfile = DistrictPressureCatalog.coerce_profile(
+		pressure_source
+	)
+	last_progression_tier = pressure_profile.district_index
+	last_pressure_profile_id = pressure_profile.district_id
 	var budget_limit: int = mini(
 		RuntimeBudget.HAZARD_PRESSURE,
-		act.hazard_pressure_budget + last_progression_tier
+		act.hazard_pressure_budget + pressure_profile.hazard_pressure_bonus
 	)
 	var event_limit: int = mini(
 		RuntimeBudget.PENDING_HAZARDS,
-		act.hazard_events_per_beat + floori(float(last_progression_tier) / 2.0)
+		act.hazard_events_per_beat + pressure_profile.hazard_event_bonus
 	)
 	if (
 		runtime == null
@@ -128,7 +135,14 @@ func plan_for_beat(
 		var side: int = -1 if _rng.randf() < 0.5 else 1
 		var distance: float = _rng.randf_range(MINIMUM_DISTANCE, MAXIMUM_DISTANCE)
 		var world_x: float = robot_x + float(side) * distance
-		var delay: float = 0.55 + float(event_index) * 0.88 + _rng.randf_range(0.0, 0.38)
+		var random_delay: float = 0.55 + float(event_index) * 0.88 + _rng.randf_range(
+			0.0,
+			0.38
+		)
+		var delay: float = maxf(
+			random_delay,
+			_last_damage_window_delay(plan) + MINIMUM_EVENT_SPACING
+		)
 		roll_count += 3
 		var selected_cost: int = EnvironmentalHazardCatalog.pressure_cost(hazard_id)
 		last_used_budget += selected_cost
@@ -146,6 +160,13 @@ func plan_for_beat(
 		assignments.append(record.duplicate())
 	peak_used_budget = maxi(peak_used_budget, last_used_budget)
 	return plan
+
+
+func _last_damage_window_delay(plan: Array[Dictionary]) -> float:
+	var latest: float = -MINIMUM_EVENT_SPACING
+	for record: Dictionary in plan:
+		latest = maxf(latest, float(record.remaining))
+	return latest
 
 
 func _plan_apex_pair(

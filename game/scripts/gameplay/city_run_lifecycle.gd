@@ -125,7 +125,13 @@ func _on_recovery_started(_duration: float) -> void:
 
 func _on_directive_selected(profile: DirectiveProfile) -> void:
 	city.upgrade_assembler.session.set_presentation_blocked(false)
-	city.gameplay_hud.show_directive(profile, 0, profile.target_count, 0)
+	city.gameplay_hud.show_directive(
+		profile,
+		0,
+		profile.target_count,
+		0,
+		city.urban_siege.directives
+	)
 
 
 func _on_directive_choices_offered(profiles: Array[DirectiveProfile]) -> void:
@@ -146,12 +152,12 @@ func _on_boss_armor_changed(current: float, maximum: float) -> void:
 	city.gameplay_hud.set_boss_status(city.urban_siege.boss_session.state, current, maximum)
 
 
-func _on_directive_progress(current: int, target: int) -> void:
-	city.gameplay_hud.set_directive_progress(
-		city.urban_siege.directives.active_profile,
-		current,
-		target
-	)
+func _on_directive_progress(
+	profile: DirectiveProfile,
+	current: int,
+	target: int
+) -> void:
+	city.gameplay_hud.set_directive_progress(profile, current, target)
 
 
 func _on_directive_completed(profile: DirectiveProfile, banked_score: int) -> void:

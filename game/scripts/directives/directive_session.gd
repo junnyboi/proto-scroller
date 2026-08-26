@@ -4,7 +4,7 @@ extends Node
 signal offered(profile: DirectiveProfile)
 signal choices_offered(profiles: Array[DirectiveProfile])
 signal selected(profile: DirectiveProfile)
-signal progress_changed(current: int, target: int)
+signal progress_changed(profile: DirectiveProfile, current: int, target: int)
 signal completed(profile: DirectiveProfile, banked_score: int)
 signal failed(profile: DirectiveProfile, penalty: int)
 signal bank_changed(value: int)
@@ -89,7 +89,7 @@ func select(profile: DirectiveProfile) -> bool:
 	progress = 0
 	pending_score = 0
 	selected.emit(profile)
-	progress_changed.emit(progress, profile.target_count)
+	progress_changed.emit(profile, progress, profile.target_count)
 	return true
 
 
@@ -244,7 +244,7 @@ func _on_event_published(event: GameplayEvent) -> void:
 	if not active_profile.matches_event(event):
 		return
 	progress += 1
-	progress_changed.emit(progress, active_profile.target_count)
+	progress_changed.emit(active_profile, progress, active_profile.target_count)
 	if progress >= active_profile.target_count:
 		_complete_active()
 

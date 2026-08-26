@@ -81,9 +81,13 @@ Implement declarative mission predicates, reusable effects, five validated pools
 
 Make mission time pause-aware, expose authoritative countdown state, build allocation-free timer/progress bars, add responsive landscape/portrait layouts, and expand the directive-card visual scenario to active, low-time, success, and failure states. Run focused tests, complete standard verification, inspect both orientations, commit, and push.
 
+**Status: Complete.** `DirectiveSession` is now the authoritative pause-aware clock, while the mission card reads only scalar session state and mutates prebuilt controls. The active card presents a numeric ceiling-second countdown, timer bar, objective counter, progress bar, instruction, and pending score; localized timer text changes only at integer boundaries. Landscape and portrait active/failure captures passed bounds and safe-zone checks, result mode still dismisses after 2.4 seconds, and the post-integration standard gate passed **304/304 tests with 28,825 assertions** in **499 seconds** alongside the concurrent Photon Core and facade-traversal changes.
+
 ### WP3 — Bounded five-district difficulty escalation
 
 Add district pressure profiles, readiness gating, threat-aware enemy copies, and hazard cap enforcement. Add a five-district by six-act planning matrix plus saturation, determinism, runtime-budget, and economy trace tests. Run the complete standard gate and representative traversal visuals, commit, and push.
+
+**Status: Complete.** The five exact pressure profiles are now immutable catalog data locked at beat start. Effective pressure is capped by `RunExperience.level`, so reaching Royal geography at level one still uses Business density and level five unlocks the full Royal profile. Enemy copies are deterministic, cheap-unit-first, threat-budgeted, capped at absolute live threat 20, and degrade to the authored beat if an expanded reservation is rejected. Beat starts wait when authored plus surviving threat would exceed their bounded ceiling. Hazards enforce pressure 10, pending 3, active 6, unique live IDs, no active recycling, and at least 0.75 seconds between independent damage windows. The complete five-district by six-act matrix, saturation, deterministic replay, runtime budget, and existing upgrade-cadence traces passed; Xvfb Royal traversal renders were inspected at **1280×720** and **720×1280**; and the post-integration standard gate passed **312/312 tests with 30,005 assertions** in **506 seconds**.
 
 ### WP4 — Release verification and deployment
 

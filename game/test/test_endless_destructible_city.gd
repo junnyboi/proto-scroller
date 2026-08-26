@@ -218,17 +218,29 @@ func test_run_reset_clears_sparse_mutations_without_reallocating() -> void:
 	_record_test_execution()
 
 
-func test_chunk_progression_scales_enemy_and_hazard_pressure_inside_caps() -> void:
+func test_district_readiness_scales_enemy_and_hazard_pressure_inside_caps() -> void:
 	var city: CitySlice = await _spawn_city()
 	await _move_to_logical_chunk(city, 24)
 	assert_eq(city.world_stream.progression_tier(), 3)
+	assert_eq(city.world_stream.current_district_id, &"MILITARY")
 	var director: DistrictResponseDirector = city.urban_siege.director
+	director.stop()
+	city.encounter_runtime.release_all()
 	var act: DistrictAct = city.urban_siege.district.acts[3]
 	var beat: DistrictBeat = act.beats[0]
-	var base_copies: Dictionary[int, int] = director._progression_copy_plan(beat, 0)
-	var scaled_copies: Dictionary[int, int] = director._progression_copy_plan(beat, 3)
+	var business: DistrictPressureProfile = DistrictPressureCatalog.profile_by_index(0)
+	var military: DistrictPressureProfile = DistrictPressureCatalog.profile_by_index(3)
+	var base_copies: Dictionary[int, int] = director._progression_copy_plan(
+		beat,
+		business
+	)
+	var scaled_copies: Dictionary[int, int] = director._progression_copy_plan(
+		beat,
+		military
+	)
 	assert_eq(base_copies.size(), 0)
-	assert_eq(scaled_copies.size(), mini(3, beat.spawns.size()))
+	assert_gt(scaled_copies.size(), 0)
+	assert_lte(director._planned_threat(beat, scaled_copies), military.live_threat_ceiling)
 	var base_elites: Dictionary[int, StringName] = director._roll_elite_plan(act, beat, 0)
 	var scaled_elites: Dictionary[int, StringName] = director._roll_elite_plan(act, beat, 3)
 	assert_gte(scaled_elites.size(), base_elites.size())
@@ -240,7 +252,7 @@ func test_chunk_progression_scales_enemy_and_hazard_pressure_inside_caps() -> vo
 		act,
 		beat,
 		city.robot.global_position.x,
-		0
+		business
 	)
 	var base_budget: int = controller.last_used_budget
 	controller.configure(4401, 1)
@@ -250,7 +262,7 @@ func test_chunk_progression_scales_enemy_and_hazard_pressure_inside_caps() -> vo
 		act,
 		beat,
 		city.robot.global_position.x,
-		3
+		military
 	)
 	assert_gte(scaled_hazards.size(), base_hazards.size())
 	assert_gte(controller.last_used_budget, base_budget)
@@ -261,15 +273,14 @@ func test_chunk_progression_scales_enemy_and_hazard_pressure_inside_caps() -> vo
 	director.phase_index = 3
 	director.beat_index = -1
 	director.state = director.STATE_WAITING
+	city.rampage_session.run_experience.level = military.readiness_level
 	director._try_start_next_beat()
 	var authored_count: int = 0
 	for entry: EnemySpawnEntry in beat.spawns:
 		authored_count += EnemyArchetypeCatalog.spawn_multiplier(StringName(entry.kind))
-	assert_eq(
-		director._beat_pending.size(),
-		authored_count + mini(3, beat.spawns.size())
-	)
+	assert_eq(director._beat_pending.size(), authored_count + scaled_copies.size())
 	assert_eq(director.progression_peak_tier, 3)
+	assert_lte(director.progression_peak_threat, military.live_threat_ceiling)
 	assert_lte(director._hazard_pending.size(), RuntimeBudget.PENDING_HAZARDS)
 	_record_test_execution()
 

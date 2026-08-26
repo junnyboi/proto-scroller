@@ -2,6 +2,9 @@ extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const TITLE_SCENE: PackedScene = preload("res://scenes/title_screen.tscn")
+const BREACH: DirectiveProfile = preload(
+	"res://resources/directives/demolition_breach.tres"
+)
 const PORTRAIT_SIZE: Vector2i = Vector2i(720, 1280)
 const LANDSCAPE_SIZE: Vector2i = Vector2i(1280, 720)
 
@@ -134,6 +137,25 @@ func test_city_portrait_hud_camera_and_mobile_controls_use_safe_zones() -> void:
 	assert_true(_inside_viewport(city.gameplay_hud.score_panel, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.experience_track, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.gameplay_hud.directive_card, PORTRAIT_SIZE))
+	city.gameplay_hud.show_directive(
+		BREACH,
+		1,
+		BREACH.target_count,
+		25,
+		city.urban_siege.directives
+	)
+	var directive_card: DirectiveCard = city.gameplay_hud.directive_card
+	var card_bounds: Rect2 = Rect2(Vector2.ZERO, directive_card.size)
+	for control: Control in [
+		directive_card.title_label,
+		directive_card.timer_label,
+		directive_card.detail_label,
+		directive_card.progress_label,
+		directive_card.bank_label,
+		directive_card.progress_track,
+		directive_card.timer_track,
+	]:
+		assert_true(card_bounds.encloses(control.get_rect()), control.name)
 	assert_true(_inside_viewport(city.mobile_controls.smash_button, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(city.mobile_controls.dash_button, PORTRAIT_SIZE))
 	assert_false(

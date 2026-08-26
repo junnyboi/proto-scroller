@@ -64,6 +64,8 @@ Forward logical-chunk progress selects geography independently of the six-act si
 
 All 25 buildings reuse the fixed six-building resident pool and the established three-column by two-row destruction topology. Variant changes reconfigure facade atlas regions, dimensions, material resistance, deterministic crack seeds, pipes, cables, hollow edges, and rubble geometry in place before mutation restore. The complete visual briefs and GPT Image 2 concept boards are documented in [`docs/DISTRICT_DESTRUCTION_DESIGN.md`](docs/DISTRICT_DESTRUCTION_DESIGN.md); phased architecture, risk controls, and measured gates are recorded in [`docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md`](docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md).
 
+The proposed narrative campaign, **Project CHOIR**, connects the five districts, twenty-five facades, retries, directives, and enemy escalation to a human bio-weapons conspiracy. Its storyline, phased implementation plan, and GPT Image 2 laboratory, enemy, carrier, and final-boss concepts are documented in [`docs/PROJECT_CHOIR_STORY_PROPOSAL.md`](docs/PROJECT_CHOIR_STORY_PROPOSAL.md).
+
 ## Run the web host
 
 ```bash

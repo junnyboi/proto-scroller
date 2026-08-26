@@ -32,9 +32,13 @@ var elite_assignments: Array[Dictionary] = []
 var elite_roll_count: int = 0
 var progression_peak_tier: int = 0
 var progression_copy_peak: int = 0
+var progression_degradation_count: int = 0
 var hazard_runtime: HazardRuntime
 var hazard_pressure: HazardPressureController
+var run_experience: RunExperience
+var current_pressure_profile: DistrictPressureProfile
 var peak_hazard_pending: int = 0
+var progression_peak_threat: int = 0
 var _elite_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _elite_seed: int = ELITE_SYSTEM_SALT
 var _chaos_rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -49,9 +53,14 @@ func setup(p_runtime: EncounterRuntime, p_waves: Array[EnemyWave]) -> void:
 	super.setup(p_runtime, p_waves)
 
 
-func setup_district(p_runtime: EncounterRuntime, p_district: DistrictDefinition) -> void:
+func setup_district(
+	p_runtime: EncounterRuntime,
+	p_district: DistrictDefinition,
+	p_run_experience: RunExperience = null
+) -> void:
 	runtime = p_runtime
 	district = p_district
+	run_experience = p_run_experience
 	configure_elite_affixes(0, 1)
 
 
@@ -91,6 +100,8 @@ func start() -> void:
 	elite_roll_count = 0
 	progression_peak_tier = 0
 	progression_copy_peak = 0
+	progression_degradation_count = 0
+	progression_peak_threat = 0
 	peak_hazard_pending = 0
 	_advance_act()
 
@@ -220,10 +231,17 @@ func _try_start_next_beat() -> void:
 		_advance_act()
 		return
 	var next_beat: DistrictBeat = act.beats[beat_index + 1]
-	var progression_tier: int = _progression_tier()
+	current_pressure_profile = _effective_pressure_profile()
+	var beat_threat_ceiling: int = maxi(
+		current_pressure_profile.live_threat_ceiling,
+		_authored_threat(next_beat)
+	)
+	if _planned_threat(next_beat, {}) > beat_threat_ceiling:
+		return
+	var progression_tier: int = current_pressure_profile.district_index
 	var progression_copies: Dictionary[int, int] = _progression_copy_plan(
 		next_beat,
-		progression_tier
+		current_pressure_profile
 	)
 	var counts: Dictionary[StringName, int] = ledger.counts_for_beat(next_beat)
 	for entry_index: int in progression_copies:
@@ -232,19 +250,29 @@ func _try_start_next_beat() -> void:
 		var key: StringName = EnemyArchetypeCatalog.reservation_key(extra_kind)
 		counts[key] = int(counts.get(key, 0)) + int(progression_copies[entry_index])
 	var reservation_id: int = ledger.reserve_counts(counts, runtime)
+	if reservation_id == 0 and not progression_copies.is_empty():
+		progression_degradation_count += 1
+		progression_copies.clear()
+		counts = ledger.counts_for_beat(next_beat)
+		reservation_id = ledger.reserve_counts(counts, runtime)
 	if reservation_id == 0:
 		return
 	progression_peak_tier = maxi(progression_peak_tier, progression_tier)
 	progression_copy_peak = maxi(progression_copy_peak, _dictionary_total(progression_copies))
+	progression_peak_threat = maxi(
+		progression_peak_threat,
+		_planned_threat(next_beat, progression_copies)
+	)
 	beat_index += 1
 	_beat_reservation_id = reservation_id
 	_beat_pending.clear()
 	var elite_plan: Dictionary[int, StringName] = _roll_elite_plan(
 		act,
 		next_beat,
-		progression_tier
+		current_pressure_profile
 	)
 	var pending_index: int = 0
+	var cadence_scale: float = current_pressure_profile.cadence_scale
 	for entry_index: int in range(next_beat.spawns.size()):
 		var entry: EnemySpawnEntry = next_beat.spawns[entry_index]
 		var kind: StringName = StringName(entry.kind)
@@ -255,7 +283,6 @@ func _try_start_next_beat() -> void:
 		for copy_index: int in range(spawn_count):
 			if _beat_pending.size() >= MAX_PENDING_RECORDS:
 				break
-			var cadence_scale: float = maxf(0.68, 1.0 - float(progression_tier) * 0.08)
 			var stagger: float = float(copy_index) * HUMAN_COPY_STAGGER * cadence_scale
 			if act.chaos_enabled:
 				stagger += float(pending_index) * act.spawn_stagger_seconds * cadence_scale
@@ -281,7 +308,7 @@ func _try_start_next_beat() -> void:
 			act,
 			next_beat,
 			robot_x,
-			progression_tier
+				current_pressure_profile
 		)
 		peak_hazard_pending = maxi(peak_hazard_pending, _hazard_pending.size())
 	peak_pending_records = maxi(peak_pending_records, _beat_pending.size())
@@ -291,7 +318,7 @@ func _try_start_next_beat() -> void:
 		RETALIATION_MINIMUM_RECOVERY if _is_retaliation(act) else 1.0,
 		next_beat.recovery_seconds
 		* trigger_scale
-		* (1.0 - float(progression_tier) * 0.08)
+		* current_pressure_profile.recovery_scale
 	)
 	runtime.set_attack_gate(true)
 	state = STATE_PRESSURE
@@ -339,14 +366,15 @@ func _process_hazard_pending(delta: float) -> void:
 		record.remaining = maxf(float(record.remaining) - delta, 0.0)
 		if not is_zero_approx(float(record.remaining)):
 			continue
-		if hazard_runtime.activate(
-			StringName(record.hazard_id),
-			record.position as Vector2,
-			int(record.facing),
-			bool(record.get("auto_trigger", true))
-		) == null:
-			continue
-		_hazard_pending.remove_at(index)
+			var activated: EnvironmentalHazard2D = hazard_runtime.activate(
+				StringName(record.hazard_id),
+				record.position as Vector2,
+				int(record.facing),
+				bool(record.get("auto_trigger", true))
+			)
+			_hazard_pending.remove_at(index)
+			if activated == null:
+				continue
 
 
 func _process_legacy(delta: float) -> void:
@@ -400,7 +428,7 @@ func rebase_cached_world_state(offset: Vector2) -> void:
 func _roll_elite_plan(
 	act: DistrictAct,
 	beat: DistrictBeat,
-	progression_tier: int = 0
+	pressure_source: Variant = 0
 ) -> Dictionary[int, StringName]:
 	var plan: Dictionary[int, StringName] = {}
 	if not act.elite_allowed:
@@ -411,8 +439,11 @@ func _roll_elite_plan(
 			eligible.append(entry_index)
 	if eligible.is_empty():
 		return plan
+	var profile: DistrictPressureProfile = DistrictPressureCatalog.coerce_profile(
+		pressure_source
+	)
 	var elite_count: int = mini(
-		act.elite_units_per_beat + floori(float(progression_tier) / 2.0),
+		act.elite_units_per_beat + profile.elite_bonus,
 		mini(eligible.size(), 3)
 	)
 	for elite_index: int in range(elite_count):
@@ -464,9 +495,7 @@ func _threat_weight() -> int:
 
 
 func _progression_tier() -> int:
-	if runtime == null or runtime.world_stream == null:
-		return 0
-	return runtime.world_stream.progression_tier()
+	return _effective_pressure_profile().district_index
 
 
 func _is_retaliation(act: DistrictAct) -> bool:
@@ -483,20 +512,80 @@ func _scaled_target_duration(act: DistrictAct) -> float:
 
 func _progression_copy_plan(
 	beat: DistrictBeat,
-	progression_tier: int
+	pressure_source: Variant
 ) -> Dictionary[int, int]:
 	var plan: Dictionary[int, int] = {}
-	if beat == null or beat.spawns.is_empty() or progression_tier <= 0:
+	var profile: DistrictPressureProfile = DistrictPressureCatalog.coerce_profile(
+		pressure_source
+	)
+	if beat == null or beat.spawns.is_empty() or profile.threat_allowance <= 0:
 		return plan
-	var extra_count: int = mini(progression_tier, beat.spawns.size())
+	var available_threat: int = mini(
+		profile.threat_allowance,
+		profile.live_threat_ceiling - _threat_weight() - _planned_threat(beat, {})
+	)
+	if available_threat <= 0:
+		return plan
 	var start_index: int = wrapi(
 		absi(runtime.world_stream.current_logical_chunk) + beat_index + 1,
 		0,
 		beat.spawns.size()
 	)
-	for offset: int in range(extra_count):
-		plan[wrapi(start_index + offset, 0, beat.spawns.size())] = 1
+	var candidates: Array[Dictionary] = []
+	for offset: int in range(beat.spawns.size()):
+		var entry_index: int = wrapi(start_index + offset, 0, beat.spawns.size())
+		var entry: EnemySpawnEntry = beat.spawns[entry_index]
+		candidates.append({
+			"entry_index": entry_index,
+			"cost": EnemyArchetypeCatalog.threat_cost(StringName(entry.kind)),
+			"rotation": offset,
+		})
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if int(a.cost) == int(b.cost):
+			return int(a.rotation) < int(b.rotation)
+		return int(a.cost) < int(b.cost)
+	)
+	for candidate: Dictionary in candidates:
+		var cost: int = int(candidate.cost)
+		if cost <= 0 or cost > available_threat:
+			continue
+		plan[int(candidate.entry_index)] = 1
+		available_threat -= cost
 	return plan
+
+
+func _effective_pressure_profile() -> DistrictPressureProfile:
+	if runtime == null or runtime.world_stream == null:
+		return DistrictPressureCatalog.profile_by_index(0)
+	var player_level: int = run_experience.level if run_experience != null else 1
+	return DistrictPressureCatalog.effective_profile(
+		runtime.world_stream.current_district_id,
+		player_level
+	)
+
+
+func _planned_threat(beat: DistrictBeat, extra_copies: Dictionary) -> int:
+	var threat: int = _threat_weight()
+	for entry_index: int in range(beat.spawns.size()):
+		var entry: EnemySpawnEntry = beat.spawns[entry_index]
+		var kind: StringName = StringName(entry.kind)
+		var count: int = (
+			EnemyArchetypeCatalog.spawn_multiplier(kind)
+			+ int(extra_copies.get(entry_index, 0))
+		)
+		threat += EnemyArchetypeCatalog.threat_cost(kind) * count
+	return threat
+
+
+func _authored_threat(beat: DistrictBeat) -> int:
+	var threat: int = 0
+	for entry: EnemySpawnEntry in beat.spawns:
+		var kind: StringName = StringName(entry.kind)
+		threat += (
+			EnemyArchetypeCatalog.threat_cost(kind)
+			* EnemyArchetypeCatalog.spawn_multiplier(kind)
+		)
+	return threat
 
 
 func _dictionary_total(values: Dictionary) -> int:

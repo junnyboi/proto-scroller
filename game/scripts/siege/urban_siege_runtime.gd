@@ -63,7 +63,11 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	district = p_district.duplicate(true) as DistrictDefinition
 	director = DIRECTOR_SCRIPT.new() as DistrictResponseDirector
 	director.name = "DistrictResponseDirector"
-	director.setup_district(dependencies.encounter_runtime, district)
+	director.setup_district(
+		dependencies.encounter_runtime,
+		district,
+		dependencies.rampage_session.run_experience
+	)
 	director.phase_changed.connect(_on_phase_changed)
 	director.beat_changed.connect(beat_changed.emit)
 	director.recovery_started.connect(recovery_started.emit)

@@ -40,6 +40,16 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.hazard_audio_voices, RuntimeBudget.HAZARD_AUDIO_VOICES)
 	assert_eq(snapshot.hazard_active, 0)
 	assert_eq(snapshot.hazard_post_warm_creations, 0)
+	assert_eq(snapshot.hazard_activation_denials, 0)
+	assert_lte(
+		snapshot.district_pressure_peak_tier,
+		CityWorldStream.MAX_PROGRESSION_TIER
+	)
+	assert_lte(
+		snapshot.district_pressure_peak_threat,
+		DistrictPressureCatalog.MAX_LIVE_THREAT
+	)
+	assert_gte(snapshot.district_copy_degradations, 0)
 	assert_eq(snapshot.street_chunks, RuntimeBudget.STREET_CHUNKS)
 	assert_eq(snapshot.street_post_warm_creations, 0)
 	assert_eq(snapshot.floating_origin_runtimes, 1)

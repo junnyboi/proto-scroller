@@ -140,10 +140,74 @@ func test_directive_card_is_noninteractive_and_above_mobile_smash() -> void:
 	assert_eq(card.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	assert_false(card.get_global_rect().intersects(city.mobile_controls.smash_bounds()))
 	assert_not_null(card.icon.texture)
-	assert_eq(card.size, Vector2(392.0, 104.0))
+	assert_eq(card.size, DirectiveCard.LANDSCAPE_SIZE)
 	assert_lte(card.title_label.position.x + card.title_label.size.x, card.size.x)
 	assert_lte(card.detail_label.position.x + card.detail_label.size.x, card.size.x)
 	assert_lte(card.bank_label.position.x + card.bank_label.size.x, card.size.x)
+	assert_lte(card.progress_track.position.x + card.progress_track.size.x, card.size.x)
+	assert_lte(card.timer_track.position.x + card.timer_track.size.x, card.size.x)
+
+
+func test_active_card_shows_authoritative_countdown_and_objective_ratio() -> void:
+	assert_true(session.select(BREACH))
+	var card: DirectiveCard = city.gameplay_hud.directive_card
+	assert_true(card.visible)
+	assert_eq(card.timer_label.text, "14s")
+	assert_eq(card.progress_label.text, "OBJECTIVE 0/3")
+	assert_almost_eq(card._timer_ratio, 1.0, 0.001)
+	assert_almost_eq(card._progress_ratio, 0.0, 0.001)
+	session._process(3.5)
+	card._process(0.0)
+	assert_eq(card.timer_label.text, "11s")
+	assert_almost_eq(card._timer_ratio, 0.75, 0.001)
+	session._on_event_published(GameplayEvent.new(
+		&"directive_live_progress",
+		601,
+		GameplayEvent.Kind.CELL_DESTROYED,
+		GameplayEvent.CELL_BREACH,
+		100,
+		4.0,
+		true
+	))
+	assert_eq(card.progress_label.text, "OBJECTIVE 1/3")
+	assert_almost_eq(card._progress_ratio, 1.0 / 3.0, 0.001)
+	assert_almost_eq(
+		card.progress_fill.size.x,
+		card._progress_width / 3.0,
+		0.01
+	)
+
+
+func test_countdown_freezes_during_pause_and_text_updates_by_second() -> void:
+	assert_true(session.select(BREACH))
+	var card: DirectiveCard = city.gameplay_hud.directive_card
+	var assignments: int = card.countdown_text_assignment_count
+	for frame: int in range(60):
+		card._process(1.0 / 60.0)
+	assert_eq(card.countdown_text_assignment_count, assignments)
+	var remaining_before: float = session.remaining
+	var token: int = city.urban_siege.pause_coordinator.acquire(&"directive_timer_test")
+	session._process(2.0)
+	card._process(2.0)
+	assert_almost_eq(session.remaining, remaining_before, 0.001)
+	assert_eq(card.timer_label.text, "14s")
+	assert_true(city.urban_siege.pause_coordinator.release(token))
+	session._process(1.1)
+	card._process(0.0)
+	assert_almost_eq(session.remaining, remaining_before - 1.1, 0.001)
+	assert_eq(card.timer_label.text, "13s")
+	assert_eq(card.countdown_text_assignment_count, assignments + 1)
+
+
+func test_active_card_updates_in_place_without_node_growth() -> void:
+	assert_true(session.select(BREACH))
+	var card: DirectiveCard = city.gameplay_hud.directive_card
+	var child_count: int = card.get_child_count()
+	for frame: int in range(240):
+		session._process(1.0 / 60.0)
+		card._process(1.0 / 60.0)
+	assert_eq(card.get_child_count(), child_count)
+	assert_lte(card.countdown_text_assignment_count, ceili(BREACH.duration_seconds) + 1)
 
 
 func test_directive_result_card_dismisses_after_bounded_hold() -> void:

@@ -1,7 +1,9 @@
 extends SceneTree
+# gdlint: disable=max-returns
 
-const MAX_FRAMES: int = 180
-const SHOT_PATH: String = "res://artifacts/directives/directive-failed.png"
+const MAX_FRAMES: int = 240
+const ACTIVE_SHOT_PATH: String = "res://artifacts/directives/directive-active.png"
+const FAILED_SHOT_PATH: String = "res://artifacts/directives/directive-failed.png"
 const BREACH: DirectiveProfile = preload(
 	"res://resources/directives/demolition_breach.tres"
 )
@@ -36,7 +38,29 @@ func _run() -> void:
 	root.add_child(city)
 	await process_frame
 	city.urban_siege.stop_run()
-	city.gameplay_hud.show_directive(BREACH, 0, BREACH.target_count, 0)
+	var session: DirectiveSession = city.urban_siege.directives
+	if not session.select(BREACH):
+		quit(1)
+		return
+	session._process(BREACH.duration_seconds * 0.5)
+	session._on_event_published(GameplayEvent.new(
+		&"directive_visual_progress",
+		81_001,
+		GameplayEvent.Kind.CELL_DESTROYED,
+		GameplayEvent.CELL_BREACH,
+		100,
+		4.0,
+		true
+	))
+	var card: DirectiveCard = city.gameplay_hud.directive_card
+	card._process(0.0)
+	if not _active_card_is_valid(card):
+		quit(1)
+		return
+	if DisplayServer.get_name() != "headless":
+		if not await _capture(ACTIVE_SHOT_PATH, target_size):
+			quit(1)
+			return
 	city.gameplay_hud.show_directive_result(
 		L10n.t("directive.failed", {
 			"name": L10n.t(BREACH.display_name),
@@ -44,8 +68,7 @@ func _run() -> void:
 		false,
 		100
 	)
-	var card: DirectiveCard = city.gameplay_hud.directive_card
-	if not _card_bounds_are_valid(card):
+	if not _result_card_is_valid(card):
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":
@@ -57,13 +80,7 @@ func _run() -> void:
 		print("[SHOT-SKIPPED] headless lane cannot render")
 		quit(0)
 		return
-	await RenderingServer.frame_post_draw
-	var image: Image = root.get_texture().get_image()
-	DirAccess.make_dir_recursive_absolute(
-		ProjectSettings.globalize_path("res://artifacts/directives")
-	)
-	var save_error: Error = image.save_png(ProjectSettings.globalize_path(SHOT_PATH))
-	if save_error != OK or image.get_size() != target_size:
+	if not await _capture(FAILED_SHOT_PATH, target_size):
 		quit(1)
 		return
 	card._process(DirectiveCard.RESULT_DISPLAY_SECONDS + 0.01)
@@ -71,15 +88,60 @@ func _run() -> void:
 		quit(1)
 		return
 	completed = true
-	print("[DIRECTIVE-CARD-VISUAL-DONE] path=%s" % SHOT_PATH)
+	print(
+		"[DIRECTIVE-CARD-VISUAL-DONE] active=%s failed=%s"
+		% [ACTIVE_SHOT_PATH, FAILED_SHOT_PATH]
+	)
 	quit(0)
 
 
-func _card_bounds_are_valid(card: DirectiveCard) -> bool:
-	if card == null or not card.visible or card.bank_label.text != "SCORE -100":
+func _capture(path: String, target_size: Vector2i) -> bool:
+	await RenderingServer.frame_post_draw
+	var image: Image = root.get_texture().get_image()
+	DirAccess.make_dir_recursive_absolute(
+		ProjectSettings.globalize_path("res://artifacts/directives")
+	)
+	return (
+		image.save_png(ProjectSettings.globalize_path(path)) == OK
+		and image.get_size() == target_size
+	)
+
+
+func _active_card_is_valid(card: DirectiveCard) -> bool:
+	if card == null or not card.visible:
 		return false
-	for label: Label in [card.title_label, card.detail_label, card.bank_label]:
-		if label.position.x + label.size.x > card.size.x:
+	if card.timer_label.text != "7s" or card.progress_label.text != "OBJECTIVE 1/3":
+		return false
+	if not is_equal_approx(card._timer_ratio, 0.5):
+		return false
+	if not is_equal_approx(card._progress_ratio, 1.0 / 3.0):
+		return false
+	return _children_are_in_bounds(card)
+
+
+func _result_card_is_valid(card: DirectiveCard) -> bool:
+	return (
+		card != null
+		and card.visible
+		and card.bank_label.text == "SCORE -100"
+		and not card.timer_label.visible
+		and not card.progress_track.visible
+		and _children_are_in_bounds(card)
+	)
+
+
+func _children_are_in_bounds(card: DirectiveCard) -> bool:
+	var bounds: Rect2 = Rect2(Vector2.ZERO, card.size)
+	for control: Control in [
+		card.title_label,
+		card.timer_label,
+		card.detail_label,
+		card.progress_label,
+		card.bank_label,
+		card.progress_track,
+		card.timer_track,
+	]:
+		if control.visible and not bounds.encloses(control.get_rect()):
 			return false
 	return true
 
