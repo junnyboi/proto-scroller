@@ -1,6 +1,6 @@
 # Proto Scroller
 
-A Godot 4.7.2 city-destruction slice with a giant robot, five forward-progressing spatial districts, 25 six-cell mixed-material destructible buildings, a four-band unobstructed parallax city, destructible props, combined-arms enemies, and a WebAssembly host.
+A Godot 4.7.2 city-destruction slice with a giant robot, five forward-progressing spatial districts, score-funded district weapon shops, 25 six-cell mixed-material destructible buildings, a four-band unobstructed parallax city, destructible props, combined-arms enemies, and a WebAssembly host.
 
 ## Engine requirements
 
@@ -21,25 +21,25 @@ cd game
 ./verify.sh --full
 ```
 
-The standard gate performs a direct import, strict GDScript lint and parse-log checks, the complete GUT suite, a bounded headless boot, and deterministic title-screen, charged-smash, city-slice, directive-card, district-gallery, enemy-variety, street-volatility, and endless-terrain scenarios. The endless lane traverses all five spatial districts, records district and variant identities with a catalog SHA-256, restores prior destruction after stream recycling, and rejects post-warm node growth. The full gate adds Xvfb visual scenarios at **1280×720** and **720×1280**, produces a cache-bypassed release export through the repository's `Web` preset, and runs a required Chromium gameplay smoke. The browser lane proves both silent eight-second title loops decode, advance, select the correct orientation, and disappear when gameplay begins; it then enters gameplay, proves Web background audio is running, holds and releases a real Space input while proving first-frame freeze, no charge particles on initial press, particle emission after the 600 ms threshold, proportional damage, and animation resume. It triggers and resolves a real upgrade offer, moves the robot beyond the mechanics-audio attenuation radius, and proves ground slam, punch, Dash, recharge, upgrade-confirm, walk-servo, and footstep cues remain active and co-located before both directional walk clips advance. A required render `SKIP`, browser phase failure, logged parse diagnostic, zero-test run, missing export artifact, oversized PCK, or nonzero process exit is blocking.
+The standard gate performs a direct import, strict GDScript lint and parse-log checks, the complete GUT suite, a bounded headless boot, and deterministic title-screen, charged-smash, city-slice, directive-card, district-gallery, enemy-variety, street-volatility, and endless-terrain scenarios. The endless lane traverses all five spatial districts, records district and variant identities with a catalog SHA-256, restores prior destruction after stream recycling, and rejects post-warm node growth. The full gate adds Xvfb visual scenarios at **1280×720** and **720×1280**, including a dedicated responsive weapon-shop interstitial, produces a cache-bypassed release export through the repository's `Web` preset, and runs a required Chromium gameplay smoke. The browser lane proves both silent eight-second title loops decode, advance, select the correct orientation, and transition through an input-blocking fade to full black before gameplay is revealed; it then enters gameplay, proves Web background audio is running, holds and releases a real Space input while proving first-frame freeze, no charge particles on initial press, particle emission after the 600 ms threshold, proportional damage, and animation resume. It triggers and resolves a real upgrade offer, moves the robot beyond the mechanics-audio attenuation radius, and proves ground slam, punch, Dash, recharge, upgrade-confirm, walk-servo, and footstep cues remain active and co-located before both directional walk clips advance. A required render `SKIP`, browser phase failure, logged parse diagnostic, zero-test run, missing export artifact, oversized PCK, or nonzero process exit is blocking.
 
 ### Latest verified baseline
 
-The full harness last passed on **2026-08-26** against source revision `28da94ddd6532c3ec99ff3255f33b7ea5f2bc482` using `Godot 4.7.2.stable.official.ed1daf0bf`.
+The full harness passed on **2026-08-26** against weapon-shop gameplay revision `3ff79b03d035541a084afa3551609e01d5aeb001` using `Godot 4.7.2.stable.official.ed1daf0bf`.
 
 | Check | Result |
 |---|---|
 | Harness command | `./verify.sh --full` |
 | Process result | Exit `0`; `[VERIFY-PASS] mode=full` |
-| GUT suite | 51 scripts; 312 of 312 tests passed; 30,008 assertions |
-| Headless scenarios | Title screen, city slice, enemy variety, street volatility, and endless terrain passed |
-| Visual scenarios | Required landscape and portrait renders passed |
+| GUT suite | 53 scripts; 319 of 319 tests passed; 30,359 assertions |
+| Headless scenarios | Title screen, city slice, charged smash, directives, district gallery, enemy variety, street volatility, and endless terrain passed |
+| Visual scenarios | Required landscape and portrait renders passed, including the responsive three-product weapon shop |
 | Reference title render | SHA-256 `92775e50df36c046d6c81347c2d672450c38d62167e1b48d723172067f34d590` |
 | Web release export | 9 generated Godot files plus two MP4 title loops and two static fallbacks; HTML, JavaScript, WebAssembly, and PCK present |
-| PCK size | 14,109,168 bytes, below the 16 MiB harness limit |
-| Browser gameplay smoke | Landscape 1280×720 and portrait 720×1280 title loops decoded, advanced, and selected correctly; the landscape video paused when gameplay began. Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass`; the exported punch cue reported 1.17 seconds, ground slam and punch reported the exact 25-percent-reduced 8.54365 dB playback level, and all audited SFX passed at progression distance with zero drops |
+| PCK size | 14,148,788 bytes, below the 16 MiB harness limit |
+| Browser gameplay smoke | Landscape 1280×720 and portrait 720×1280 title loops decoded, advanced, and selected correctly; `idle → fade_out → black → black_ready → fade_in → complete` passed, the held 1280×720 transition frame was fully black, and the landscape video paused before gameplay appeared. Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass`; the exported punch cue reported 1.17 seconds, ground slam and punch reported the exact 25-percent-reduced 8.54365 dB playback level, and all audited SFX passed at progression distance with zero drops |
 | Error scan | No script, parse, browser console, request, fatal, or crash errors |
-| Duration | 729 seconds |
+| Duration | 700 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
@@ -53,7 +53,7 @@ In the headless sandbox, unavailable ALSA hardware caused Godot to fall back to 
 
 ## Spatial districts and destructible buildings
 
-Forward logical-chunk progress selects geography independently of the six-act siege encounter model. Business remains active west of origin and through chunk 7; Residential occupies chunks 8–15, Entertainment 16–23, Military 24–31, and Royal begins at chunk 32 and continues indefinitely. Crossing a boundary changes the streamed facade family and road accent, emits typed district metadata, and presents a responsive transition banner below persistent HUD instrumentation.
+Forward logical-chunk progress selects geography independently of the six-act siege encounter model. Business remains active west of origin and through chunk 7; Residential occupies chunks 8–15, Entertainment 16–23, Military 24–31, and Royal begins at chunk 32 and continues indefinitely. Crossing a forward boundary changes the streamed facade family and road accent, opens the destination weapon shop exactly once, and presents the responsive transition banner after the player continues. Backtracking changes geography without reopening a shop.
 
 | District | Forward chunks | Destructible building roster |
 |---|---:|---|
@@ -66,6 +66,8 @@ Forward logical-chunk progress selects geography independently of the six-act si
 All 25 buildings reuse the fixed six-building resident pool and the established three-column by two-row destruction topology. Variant changes reconfigure facade atlas regions, dimensions, material resistance, deterministic crack seeds, pipes, cables, hollow edges, and rubble geometry in place before mutation restore. The complete visual briefs and GPT Image 2 concept boards are documented in [`docs/DISTRICT_DESTRUCTION_DESIGN.md`](docs/DISTRICT_DESTRUCTION_DESIGN.md); phased architecture, risk controls, and measured gates are recorded in [`docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md`](docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md).
 
 Each spatial district owns a validated pool of three unique missions. Mission selection is deterministic for the run seed, cycle, and district; crossing a district boundary withdraws the old objective without a score penalty and offers the destination pool once per cycle. Active mission cards expose the authoritative pause-aware countdown, timer bar, objective count, objective progress bar, instruction, and pending score in both viewport orientations. Combat pressure also follows the spatial district through five readiness-gated profiles: enemy-copy allowance, absolute live threat, cadence, recovery, elite chance, and hazard pressure rise monotonically from Business through Royal while retaining fixed pool and runtime caps. Full mission, telemetry, and balance specifications plus measured verification evidence are recorded in [`docs/DISTRICT_MISSIONS_AND_BALANCE_PLAN.md`](docs/DISTRICT_MISSIONS_AND_BALANCE_PLAN.md).
+
+Each district weapon shop offers exactly three run-local modules that never appear in level-up choices. The shop banks pending score, displays the current total as **Rampage Credit**, and deducts purchases directly from the final high score. Products include repairs, melee hit-area expansion, weapon damage and cooldown modifiers, deterministic criticals, elite and structural specialization, and Royal capstones. Combat, directives, and queued level-up choices remain serialized behind the same pause coordinator. The full economy, product catalog, responsive UI specification, and five GPT Image 2 concept boards are documented in [`docs/WEAPON_SHOP_SYSTEM_PROPOSAL.md`](docs/WEAPON_SHOP_SYSTEM_PROPOSAL.md).
 
 The proposed narrative campaign, **Project CHOIR**, connects the five districts, twenty-five facades, retries, directives, and enemy escalation to a human bio-weapons conspiracy. Its storyline, phased implementation plan, and GPT Image 2 laboratory, enemy, carrier, and final-boss concepts are documented in [`docs/PROJECT_CHOIR_STORY_PROPOSAL.md`](docs/PROJECT_CHOIR_STORY_PROPOSAL.md).
 

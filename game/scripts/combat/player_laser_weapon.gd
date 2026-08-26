@@ -197,7 +197,7 @@ func _fire(direction: Vector2) -> void:
 		var event: DamageEvent = DamageEvent.new(
 			attack_id,
 			arsenal.robot,
-			_damage_for(receiver),
+			arsenal.scale_damage(_damage_for(receiver), &"laser", receiver, attack_id),
 			&"laser",
 			(collider as Node2D).global_position,
 			direction,
@@ -216,7 +216,7 @@ func _fire(direction: Vector2) -> void:
 	beams[_beam_cursor].activate(origin, direction, RANGE)
 	_beam_cursor = (_beam_cursor + 1) % beams.size()
 	shots_fired += 1
-	cooldown_remaining = COOLDOWNS[current_rank]
+	cooldown_remaining = arsenal.scale_cooldown(COOLDOWNS[current_rank])
 
 
 func _next_drone() -> WeaponDroneVisual2D:

@@ -74,6 +74,7 @@ var base_air_acceleration: float = 0.0
 var base_ground_deceleration: float = 0.0
 var base_dodge_speed: float = 0.0
 var base_dodge_duration: float = 0.0
+var shop_incoming_damage_multiplier: float = 1.0
 var dodge_count: int = 0
 var invulnerable_rejection_count: int = 0
 var dodge_invulnerable: bool:
@@ -160,8 +161,9 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
+	var accepted_damage: float = event.amount * shop_incoming_damage_multiplier
 	var previous_health: float = current_health
-	current_health = maxf(current_health - event.amount, 0.0)
+	current_health = maxf(current_health - accepted_damage, 0.0)
 	damage_received.emit(event, previous_health - current_health)
 	health_changed.emit(current_health, max_health)
 	if current_health <= 0.0:
@@ -243,6 +245,10 @@ func set_virtual_move_axis(axis: float) -> void:
 
 func set_acceleration_multiplier(multiplier: float) -> void:
 	acceleration_multiplier = clampf(multiplier, 1.0, 1.5)
+
+
+func set_shop_incoming_damage_multiplier(multiplier: float) -> void:
+	shop_incoming_damage_multiplier = clampf(multiplier, 0.35, 1.0)
 
 
 func set_durability_bonus(total_bonus: float) -> bool:

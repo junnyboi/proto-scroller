@@ -69,6 +69,7 @@ var rampage_events: RampageEventAdapter
 var overdrive_session: OverdriveSession
 var run_lifecycle: CityRunLifecycle
 var upgrade_assembler: PlayerUpgradeAssembler
+var weapon_shop_assembler: WeaponShopAssembler
 var music_duck_controller: MusicDuckController
 var contextual_attacks: ContextualAttackController
 var air_target_lock_runtime: AirTargetLockRuntime
@@ -150,11 +151,14 @@ func _ready() -> void:
 	add_child(upgrade_assembler)
 	var upgrade_errors: PackedStringArray = upgrade_assembler.setup(self)
 	assert(upgrade_errors.is_empty(), "Upgrade setup failed: %s" % [upgrade_errors])
+	weapon_shop_assembler = WeaponShopAssembler.new()
+	add_child(weapon_shop_assembler)
+	var shop_errors: PackedStringArray = weapon_shop_assembler.setup(self)
+	assert(shop_errors.is_empty(), "Shop setup failed: %s" % [shop_errors])
 	if _web_gameplay_smoke_requested():
 		var smoke_probe: Node = WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT.new() as Node
 		add_child(smoke_probe)
 		smoke_probe.call(&"setup", self)
-
 
 func _process(delta: float) -> void:
 	if game_over_active or rampage_session == null or robot == null:
@@ -164,13 +168,11 @@ func _process(delta: float) -> void:
 	var speed_ratio: float = absf(robot.velocity.x) / maxf(robot.max_speed, 1.0)
 	rampage_session.advance(speed_ratio, delta)
 
-
 func _web_gameplay_smoke_requested() -> bool:
 	if OS.has_feature("web"):
 		var query: String = String(JavaScriptBridge.eval("window.location.search"))
 		return query.contains("webSmoke=upgrade")
 	return OS.get_environment("PROTO_SCROLLER_WEB_SMOKE") == "1"
-
 
 func trigger_test_stomp() -> int:
 	return robot.request_stomp()
@@ -317,14 +319,13 @@ func _on_stream_window_changed(_logical_index: int) -> void:
 
 
 func _on_spatial_district_changed(
-	_previous_district_id: StringName,
+	previous_district_id: StringName,
 	_district_id: StringName,
 	logical_chunk: int
 ) -> void:
-	district_transition_banner.present(
-		CityDistrictCatalog.district_for_chunk(logical_chunk),
-		logical_chunk
-	)
+	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_chunk)
+	if not weapon_shop_assembler.queue_transition(previous_district_id, district, logical_chunk):
+		district_transition_banner.present(district, logical_chunk)
 
 
 func _refresh_primary_destructibles() -> void:

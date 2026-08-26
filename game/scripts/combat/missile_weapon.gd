@@ -222,7 +222,7 @@ func _try_start_salvo() -> void:
 	salvo_remaining = current_rank
 	salvo_cursor = 0
 	salvo_spacing_remaining = 0.0
-	cooldown_remaining = COOLDOWN
+	cooldown_remaining = arsenal.scale_cooldown(COOLDOWN)
 	salvos_started += 1
 	_launch_next_missile()
 	salvo_spacing_remaining = SALVO_SPACING
@@ -315,7 +315,12 @@ func _resolve_blast(origin: Vector2, attack_id: int, root_attack_id: int) -> voi
 		if structural and last_blast_structural >= STRUCTURAL_LIMIT:
 			continue
 		var distance: float = minf(origin.distance_to(collider.global_position), BLAST_RADIUS)
-		var damage: float = BLAST_DAMAGE * (1.0 - distance / BLAST_RADIUS)
+		var damage: float = arsenal.scale_damage(
+			BLAST_DAMAGE * (1.0 - distance / BLAST_RADIUS),
+			&"missile",
+			receiver,
+			attack_id
+		)
 		if damage <= 0.0:
 			continue
 		var direction: Vector2 = origin.direction_to(collider.global_position)

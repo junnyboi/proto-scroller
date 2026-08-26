@@ -168,7 +168,8 @@ func tick_count() -> int:
 
 
 func tick_interval() -> float:
-	return 0.18 if current_rank >= 5 else 0.20
+	var base_interval: float = 0.18 if current_rank >= 5 else 0.20
+	return arsenal.scale_cooldown(base_interval) if arsenal != null else base_interval
 
 
 func maximum_targets() -> int:
@@ -176,7 +177,8 @@ func maximum_targets() -> int:
 
 
 func cooldown_duration() -> float:
-	return 1.0 if current_rank >= 5 else 1.20
+	var base_duration: float = 1.0 if current_rank >= 5 else 1.20
+	return arsenal.scale_cooldown(base_duration) if arsenal != null else base_duration
 
 
 func active_flame_count() -> int:
@@ -228,13 +230,19 @@ func _advance_burst(delta: float) -> void:
 func _deliver_tick() -> void:
 	var origin: Vector2 = emitter.global_position
 	var attack_id: int = arsenal.reserve_attack_id()
+	var damage: float = arsenal.scale_damage(
+		damage_per_tick(),
+		&"flamethrower",
+		null,
+		attack_id
+	)
 	resolver.resolve_tick(
 		arsenal.robot,
 		origin,
 		burst_direction,
 		flame_range(),
 		half_angle(),
-		damage_per_tick(),
+		damage,
 		maximum_targets(),
 		attack_id,
 		burst_root_attack_id

@@ -14,6 +14,7 @@ const OBSTRUCTION_MASK: int = (1 << 0) | (1 << 3)
 var robot: GiantRobotController
 var projectile_pool: ProjectilePool
 var actors: Array[EnemyActor2D] = []
+var shop_effects: WeaponShopUpgradeRuntime
 
 
 func setup(
@@ -95,6 +96,25 @@ func target_matches_class(target: EnemyActor2D, target_class: TargetClass) -> bo
 
 func reserve_attack_id() -> int:
 	return robot.reserve_attack_id()
+
+
+func scale_damage(
+	base_damage: float,
+	damage_kind: StringName,
+	target: Node,
+	attack_id: int
+) -> float:
+	if shop_effects == null:
+		return base_damage
+	return shop_effects.scale_weapon_damage(base_damage, damage_kind, target, attack_id)
+
+
+func scale_cooldown(base_seconds: float) -> float:
+	return (
+		shop_effects.scale_weapon_cooldown(base_seconds)
+		if shop_effects != null
+		else base_seconds
+	)
 
 
 func _has_line_of_sight(target: EnemyActor2D) -> bool:

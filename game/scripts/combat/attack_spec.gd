@@ -143,3 +143,29 @@ func with_damage_multiplier(multiplier: float) -> AttackSpec:
 		_kinetic_debris_bonus,
 		clamped_multiplier
 	)
+
+
+func with_shop_modifiers(
+	damage_multiplier: float,
+	structure_multiplier: float,
+	radius_multiplier: float,
+	debris_bonus: float
+) -> AttackSpec:
+	return AttackSpec.new(
+		_mode,
+		_attack_id,
+		_facing,
+		_speed_ratio,
+		_anticipation_seconds,
+		_active_seconds,
+		_recovery_seconds,
+		_actor_damage * maxf(damage_multiplier, 1.0),
+		_structural_damage * maxf(damage_multiplier, 1.0) * maxf(structure_multiplier, 1.0),
+		_impulse_per_mass,
+		_hit_size * maxf(radius_multiplier, 1.0),
+		_hit_offset,
+		_opening_compression,
+		_effect_flags,
+		_kinetic_debris_bonus + maxf(debris_bonus, 0.0),
+		_charge_multiplier
+	)
