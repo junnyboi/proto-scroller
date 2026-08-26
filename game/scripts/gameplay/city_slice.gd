@@ -291,7 +291,7 @@ func _build_urban_siege() -> void:
 	add_child(urban_siege)
 	encounter_director = urban_siege.director
 	if DisplayServer.get_name() != "headless":
-		urban_siege.start_run()
+		urban_siege.start_run(CityWorldBuilder.initial_run_seed(_web_gameplay_smoke_requested()))
 
 func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
 	var parallax: Node = get_node_or_null(^"ParallaxCity")

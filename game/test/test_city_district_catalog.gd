@@ -77,12 +77,22 @@ func test_each_district_guarantees_its_complete_five_facade_roster() -> void:
 			assert_eq(
 				selected_paths.size(),
 				CityDistrictCatalog.VARIANTS_PER_DISTRICT,
-				"seed=%d district=%s" % [run_seed, district.district_id]
-			)
+					"seed=%d district=%s" % [run_seed, district.district_id]
+				)
 	assert_eq(
-		CityDistrictCatalog.variant_for_chunk(917, 0).variant_id,
+		CityDistrictCatalog.variant_for_chunk(0, 0).variant_id,
 		&"business_mercy_exchange_annex"
 	)
+
+
+func test_nonzero_run_seeds_rotate_the_opening_facade_without_losing_rosters() -> void:
+	var opening_ids: Dictionary[StringName, bool] = {}
+	for run_seed: int in range(1, 33):
+		opening_ids[
+			CityDistrictCatalog.variant_for_chunk(run_seed, 0).variant_id
+		] = true
+	assert_gt(opening_ids.size(), 1)
+	assert_lte(opening_ids.size(), CityDistrictCatalog.VARIANTS_PER_DISTRICT)
 
 
 func test_all_buildings_are_directly_addressable() -> void:

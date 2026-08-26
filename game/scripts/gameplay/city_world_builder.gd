@@ -13,8 +13,8 @@ const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
 const ROBOT_START_POSITION: Vector2 = Vector2(760.0, 466.5)
-const ROBOT_ROAD_CLEARANCE_PIXELS: float = 15.0
-const ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y: float = 47.5
+const ROBOT_ROAD_CLEARANCE_PIXELS: float = 35.0
+const ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y: float = 27.5
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
 const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
 const SKY_TEXTURE: Texture2D = preload("res://art/city/parallax/sky.png")
@@ -51,6 +51,13 @@ static func reset_parallax(parent: Node2D) -> void:
 		var band: Parallax2D = child as Parallax2D
 		if band != null:
 			band.scroll_offset = Vector2.ZERO
+
+
+static func initial_run_seed(deterministic: bool) -> int:
+	if deterministic or not OS.has_feature("web"):
+		return 0
+	var wall_clock_msec: int = int(Time.get_unix_time_from_system() * 1000.0)
+	return maxi(wall_clock_msec ^ Time.get_ticks_msec(), 1)
 
 
 static func build_robot(
