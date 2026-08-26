@@ -553,10 +553,26 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/weapon_shop/weapon-shop-portrait.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-portrait.png
-	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
-	    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
+		  mv artifacts/weapon_shop/weapon-shop-confirm.png \
+		    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
 
-	  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
+		  printf '%s\n' '[L5] landscape New Game+ terminal visual scenario'
+		  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+		    -s selftest/new_game_plus_visual_scenario.gd
+		  test -s artifacts/new_game_plus/new-game-plus.png
+		  grep -Fq '1280 x 720' <<< "$(file artifacts/new_game_plus/new-game-plus.png)"
+		  mv artifacts/new_game_plus/new-game-plus.png \
+		    artifacts/new_game_plus/new-game-plus-landscape.png
+
+		  printf '%s\n' '[L5] portrait New Game+ terminal visual scenario'
+		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+		    --resolution 720x1280 -s selftest/new_game_plus_visual_scenario.gd
+		  test -s artifacts/new_game_plus/new-game-plus.png
+		  grep -Fq '720 x 1280' <<< "$(file artifacts/new_game_plus/new-game-plus.png)"
+		  mv artifacts/new_game_plus/new-game-plus.png \
+		    artifacts/new_game_plus/new-game-plus-portrait.png
+
+		  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
 	    -s selftest/directive_card_visual_scenario.gd
 	  test -s artifacts/directives/directive-active.png

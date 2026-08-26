@@ -176,8 +176,8 @@ func _web_gameplay_smoke_requested() -> bool:
 		return query.contains("webSmoke=upgrade")
 	return OS.get_environment("PROTO_SCROLLER_WEB_SMOKE") == "1"
 
-func trigger_test_stomp() -> int:
-	return robot.request_stomp()
+func trigger_test_stomp() -> int: return robot.request_stomp()
+func prepare_new_game_plus_world() -> void: NewGamePlusWorldReset.execute(self)
 
 func all_destructibles_broken() -> bool:
 	return (

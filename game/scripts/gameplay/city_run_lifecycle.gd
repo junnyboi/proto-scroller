@@ -198,6 +198,9 @@ func _on_extract_pressed() -> void:
 
 
 func _on_continue_pressed() -> void:
+	if city.urban_siege.cycle_count >= 2:
+		return
+	city.prepare_new_game_plus_world()
 	if city.urban_siege.continue_cycle():
 		city.upgrade_assembler.session.continue_cycle()
 		city.gameplay_hud.hide_terminal_overlay()
@@ -205,7 +208,7 @@ func _on_continue_pressed() -> void:
 			"siege.recipe.%s" % String(city.urban_siege.selected_recipe.recipe_id).to_lower()
 		)
 		city.gameplay_hud.set_objective("objective.cycle", {
-			"cycle": 2,
+			"cycle": city.urban_siege.cycle_count,
 			"recipe": L10n.t(recipe_key),
 		})
 

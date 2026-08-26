@@ -43,6 +43,11 @@ func release(body: SoldierDefeatBody2D) -> void:
 	_free.append(body)
 
 
+func release_all() -> void:
+	for body: SoldierDefeatBody2D in _active.duplicate():
+		release(body)
+
+
 func active_count() -> int:
 	return _active.size()
 

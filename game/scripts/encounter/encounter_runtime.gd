@@ -52,6 +52,8 @@ var role_profiles: Dictionary[StringName, EnemyRoleProfile] = {}
 var trait_profiles: Dictionary[StringName, EnemyTraitProfile] = {}
 var target_mark_remaining: float = 0.0
 var elite_spawn_effect_pool: EliteSpawnEffectPool
+var cycle_health_multiplier: float = 1.0
+var cycle_attack_multiplier: float = 1.0
 
 
 func setup(
@@ -161,6 +163,19 @@ func release_all() -> void:
 	for enemy: EnemyActor2D in all_actors():
 		release(enemy)
 	target_mark_remaining = 0.0
+
+
+func configure_cycle_difficulty(
+	health_multiplier: float,
+	attack_multiplier: float
+) -> void:
+	cycle_health_multiplier = maxf(health_multiplier, 1.0)
+	cycle_attack_multiplier = maxf(attack_multiplier, 1.0)
+	for enemy: EnemyActor2D in all_actors():
+		enemy._configure_cycle_difficulty(
+			cycle_health_multiplier,
+			cycle_attack_multiplier
+		)
 
 
 func set_attack_gate(enabled: bool) -> void:

@@ -1,7 +1,7 @@
 # Weapon Shop Completion and New Game+ Implementation Plan
 
 **Author:** Manus AI
-**Status:** In implementation — Phase 3 complete
+**Status:** Implemented, fully verified, and release-ready
 **Canonical repository:** `https://github.com/junnyboi/proto-scroller`
 **Engine:** Godot 4.7.2-stable with matching non-threaded Web templates
 
@@ -110,6 +110,10 @@ Both cues must remain audible under ducked music, stay below clipping, and pass 
 **Phase 2 — Interstitial architecture and dialogue: complete.** Shops now open at deterministic act-completion boundaries rather than spatial district crossings: Business after Act 1, Residential after Act 2, Entertainment after Act 3, Military after Act 4, and Royal only after the terminal boss. The next act is held until checkout, milestone/directive presentation waits behind the shop, spatial district banners remain independent, score banking occurs on entry, and a generated-portrait operator dialogue explains the Rampage Score tradeoff before product interaction. Royal checkout now precedes terminal cycle choices.
 
 **Phase 3 — Transaction clarity and feedback: complete.** Hover, mouse entry, and controller focus now populate a generated-frame before/after stat panel with exact live values. Every available product opens a purchase confirmation prompt showing the selected module, projected score deduction, and stat delta; canceling preserves score and state. Successful purchases and repairs use distinct carrier-derived PCM16 cues on the fixed UI voice pool and separate generated-texture particle bursts without runtime node growth.
+
+**Phase 4 — Royal checkout and New Game+: complete.** Closing the Royal shop now opens an explicit generated-insignia New Game+ choice. Continuing banks and preserves the current Rampage Score, player health, level-up ranks, shop upgrades, and directive path; clears transient combo/telegraph/projectile/remains state; restores the destructible city, parallax, camera, robot, and stream to Business/Act 1; and reuses the same bounded pools. Every pooled base, procedural, elite, reinforcement, and command-boss unit receives exactly `2.0×` maximum health and `2.0×` outgoing attack damage in cycle two, applied centrally and exactly once.
+
+**Phase 5 — Release verification and packaging: complete.** The final candidate includes the concurrent Project CHOIR boss and hybrid-enemy foundations plus unified title/defeat transitions, and passed `./verify.sh --full` under Godot `4.7.2.stable.official.ed1daf0bf`: **56 scripts, 348/348 tests, 32,078 assertions**, all required headless and Xvfb scenarios, nine-file Web export, and Chromium gameplay/defeat smoke. Certified lossy runtime imports for GPT Image 2 shop, boss, district, narrative, finale, and parallax art reduced the final PCK to **11,186,848 bytes**, leaving **5,590,368 bytes** below the fixed 16 MiB gate without changing source masters. Landscape and portrait shop confirmation plus New Game+ terminal renders passed visual inspection with no clipping, missing textures, alpha defects, or compression artifacts.
 
 ## 8. Acceptance criteria
 

@@ -40,6 +40,7 @@ var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
+var new_game_plus_badge: TextureRect
 var retry_button: Button
 var title_button: Button
 var extract_button: Button
@@ -119,6 +120,10 @@ func set_health(current: float, maximum: float) -> void:
 func set_score(value: int) -> void:
 	if score_label != null:
 		score_label.text = "%08d" % maxi(value, 0)
+
+
+func _displayed_score() -> int:
+	return int(score_label.text) if score_label != null else 0
 
 
 func set_pending_score(value: int) -> void:
@@ -322,12 +327,20 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 
 
 func show_cycle_choice(cycle: int, can_continue: bool) -> void:
-	overlay_title.text = L10n.t("hud.district_secured")
-	overlay_summary.text = L10n.t("hud.cycle_complete", {"cycle": cycle})
+	overlay_title.text = L10n.t(
+		"hud.new_game_plus_ready" if can_continue else "hud.district_secured"
+	)
+	overlay_summary.text = L10n.t(
+		"hud.new_game_plus_summary" if can_continue else "hud.cycle_complete",
+		{"cycle": cycle, "score": "%08d" % maxi(_displayed_score(), 0)}
+	)
 	retry_button.visible = false
 	title_button.visible = false
 	extract_button.visible = true
 	continue_button.visible = can_continue
+	continue_button.text = L10n.t("hud.new_game_plus")
+	new_game_plus_badge.visible = can_continue
+	_apply_responsive_layout()
 	game_over_overlay.visible = true
 	if can_continue:
 		continue_button.grab_focus()
@@ -559,6 +572,14 @@ func _build_game_over_overlay() -> void:
 	terminal_panel.size = Vector2(550.0, 340.0)
 	terminal_panel.color = Color(0.025, 0.05, 0.065, 0.97)
 	game_over_overlay.add_child(terminal_panel)
+	new_game_plus_badge = TextureRect.new()
+	new_game_plus_badge.name = "NewGamePlusBadge"
+	new_game_plus_badge.texture = WeaponShopVisualCatalog.NEW_GAME_PLUS
+	new_game_plus_badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	new_game_plus_badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	new_game_plus_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	new_game_plus_badge.visible = false
+	game_over_overlay.add_child(new_game_plus_badge)
 	overlay_title = Label.new()
 	overlay_title.position = Vector2(405.0, 218.0)
 	overlay_title.size = Vector2(470.0, 72.0)
@@ -783,8 +804,14 @@ func _apply_experience_fill() -> void:
 func _apply_landscape_terminal_layout() -> void:
 	terminal_panel.position = Vector2(365.0, 188.0)
 	terminal_panel.size = Vector2(550.0, 340.0)
-	overlay_title.position = Vector2(405.0, 218.0)
-	overlay_title.size = Vector2(470.0, 72.0)
+	new_game_plus_badge.position = Vector2(385.0, 218.0)
+	new_game_plus_badge.size = Vector2(72.0, 72.0)
+	overlay_title.position = (
+		Vector2(465.0, 218.0) if new_game_plus_badge.visible else Vector2(405.0, 218.0)
+	)
+	overlay_title.size = (
+		Vector2(410.0, 72.0) if new_game_plus_badge.visible else Vector2(470.0, 72.0)
+	)
 	overlay_summary.position = Vector2(405.0, 296.0)
 	overlay_summary.size = Vector2(470.0, 128.0)
 	retry_button.position = Vector2(405.0, 430.0)
@@ -799,10 +826,19 @@ func _apply_portrait_terminal_layout(viewport_size: Vector2) -> void:
 	var panel_width: float = viewport_size.x - 64.0
 	terminal_panel.position = Vector2(32.0, 304.0)
 	terminal_panel.size = Vector2(panel_width, 560.0)
-	overlay_title.position = Vector2(52.0, 334.0)
+	new_game_plus_badge.position = Vector2(viewport_size.x * 0.5 - 48.0, 324.0)
+	new_game_plus_badge.size = Vector2(96.0, 96.0)
+	overlay_title.position = (
+		Vector2(52.0, 426.0) if new_game_plus_badge.visible else Vector2(52.0, 334.0)
+	)
 	overlay_title.size = Vector2(viewport_size.x - 104.0, 82.0)
-	overlay_summary.position = Vector2(52.0, 430.0)
-	overlay_summary.size = Vector2(viewport_size.x - 104.0, 236.0)
+	overlay_summary.position = (
+		Vector2(52.0, 510.0) if new_game_plus_badge.visible else Vector2(52.0, 430.0)
+	)
+	overlay_summary.size = Vector2(
+		viewport_size.x - 104.0,
+		156.0 if new_game_plus_badge.visible else 236.0
+	)
 	retry_button.position = Vector2(82.0, 720.0)
 	retry_button.size = Vector2(258.0, 88.0)
 	title_button.position = Vector2(viewport_size.x - 340.0, 720.0)
@@ -818,6 +854,8 @@ func _hide_terminal_choices() -> void:
 	title_button.visible = true
 	extract_button.visible = false
 	continue_button.visible = false
+	new_game_plus_badge.visible = false
+	_apply_responsive_layout()
 
 
 func _momentum_color(band: int) -> Color:

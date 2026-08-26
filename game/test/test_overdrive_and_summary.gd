@@ -130,7 +130,7 @@ func test_district_completion_shows_frozen_summary_and_disables_play() -> void:
 	city.weapon_shop_assembler.session.close_shop()
 	assert_false(city.game_over_active)
 	assert_true(city.gameplay_hud.game_over_overlay.visible)
-	assert_eq(city.gameplay_hud.overlay_title.text, "DISTRICT SECURED")
+	assert_eq(city.gameplay_hud.overlay_title.text, "NEW GAME + READY")
 	assert_true(city.gameplay_hud.continue_button.visible)
 	city.run_lifecycle._on_extract_pressed()
 	assert_true(city.game_over_active)

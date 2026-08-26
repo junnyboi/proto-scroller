@@ -35,7 +35,7 @@ func test_every_curated_recipe_passes_static_budget_validation() -> void:
 		assert_eq(DistrictRecipeValidator.validate(selection.district).size(), 0)
 
 
-func test_continue_preserves_city_health_score_and_directive_without_node_growth() -> void:
+func test_new_game_plus_restarts_act_one_with_score_power_and_exact_double_enemies() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.urban_siege.run_seed = 17
 	city.urban_siege.directives.select(
@@ -45,21 +45,70 @@ func test_continue_preserves_city_health_score_and_directive_without_node_growth
 		&"continuation_score", 9001, GameplayEvent.Kind.PROP_DESTROYED,
 		GameplayEvent.PROP_BREAK, 400, 5.0, true
 	))
+	city.rampage_session.run_score.bank_all()
+	city.weapon_shop_assembler.effects.apply_product(
+		WeaponShopCatalog.products_for(&"BUSINESS")[0]
+	)
 	city.robot.current_health = 640.0
+	city.robot.global_position.x = CityWorldStream.CHUNK_WIDTH * 40.0
+	city.world_stream.advance_stream()
+	assert_gt(city.world_stream.current_logical_chunk, 0)
+	city._refresh_primary_destructibles()
 	city.building.get_cell(0, 1).current_health = 12.0
 	var node_count: int = RuntimeBudget.snapshot(city).node_count
 	var score: int = city.score
+	var base_soldier_health: float = city.encounter_runtime.soldiers[0].max_health
 	var directive: DirectiveProfile = city.urban_siege.directives.selected_profile
+	city.telegraph_presenter.cancel_all()
+	city.urban_siege._withdraw_directive_presentation()
 	city.run_lifecycle._on_district_completed()
 	assert_true(city.weapon_shop_assembler.session.active)
 	city.weapon_shop_assembler.session.close_shop()
 	assert_true(city.gameplay_hud.continue_button.visible)
+	assert_true(city.gameplay_hud.new_game_plus_badge.visible)
+	assert_eq(city.gameplay_hud.continue_button.text, "START NEW GAME +")
 	city.run_lifecycle._on_continue_pressed()
 	assert_eq(city.urban_siege.cycle_count, 2)
 	assert_eq(city.score, score)
 	assert_almost_eq(city.robot.current_health, 640.0, 0.001)
-	assert_almost_eq(city.building.get_cell(0, 1).current_health, 12.0, 0.001)
+	assert_eq(city.robot.global_position, CityWorldBuilder.ROBOT_START_POSITION)
+	assert_eq(city.world_stream.current_logical_chunk, 0)
+	assert_eq(city.world_stream.current_district_id, &"BUSINESS")
+	assert_eq(city.encounter_director.phase_index, 0)
+	assert_almost_eq(
+		city.building.get_cell(0, 1).current_health,
+		city.building.get_cell(0, 1).max_health,
+		0.001
+	)
 	assert_eq(city.urban_siege.directives.selected_profile, directive)
+	assert_almost_eq(
+		city.weapon_shop_assembler.effects.ballistic_damage_multiplier,
+		1.15,
+		0.001
+	)
+	assert_almost_eq(city.encounter_runtime.cycle_health_multiplier, 2.0, 0.001)
+	assert_almost_eq(city.encounter_runtime.cycle_attack_multiplier, 2.0, 0.001)
+	for actor: EnemyActor2D in city.encounter_runtime.all_actors():
+		assert_almost_eq(actor.cycle_health_multiplier, 2.0, 0.001)
+		assert_almost_eq(actor.cycle_attack_multiplier, 2.0, 0.001)
+	var soldier: EnemyActor2D = city.encounter_runtime.acquire(
+		&"soldier", Vector2(1100.0, 542.5)
+	)
+	assert_almost_eq(soldier.max_health, base_soldier_health * 2.0, 0.001)
+	assert_almost_eq(soldier.cycle_attack_multiplier, 2.0, 0.001)
+	var emitted_damage: Array[float] = []
+	city.encounter_runtime.projectile_requested.connect(func(
+		_origin: Vector2,
+		_direction: Vector2,
+		_speed: float,
+		damage: float,
+		_kind: StringName,
+		_source: Node
+	) -> void: emitted_damage.append(damage))
+	soldier.request_projectile(Vector2.ZERO, Vector2.RIGHT, 800.0, 12.0, &"bullet")
+	assert_eq(emitted_damage, [24.0])
+	soldier.configure_boss(CommandBossSession.ARMOR, CommandBossSession.HEALTH)
+	assert_almost_eq(soldier.max_health, CommandBossSession.HEALTH * 2.0, 0.001)
 	assert_eq(RuntimeBudget.snapshot(city).node_count, node_count)
 	assert_false(city.gameplay_hud.game_over_overlay.visible)
 
@@ -72,6 +121,7 @@ func test_second_cycle_offers_extract_only_and_freezes_cycle_count() -> void:
 	city.weapon_shop_assembler.session.close_shop()
 	assert_true(city.gameplay_hud.extract_button.visible)
 	assert_false(city.gameplay_hud.continue_button.visible)
+	assert_false(city.gameplay_hud.new_game_plus_badge.visible)
 	city.run_lifecycle._on_extract_pressed()
 	assert_true(city.game_over_active)
 	assert_eq(city.rampage_session.frozen_summary.cycle_count, 2)

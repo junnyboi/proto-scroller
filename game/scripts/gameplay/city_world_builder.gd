@@ -12,6 +12,7 @@ const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
+const ROBOT_START_POSITION: Vector2 = Vector2(760.0, 466.5)
 const ROBOT_ROAD_CLEARANCE_PIXELS: float = 15.0
 const ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y: float = 47.5
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
@@ -42,6 +43,16 @@ static func compensate_parallax(parent: Node2D, offset: Vector2) -> void:
 			band.scroll_offset += offset * band.scroll_scale
 
 
+static func reset_parallax(parent: Node2D) -> void:
+	var backdrop: Node2D = parent.get_node_or_null(^"ParallaxCity") as Node2D
+	if backdrop == null:
+		return
+	for child: Node in backdrop.get_children():
+		var band: Parallax2D = child as Parallax2D
+		if band != null:
+			band.scroll_offset = Vector2.ZERO
+
+
 static func build_robot(
 	parent: Node2D,
 	on_heavy_impact: Callable,
@@ -51,7 +62,7 @@ static func build_robot(
 ) -> GiantRobotController:
 	var robot: GiantRobotController = ROBOT_SCRIPT.new() as GiantRobotController
 	robot.name = "Robot"
-	robot.position = Vector2(760.0, 466.5)
+	robot.position = ROBOT_START_POSITION
 	robot.max_health = 800.0
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0

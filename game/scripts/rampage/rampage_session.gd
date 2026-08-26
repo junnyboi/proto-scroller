@@ -74,6 +74,14 @@ func reset_run() -> void:
 	frozen_summary = null
 
 
+func begin_new_game_plus_cycle() -> void:
+	run_score.bank_all()
+	event_hub.reset_run()
+	combo_tracker.reset_run()
+	momentum_meter.reset_run()
+	causal_chain_tracker.reset()
+
+
 func current_score() -> int:
 	return run_score.score
 

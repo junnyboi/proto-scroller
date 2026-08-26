@@ -14,6 +14,7 @@ const CATALYST_RUNTIME_SCRIPT: Script = preload(
 )
 const HAZARD_RUNTIME_SCRIPT: Script = preload("res://scripts/hazards/hazard_runtime.gd")
 const GAS_MAIN_PROFILE: CatalystProfile = preload("res://resources/catalysts/gas_main.tres")
+const NEW_GAME_PLUS_ENEMY_MULTIPLIER: float = 2.0
 const ROLE_PROFILES: Array[EnemyRoleProfile] = [
 	preload("res://resources/roles/advancing_soldier.tres"),
 	preload("res://resources/roles/suppressor.tres"),
@@ -145,6 +146,7 @@ func continue_cycle() -> bool:
 		_terminal_pause_token = 0
 	cycle_count += 1
 	_offered_district_keys.clear()
+	_pending_district_offer = &""
 	dependencies.telegraphs.cancel_all()
 	dependencies.projectile_pool.release_all()
 	dependencies.encounter_runtime.release_all()
@@ -301,6 +303,13 @@ func _on_boss_completed(_elapsed_seconds: float) -> void:
 
 func _prepare_cycle() -> void:
 	_select_configuration(true)
+	var difficulty_multiplier: float = (
+		NEW_GAME_PLUS_ENEMY_MULTIPLIER if cycle_count >= 2 else 1.0
+	)
+	dependencies.encounter_runtime.configure_cycle_difficulty(
+		difficulty_multiplier,
+		difficulty_multiplier
+	)
 	director.configure_elite_affixes(run_seed, cycle_count)
 	hazard_pressure.configure(run_seed, cycle_count)
 	hazards.release_all()

@@ -59,6 +59,8 @@ var external_attack_interval_multiplier: float = 1.0
 var aura_attack_interval_multiplier: float = 1.0
 var aura_damage_multiplier: float = 1.0
 var incoming_damage_multiplier: float = 1.0
+var cycle_health_multiplier: float = 1.0
+var cycle_attack_multiplier: float = 1.0
 var role_badge: EnemyRoleBadge
 var structural_target: StructuralBuilding2D
 var catalyst_target: Catalyst2D
@@ -74,6 +76,8 @@ var last_player_knockback_attack_id: int = 0
 var dodge_wheel_slip_count: int = 0
 var last_dodge_wheel_slip_direction: int = 0
 var _base_max_health: float = 0.0
+var _profile_health_multiplier: float = 1.0
+var _boss_base_health: float = 0.0
 var _shield_available: bool = false
 var _shield_damage_ratio: float = 1.0
 var _seen_attacks: Dictionary[int, bool] = {}
@@ -208,7 +212,30 @@ func request_projectile(
 ) -> void:
 	if not attack_gate_enabled:
 		return
-	projectile_requested.emit(origin, direction, speed, damage, kind, self)
+	projectile_requested.emit(
+		origin,
+		direction,
+		speed,
+		_scale_outgoing_damage(damage),
+		kind,
+		self
+	)
+
+
+func _configure_cycle_difficulty(health_multiplier: float, attack_multiplier: float) -> void:
+	var health_ratio: float = current_health / maxf(max_health, 1.0)
+	cycle_health_multiplier = maxf(health_multiplier, 1.0)
+	cycle_attack_multiplier = maxf(attack_multiplier, 1.0)
+	max_health = (
+		_boss_base_health * cycle_health_multiplier
+		if boss_mode
+		else _base_max_health * _profile_health_multiplier * cycle_health_multiplier
+	)
+	current_health = max_health * clampf(health_ratio, 0.0, 1.0)
+
+
+func _scale_outgoing_damage(amount: float) -> float:
+	return maxf(amount, 0.0) * cycle_attack_multiplier
 
 
 func begin_player_attack_reaction(
@@ -312,16 +339,16 @@ func apply_profiles(
 	projectile_damage_multiplier = (
 		role_profile.damage_multiplier if role_profile != null else 1.0
 	)
-	var health_multiplier: float = (
+	_profile_health_multiplier = (
 		role_profile.health_multiplier if role_profile != null else 1.0
 	)
 	if trait_profile != null:
-		health_multiplier *= trait_profile.health_multiplier
+		_profile_health_multiplier *= trait_profile.health_multiplier
 		movement_multiplier *= trait_profile.movement_multiplier
 		attack_interval_multiplier *= trait_profile.attack_interval_multiplier
 		projectile_damage_multiplier *= trait_profile.projectile_damage_multiplier
 		telegraph_multiplier = trait_profile.telegraph_multiplier
-	max_health = _base_max_health * health_multiplier
+	max_health = _base_max_health * _profile_health_multiplier * cycle_health_multiplier
 	current_health = max_health
 	_shield_available = trait_profile != null and trait_profile.first_hit_damage_ratio < 1.0
 	_shield_damage_ratio = (
@@ -342,7 +369,8 @@ func clear_profiles() -> void:
 	aura_attack_interval_multiplier = 1.0
 	aura_damage_multiplier = 1.0
 	incoming_damage_multiplier = 1.0
-	max_health = _base_max_health
+	_profile_health_multiplier = 1.0
+	max_health = _base_max_health * cycle_health_multiplier
 	_shield_available = false
 	_shield_damage_ratio = 1.0
 	if role_badge != null:
@@ -356,11 +384,12 @@ func configure_boss(
 	fixed_step: float = 110.0
 ) -> void:
 	boss_mode = true
+	_boss_base_health = maxf(exposed_health, 1.0)
 	boss_max_armor = maxf(armor, 1.0)
 	boss_armor = boss_max_armor
 	boss_armor_policy = armor_policy
 	boss_armor_fixed_step = maxf(fixed_step, 1.0)
-	max_health = maxf(exposed_health, 1.0)
+	max_health = _boss_base_health * cycle_health_multiplier
 	current_health = max_health
 	boss_armor_changed.emit(boss_armor, boss_max_armor)
 
@@ -397,6 +426,7 @@ func deactivate() -> void:
 	cancel_telegraph()
 	clear_profiles()
 	boss_mode = false
+	_boss_base_health = 0.0
 	boss_armor = 0.0
 	boss_max_armor = 0.0
 	boss_armor_policy = ArmorPolicy.LEGACY_AMOUNT_BASED
@@ -477,7 +507,7 @@ func fire_telegraphed_projectile(speed: float, damage: float) -> Projectile2D:
 			_telegraph_origin,
 			telegraph_direction(),
 			speed,
-			damage,
+			_scale_outgoing_damage(damage),
 			self,
 			projectile_target_mask,
 			_telegraph_kind

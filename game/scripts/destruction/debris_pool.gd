@@ -95,6 +95,12 @@ func release(body: DebrisBody2D) -> void:
 	_free.append(body)
 
 
+func release_all() -> void:
+	for body: DebrisBody2D in _active.duplicate():
+		release(body)
+	_cull_elapsed = 0.0
+
+
 func available_count() -> int:
 	return _free.size()
 

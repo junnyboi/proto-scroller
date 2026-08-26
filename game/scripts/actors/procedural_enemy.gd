@@ -333,7 +333,9 @@ func _commit_melee_damage(damage_type: StringName, impulse: float) -> void:
 	target.receive_damage(DamageEvent.new(
 		attack_id,
 		self,
-		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier,
+		_scale_outgoing_damage(
+			projectile_damage * projectile_damage_multiplier * aura_damage_multiplier
+		),
 		damage_type,
 		target.global_position,
 		global_position.direction_to(target.global_position),
@@ -357,7 +359,12 @@ func _fire_spread_projectiles(extra_count: int) -> void:
 			telegraph_origin(),
 			telegraph_origin().direction_to(destination),
 			projectile_speed * (0.92 + float(shot_index) * 0.06),
-			projectile_damage * 0.72 * projectile_damage_multiplier * aura_damage_multiplier,
+			_scale_outgoing_damage(
+				projectile_damage
+				* 0.72
+				* projectile_damage_multiplier
+				* aura_damage_multiplier
+			),
 			self,
 			projectile_target_mask,
 			projectile_kind

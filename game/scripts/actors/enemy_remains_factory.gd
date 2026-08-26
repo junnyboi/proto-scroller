@@ -99,6 +99,11 @@ func active_count() -> int:
 	return _active_wrecks.size()
 
 
+func release_all() -> void:
+	for wreck: EnemyWreck2D in _active_wrecks.duplicate():
+		_release_wreck(wreck)
+
+
 func total_count() -> int:
 	return _active_wrecks.size() + _free_wrecks.size()
 
