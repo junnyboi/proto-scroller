@@ -116,6 +116,7 @@ func advance(delta: float) -> void:
 	_state_elapsed += delta
 	if utility_pool != null:
 		utility_pool.vertical_slice.advance(delta)
+		utility_pool.escalation.advance(delta)
 	var screen_duration: float = (
 		SCREEN_DURATION if active_definition == null else active_definition.screen_seconds
 	)
@@ -163,6 +164,11 @@ func capture_attempt_state() -> Dictionary:
 			if utility_pool.vertical_slice.active()
 			else {}
 		),
+		"escalation": (
+			utility_pool.escalation.capture_state()
+			if utility_pool.escalation.active()
+			else {}
+		),
 	}
 
 
@@ -176,11 +182,13 @@ func completion_payload() -> Dictionary:
 
 
 func live_boss_feedback() -> Dictionary:
-	return (
-		utility_pool.vertical_slice.hud_feedback()
-		if utility_pool != null and utility_pool.vertical_slice.active()
-		else {}
-	)
+	if utility_pool == null:
+		return {}
+	if utility_pool.vertical_slice.active():
+		return utility_pool.vertical_slice.hud_feedback()
+	if utility_pool.escalation.active():
+		return utility_pool.escalation.hud_feedback()
+	return {}
 
 
 func _apply_pending_attempt_restore() -> void:
@@ -205,6 +213,9 @@ func _apply_pending_attempt_restore() -> void:
 	var slice_state: Dictionary = _pending_attempt_restore.get("vertical_slice", {})
 	if not slice_state.is_empty() and utility_pool.vertical_slice.active():
 		utility_pool.vertical_slice.restore_state(slice_state)
+	var escalation_state: Dictionary = _pending_attempt_restore.get("escalation", {})
+	if not escalation_state.is_empty() and utility_pool.escalation.active():
+		utility_pool.escalation.restore_state(escalation_state)
 	_pending_attempt_restore.clear()
 
 
@@ -225,6 +236,12 @@ func _on_boss_armor_changed(current: float, maximum: float) -> void:
 		)
 		while utility_pool.vertical_slice.armor_connections < connection_count:
 			utility_pool.vertical_slice.register_armor_connection()
+	elif utility_pool.escalation.active():
+		var connection_count: int = roundi(
+			(maximum - current) / maxf(active_definition.armor_fixed_step, 1.0)
+		)
+		while utility_pool.escalation.armor_connections < connection_count:
+			utility_pool.escalation.register_armor_connection()
 	armor_changed.emit(current, maximum)
 
 
@@ -234,11 +251,18 @@ func _on_boss_armor_broken() -> void:
 		if utility_pool.vertical_slice.active()
 		else {}
 	)
+	var escalation_state: Dictionary = (
+		utility_pool.escalation.capture_state()
+		if utility_pool.escalation.active()
+		else {}
+	)
 	_next_generation()
 	if active_definition != null:
 		_configure_campaign_runtime()
 		if not slice_state.is_empty() and utility_pool.vertical_slice.active():
 			utility_pool.vertical_slice.restore_state(slice_state)
+		if not escalation_state.is_empty() and utility_pool.escalation.active():
+			utility_pool.escalation.restore_state(escalation_state)
 		if active_definition.phases.size() > 1:
 			utility_pool.controller.begin_phase(
 				active_definition.phases[1],
@@ -293,6 +317,15 @@ func _configure_campaign_runtime() -> void:
 			boss.global_position,
 			portrait
 		)
+	elif active_definition.boss_id in [
+		&"MIMESIS_04", &"CANTOR_31_PALE_ENGINE",
+	]:
+		utility_pool.escalation.start(
+			active_definition,
+			generation_token,
+			boss.global_position,
+			portrait
+		)
 
 
 func _is_choir_prime() -> bool:
@@ -306,6 +339,13 @@ func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> v
 			utility_pool.vertical_slice.rescue_remaining_pods()
 			_completion_payload = utility_pool.vertical_slice.completion_payload()
 			utility_pool.vertical_slice.preserve_completion_state()
+		elif utility_pool.escalation.active():
+			if active_definition.boss_id == &"MIMESIS_04":
+				utility_pool.escalation.play_continuity_record()
+			else:
+				utility_pool.escalation.export_record_visible = true
+			_completion_payload = utility_pool.escalation.completion_payload()
+			utility_pool.escalation.preserve_completion_state()
 		dependencies.encounter_runtime.set_attack_gate(false)
 
 

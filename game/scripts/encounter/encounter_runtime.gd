@@ -339,8 +339,8 @@ func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
 	elif kind == &"tank":
 		enemy = TANK_SCRIPT.new() as TankEnemy
 		texture = TANK_TEXTURE
-		display_size = Vector2(235.0, 100.0)
-		collision_size = Vector2(220.0, 78.0)
+		display_size = Vector2(235.0, 100.0) * EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE
+		collision_size = Vector2(220.0, 78.0) * EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE
 		authored_y = 551.0
 	else:
 		enemy = HELICOPTER_SCRIPT.new() as HelicopterEnemy
@@ -388,13 +388,16 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	var texture: Texture2D = load(String(profile.texture)) as Texture2D
 	var display_size: Vector2 = profile.display as Vector2
 	if EnemyArchetypeCatalog.is_human_enemy(kind):
-		display_size = Vector2(
-			texture.get_size().x
-			* EnemyArchetypeCatalog.HUMAN_RENDER_HEIGHT_PIXELS
-			/ texture.get_size().y,
-			EnemyArchetypeCatalog.HUMAN_RENDER_HEIGHT_PIXELS
-		)
+			display_size = Vector2(
+				texture.get_size().x
+				* EnemyArchetypeCatalog.HUMAN_RENDER_HEIGHT_PIXELS
+				/ texture.get_size().y,
+				EnemyArchetypeCatalog.HUMAN_RENDER_HEIGHT_PIXELS
+			)
 	var collision_size: Vector2 = profile.collision as Vector2
+	var presentation_scale: float = EnemyArchetypeCatalog.presentation_scale(kind)
+	display_size *= presentation_scale
+	collision_size *= presentation_scale
 	var authored_y: float = float(profile.spawn_y)
 	var visual: Sprite2D = enemy.get_node(^"Visual") as Sprite2D
 	visual.texture = texture

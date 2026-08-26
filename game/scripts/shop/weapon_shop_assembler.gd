@@ -131,7 +131,6 @@ func _on_preview_requested(product_id: StringName) -> void:
 		if product.product_id == product_id:
 			overlay.set_preview(
 				product,
-				effects.preview_for(product),
-				session.product_status(product)
+				effects.preview_for(product)
 			)
 			return

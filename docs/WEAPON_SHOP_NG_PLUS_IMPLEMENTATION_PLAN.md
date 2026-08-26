@@ -56,7 +56,7 @@ Selecting an available card opens an input-blocking confirmation modal above the
 
 ### 3.4 Successful transaction feedback
 
-A successful upgrade emits a cyan-gold circuitry burst centered on the purchased card, flashes the preview value, plays the distinct upgrade-purchase cue, updates the score, and marks the card sold. A successful repair emits a mint-white nanoweld burst, briefly sweeps a repair glow through the integrity value, plays the distinct repair cue, and displays the exact restored integrity. No redundant transaction-status banner is shown beneath the products; card state, credit total, preview values, audio, and particles provide the confirmation. Failed transactions do not emit success effects or consume score.
+A successful upgrade emits a cyan-gold circuitry burst centered on the purchased card, flashes the preview value, plays the distinct upgrade-purchase cue, updates the score, and marks the card sold. A successful repair emits a mint-white nanoweld burst, briefly sweeps a repair glow through the integrity value, plays the distinct repair cue, and displays the exact restored integrity. No redundant transaction-status banner is shown beneath the products, and the stat preview contains no availability/confirmation status line; card state, credit total, preview values, the explicit confirmation panel, audio, and particles provide the confirmation. Failed transactions do not emit success effects or consume score.
 
 ## 4. New Game+ architecture
 

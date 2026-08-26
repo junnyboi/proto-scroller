@@ -28,6 +28,7 @@ mkdir -p \
 			  artifacts/boss_attack_matrix \
 			  artifacts/boss_rig_gallery \
 			  artifacts/boss_vertical_slice \
+			  artifacts/boss_escalation \
 			  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/power_box_repair \
@@ -284,6 +285,22 @@ jq -e '
 	and .residential.central_cradle_preserved == true
 	and ([.checks[].passed] | all)
 ' artifacts/boss_vertical_slice/report-landscape.json >/dev/null
+
+printf '%s\n' '[L4] Entertainment and Military boss escalation'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+	-s selftest/boss_escalation_scenario.gd
+jq -e '
+	.done == true
+	and .result == "PASS"
+	and .orientation == "landscape"
+	and (.entertainment.attacks | length) == 4
+	and .entertainment.marker_count == 8
+	and .entertainment.history_damages == false
+	and (.military.attacks | length) == 4
+	and .military.anchors == 3
+	and .military.live_seraphs == 0
+	and ([.checks[].passed] | all)
+' artifacts/boss_escalation/report-landscape.json >/dev/null
 
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
@@ -569,10 +586,32 @@ if [[ "$MODE" == "full" ]]; then
 		  test -s artifacts/boss_vertical_slice/business-portrait.png
 		  test -s artifacts/boss_vertical_slice/residential-portrait.png
 		  diff \
-		    <(jq -S '[.business.signature, .residential.signature]' artifacts/boss_vertical_slice/report-landscape.json) \
-		    <(jq -S '[.business.signature, .residential.signature]' artifacts/boss_vertical_slice/report-portrait.json)
+			    <(jq -S '[.business.signature, .residential.signature]' artifacts/boss_vertical_slice/report-landscape.json) \
+			    <(jq -S '[.business.signature, .residential.signature]' artifacts/boss_vertical_slice/report-portrait.json)
 
-			  printf '%s\n' '[L5] Project CHOIR finale landscape'
+			  printf '%s\n' '[L5] Entertainment and Military boss escalation landscape'
+			  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+			    --resolution 1280x720 -s selftest/boss_escalation_scenario.gd
+			  jq -e '.done == true and .result == "PASS" and .orientation == "landscape"
+			    and ([.checks[].passed] | all)' \
+			    artifacts/boss_escalation/report-landscape.json >/dev/null
+			  test -s artifacts/boss_escalation/entertainment-landscape.png
+			  test -s artifacts/boss_escalation/military-landscape.png
+
+			  printf '%s\n' '[L5] Entertainment and Military boss escalation portrait'
+			  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+			    --audio-driver Dummy --path . --resolution 720x1280 \
+			    -s selftest/boss_escalation_scenario.gd
+			  jq -e '.done == true and .result == "PASS" and .orientation == "portrait"
+			    and ([.checks[].passed] | all)' \
+			    artifacts/boss_escalation/report-portrait.json >/dev/null
+			  test -s artifacts/boss_escalation/entertainment-portrait.png
+			  test -s artifacts/boss_escalation/military-portrait.png
+			  diff \
+			    <(jq -S '[.entertainment.signature, .military.signature]' artifacts/boss_escalation/report-landscape.json) \
+			    <(jq -S '[.entertainment.signature, .military.signature]' artifacts/boss_escalation/report-portrait.json)
+
+				  printf '%s\n' '[L5] Project CHOIR finale landscape'
 		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 		    --resolution 1280x720 -s selftest/project_choir_finale_scenario.gd
 		  jq -e '.done == true and .result == "PASS" and .pylon_count == 5

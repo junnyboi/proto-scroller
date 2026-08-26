@@ -277,7 +277,14 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	var building_id: StringName = ledger.make_object_id(blueprint.logical_index, &"building")
 	var car_id: StringName = ledger.make_object_id(blueprint.logical_index, &"car")
 	var lamp_id: StringName = ledger.make_object_id(blueprint.logical_index, &"streetlamp")
-	assert(building.apply_variant(blueprint.building_variant))
+	var variant_applied: bool = building.apply_variant(blueprint.building_variant)
+	if not variant_applied:
+		push_error(
+			"Failed to apply streamed facade %s to logical chunk %d"
+			% [blueprint.building_variant_id, blueprint.logical_index]
+		)
+		return
+	assert(variant_applied)
 	building.set_meta(&"stream_object_id", building_id)
 	building.set_meta(&"district_id", blueprint.district_id)
 	building.set_meta(&"district_index", blueprint.district_index)

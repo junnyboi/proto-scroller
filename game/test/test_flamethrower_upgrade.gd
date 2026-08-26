@@ -40,6 +40,47 @@ func test_flamethrower_requires_target_and_latches_direction_for_unique_ticks() 
 	assert_eq(flame.cooldown_remaining, 1.20)
 
 
+func test_flamethrower_aims_at_target_elevation_instead_of_cardinal_axis() -> void:
+	var city: CitySlice = await _spawn_isolated_city()
+	var flame: FlamethrowerRuntime = _flame(city)
+	flame.set_process(false)
+	flame.apply_rank(2)
+	flame._drone_cursor = 1
+	var firing_drone: WeaponDroneVisual2D = flame.drones[1]
+	var origin: Vector2 = firing_drone.muzzle.global_position
+	var target_offset: Vector2 = Vector2(160.0, -80.0)
+	var target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"soldier",
+		origin + target_offset
+	)
+	target.set_physics_process(false)
+	target.current_health = 12.0
+	var fatal_events: Array[DamageEvent] = []
+	target.died.connect(
+		func(_actor: EnemyActor2D, event: DamageEvent) -> void:
+			fatal_events.append(event)
+	)
+	await get_tree().physics_frame
+	var expected_direction: Vector2 = (
+		target.global_position - firing_drone.muzzle.global_position
+	).normalized()
+	flame.advance(0.0)
+	assert_true(flame.burst_active)
+	assert_same(flame.active_drone, firing_drone)
+	assert_almost_eq(flame.burst_direction.x, expected_direction.x, 0.001)
+	assert_almost_eq(flame.burst_direction.y, expected_direction.y, 0.001)
+	assert_almost_eq(
+		flame.active_drone.weapon_pivot.rotation,
+		expected_direction.angle(),
+		0.001
+	)
+	assert_almost_eq(flame.flames[0].rotation, expected_direction.angle(), 0.001)
+	assert_eq(fatal_events.size(), 1)
+	if fatal_events.size() == 1:
+		assert_almost_eq(fatal_events[0].direction.x, expected_direction.x, 0.001)
+		assert_almost_eq(fatal_events[0].direction.y, expected_direction.y, 0.001)
+
+
 func test_flamethrower_rank_five_tuning_and_visual_caps_are_exact() -> void:
 	var city: CitySlice = await _spawn_isolated_city()
 	var flame: FlamethrowerRuntime = _flame(city)

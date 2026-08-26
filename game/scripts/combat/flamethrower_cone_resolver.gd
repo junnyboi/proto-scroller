@@ -82,14 +82,13 @@ func resolve_tick(
 	return last_accepted_count
 
 
-func has_actor_target(
+func target_direction(
 	arsenal: PlayerArsenalRuntime,
 	origin: Vector2,
-	direction: Vector2,
-	flame_range: float,
-	half_angle: float
-) -> bool:
-	var cosine_limit: float = cos(half_angle)
+	flame_range: float
+) -> Vector2:
+	var best_target: EnemyActor2D = null
+	var best_distance_squared: float = INF
 	for enemy: EnemyActor2D in arsenal.actors:
 		if not arsenal.target_matches_class(
 			enemy,
@@ -97,11 +96,22 @@ func has_actor_target(
 		):
 			continue
 		var offset: Vector2 = enemy.global_position - origin
-		if offset.length_squared() > flame_range * flame_range:
+		var distance_squared: float = offset.length_squared()
+		if offset.is_zero_approx() or distance_squared > flame_range * flame_range:
 			continue
-		if not offset.is_zero_approx() and offset.normalized().dot(direction) >= cosine_limit:
-			return true
-	return false
+		if (
+			distance_squared < best_distance_squared
+			or (
+				is_equal_approx(distance_squared, best_distance_squared)
+				and best_target != null
+				and enemy.get_instance_id() < best_target.get_instance_id()
+			)
+		):
+			best_target = enemy
+			best_distance_squared = distance_squared
+	if best_target == null:
+		return Vector2.ZERO
+	return (best_target.global_position - origin).normalized()
 
 
 func _sort_result(a: Dictionary, b: Dictionary, origin: Vector2) -> bool:

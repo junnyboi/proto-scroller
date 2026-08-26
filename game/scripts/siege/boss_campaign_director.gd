@@ -43,6 +43,15 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	siege.boss_session.utility_pool.vertical_slice.rescue_tally_changed.connect(
 		_on_slice_feedback_changed
 	)
+	siege.boss_session.utility_pool.escalation.attack_changed.connect(
+		_on_slice_feedback_changed
+	)
+	siege.boss_session.utility_pool.escalation.record_changed.connect(
+		_on_slice_feedback_changed
+	)
+	siege.boss_session.utility_pool.escalation.support_changed.connect(
+		_on_slice_feedback_changed
+	)
 
 
 func _process(_delta: float) -> void:

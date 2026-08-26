@@ -108,13 +108,12 @@ func set_score(value: int) -> void:
 
 func set_preview(
 	product: WeaponShopProduct,
-	rows: Array[Dictionary],
-	status: StringName
+	rows: Array[Dictionary]
 ) -> void:
 	if product == null:
 		return
 	_previews[product.product_id] = rows
-	preview_panel.show_preview(product, rows, status)
+	preview_panel.show_preview(product, rows)
 
 
 func update_status(product_id: StringName, status: StringName) -> void:
@@ -123,7 +122,6 @@ func update_status(product_id: StringName, status: StringName) -> void:
 		if card.product != null and card.product.product_id == product_id:
 			card.set_status(status)
 			break
-	preview_panel.update_status(product_id, status)
 	_focus_first_available()
 
 

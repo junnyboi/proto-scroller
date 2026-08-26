@@ -7,6 +7,7 @@ const HUMAN_KINDS: Array[StringName] = [
 ]
 const HUMAN_SPAWN_MULTIPLIER: int = 2
 const HUMAN_RENDER_HEIGHT_PIXELS: float = 108.0
+const GROUND_VEHICLE_SCALE: float = 2.0
 const RANDOM_AFFIXES: Array[StringName] = [&"BLITZ", &"BRUTAL", &"PHASED"]
 const PROCEDURAL_IDS: Array[StringName] = [
 	&"needle", &"bulwark", &"jackal", &"lobber", &"sapper",
@@ -349,6 +350,22 @@ static func is_valid_kind(kind: StringName) -> bool:
 
 static func is_human_enemy(kind: StringName) -> bool:
 	return kind in HUMAN_KINDS
+
+
+static func is_ground_vehicle(kind: StringName) -> bool:
+	if kind == &"tank":
+		return true
+	if not has(kind):
+		return false
+	var profile_value: Dictionary = PROFILES[kind] as Dictionary
+	return (
+		not bool(profile_value.get("airborne", false))
+		and StringName(profile_value.get("remains", &"")) == &"vehicle"
+	)
+
+
+static func presentation_scale(kind: StringName) -> float:
+	return GROUND_VEHICLE_SCALE if is_ground_vehicle(kind) else 1.0
 
 
 static func spawn_multiplier(kind: StringName) -> int:

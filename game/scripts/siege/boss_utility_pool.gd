@@ -20,6 +20,8 @@ const CHOIR_PYLON_OFFSETS: Array[Vector2] = [
 var rig: BossRig2D
 var controller: BossPhaseRuntime
 var vertical_slice: BossVerticalSliceController
+var escalation: BossEscalationController
+var motion_echo_recorder: MotionEchoRecorder
 var arena_adapter: BossStructuralAdapter
 var markers: Array[Marker2D] = []
 var lane_damage_areas: Array[BossAttackArea2D] = []
@@ -207,6 +209,7 @@ func configure_runtime(
 ) -> void:
 	controller.setup(self, encounter_runtime, projectile_pool)
 	vertical_slice.setup(self, encounter_runtime)
+	escalation.setup(self, encounter_runtime)
 
 
 func configure_wreck_receivers(
@@ -256,6 +259,9 @@ func _prewarm() -> void:
 	vertical_slice = BossVerticalSliceController.new()
 	vertical_slice.name = "BossVerticalSliceController"
 	add_child(vertical_slice)
+	escalation = BossEscalationController.new()
+	escalation.name = "BossEscalationController"
+	add_child(escalation)
 	arena_adapter = BossStructuralAdapter.new()
 	add_child(arena_adapter)
 	for index: int in range(PYLON_PRESENTATION_CAPACITY):
@@ -291,6 +297,11 @@ func _prewarm() -> void:
 	for index: int in range(RECLAMATION_ANCHOR_CAPACITY):
 		var anchor: Node2D = _make_record("ReclamationAnchor%02d" % index, arena_adapter)
 		reclamation_anchor_records.append(anchor)
+	motion_echo_recorder = MotionEchoRecorder.new()
+	motion_echo_recorder.name = "MotionEchoRecorder"
+	arena_adapter.add_child(motion_echo_recorder)
+	motion_echo_recorder.setup(markers, lane_damage_areas[2])
+	escalation.attach_recorder(motion_echo_recorder)
 	default_wreck_receiver = _make_wreck_receiver("DefaultWreckReceiver")
 	royal_outcome_receiver = _make_wreck_receiver("RoyalOutcomeReceiver")
 	wreck_receivers.assign([default_wreck_receiver, royal_outcome_receiver])
@@ -349,6 +360,7 @@ func _cleanup_current_generation() -> void:
 
 func _deactivate_records() -> void:
 	rig.deactivate()
+	motion_echo_recorder.deactivate()
 	arena_adapter.unbind()
 	for record: Node2D in pylon_presentations:
 		record.visible = false

@@ -5,7 +5,6 @@ var background_panel: Panel
 var heading_label: Label
 var product_label: Label
 var rows_label: Label
-var status_label: Label
 var active_product_id: StringName = &""
 
 
@@ -19,8 +18,7 @@ func _ready() -> void:
 
 func show_preview(
 	product: WeaponShopProduct,
-	rows: Array[Dictionary],
-	status: StringName
+	rows: Array[Dictionary]
 ) -> void:
 	if product == null:
 		return
@@ -28,13 +26,7 @@ func show_preview(
 	heading_label.text = L10n.t("shop.preview.title")
 	product_label.text = L10n.t(product.name_key)
 	rows_label.text = WeaponShopStatFormatter.format_stacked_rows(rows)
-	status_label.text = _status_text(status)
 	visible = true
-
-
-func update_status(product_id: StringName, status: StringName) -> void:
-	if product_id == active_product_id:
-		status_label.text = _status_text(status)
 
 
 func _build_controls() -> void:
@@ -56,8 +48,6 @@ func _build_controls() -> void:
 	rows_label = _label(17, Color("7ae4ff"))
 	rows_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(rows_label)
-	status_label = _label(14, Color("9fb0b8"))
-	add_child(status_label)
 
 
 func _apply_layout() -> void:
@@ -70,22 +60,8 @@ func _apply_layout() -> void:
 	rows_label.position = Vector2(padding, 56.0 if compact else 78.0)
 	rows_label.size = Vector2(
 		size.x - padding * 2.0,
-		48.0 if compact else maxf(size.y - 128.0, 48.0)
+		48.0 if compact else maxf(size.y - 100.0, 48.0)
 	)
-	status_label.position = Vector2(padding, size.y - (27.0 if compact else 35.0))
-	status_label.size = Vector2(size.x - padding * 2.0, 22.0)
-
-
-func _status_text(status: StringName) -> String:
-	match status:
-		&"sold":
-			return L10n.t("shop.sold")
-		&"healthy":
-			return L10n.t("shop.full_integrity")
-		&"funds":
-			return L10n.t("shop.insufficient")
-		_:
-			return L10n.t("shop.preview.available")
 
 
 func _label(font_size: int, color: Color) -> Label:

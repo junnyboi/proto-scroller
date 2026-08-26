@@ -228,7 +228,10 @@ static func _ensure_catalog() -> void:
 				&"wreck_receivers": 1,
 			},
 			{&"procedural_air": 1},
-			[&"DEAD_AIR_SWEEP", &"ARMED_AFTERIMAGE", &"ENCORE_IMPACT"]
+			[
+				&"DEAD_AIR_SWEEP", &"MEMORY_BLOCKING",
+				&"ARMED_AFTERIMAGE", &"ENCORE_IMPACT",
+			]
 		),
 		_make_definition(
 				&"CANTOR_31_PALE_ENGINE",
@@ -250,7 +253,10 @@ static func _ensure_catalog() -> void:
 				&"wreck_receivers": 1,
 			},
 			{&"procedural_light": 1},
-			[&"CALIBRATION_THEATRE", &"ASSEMBLY_RUN", &"PALE_RECLAMATION"]
+			[
+				&"SUTURE_SALVO", &"DISPATCH_HARNESS",
+				&"PALE_RECLAMATION", &"COMPRESSION_PSALM",
+			]
 		),
 		_make_definition(
 				&"CHOIR_PRIME",
