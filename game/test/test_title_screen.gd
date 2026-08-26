@@ -372,6 +372,23 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 	assert_true(host_source.contains("title-loop-portrait.mp4"))
 	assert_true(host_source.contains("title-poster-landscape.jpg"))
 	assert_true(host_source.contains("title-poster-portrait.jpg"))
+	var shell_source: String = FileAccess.get_file_as_string(
+		"res://../scripts/patch-title-video-shell.mjs"
+	)
+	for runtime_source: String in [host_source, shell_source]:
+		assert_true(runtime_source.contains("title-loop-landscape.mp4"))
+		assert_true(runtime_source.contains("title-loop-portrait.mp4"))
+		assert_true(runtime_source.contains("protoScrollerScheduleTitleBeatCommit"))
+		assert_true(runtime_source.contains("protoScrollerCancelTitleBeatCommit"))
+		assert_true(runtime_source.contains("requestAnimationFrame"))
+		assert_true(runtime_source.contains("requestVideoFrameCallback"))
+		assert_true(runtime_source.contains("getOutputTimestamp"))
+		assert_true(runtime_source.contains("AudioBufferSourceNode"))
+		assert_true(runtime_source.contains("prototype.start"))
+		assert_true(runtime_source.contains("commitCallback"))
+		assert_true(runtime_source.contains("__PROTO_SCROLLER_TITLE_MUSIC_SYNC__"))
+	assert_true(host_source.contains("88 / 24"))
+	assert_true(host_source.contains("66 / 24"))
 	_record_test_execution()
 
 

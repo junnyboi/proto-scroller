@@ -36,7 +36,88 @@ replaceOnce(
 replaceOnce(
   "title backdrop bridge",
   "const GODOT_CONFIG = ",
-  `const titleVideoBackdrop = document.getElementById('title-video-backdrop');\nwindow.protoScrollerSetTitleBackdropActive = function (active) {\n\tdocument.body.classList.toggle('title-backdrop-active', Boolean(active));\n\tif (!titleVideoBackdrop) return;\n\tif (active) {\n\t\tconst playPromise = titleVideoBackdrop.play();\n\t\tif (playPromise) playPromise.catch(() => {});\n\t} else {\n\t\ttitleVideoBackdrop.pause();\n\t}\n};\nif (titleVideoBackdrop) {\n\ttitleVideoBackdrop.addEventListener('playing', () => {\n\t\ttitleVideoBackdrop.classList.add('is-ready');\n\t}, { once: true });\n}\nwindow.protoScrollerSetTitleBackdropActive(true);\n\nconst GODOT_CONFIG = `
+  `const titleVideoBackdrop = document.getElementById('title-video-backdrop');
+const TITLE_SOURCES = { landscape: '/title-video/title-loop-landscape.mp4', portrait: '/title-video/title-loop-portrait.mp4' };
+const TITLE_IMPACTS = { landscape: 88 / 24, portrait: 66 / 24 };
+const titleAudioContexts = new Set();
+let titleSourceLocked = false, titleLockedOrientation = null, titleGeneration = 0, titleFrame = 0, titleCapture = null;
+const titleOrientation = () => titleSourceLocked && titleLockedOrientation ? titleLockedOrientation : matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
+function selectTitleSource(force = false) {
+	if (!titleVideoBackdrop || (titleSourceLocked && !force)) return;
+	const source = TITLE_SOURCES[titleOrientation()];
+	if (new URL(titleVideoBackdrop.currentSrc || titleVideoBackdrop.src || source, location.href).pathname === source && !force) return;
+	const play = !titleVideoBackdrop.paused || document.body.classList.contains('title-backdrop-active');
+	titleVideoBackdrop.src = source; titleVideoBackdrop.load();
+	if (play) titleVideoBackdrop.play().catch(() => {});
+}
+const boundedOutputLatency = context => Math.min(Math.max(context.outputLatency || context.baseLatency || 0, 0), 0.2);
+function outputPerformanceTime(context, when) {
+	const stamp = context.getOutputTimestamp?.();
+	return stamp && Number.isFinite(stamp.contextTime) ? stamp.performanceTime + (when - stamp.contextTime) * 1000 : performance.now() + Math.max(0, when - context.currentTime + boundedOutputLatency(context)) * 1000;
+}
+function nonSilent(buffer) {
+	if (!buffer || !buffer.length) return false;
+	for (let c = 0; c < buffer.numberOfChannels; c += 1) { const samples = buffer.getChannelData(c), stride = Math.max(1, Math.floor(samples.length / 4096)); for (let s = 0; s < samples.length; s += stride) if (Math.abs(samples[s]) > 0.000001) return true; }
+	return false;
+}
+(function installTitleAudioProbe() {
+	const NativeAudioContext = window.AudioContext || window.webkitAudioContext;
+	if (NativeAudioContext && !NativeAudioContext.__protoScrollerWrapped) {
+		class WrappedAudioContext extends NativeAudioContext { constructor(options) { super(options); titleAudioContexts.add(this); } }
+		WrappedAudioContext.__protoScrollerWrapped = true; window.AudioContext = WrappedAudioContext; if (window.webkitAudioContext) window.webkitAudioContext = WrappedAudioContext;
+	}
+	const prototype = window.AudioBufferSourceNode?.prototype;
+	if (!prototype || prototype.__protoScrollerStartWrapped) return;
+	const nativeStart = prototype.start;
+	prototype.start = function (when = 0, offset = 0, duration) {
+		const telemetry = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__;
+		if (titleCapture && telemetry?.commitStatus === 'callback-invoked' && nonSilent(this.buffer)) {
+			const schedule = when > 0 ? when : this.context.currentTime;
+			const lead = Math.max(0, (outputPerformanceTime(this.context, schedule) - performance.now()) / 1000);
+			const renderedVideoTime = (titleVideoBackdrop.currentTime + lead) % 8;
+			Object.assign(telemetry, { sourceKind: 'AudioBufferSourceNode/non-silent', actualOutputSchedule: schedule, renderedVideoTime, renderedSyncError: renderedVideoTime - telemetry.impactSeconds, videoTime: titleVideoBackdrop.currentTime, committed: true, commitStatus: 'captured' });
+			const done = titleCapture.done; titleCapture = null; done();
+		}
+		if (duration === undefined) nativeStart.call(this, when, offset); else nativeStart.call(this, when, offset, duration);
+	};
+	prototype.__protoScrollerStartWrapped = true;
+})();
+function commitTitleBeat(generation, commitCallback, calibrationCallback, fallbackReason) {
+	if (generation !== titleGeneration) return;
+	const telemetry = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__;
+	if (!telemetry || telemetry.committed || telemetry.commitStatus === 'callback-invoked') return;
+	if (fallbackReason) Object.assign(telemetry, { fallback: true, fallbackReason });
+	Object.assign(telemetry, { videoTime: titleVideoBackdrop.currentTime, commitStatus: 'callback-invoked' });
+	titleCapture = { done: () => calibrationCallback?.('complete') }; commitCallback();
+	setTimeout(() => { if (generation !== titleGeneration || telemetry.committed) return; Object.assign(telemetry, { fallback: true, fallbackReason: telemetry.fallbackReason || 'non-silent-source-capture-timeout', sourceKind: 'commit-callback-fallback', committed: true, commitStatus: 'fallback-complete' }); titleCapture = null; calibrationCallback?.('complete'); }, 500);
+}
+window.protoScrollerMarkTitleMusicPrewarm = status => { if (window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__) window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__.prewarmStatus = status; };
+window.protoScrollerCancelTitleBeatCommit = function (reason = 'host-cancelled') {
+	titleGeneration += 1; if (titleFrame) cancelAnimationFrame(titleFrame); titleFrame = 0; titleCapture = null;
+	const telemetry = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__; if (telemetry && !telemetry.committed) Object.assign(telemetry, { cancelled: true, cancelReason: reason, commitStatus: 'cancelled' });
+	titleSourceLocked = false; titleLockedOrientation = null;
+};
+window.protoScrollerScheduleTitleBeatCommit = function (commitCallback, calibrationCallback) {
+	window.protoScrollerCancelTitleBeatCommit('rescheduled'); const generation = titleGeneration;
+	titleLockedOrientation = titleOrientation(); titleSourceLocked = true; selectTitleSource(true);
+	const impactSeconds = TITLE_IMPACTS[titleLockedOrientation], trusted = navigator.userActivation?.isActive === true;
+	const telemetry = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__ = { orientation: titleLockedOrientation, source: TITLE_SOURCES[titleLockedOrientation], sourceKind: 'pending', impactSeconds, videoTime: null, outputLatency: 0, actualOutputSchedule: null, renderedVideoTime: null, renderedSyncError: null, trusted, audioContextState: 'unavailable', fallback: false, fallbackReason: null, cancelled: false, cancelReason: null, committed: false, commitStatus: 'scheduled', prewarmStatus: 'waiting' };
+	(async () => {
+		const contexts = [...titleAudioContexts]; try { await Promise.all(contexts.map(context => context.resume())); } catch { commitTitleBeat(generation, commitCallback, calibrationCallback, 'audio-context-resume-rejected'); return; }
+		if (generation !== titleGeneration) return; const context = contexts.find(candidate => candidate.state === 'running'); telemetry.audioContextState = context?.state || 'unavailable'; telemetry.outputLatency = context ? boundedOutputLatency(context) : 0;
+		if (!context || !trusted) { commitTitleBeat(generation, commitCallback, calibrationCallback, 'trusted-running-audio-context-unavailable'); return; }
+		calibrationCallback?.('prewarm'); const prewarmDeadline = performance.now() + 1250; while (telemetry.prewarmStatus !== 'restored' && performance.now() < prewarmDeadline) await new Promise(resolve => requestAnimationFrame(resolve)); if (telemetry.prewarmStatus !== 'restored') telemetry.prewarmStatus = 'timed-out';
+		try { await titleVideoBackdrop.play(); } catch { commitTitleBeat(generation, commitCallback, calibrationCallback, 'video-playback-rejected'); return; }
+		const deadline = performance.now() + 9500; const sample = () => { if (generation !== titleGeneration) return; telemetry.videoTime = titleVideoBackdrop.currentTime; const untilImpact = impactSeconds - titleVideoBackdrop.currentTime; if (untilImpact >= 0 && untilImpact <= telemetry.outputLatency + 1 / 120) { commitTitleBeat(generation, commitCallback, calibrationCallback); return; } if (performance.now() >= deadline || titleVideoBackdrop.error) { commitTitleBeat(generation, commitCallback, calibrationCallback, 'video-scheduler-timeout'); return; } titleFrame = requestAnimationFrame(sample); }; titleFrame = requestAnimationFrame(sample);
+	})(); return true;
+};
+window.addEventListener('resize', () => selectTitleSource(), { passive: true }); selectTitleSource();
+window.protoScrollerSetTitleBackdropActive = function (active) { document.body.classList.toggle('title-backdrop-active', Boolean(active)); if (!titleVideoBackdrop) return; if (active) titleVideoBackdrop.play().catch(() => {}); else titleVideoBackdrop.pause(); };
+if (titleVideoBackdrop) { titleVideoBackdrop.addEventListener('playing', () => titleVideoBackdrop.classList.add('is-ready'), { once: true }); titleVideoBackdrop.requestVideoFrameCallback?.(() => {}); }
+window.protoScrollerSetTitleBackdropActive(true);
+
+const GODOT_CONFIG =
+`
 );
 
 await writeFile(targetPath, source, "utf8");

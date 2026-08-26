@@ -15,6 +15,9 @@ const CAMPAIGN_PROGRESS_SCRIPT: Script = preload(
 const DUMMY_AUDIO_DRIVER_NAME: String = "Dummy"
 const FADE_TO_BLACK_SECONDS: float = 0.45
 const FADE_FROM_BLACK_SECONDS: float = 0.35
+const TITLE_IMPACT_HOLD_SECONDS: float = 0.35
+const TITLE_PREWARM_POSITION_SECONDS: float = 0.5
+const TITLE_SYNC_FALLBACK_SECONDS: float = 10.0
 
 var title_screen: TitleScreen
 var city_slice: CitySlice
@@ -27,6 +30,12 @@ var transition_boom_play_count: int = 0
 var transition_boom_last_alpha: float = -1.0
 var _title_transition_started_msec: int = 0
 var _transition_sequence_id: int = 0
+var _title_music_sync_pending: bool = false
+var _title_music_committed: bool = false
+var _title_music_commit_msec: int = 0
+var _title_web_window: JavaScriptObject = null
+var _title_music_commit_callback: JavaScriptObject = null
+var _title_music_calibration_callback: JavaScriptObject = null
 @onready var background_music_player: AudioStreamPlayer = %BackgroundMusicPlayer
 @onready var transition_boom_player: AudioStreamPlayer = %TransitionBoomPlayer
 @onready var transition_overlay: ColorRect = %TransitionOverlay
@@ -45,12 +54,13 @@ func _ready() -> void:
 	responsive_viewport.setup()
 	_show_title()
 	_publish_title_transition_phase("idle")
-	_start_background_music()
+	_start_background_music_for_environment(OS.has_feature("web"))
 	if not background_music_player.tree_exiting.is_connected(_release_background_music):
 		background_music_player.tree_exiting.connect(_release_background_music)
 
 
 func _exit_tree() -> void:
+	_cancel_title_music_sync("main-exit")
 	_release_background_music()
 
 
@@ -59,6 +69,9 @@ func _release_background_music() -> void:
 		return
 	background_music_player.stop()
 	background_music_player.stream = null
+	_title_web_window = null
+	_title_music_commit_callback = null
+	_title_music_calibration_callback = null
 
 
 func background_music_output_available() -> bool:
@@ -79,11 +92,111 @@ func _start_background_music() -> void:
 	if not background_music_output_available():
 		return
 	if background_music_player.stream != null and not background_music_player.playing:
-		background_music_player.play()
+		background_music_player.play(0.0)
+
+
+func _start_background_music_for_environment(is_web: bool) -> void:
+	if not is_web:
+		_start_background_music()
+
+
+func _begin_title_music_sync() -> bool:
+	if not OS.has_feature("web"):
+		_start_background_music()
+		_title_music_committed = background_music_player.playing
+		_title_music_commit_msec = Time.get_ticks_msec()
+		return false
+	if _title_music_sync_pending or _title_music_committed:
+		return _title_music_sync_pending
+	if not background_music_output_available() or background_music_player.stream == null:
+		return false
+	_title_music_sync_pending = true
+	_title_music_commit_callback = JavaScriptBridge.create_callback(
+		_on_title_music_commit_callback
+	)
+	_title_music_calibration_callback = JavaScriptBridge.create_callback(
+		_on_title_music_calibration_callback
+	)
+	_title_web_window = JavaScriptBridge.get_interface("window")
+	if _title_web_window == null:
+		_commit_title_music_fallback("scheduler-unavailable")
+		return false
+	var accepted: bool = bool(_title_web_window.protoScrollerScheduleTitleBeatCommit(
+		_title_music_commit_callback,
+		_title_music_calibration_callback
+	))
+	if not accepted:
+		_commit_title_music_fallback("scheduler-rejected")
+	return accepted
+
+
+func _on_title_music_calibration_callback(arguments: Array) -> void:
+	if not _title_music_sync_pending or arguments.is_empty():
+		return
+	var phase: String = str(arguments[0])
+	if phase == "prewarm":
+		_prewarm_title_music_decoder()
+
+
+func _prewarm_title_music_decoder() -> void:
+	if background_music_player.stream == null or background_music_player.playing:
+		_mark_title_music_prewarm("restored")
+		return
+	var music_bus_index: int = AudioServer.get_bus_index(background_music_player.bus)
+	var was_muted: bool = AudioServer.is_bus_mute(music_bus_index)
+	AudioServer.set_bus_mute(music_bus_index, true)
+	background_music_player.play(TITLE_PREWARM_POSITION_SECONDS)
+	background_music_player.stop()
+	AudioServer.set_bus_mute(music_bus_index, was_muted)
+	_mark_title_music_prewarm("restored")
+
+
+func _mark_title_music_prewarm(status: String) -> void:
+	if not OS.has_feature("web"):
+		return
+	if _title_web_window == null:
+		_title_web_window = JavaScriptBridge.get_interface("window")
+	if _title_web_window != null:
+		_title_web_window.protoScrollerMarkTitleMusicPrewarm(status)
+
+
+func _on_title_music_commit_callback(_arguments: Array) -> void:
+	if not _title_music_sync_pending or _title_music_committed:
+		return
+	# The production non-silent start occurs only inside the browser scheduler callback.
+	background_music_player.play(0.0)
+	_title_music_sync_pending = false
+	_title_music_committed = true
+	_title_music_commit_msec = Time.get_ticks_msec()
+
+
+func _commit_title_music_fallback(_reason: String) -> void:
+	if _title_music_committed:
+		return
+	_start_background_music()
+	_title_music_sync_pending = false
+	_title_music_committed = background_music_player.playing
+	_title_music_commit_msec = Time.get_ticks_msec()
+
+
+func _cancel_title_music_sync(reason: String) -> void:
+	if OS.has_feature("web"):
+		if _title_web_window == null:
+			_title_web_window = JavaScriptBridge.get_interface("window")
+		if _title_web_window != null:
+			_title_web_window.protoScrollerCancelTitleBeatCommit(reason)
+	_title_music_sync_pending = false
+	_title_music_commit_callback = null
+	_title_music_calibration_callback = null
+
+
+func _title_sync_fallback_delay_seconds() -> float:
+	return TITLE_SYNC_FALLBACK_SECONDS
 
 
 func start_game() -> void:
 	_start_background_music()
+	_cancel_title_music_sync("title-exit")
 	if city_slice != null:
 		return
 	if title_screen != null:
@@ -95,6 +208,20 @@ func start_game() -> void:
 func start_game_with_transition() -> void:
 	if city_slice != null or title_transition_active:
 		return
+	_begin_title_music_sync()
+	if OS.has_feature("web"):
+		var deadline_msec: int = Time.get_ticks_msec() + int(
+			_title_sync_fallback_delay_seconds() * 1000.0
+		)
+		while not _title_music_committed and Time.get_ticks_msec() < deadline_msec:
+			await get_tree().process_frame
+		if not _title_music_committed:
+			_commit_title_music_fallback("godot-timeout")
+		var visible_until_msec: int = _title_music_commit_msec + int(
+			TITLE_IMPACT_HOLD_SECONDS * 1000.0
+		)
+		while Time.get_ticks_msec() < visible_until_msec:
+			await get_tree().process_frame
 	await _run_full_black_transition(&"start_game", start_game)
 
 
@@ -107,6 +234,7 @@ func present_defeat_with_transition() -> void:
 func return_to_title_with_transition() -> void:
 	if city_slice == null or title_screen != null or title_transition_active:
 		return
+	_cancel_title_music_sync("return-to-title")
 	await _run_full_black_transition(&"return_title", _return_to_title)
 
 
@@ -163,6 +291,8 @@ func _spawn_city_slice() -> void:
 
 
 func _show_title() -> void:
+	_cancel_title_music_sync("show-title")
+	_title_music_committed = background_music_player.playing
 	title_screen = TITLE_SCENE.instantiate() as TitleScreen
 	title_screen.configure_campaign(campaign_progress.snapshot())
 	title_screen.start_requested.connect(start_game_with_transition)

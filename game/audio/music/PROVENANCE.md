@@ -17,3 +17,8 @@ Generation job: `f003b634-2dd6-4b1c-87e1-f90f5ba1be94`.
 The generated 64-second stereo AAC source was edited into a compact loop with a four-second musical crossfade, converted to 48 kHz mono, high-passed at 35 Hz, gently scooped at 900 Hz and 2.2 kHz to protect combat/voice intelligibility, low-passed at 15 kHz, and normalized near **-18 LUFS**. The final runtime file is Vorbis at approximately 36 kbps.
 
 The original generated source and intermediate PCM master are intentionally kept outside source control. The committed runtime asset SHA-256 is `4a4a040e11a47d384c4638aadf814b27c4453b0b59e665480d2766e5279150f8`.
+
+
+## Title synchronization
+
+The production OGG begins on its first strong downbeat at **stream/sample zero**. Native output starts immediately when available. On the Web title, the decoder is prewarmed inaudibly around 0.5 seconds and restored before the final non-silent `play(0.0)` commit, which the browser schedules against the orientation-specific robot impact while accounting for bounded rendered-output latency.

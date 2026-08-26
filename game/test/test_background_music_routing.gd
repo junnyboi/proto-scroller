@@ -25,6 +25,46 @@ func test_background_music_player_is_persistent_and_routes_to_music_bus() -> voi
 	assert_eq(player.get_parent(), main)
 
 
+func test_native_music_starts_immediately_but_web_title_defers_commit() -> void:
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	assert_eq(
+		main.background_music_player.playing,
+		main.background_music_output_available()
+	)
+	main.background_music_player.stop()
+	main._start_background_music_for_environment(true)
+	assert_false(main.background_music_player.playing)
+	main._start_background_music_for_environment(false)
+	assert_eq(
+		main.background_music_player.playing,
+		main.background_music_output_available()
+	)
+
+
+func test_title_sync_constants_are_orientation_and_latency_bounded() -> void:
+	assert_almost_eq(Main.TITLE_IMPACT_HOLD_SECONDS, 0.35, 0.001)
+	assert_almost_eq(Main.TITLE_PREWARM_POSITION_SECONDS, 0.5, 0.001)
+	assert_gt(Main.TITLE_SYNC_FALLBACK_SECONDS, 0.0)
+	assert_lte(Main.TITLE_SYNC_FALLBACK_SECONDS, 10.0)
+
+
+func test_title_sync_source_keeps_cached_callbacks_and_browser_commit_only() -> void:
+	var source: String = FileAccess.get_file_as_string(
+		"res://scripts/main/main.gd"
+	)
+	assert_true(source.contains("_title_music_commit_callback: JavaScriptObject"))
+	assert_true(source.contains("_title_music_calibration_callback: JavaScriptObject"))
+	assert_true(source.contains("JavaScriptBridge.create_callback"))
+	assert_true(source.contains("protoScrollerScheduleTitleBeatCommit"))
+	assert_true(source.contains("protoScrollerCancelTitleBeatCommit"))
+	assert_true(source.contains("background_music_player.play(0.0)"))
+	assert_true(source.contains("TITLE_PREWARM_POSITION_SECONDS"))
+	assert_true(source.contains("AudioServer.set_bus_mute"))
+	assert_false(source.contains("func _process"))
+
+
 func test_background_music_releases_stream_on_main_exit() -> void:
 	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)

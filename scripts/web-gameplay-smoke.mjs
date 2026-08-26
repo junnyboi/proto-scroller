@@ -262,6 +262,41 @@ try {
   const titleTransitionStartedAt = Date.now();
   await page.keyboard.press("Enter");
   await page.waitForFunction(
+    () => {
+      const sync = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__;
+      return sync?.committed === true;
+    },
+    undefined,
+    { timeout: 12_000 }
+  );
+  const landscapeTitleMusicSync = await page.evaluate(() => ({
+    ...window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__,
+  }));
+  if (
+    landscapeTitleMusicSync.orientation !== "landscape" ||
+    !landscapeTitleMusicSync.source.endsWith("title-loop-landscape.mp4") ||
+    Math.abs(landscapeTitleMusicSync.impactSeconds - 88 / 24) > 0.000_001 ||
+    landscapeTitleMusicSync.trusted !== true ||
+    landscapeTitleMusicSync.sourceKind !== "AudioBufferSourceNode/non-silent" ||
+    Math.abs(landscapeTitleMusicSync.renderedSyncError) > 1 / 24
+  ) {
+    throw new Error(
+      `landscape title beat sync failed: ${JSON.stringify(landscapeTitleMusicSync)}`
+    );
+  }
+  await page.evaluate(() =>
+    new Promise(resolve => {
+      const video = document.getElementById("title-video-backdrop");
+      if (!(video instanceof HTMLVideoElement)) return resolve();
+      const observe = (_now, metadata) => {
+        if (metadata.mediaTime >= 88 / 24) resolve();
+        else video.requestVideoFrameCallback(observe);
+      };
+      video.requestVideoFrameCallback(observe);
+    })
+  );
+  await page.screenshot({ path: TITLE_LANDSCAPE_SCREENSHOT_PATH });
+  await page.waitForFunction(
     () => window.__PROTO_SCROLLER_TITLE_TRANSITION__?.phase === "black_ready",
     undefined,
     { timeout: 10_000 }
@@ -494,6 +529,38 @@ try {
       `portrait title video contract failed: ${JSON.stringify({ portraitTitleVideo, portraitAdvancedTime })}`
     );
   }
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    () => window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__?.committed === true,
+    undefined,
+    { timeout: 12_000 }
+  );
+  const portraitTitleMusicSync = await page.evaluate(() => ({
+    ...window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__,
+  }));
+  if (
+    portraitTitleMusicSync.orientation !== "portrait" ||
+    !portraitTitleMusicSync.source.endsWith("title-loop-portrait.mp4") ||
+    Math.abs(portraitTitleMusicSync.impactSeconds - 66 / 24) > 0.000_001 ||
+    portraitTitleMusicSync.trusted !== true ||
+    portraitTitleMusicSync.sourceKind !== "AudioBufferSourceNode/non-silent" ||
+    Math.abs(portraitTitleMusicSync.renderedSyncError) > 1 / 24
+  ) {
+    throw new Error(
+      `portrait title beat sync failed: ${JSON.stringify(portraitTitleMusicSync)}`
+    );
+  }
+  await page.evaluate(() =>
+    new Promise(resolve => {
+      const video = document.getElementById("title-video-backdrop");
+      if (!(video instanceof HTMLVideoElement)) return resolve();
+      const observe = (_now, metadata) => {
+        if (metadata.mediaTime >= 66 / 24) resolve();
+        else video.requestVideoFrameCallback(observe);
+      };
+      video.requestVideoFrameCallback(observe);
+    })
+  );
   await page.screenshot({ path: TITLE_PORTRAIT_SCREENSHOT_PATH });
   if (browserErrors.length > 0) {
     throw new Error(`browser console errors: ${browserErrors.join(" | ")}`);
@@ -507,6 +574,7 @@ try {
     phases,
     audioContextStates,
     workletModules,
+    landscapeTitleMusicSync,
     titleVideo: {
       ...titleVideoStart,
       advancedTime: titleVideoAdvancedTime,
@@ -528,6 +596,7 @@ try {
       advancedTime: portraitAdvancedTime,
       screenshot: path.relative(ROOT, TITLE_PORTRAIT_SCREENSHOT_PATH),
     },
+    portraitTitleMusicSync,
     screenshot: path.relative(ROOT, SCREENSHOT_PATH),
   };
   console.log(`[WEB-GAMEPLAY-SMOKE-PASS] phases=${EXPECTED_PHASES.join(",")}`);

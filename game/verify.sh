@@ -708,7 +708,7 @@ if [[ "$MODE" == "full" ]]; then
 	  printf '%s\n' '[WEB] automated browser upgrade-transition smoke'
 	  (
 	    cd ..
-	    timeout --preserve-status --signal=TERM --kill-after=5s 180s pnpm smoke:web
+	    timeout --preserve-status --signal=TERM --kill-after=5s 300s pnpm smoke:web
 	  )
 		  test -s artifacts/browser/title-video-landscape.png
 			  test -s artifacts/browser/title-video-portrait.png
@@ -789,6 +789,24 @@ if [[ "$MODE" == "full" ]]; then
 	    and .portraitTitleVideo.videoHeight == 1280
 	    and .portraitTitleVideo.loop == true
 	    and .portraitTitleVideo.muted == true
+	    and .landscapeTitleMusicSync.orientation == "landscape"
+	    and .landscapeTitleMusicSync.sourceKind == "AudioBufferSourceNode/non-silent"
+	    and .landscapeTitleMusicSync.trusted == true
+	    and ((.landscapeTitleMusicSync.impactSeconds - (88 / 24)) | fabs) <= 0.000001
+	    and (.landscapeTitleMusicSync.renderedSyncError | fabs) <= (1 / 24)
+	    and .landscapeTitleMusicSync.outputLatency >= 0
+	    and .landscapeTitleMusicSync.outputLatency <= 0.2
+	    and .landscapeTitleMusicSync.committed == true
+	    and .landscapeTitleMusicSync.cancelled == false
+	    and .portraitTitleMusicSync.orientation == "portrait"
+	    and .portraitTitleMusicSync.sourceKind == "AudioBufferSourceNode/non-silent"
+	    and .portraitTitleMusicSync.trusted == true
+	    and ((.portraitTitleMusicSync.impactSeconds - (66 / 24)) | fabs) <= 0.000001
+	    and (.portraitTitleMusicSync.renderedSyncError | fabs) <= (1 / 24)
+	    and .portraitTitleMusicSync.outputLatency >= 0
+	    and .portraitTitleMusicSync.outputLatency <= 0.2
+	    and .portraitTitleMusicSync.committed == true
+	    and .portraitTitleMusicSync.cancelled == false
 	    and (.audioContextStates | index("running")) != null
 	    and .phases[0].details.background_music_playing == true
 	    and (.workletModules | length) == 2
