@@ -4,7 +4,7 @@ extends RefCounted
 const DISTRICT_COUNT: int = 5
 const VARIANTS_PER_DISTRICT: int = 5
 const BUILDING_VARIANT_COUNT: int = DISTRICT_COUNT * VARIANTS_PER_DISTRICT
-const CHUNKS_PER_DISTRICT: int = 8
+const CHUNKS_PER_DISTRICT: int = VARIANTS_PER_DISTRICT
 
 const LEGACY_INTACT: Texture2D = preload(
 	"res://art/city/destructibles/building_intact.png"

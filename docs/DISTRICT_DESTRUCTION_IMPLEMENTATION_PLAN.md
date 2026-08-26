@@ -16,7 +16,7 @@ Implement five forward-progressing spatial districts and a deterministic roster 
 | Introduce **spatial district profiles** rather than repurposing `DistrictDefinition` | Existing district resources describe encounter acts, boss completion, and HUD phase cadence, not streamed geography.[4] |
 | Keep `StructuralBuilding2D` at **3 columns × 2 rows** | Atlas slicing, hit mapping, support transfer, chain reactions, scoring, state restore, and runtime budgets all depend on six stable cells.[1] |
 | Keep exactly **six live buildings** | The streamer owns six resident chunks and requires zero post-warm content creation.[2] [3] |
-| Select district by logical forward chunk | The world itself remains stable and replayable; chunks behind zero remain Business, while Royal starts at chunk 32 and continues indefinitely. |
+| Select district by five-building forward spans | Each district maps one unique facade to each of five chunks; clearing all five unlocks the next span, while Royal starts at chunk 20 and continues indefinitely. |
 | Select one of five district variants deterministically | A stable catalog and seed/chunk hash provide replay without random searching or slot-dependent rerolls. |
 | Reconfigure pooled buildings in place | Texture, size, material grid, crack seed, and metadata change before state restore; cell nodes and physics objects are reused. |
 | Use 25 GPT Image 2 transparent facade sprites | This provides actual architectural variety while the existing procedural system supplies cracks, pipes, cables, hollowing, and shared rubble. |
@@ -36,7 +36,7 @@ Implement five forward-progressing spatial districts and a deterministic roster 
 
 Create `StructuralBuildingVariant`, `CityDistrictProfile`, and `CityDistrictCatalog`. The catalog owns five ordered district IDs, five stable building IDs per district, district road/accent values, display dimensions, material layouts, texture references, and signature metadata.
 
-Extend `CityChunkBlueprint` with `district_index`, `district_id`, `building_variant_index`, and `building_variant_id`. Selection must be deterministic from run seed and logical chunk, independent of resident slot order. Spatial ranges are 0–7, 8–15, 16–23, 24–31, and 32+.
+Extend `CityChunkBlueprint` with `district_index`, `district_id`, `building_variant_index`, and `building_variant_id`. Selection must be deterministic from run seed and logical chunk, independent of resident slot order. The current forward-only progression revision uses spatial ranges 0–4, 5–9, 10–14, 15–19, and 20+, with exits gated by five unique building clears.
 
 **Tests:** catalog count and uniqueness; six material IDs per variant; direct lookup of all 25 IDs; deterministic generation across multiple seeds and call orders; forward boundary expectations; westward chunks remain in Business.
 
@@ -68,7 +68,7 @@ Add `building_variant_gallery_scenario.gd` to render five buildings per district
 
 ### WP3A — Spatial district transition feedback
 
-Expose `CityWorldStream.current_district_id` and a typed boundary signal without coupling spatial geography to siege acts. Carry district and variant IDs on each pooled street chunk, tint lane marks with the active district accent, and present a prebuilt allocation-free transition banner when forward progression crosses chunks 8, 16, 24, and 32. The banner must reposition responsively below persistent HUD instrumentation in landscape and portrait.
+Expose `CityWorldStream.current_district_id` and a typed boundary signal without coupling spatial geography to siege acts. Carry district and variant IDs on each pooled street chunk, tint lane marks with the active district accent, and present a prebuilt allocation-free transition banner when forward progression crosses chunks 5, 10, 15, and 20 after clearing the preceding district’s five unique buildings. The banner must reposition responsively below persistent HUD instrumentation in landscape and portrait.
 
 Extend the endless-terrain report with a SHA-256 catalog digest and selected district/variant traces. Require all five districts, stable node count, zero post-warm creation, and mutation continuity while traversing from west of origin through Royal territory.
 

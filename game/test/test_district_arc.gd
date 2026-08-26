@@ -130,9 +130,9 @@ func test_retaliation_triggers_every_wave_25_percent_sooner() -> void:
 
 func test_act_five_releases_overrun_survivors_and_starts_max_tier_retaliation() -> void:
 	var director: DistrictResponseDirector = city.urban_siege.director
-	city.world_stream.current_logical_chunk = 32
+	city.world_stream.current_logical_chunk = 20
 	city.world_stream.current_district_id = &"ROYAL"
-	city.world_stream.maximum_visited_chunk = 32
+	city.world_stream.maximum_visited_chunk = 20
 	city.rampage_session.run_experience.level = 5
 	director.stop()
 	director.running = true

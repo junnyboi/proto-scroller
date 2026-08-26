@@ -230,6 +230,24 @@ func set_objective(key: String, placeholders: Dictionary = {}) -> void:
 		objective_label.text = L10n.t(key, placeholders)
 
 
+func set_district_clear_progress(
+	_district_id: StringName,
+	cleared_buildings: int,
+	required_buildings: int
+) -> void:
+	set_objective("objective.district_clear", {
+		"current": cleared_buildings,
+		"total": required_buildings,
+	})
+
+
+func set_district_exit_unlocked(
+	_district_id: StringName,
+	_next_district_id: StringName
+) -> void:
+	set_objective("objective.district_unlocked")
+
+
 func _set_campaign_summary(dossier_count: int, continuity_generation: int) -> void:
 	_campaign_dossier_count = maxi(dossier_count, 0)
 	_continuity_generation = maxi(continuity_generation, 0)

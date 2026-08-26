@@ -264,6 +264,7 @@ func _build_enemies() -> void:
 	encounter_runtime.projectile_requested.connect(_on_projectile_requested)
 	encounter_runtime.enemy_died.connect(_on_enemy_died)
 	add_child(encounter_runtime)
+	world_stream.rear_frontier_changed.connect(encounter_runtime.cull_behind)
 	soldier = encounter_runtime.soldiers[0]
 	tank = encounter_runtime.tanks[0]
 	helicopter = encounter_runtime.helicopters[0]
@@ -310,7 +311,6 @@ func _on_stream_window_changed(_logical_index: int) -> void:
 	encounter_runtime.structural_target = target
 	for enemy: EnemyActor2D in encounter_runtime.all_actors():
 		enemy.structural_target = target
-
 func _on_spatial_district_changed(
 	_previous_district_id: StringName,
 	_district_id: StringName,
@@ -328,6 +328,8 @@ func _refresh_primary_destructibles() -> void:
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
 	gameplay_hud.setup(robot, contextual_attacks)
+	world_stream.district_clear_progress.connect(gameplay_hud.set_district_clear_progress)
+	world_stream.district_exit_unlocked.connect(gameplay_hud.set_district_exit_unlocked)
 	gameplay_hud.retry_pressed.connect(_on_retry_pressed)
 	gameplay_hud.title_pressed.connect(_on_title_pressed)
 	add_child(gameplay_hud)
@@ -353,6 +355,8 @@ func _build_hud() -> void:
 		robot
 	)
 	add_child(impact_feedback_director)
+
+
 func _on_robot_heavy_impact(
 	origin: Vector2,
 	radius: float,

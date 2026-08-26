@@ -47,9 +47,9 @@ func _run() -> void:
 	origin_cell.receive_damage(_fatal_event(city, origin_cell, 51_001))
 	city.car.current_health = 1.0
 	city.car.receive_damage(_fatal_event(city, city.car, 51_002))
-	for logical_index: int in range(-12, 49):
+	for logical_index: int in range(0, 49):
 		_move_to_logical_chunk(city, logical_index)
-		if logical_index in [-12, 48] or _is_roster_sample(logical_index):
+		if logical_index == 48 or _is_roster_sample(logical_index):
 			var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(
 				city.world_stream.run_seed,
 				logical_index
@@ -67,8 +67,6 @@ func _run() -> void:
 				"live_texture": live_sprite.texture.resource_path,
 				"roster_sample": _is_roster_sample(logical_index),
 			})
-	for logical_index: int in range(48, 39, -1):
-		_move_to_logical_chunk(city, logical_index)
 	_check(
 		"six_chunk_window",
 		city.world_stream.active_chunk_count() == CityWorldStream.CHUNK_CAPACITY,
@@ -78,6 +76,25 @@ func _run() -> void:
 		"traversal_exceeds_fixed_map",
 		city.world_stream.maximum_visited_chunk >= 48,
 		"max_chunk=%d" % city.world_stream.maximum_visited_chunk
+	)
+	var culled_chunk_count: int = 0
+	for chunk: CityStreetChunk in city.world_stream.chunks:
+		if chunk.culled:
+			culled_chunk_count += 1
+	_check(
+		"rear_frontier_culls_discarded_chunks",
+		culled_chunk_count > 0
+		and is_equal_approx(
+			city.world_stream.rear_frontier_logical_x,
+			city.world_stream.furthest_progress_logical_x
+			- CityWorldStream.LEFT_RETENTION_DISTANCE
+		),
+		"culled=%d frontier=%.1f furthest=%.1f"
+		% [
+			culled_chunk_count,
+			city.world_stream.rear_frontier_logical_x,
+			city.world_stream.furthest_progress_logical_x,
+		]
 	)
 	var traced_districts: Dictionary[StringName, bool] = {}
 	var traced_variants: Dictionary[StringName, bool] = {}
@@ -145,14 +162,23 @@ func _run() -> void:
 			city.streamed_destructibles.post_warm_creation_count,
 		]
 	)
-	_move_to_logical_chunk(city, 0)
+	var origin_building_state: Dictionary = city.streamed_destructibles.ledger.restore(
+		city.streamed_destructibles.ledger.make_object_id(0, &"building")
+	)
+	var origin_car_state: Dictionary = city.streamed_destructibles.ledger.restore(
+		city.streamed_destructibles.ledger.make_object_id(0, &"car")
+	)
+	var origin_cells: Array = origin_building_state.get("cells", []) as Array
+	var origin_cell_destroyed: bool = (
+		not origin_cells.is_empty() and bool((origin_cells[3] as Dictionary).destroyed)
+	)
 	_check(
-		"destruction_state_persisted",
-		city.building.is_cell_destroyed(0, 1) and city.car.is_broken,
+		"culled_destruction_state_persisted",
+		origin_cell_destroyed and bool(origin_car_state.get("broken", false)),
 		"cell=%s car=%s mutations=%d"
 		% [
-			city.building.is_cell_destroyed(0, 1),
-			city.car.is_broken,
+			origin_cell_destroyed,
+			bool(origin_car_state.get("broken", false)),
 			city.streamed_destructibles.mutation_count(),
 		]
 	)
@@ -262,11 +288,30 @@ func _target_size() -> Vector2i:
 
 
 func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
+	_unlock_districts_through(city.world_stream, logical_index)
 	city.robot.global_position.x = (
 		city.world_stream.runtime_x_for_logical_index(logical_index)
 		+ CityWorldStream.CHUNK_WIDTH * 0.5
 	)
 	city.world_stream.advance_stream()
+
+
+func _unlock_districts_through(stream: CityWorldStream, logical_index: int) -> void:
+	var target_district_index: int = CityDistrictCatalog.district_index_for_chunk(
+		logical_index
+	)
+	while stream.unlocked_district_index < target_district_index:
+		var district: CityDistrictProfile = CityDistrictCatalog.districts()[
+			stream.unlocked_district_index
+		]
+		stream.current_district_id = district.district_id
+		for variant: StructuralBuildingVariant in district.building_variants:
+			var building_value: StructuralBuilding2D = StructuralBuilding2D.new()
+			building_value.set_meta(&"district_id", district.district_id)
+			building_value.set_meta(&"district_index", district.district_index)
+			building_value.set_meta(&"building_variant_id", variant.variant_id)
+			stream.report_building_cleared(building_value)
+			building_value.free()
 
 
 func _is_roster_sample(logical_index: int) -> bool:

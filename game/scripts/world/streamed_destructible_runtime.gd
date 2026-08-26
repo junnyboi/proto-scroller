@@ -69,6 +69,7 @@ func setup(p_world_stream: CityWorldStream) -> void:
 
 func _ready() -> void:
 	assert(world_stream != null, "StreamedDestructibleRuntime requires CityWorldStream")
+	building_destroyed.connect(world_stream.report_building_cleared)
 	ledger.reset(world_stream.run_seed)
 	world_stream.chunk_reassigning.connect(_on_chunk_reassigning)
 	world_stream.chunk_reassigned.connect(_on_chunk_reassigned)
@@ -79,6 +80,7 @@ func _ready() -> void:
 			chunk,
 			CityChunkBlueprint.generate(world_stream.run_seed, chunk.logical_index)
 		)
+	world_stream.refresh_culling()
 
 
 func primary_building() -> StructuralBuilding2D:
@@ -279,6 +281,7 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	building.set_meta(&"stream_object_id", building_id)
 	building.set_meta(&"district_id", blueprint.district_id)
 	building.set_meta(&"district_index", blueprint.district_index)
+	building.set_meta(&"logical_chunk", blueprint.logical_index)
 	building.set_meta(&"building_variant_id", blueprint.building_variant_id)
 	car.set_meta(&"stream_object_id", car_id)
 	lamp.set_meta(&"stream_object_id", lamp_id)

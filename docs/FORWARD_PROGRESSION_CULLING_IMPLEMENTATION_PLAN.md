@@ -1,7 +1,7 @@
 # Forward-Only Progression and Left-Side Culling Implementation Plan
 
 **Author:** Manus AI  
-**Status:** In progress  
+**Status:** Runtime complete; source and WebDev delivery in progress  
 **Target branch:** `main`  
 **Engine:** Godot 4.7.2-stable
 
@@ -22,7 +22,7 @@ The implementation must preserve the six-slot streamed world, floating-origin st
 | Spawn safety | `resident_bounds()` clamps its lower bound to the rear frontier so enemies and hazards cannot spawn in discarded space. |
 | District size | Business, Residential, Entertainment, Military, and Royal each expose five unique facade chunks before the next geography can be entered. |
 | District clear | A clear is credited once per unique `building_variant_id` in the building’s own district. Repeated signals, restored ruins, and duplicate variants cannot inflate progress. |
-| District exit | An invisible forward district gate remains closed at the next district’s first chunk until all five unique buildings in the current district are destroyed. |
+| District exit | An invisible eastbound gate advances one chunk after each unique facade clear and reaches the next district only after all five are destroyed. |
 | Boss compatibility | Existing boss gates remain independent and may continue blocking the same boundary after the geographic five-building requirement is satisfied. |
 | Final district | Royal still streams indefinitely after its five-building roster; there is no nonexistent sixth-district gate. |
 | Reset | Retry/New Game+ stream reset clears the rear frontier, district-clear sets, and geographic unlock state using the new run’s current robot position. |
@@ -33,7 +33,7 @@ The implementation must preserve the six-slot streamed world, floating-origin st
 
 `CityWorldStream` remains the authority for logical coordinates, resident-window reuse, and spatial district identity.[1] It gains the monotonic furthest-progress position, rear-frontier calculation, two preallocated barriers, per-district unique-clear sets, and district unlock state. Every physics update advances the floating origin as before, updates the frontier, repairs illegal rear displacement, refreshes resident chunks, applies culling only when a chunk changes state, and positions both barriers in runtime coordinates.
 
-District transitions continue to emit only when the robot actually crosses into the destination chunk. Clearing the fifth building opens the geographic exit; it does not emit `district_changed` prematurely. This preserves mission withdrawal, pressure selection, narrative introduction, and transition-banner semantics.[4]
+District transitions continue to emit only when the robot actually crosses into the destination chunk. The eastbound gate starts before the second facade, advances one chunk per accepted unique clear, and reaches the geographic exit only after the fifth building. This makes every required facade reachable without permitting a skipped building to fall behind the permanent rear frontier. Clearing the fifth building does not emit `district_changed` prematurely. This preserves mission withdrawal, pressure selection, narrative introduction, and transition-banner semantics.[4]
 
 ### `CityStreetChunk`
 
@@ -95,17 +95,17 @@ Commit and push the final integrated tree to shared `main`, create a fresh Godot
 
 ## Risks and Controls
 
-The highest risk is disabling pooled collisions without restoring mutation-sensitive state. The culling API therefore changes only collision layers and masks, never individual destruction shape flags. The second risk is district and boss gate disagreement; both derive their boundaries from the same five-chunk contract and remain separately testable. The third risk is floating-origin drift; all authoritative frontier and gate values remain logical coordinates and convert to runtime X only for presentation and physics. The fourth risk is premature district credit from a recycled slot; explicit district, variant, and logical-chunk metadata plus per-district sets prevent cross-identity credit.
+The highest risk is disabling pooled collisions without restoring mutation-sensitive state. The culling API therefore changes only collision layers and masks, never individual destruction shape flags. The second risk is a skipped facade becoming unreachable after the rear frontier advances; the sequential eastbound gate prevents the robot from entering facade N+1 until facade N is cleared. The third risk is district and boss gate disagreement; both derive their boundaries from the same five-chunk contract and remain separately testable. The fourth risk is floating-origin drift; all authoritative frontier and gate values remain logical coordinates and convert to runtime X only for presentation and physics. The fifth risk is premature district credit from a recycled slot; explicit district, variant, and logical-chunk metadata plus per-district sets prevent cross-identity credit.
 
 ## Implementation Record
 
 | Phase | Status | Revision | Notes |
 |---|---|---|---|
-| 1 — Contracts and plan | In progress | Pending | Existing eight-chunk design and boss assumptions reviewed. |
-| 2 — Rear frontier/culling | Pending | Pending | |
-| 3 — Clear-driven unlocks | Pending | Pending | |
-| 4 — Contract updates | Pending | Pending | |
-| 5 — Source/WebDev delivery | Pending | Pending | |
+| 1 — Contracts and plan | Complete | `8324c7e` | Existing eight-chunk design and boss assumptions reviewed; exact forward-ratchet contract recorded. |
+| 2 — Rear frontier/culling | Complete | Pending final integration SHA | Monotonic 500-pixel frontier, invisible rear wall, pooled chunk culling/restoration, spawn-bound clamping, and actor release implemented. |
+| 3 — Clear-driven unlocks | Complete | Pending final integration SHA | Sequential eastbound gate advances across five unique facades; district and boss caps now align at five-chunk intervals. |
+| 4 — Contract updates | Complete | Pending final integration SHA | Streaming, district, boss, narrative, persistence, localization, and scenario contracts updated without executing release-gate suites per project override. |
+| 5 — Source/WebDev delivery | In progress | Pending | Final upstream integration, source push, fresh Godot Web export, WebDev synchronization, and checkpoint remain. |
 
 ## References
 

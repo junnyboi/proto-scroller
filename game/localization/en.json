@@ -134,6 +134,8 @@
   "objective.steel_cascade_complete": "STEEL CASCADE COMPLETE / STRUCTURE UNSTABLE",
   "objective.floor_collapse_complete": "FLOOR COLLAPSE COMPLETE / STRUCTURE UNSTABLE",
   "objective.overdrive_breakthrough": "KINETIC OVERDRIVE / FOUR SECOND BREAKTHROUGH",
+  "objective.district_clear": "DISTRICT CLEARANCE {current}/{total} UNIQUE FACADES",
+  "objective.district_unlocked": "EASTBOUND ROUTE OPEN / ADVANCE",
   "objective.act": "ACT {current} / {total}  {name}",
   "objective.command_unit": "COMMAND UNIT / {state}",
   "objective.cycle": "CYCLE {cycle} / {recipe}",
