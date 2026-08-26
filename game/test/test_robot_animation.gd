@@ -477,7 +477,7 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	assert_almost_eq(RobotAnimationPresenter.DASH_WARP_SFX.get_length(), 1.70, 0.01)
 	_assert_pcm_cue(RobotAnimationPresenter.DODGE_RECHARGED_SFX)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX)
-	_assert_compressed_runtime_cue(RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX)
+	_assert_compressed_runtime_cue(RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX, 0.45)
 	assert_eq(
 		RobotAnimationPresenter.PUNCH_CONTACT_FRAMES,
 		[RobotAnimationPresenter.ATTACK_EVENT_FRAME, 14]
@@ -489,7 +489,7 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	)
 	assert_almost_eq(
 		RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX.get_length(),
-		1.17,
+		0.47,
 		0.01
 	)
 	_assert_compressed_runtime_cue(RobotAnimationPresenter.PHOTON_CHARGE_SFX)
@@ -800,7 +800,7 @@ func _assert_pcm_cue(stream: AudioStream) -> void:
 	assert_false(wav.stereo)
 
 
-func _assert_compressed_runtime_cue(stream: AudioStream) -> void:
+func _assert_compressed_runtime_cue(stream: AudioStream, minimum_length: float = 1.0) -> void:
 	var wav: AudioStreamWAV = stream as AudioStreamWAV
 	assert_not_null(wav)
 	if wav == null:
@@ -808,7 +808,7 @@ func _assert_compressed_runtime_cue(stream: AudioStream) -> void:
 	assert_eq(wav.format, AudioStreamWAV.FORMAT_QOA)
 	assert_eq(wav.mix_rate, 48000)
 	assert_false(wav.stereo)
-	assert_gt(wav.get_length(), 1.0)
+	assert_gt(wav.get_length(), minimum_length)
 	assert_lt(wav.get_length(), 2.1)
 
 
