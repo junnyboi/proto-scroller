@@ -11,6 +11,7 @@ signal projectile_requested(
 )
 signal enemy_died(enemy: EnemyActor2D, event: DamageEvent, points: int)
 signal enemy_acquired(enemy: EnemyActor2D)
+signal hybrid_event_emitted(event_id: StringName, source: ProceduralEnemy)
 
 const WORLD_LAYER: int = 1 << 0
 const ENEMY_LAYER: int = 1 << 2
@@ -259,6 +260,10 @@ func family_capacity(family: StringName) -> int:
 
 func apply_target_mark(duration: float) -> void:
 	target_mark_remaining = maxf(target_mark_remaining, maxf(duration, 0.0))
+
+
+func emit_hybrid_event(event_id: StringName, source: ProceduralEnemy) -> void:
+	hybrid_event_emitted.emit(event_id, source)
 
 
 func set_catalyst_target(catalyst: Catalyst2D) -> void:

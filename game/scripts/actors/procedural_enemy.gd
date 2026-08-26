@@ -33,6 +33,8 @@ var xp_value: int = 500
 var threat_cost: int = 1
 var remains_family: StringName = &"vehicle"
 var encounter_runtime: EncounterRuntime
+var ablative_armor: float = 0.0
+var maximum_ablative_armor: float = 0.0
 
 var state: State = State.APPROACH
 var _cooldown: float = 0.4
@@ -71,6 +73,8 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	threat_cost = int(profile.get("threat", 1))
 	remains_family = StringName(profile.get("remains", &"vehicle"))
 	_lane_y = float(profile.get("spawn_y", 190.0))
+	maximum_ablative_armor = float(profile.get("ablative_armor", 0.0))
+	ablative_armor = maximum_ablative_armor
 	if airborne:
 		motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 		add_to_group(AerialDebrisLauncher.AIRBORNE_GROUP)
@@ -124,11 +128,26 @@ func _physics_process(delta: float) -> void:
 
 
 func receive_damage(event: DamageEvent) -> bool:
-	if archetype_id == &"bulwark" and event != null and event.damage_type != &"ground_smash":
+	if (
+		archetype_id in [&"bulwark", &"reclaimed_breacher"]
+		and event != null
+		and event.damage_type != &"ground_smash"
+	):
 		var incoming_dot: float = event.direction.normalized().dot(Vector2(float(facing), 0.0))
 		if incoming_dot < -0.35:
-			return super.receive_damage(event.scaled(0.28))
+			var damage_ratio: float = 0.28 if archetype_id == &"bulwark" else 0.40
+			return super.receive_damage(event.scaled(damage_ratio))
 	return super.receive_damage(event)
+
+
+func _transform_incoming_damage(event: DamageEvent) -> DamageEvent:
+	if archetype_id != &"pale_engine" or ablative_armor <= 0.0:
+		return event
+	var absorbed: float = minf(ablative_armor, event.amount)
+	ablative_armor -= absorbed
+	if visual != null:
+		visual.modulate = Color("c6fff5")
+	return event.scaled((event.amount - absorbed) / event.amount)
 
 
 func _update_ground_movement(delta: float) -> void:
@@ -146,7 +165,7 @@ func _update_ground_movement(delta: float) -> void:
 				state = State.APPROACH
 			else:
 				desired_speed = float(facing) * move_speed * movement_multiplier
-	elif behavior == &"ground_close":
+	elif behavior in [&"ground_close", &"ground_breacher"]:
 		desired_speed = (
 			float(facing) * move_speed * movement_multiplier
 			if distance_x > minimum_range
@@ -198,6 +217,11 @@ func _update_air_movement(delta: float) -> void:
 func _can_attack() -> bool:
 	if not attack_gate_enabled or state == State.ANTICIPATE:
 		return false
+	if (
+		archetype_id == &"graft_runner"
+		and (encounter_runtime == null or encounter_runtime.target_mark_remaining <= 0.0)
+	):
+		return false
 	var distance_x: float = absf(target.global_position.x - global_position.x)
 	if behavior in [&"ground_pass", &"air_pass"]:
 		return distance_x < preferred_range
@@ -216,6 +240,7 @@ func _begin_attack() -> void:
 	var telegraph_kind: StringName = projectile_kind
 	if attack_style in [
 		&"scan", &"repair", &"jammer_pulse", &"shield_pulse", &"deploy", &"drone_launch",
+		&"shock_brace", &"marked_leap", &"choir_ring", &"drop_lunge", &"incubation_drop",
 	]:
 		telegraph_kind = &"support"
 	if not begin_telegraph(telegraph_kind, anticipation_duration, origin, target_point):
@@ -238,37 +263,7 @@ func _begin_attack() -> void:
 func _complete_attack() -> void:
 	_attack_sequence += 1
 	_attack_kick = 1.0
-	if attack_style == &"scan":
-		if encounter_runtime != null:
-			encounter_runtime.apply_target_mark(MARK_DURATION)
-		finish_telegraph()
-		return
-	if attack_style == &"repair":
-		_repair_nearest_ally()
-		finish_telegraph()
-		return
-	if attack_style in [&"jammer_pulse", &"shield_pulse"]:
-		finish_telegraph()
-		return
-	if attack_style in [&"deploy", &"drone_launch"]:
-		_try_spawn_reinforcement()
-		finish_telegraph()
-		return
-	if (
-		attack_style == &"lance_thrust"
-		and global_position.distance_to(target.global_position) <= 245.0
-	):
-		var attack_id: int = activation_generation * 1000 + _attack_sequence
-		target.receive_damage(DamageEvent.new(
-			attack_id,
-			self,
-			projectile_damage * projectile_damage_multiplier * aura_damage_multiplier,
-			&"lance",
-			target.global_position,
-			global_position.direction_to(target.global_position),
-			520.0
-		))
-		finish_telegraph()
+	if _complete_support_attack() or _complete_melee_attack():
 		return
 	var first: Projectile2D = fire_telegraphed_projectile(
 		projectile_speed,
@@ -278,6 +273,73 @@ func _complete_attack() -> void:
 		return
 	if attack_style in [&"pod_salvo", &"fortress_barrage"]:
 		_fire_spread_projectiles(2 if attack_style == &"pod_salvo" else 3)
+
+
+func _complete_support_attack() -> bool:
+	if attack_style == &"scan":
+		if encounter_runtime != null:
+			encounter_runtime.apply_target_mark(MARK_DURATION)
+		finish_telegraph()
+		return true
+	if attack_style == &"repair":
+		_repair_nearest_ally()
+		finish_telegraph()
+		return true
+	if attack_style in [&"jammer_pulse", &"shield_pulse"]:
+		finish_telegraph()
+		return true
+	if attack_style == &"choir_ring":
+		if encounter_runtime != null:
+			encounter_runtime.apply_target_mark(MARK_DURATION + 1.0)
+			encounter_runtime.emit_hybrid_event(&"choir_ring", self)
+		finish_telegraph()
+		return true
+	return _complete_carrier_attack()
+
+
+func _complete_carrier_attack() -> bool:
+	if attack_style == &"incubation_drop":
+		if encounter_runtime != null:
+			encounter_runtime.apply_target_mark(MARK_DURATION + 2.0)
+			encounter_runtime.emit_hybrid_event(&"seraph_payload", self)
+		_try_spawn_reinforcements(3)
+		finish_telegraph()
+		return true
+	if attack_style in [&"deploy", &"drone_launch"]:
+		_try_spawn_reinforcement()
+		finish_telegraph()
+		return true
+	return false
+
+
+func _complete_melee_attack() -> bool:
+	if attack_style in [&"shock_brace", &"marked_leap", &"drop_lunge"]:
+		if global_position.distance_to(target.global_position) <= preferred_range + 45.0:
+			_commit_melee_damage(attack_style, 420.0)
+		finish_telegraph()
+		return true
+	if (
+		attack_style == &"lance_thrust"
+		and global_position.distance_to(target.global_position) <= 245.0
+	):
+		_commit_melee_damage(&"lance", 520.0)
+		finish_telegraph()
+		return true
+	return false
+
+
+func _commit_melee_damage(damage_type: StringName, impulse: float) -> void:
+	var attack_id: int = activation_generation * 1000 + _attack_sequence
+	target.receive_damage(DamageEvent.new(
+		attack_id,
+		self,
+		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier,
+		damage_type,
+		target.global_position,
+		global_position.direction_to(target.global_position),
+		impulse
+	)
+	)
 
 
 func _fire_spread_projectiles(extra_count: int) -> void:
@@ -326,20 +388,32 @@ func _release_extra_projectile_reservations() -> void:
 
 
 func _try_spawn_reinforcement() -> bool:
+	return _try_spawn_reinforcements(1) > 0
+
+
+func _try_spawn_reinforcements(requested: int) -> int:
 	if encounter_runtime == null:
-		return false
+		return 0
 	var spawn_limit: int = int(profile.get("spawn_limit", 0))
 	if _spawned_children >= spawn_limit:
-		return false
+		return 0
 	var spawn_kind: StringName = StringName(profile.get("spawn_kind", &""))
 	if spawn_kind.is_empty():
-		return false
-	var spawn_position: Vector2 = global_position + Vector2(-float(facing) * 120.0, 0.0)
-	var spawned: EnemyActor2D = encounter_runtime.acquire(spawn_kind, spawn_position)
-	if spawned == null:
-		return false
-	_spawned_children += 1
-	return true
+		return 0
+	var available: int = encounter_runtime.available_count(spawn_kind)
+	var deploy_count: int = mini(requested, mini(spawn_limit - _spawned_children, available))
+	var deployed: int = 0
+	for child_index: int in range(deploy_count):
+		var spawn_position: Vector2 = global_position + Vector2(
+			-float(facing) * (120.0 + float(child_index) * 78.0),
+			35.0 if airborne else 0.0
+		)
+		var spawned: EnemyActor2D = encounter_runtime.acquire(spawn_kind, spawn_position)
+		if spawned == null:
+			break
+		deployed += 1
+	_spawned_children += deployed
+	return deployed
 
 
 func _repair_nearest_ally() -> void:
@@ -403,6 +477,21 @@ func _animate_visual(delta: float) -> void:
 		&"carrier_hover":
 			offset.y = sin(_animation_phase * 0.65) * 7.0
 			rotation_value = sin(_animation_phase * 0.4) * 0.018
+		&"breacher_sprint":
+			offset.y = -absf(sin(_animation_phase)) * 7.0 * speed_ratio
+			rotation_value = -0.045 * float(facing) * speed_ratio
+		&"graft_circle", &"crawler_climb":
+			offset.y = sin(_animation_phase * 1.7) * 5.0 * speed_ratio
+			rotation_value = sin(_animation_phase) * 0.055 * float(facing)
+		&"siren_hover":
+			offset.y = sin(_animation_phase * 0.55) * 10.0
+			rotation_value = sin(_animation_phase * 0.35) * 0.035
+		&"seraph_hover":
+			offset.y = sin(_animation_phase * 0.42) * 8.0
+			rotation_value = sin(_animation_phase * 0.28) * 0.024
+		&"pale_engine_stride":
+			offset.y = -absf(sin(_animation_phase)) * 5.0 * speed_ratio
+			rotation_value = sin(_animation_phase) * 0.018 * float(facing)
 		&"walker_stride":
 			offset.y = -absf(sin(_animation_phase)) * 6.0 * speed_ratio
 			rotation_value = sin(_animation_phase) * 0.026 * float(facing)
@@ -413,16 +502,17 @@ func _animate_visual(delta: float) -> void:
 			offset = Vector2(sin(_animation_phase * 2.0), cos(_animation_phase * 3.0)) * 1.5
 	if attack_envelope > 0.0:
 		match attack_style:
-			&"scan", &"jammer_pulse", &"shield_pulse":
+			&"scan", &"jammer_pulse", &"shield_pulse", &"choir_ring":
 				scale_factor = Vector2.ONE * (1.0 + attack_envelope * 0.055)
 			&"lob", &"mortar_recoil", &"missile_launch", &"pod_salvo", \
 			&"wing_launch", &"bomb_drop", &"rail_recoil", &"fortress_barrage":
 				offset.x -= float(facing) * attack_envelope * 12.0
 				rotation_value -= float(facing) * attack_envelope * 0.045
-			&"repair", &"deploy", &"drone_launch":
+			&"repair", &"deploy", &"drone_launch", &"incubation_drop":
 				offset.y += attack_envelope * 5.0
 				scale_factor = Vector2(1.0 + attack_envelope * 0.03, 1.0 - attack_envelope * 0.03)
-			&"lance_thrust", &"flame_blast", &"autocannon":
+			&"lance_thrust", &"flame_blast", &"autocannon", \
+			&"shock_brace", &"marked_leap", &"drop_lunge":
 				offset.x += float(facing) * attack_envelope * 14.0
 				rotation_value += float(facing) * attack_envelope * 0.04
 			_:
@@ -443,3 +533,6 @@ func _reset_archetype_state() -> void:
 	_pass_side = facing
 	_spawned_children = 0
 	_attack_sequence = 0
+	ablative_armor = maximum_ablative_armor
+	if visual != null:
+		visual.modulate = Color.WHITE

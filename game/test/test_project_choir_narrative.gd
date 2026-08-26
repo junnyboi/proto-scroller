@@ -117,6 +117,34 @@ func test_city_narrative_collects_once_reveals_and_survives_one_finish() -> void
 	assert_true(city.gameplay_hud.overlay_summary.text.contains("GENERATION 1"))
 
 
+func test_entertainment_containment_breach_releases_one_bounded_crawler() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.urban_siege.stop_run()
+	city.encounter_runtime.release_all()
+	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(16)
+	var variant: StructuralBuildingVariant = district.building_variants[0]
+	assert_true(city.building.apply_variant(variant))
+	var definition: DossierDefinition = DossierCatalog.definition_for_variant(variant.variant_id)
+	city.project_choir_runtime._on_building_cell_destroyed(
+		city.building,
+		definition.trigger_column,
+		definition.trigger_row,
+		null
+	)
+	assert_eq(city.encounter_runtime.active_count(&"ossuary_crawler"), 1)
+	assert_eq(city.project_choir_runtime.containment_release_count(), 1)
+	city.project_choir_runtime._on_building_cell_destroyed(
+		city.building,
+		definition.trigger_column,
+		definition.trigger_row,
+		null
+	)
+	assert_eq(city.encounter_runtime.active_count(&"ossuary_crawler"), 1)
+	assert_eq(city.project_choir_runtime.containment_release_count(), 1)
+
+
 func test_transmission_toast_is_bounded_deduped_and_nonblocking() -> void:
 	var toast: TransmissionToast = TransmissionToast.new()
 	add_child_autofree(toast)

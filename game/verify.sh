@@ -23,6 +23,7 @@ mkdir -p \
 	  artifacts/endless_terrain \
 	  artifacts/visible_facade_cycle \
 	  artifacts/project_choir_wp1 \
+	  artifacts/project_choir_enemies \
 	  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/directives \
@@ -428,8 +429,27 @@ if [[ "$MODE" == "full" ]]; then
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/enemy_variety/report.json >/dev/null
   test -s artifacts/enemy_variety/enemy-variety.png
-  ENEMY_VARIETY_DIMENSIONS="$(file artifacts/enemy_variety/enemy-variety.png)"
-  grep -Fq '1280 x 720' <<< "$ENEMY_VARIETY_DIMENSIONS"
+	  ENEMY_VARIETY_DIMENSIONS="$(file artifacts/enemy_variety/enemy-variety.png)"
+	  grep -Fq '1280 x 720' <<< "$ENEMY_VARIETY_DIMENSIONS"
+
+	  printf '%s\n' '[L5] Project CHOIR hybrid gallery landscape'
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+	    --resolution 1280x720 -s selftest/project_choir_enemy_gallery_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and (.hybrids | length) == 6' \
+	    artifacts/project_choir_enemies/report-landscape.json >/dev/null
+	  test -s artifacts/project_choir_enemies/hybrid-gallery-landscape.png
+	  grep -Fq '1280 x 720' \
+	    <<< "$(file artifacts/project_choir_enemies/hybrid-gallery-landscape.png)"
+
+	  printf '%s\n' '[L5] Project CHOIR hybrid gallery portrait'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+	    --audio-driver Dummy --path . --resolution 720x1280 \
+	    -s selftest/project_choir_enemy_gallery_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and (.hybrids | length) == 6' \
+	    artifacts/project_choir_enemies/report-portrait.json >/dev/null
+	  test -s artifacts/project_choir_enemies/hybrid-gallery-portrait.png
+	  grep -Fq '720 x 1280' \
+	    <<< "$(file artifacts/project_choir_enemies/hybrid-gallery-portrait.png)"
 
   printf '%s\n' '[L5] windowed street-volatility render scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
