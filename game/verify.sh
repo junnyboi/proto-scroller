@@ -60,11 +60,19 @@ grep -Fq 'config/features=PackedStringArray("4.7", "GL Compatibility")' project.
 	grep -Fq 'window/per_pixel_transparency/allowed=true' project.godot
 	grep -Fq 'window/stretch/mode="canvas_items"' project.godot
 	grep -Fq 'window/stretch/aspect="keep"' project.godot
-	grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
-	grep -Fq 'variant/extensions_support=false' export_presets.cfg
-	grep -Fq 'variant/thread_support=false' export_presets.cfg
-	! grep -Fq 'art/bosses/*' export_presets.cfg
-	grep -Fq 'audio/music/bosses/*' export_presets.cfg
+grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
+grep -Fq 'variant/extensions_support=false' export_presets.cfg
+grep -Fq 'variant/thread_support=false' export_presets.cfg
+! grep -Eq '^exclude_filter=.*art/bosses/\*' export_presets.cfg
+grep -Fq 'audio/music/bosses/*' export_presets.cfg
+for boss_art in \
+	art/bosses/settlement-engine-s04.webp \
+	art/bosses/samaritan-15.webp \
+	art/bosses/mimesis-04.webp \
+	art/bosses/cantor-31.webp \
+	art/bosses/choir-prime.webp; do
+	test -s "$boss_art"
+done
 CITY_SLICE_LINES="$(wc -l < scripts/gameplay/city_slice.gd)"
 test "$CITY_SLICE_LINES" -le 650
 printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
@@ -647,12 +655,16 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-warning.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-warning.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-landscape.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-landscape.png
+	  mv artifacts/weapon_shop/weapon-shop-warning.png \
+	    artifacts/weapon_shop/weapon-shop-warning-landscape.png
 	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
 	    artifacts/weapon_shop/weapon-shop-confirm-landscape.png
 
@@ -663,12 +675,16 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-warning.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-warning.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-portrait.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-portrait.png
+	  mv artifacts/weapon_shop/weapon-shop-warning.png \
+	    artifacts/weapon_shop/weapon-shop-warning-portrait.png
 		  mv artifacts/weapon_shop/weapon-shop-confirm.png \
 		    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
 

@@ -110,11 +110,21 @@ func test_insufficient_score_and_full_health_reject_without_spending() -> void:
 	score.safe_score = 1000
 	_open_act_shop(city, 1)
 	var session: WeaponShopSession = city.weapon_shop_assembler.session
+	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
 	assert_eq(session.product_status(session.active_products[0]), &"healthy")
 	assert_eq(session.product_status(session.active_products[1]), &"funds")
 	assert_false(session.purchase(&"patchwork_nanoweld"))
 	assert_false(session.purchase(&"scrapheap_magnetics"))
 	assert_eq(score.score, 1000)
+	overlay.dialogue_panel._dismiss()
+	overlay.cards[1]._on_pressed()
+	assert_eq(overlay.insufficient_warning_count, 1)
+	assert_eq(overlay.last_insufficient_product_id, &"scrapheap_magnetics")
+	assert_true(overlay.insufficient_flash.visible)
+	assert_false(overlay.confirmation_panel.active)
+	assert_eq(score.score, 1000)
+	await get_tree().process_frame
+	assert_gt(overlay.insufficient_flash.modulate.a, 0.0)
 
 
 func test_hover_preview_confirmation_and_upgrade_feedback_are_transactional() -> void:

@@ -3,6 +3,7 @@ extends Button
 
 signal purchase_requested(product_id: StringName)
 signal preview_requested(product_id: StringName)
+signal insufficient_attempted(product_id: StringName)
 
 const AVAILABLE_COLOR: Color = Color("7ae4ff")
 const PRICE_COLOR: Color = Color("f1b36f")
@@ -174,3 +175,5 @@ func _on_pressed() -> void:
 	_request_preview()
 	if available():
 		purchase_requested.emit(product.product_id)
+	elif product != null and status == &"funds":
+		insufficient_attempted.emit(product.product_id)
