@@ -34,6 +34,7 @@ var elite_roll_count: int = 0
 var progression_peak_tier: int = 0
 var progression_copy_peak: int = 0
 var progression_degradation_count: int = 0
+var hybrid_substitution_trace: Array[Dictionary] = []
 var hazard_runtime: HazardRuntime
 var hazard_pressure: HazardPressureController
 var run_experience: RunExperience
@@ -105,6 +106,7 @@ func start() -> void:
 	progression_copy_peak = 0
 	progression_degradation_count = 0
 	progression_peak_threat = 0
+	hybrid_substitution_trace.clear()
 	peak_hazard_pending = 0
 	_act_completion_emitted = false
 	_act_advance_blocked = false
@@ -251,13 +253,37 @@ func _try_start_next_beat() -> void:
 			milestone_reached.emit(act.milestone_after)
 		_advance_act()
 		return
-	var next_beat: DistrictBeat = act.beats[beat_index + 1]
+	var authored_beat: DistrictBeat = act.beats[beat_index + 1]
+	var spatial_district_id: StringName = (
+		runtime.world_stream.current_district_id
+		if runtime.world_stream != null
+		else &"BUSINESS"
+	)
+	var next_beat: DistrictBeat = HybridEncounterResolver.resolve_beat(
+		authored_beat,
+		spatial_district_id,
+		phase_index,
+		beat_index + 1,
+		_elite_seed
+	)
+	for change: Dictionary in HybridEncounterResolver.substitutions(authored_beat, next_beat):
+		change["district_id"] = spatial_district_id
+		change["act_index"] = phase_index
+		change["beat_index"] = beat_index + 1
+		hybrid_substitution_trace.append(change)
 	current_pressure_profile = _effective_pressure_profile()
+	var authored_threat_floor: int = _authored_threat(authored_beat)
+	var resolved_threat: int = _authored_threat(next_beat)
 	var beat_threat_ceiling: int = maxi(
 		current_pressure_profile.live_threat_ceiling,
-		_authored_threat(next_beat)
+		authored_threat_floor
 	)
-	if _planned_threat(next_beat, {}) > beat_threat_ceiling:
+	var admission_threat: int = (
+		_planned_threat(next_beat, {})
+		- resolved_threat
+		+ maxi(resolved_threat, authored_threat_floor)
+	)
+	if admission_threat > beat_threat_ceiling:
 		return
 	var progression_tier: int = current_pressure_profile.district_index
 	var progression_copies: Dictionary[int, int] = _progression_copy_plan(

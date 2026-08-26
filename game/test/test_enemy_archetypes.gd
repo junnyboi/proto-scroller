@@ -19,6 +19,8 @@ const EXPECTED_BASELINE_PUNCHES: Dictionary = {
 	&"hound": 2, &"mule": 2, &"basilisk": 2, &"lancer": 2, &"static": 2,
 	&"kestrel": 2, &"rainmaker": 2, &"shrike": 2, &"cinder": 3, &"aegis": 2,
 	&"longbow": 3, &"hive": 3, &"goliath": 5, &"nemesis": 6, &"leviathan": 13,
+	&"reclaimed_breacher": 8, &"graft_runner": 2, &"choir_siren": 3,
+	&"ossuary_crawler": 3, &"seraph_carrier": 5, &"pale_engine": 9,
 }
 const EXPECTED_ACT_PEAK_THREAT: Array[int] = [5, 9, 12, 16, 17, 20]
 const EXPECTED_FACES_RIGHT: Dictionary[StringName, bool] = {
@@ -42,6 +44,12 @@ const EXPECTED_FACES_RIGHT: Dictionary[StringName, bool] = {
 	&"goliath": true,
 	&"nemesis": true,
 	&"leviathan": false,
+	&"reclaimed_breacher": false,
+	&"graft_runner": false,
+	&"choir_siren": false,
+	&"ossuary_crawler": false,
+	&"seraph_carrier": false,
+	&"pale_engine": false,
 }
 const MAX_ARMOR_LOADOUT_HEALTH: float = 1200.0
 const LATE_WAVE_MINIMUM_DPS: float = 20.0
@@ -58,9 +66,8 @@ func before_each() -> void:
 	runtime.release_all()
 
 
-func test_catalog_contains_twenty_valid_visual_and_gameplay_profiles() -> void:
-	assert_eq(EnemyArchetypeCatalog.PROCEDURAL_IDS.size(), 20)
-	var previous_threat: int = 0
+func test_catalog_contains_twenty_six_valid_visual_and_gameplay_profiles() -> void:
+	assert_eq(EnemyArchetypeCatalog.PROCEDURAL_IDS.size(), 26)
 	var signatures: Dictionary[String, bool] = {}
 	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
 		assert_true(EnemyArchetypeCatalog.has(archetype_id), archetype_id)
@@ -69,12 +76,29 @@ func test_catalog_contains_twenty_valid_visual_and_gameplay_profiles() -> void:
 		assert_gt(float(profile.health), 0.0, archetype_id)
 		assert_gt(float(profile.speed), 0.0, archetype_id)
 		assert_gt(int(profile.xp), 0, archetype_id)
-		assert_gte(int(profile.threat), previous_threat, archetype_id)
-		previous_threat = int(profile.threat)
+		assert_between(int(profile.threat), 1, 12, archetype_id)
 		var signature: String = "%s/%s" % [profile.movement_style, profile.attack_style]
 		assert_false(signatures.has(signature), signature)
 		signatures[signature] = true
-	assert_eq(signatures.size(), 20)
+	assert_eq(signatures.size(), 26)
+
+
+func test_project_choir_hybrids_reuse_existing_families_and_production_art() -> void:
+	var expected_families: Dictionary[StringName, StringName] = {
+		&"reclaimed_breacher": &"infantry",
+		&"graft_runner": &"light",
+		&"choir_siren": &"air",
+		&"ossuary_crawler": &"light",
+		&"seraph_carrier": &"air",
+		&"pale_engine": &"siege",
+	}
+	for archetype_id: StringName in expected_families:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		assert_eq(StringName(profile.family), expected_families[archetype_id])
+		var texture: Texture2D = load(String(profile.texture)) as Texture2D
+		assert_not_null(texture, archetype_id)
+		assert_lte(texture.get_width(), 768, archetype_id)
+		assert_lte(texture.get_height(), 768, archetype_id)
 
 
 func test_every_archetype_acquires_animates_telegraphs_and_releases_cleanly() -> void:
@@ -422,7 +446,7 @@ func test_all_twenty_archetypes_enter_in_monotonic_act_order_within_caps() -> vo
 					first_act[kind] = act_index
 			assert_lte(threat, beat.maximum_threat, beat.beat_id)
 	assert_eq(first_act.size(), 20)
-	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
+	for archetype_id: StringName in EXPECTED_FIRST_ACT:
 		assert_eq(first_act.get(archetype_id, -1), EXPECTED_FIRST_ACT[archetype_id])
 	assert_eq(DistrictRecipeValidator.validate(DISTRICT), PackedStringArray())
 

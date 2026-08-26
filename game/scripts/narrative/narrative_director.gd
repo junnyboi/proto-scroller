@@ -22,6 +22,10 @@ signal district_arrived(district_id: StringName)
 const DISTRICT_IDS: Array[StringName] = [
 	&"BUSINESS", &"RESIDENTIAL", &"ENTERTAINMENT", &"MILITARY", &"ROYAL",
 ]
+const HYBRID_IDS: Array[StringName] = [
+	&"reclaimed_breacher", &"graft_runner", &"choir_siren",
+	&"ossuary_crawler", &"seraph_carrier", &"pale_engine",
+]
 
 var campaign_progress: CampaignProgressStore
 var run_seed: int = 0
@@ -102,6 +106,21 @@ func record_chassis_loss() -> int:
 		5
 	)
 	return generation
+
+
+func handle_enemy_acquired(enemy: EnemyActor2D) -> void:
+	if not enemy is ProceduralEnemy:
+		return
+	var hybrid_id: StringName = (enemy as ProceduralEnemy).archetype_id
+	if not hybrid_id in HYBRID_IDS:
+		return
+	_queue_transmission(
+		StringName("hybrid_%s_contact" % hybrid_id),
+		"narrative.speaker.echo7",
+		"narrative.enemy.%s.contact" % hybrid_id,
+		4.6,
+		3
+	)
 
 
 func fired_event_count() -> int:

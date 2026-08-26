@@ -84,7 +84,7 @@ func _run() -> void:
 		actor.cancel_telegraph()
 		city.encounter_runtime.release(actor)
 		exercised += 1
-	_check("all_twenty_exercised", exercised == 20, "count=%d" % exercised)
+	_check("all_twenty_six_exercised", exercised == 26, "count=%d" % exercised)
 	_check(
 		"reservations_clean",
 		city.projectile_root.reservation_count() == 0
@@ -100,14 +100,14 @@ func _run() -> void:
 	city.camera_rig.global_position.x = 1300.0
 	city.gameplay_hud.first_run_tutorial.visible = false
 	var showcase: Array[Dictionary] = [
-		{"id": &"lobber", "trait": &"PHASED", "position": Vector2(850.0, 542.0)},
-		{"id": &"lobber", "trait": &"BRUTAL", "position": Vector2(970.0, 542.0)},
-		{"id": &"sapper", "trait": &"BLITZ", "position": Vector2(1090.0, 541.0)},
-		{"id": &"sapper", "trait": &"PHASED", "position": Vector2(1510.0, 541.0)},
-		{"id": &"lancer", "trait": &"BRUTAL", "position": Vector2(1640.0, 547.5)},
-		{"id": &"lancer", "trait": &"BLITZ", "position": Vector2(1780.0, 547.5)},
-		{"id": &"hound", "trait": &"PHASED", "position": Vector2(1030.0, 240.0)},
-		{"id": &"shrike", "trait": &"BRUTAL", "position": Vector2(1650.0, 205.0)},
+		{"id": &"reclaimed_breacher", "trait": &"BRUTAL", "position": Vector2(860.0, 540.0)},
+		{"id": &"graft_runner", "trait": &"BLITZ", "position": Vector2(1040.0, 554.0)},
+		{"id": &"ossuary_crawler", "trait": &"PHASED", "position": Vector2(1260.0, 552.0)},
+		{"id": &"choir_siren", "trait": &"PHASED", "position": Vector2(1010.0, 210.0)},
+		{"id": &"seraph_carrier", "trait": &"BRUTAL", "position": Vector2(1540.0, 180.0)},
+		{"id": &"pale_engine", "trait": &"BLITZ", "position": Vector2(1730.0, 482.0)},
+		{"id": &"cinder", "trait": &"PHASED", "position": Vector2(620.0, 547.0)},
+		{"id": &"longbow", "trait": &"BRUTAL", "position": Vector2(1960.0, 544.0)},
 	]
 	var showcase_count: int = 0
 	for item: Dictionary in showcase:

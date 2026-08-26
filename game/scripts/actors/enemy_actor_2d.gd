@@ -19,6 +19,12 @@ enum ArmorPolicy {
 	FULL_CHARGE_FIXED_STEP,
 }
 
+enum BossDamageResult {
+	CONTINUE,
+	ACCEPTED,
+	REJECTED,
+}
+
 const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
 const SURVIVING_MELEE_KNOCKBACK_MULTIPLIER: float = 5.0
 
@@ -142,19 +148,13 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if event.attack_id != 0:
 		_seen_attacks[event.attack_id] = true
-	if boss_mode and boss_armor > 0.0:
-		if event.damage_type != &"jab_cross":
-			return false
-		var armor_damage: float = event.amount
-		if boss_armor_policy == ArmorPolicy.FULL_CHARGE_FIXED_STEP:
-			if event.effect_flags & DamageEvent.FLAG_FULL_CHARGE == 0:
-				return false
-			armor_damage = boss_armor_fixed_step
-		boss_armor = maxf(boss_armor - armor_damage, 0.0)
-		boss_armor_changed.emit(boss_armor, boss_max_armor)
-		if is_zero_approx(boss_armor):
-			boss_armor_broken.emit()
+	var transformed_event: DamageEvent = _transform_incoming_damage(event)
+	if transformed_event == null or transformed_event.amount <= 0.0:
 		return true
+	event = transformed_event
+	var boss_result: BossDamageResult = _receive_boss_armor_damage(event)
+	if boss_result != BossDamageResult.CONTINUE:
+		return boss_result == BossDamageResult.ACCEPTED
 	var accepted_event: DamageEvent = event
 	if _shield_available:
 		_shield_available = false
@@ -176,6 +176,27 @@ func receive_damage(event: DamageEvent) -> bool:
 	if current_health <= 0.0:
 		_die(accepted_event)
 	return true
+
+
+func _transform_incoming_damage(event: DamageEvent) -> DamageEvent:
+	return event
+
+
+func _receive_boss_armor_damage(event: DamageEvent) -> BossDamageResult:
+	if not boss_mode or boss_armor <= 0.0:
+		return BossDamageResult.CONTINUE
+	if event.damage_type != &"jab_cross":
+		return BossDamageResult.REJECTED
+	var armor_damage: float = event.amount
+	if boss_armor_policy == ArmorPolicy.FULL_CHARGE_FIXED_STEP:
+		if event.effect_flags & DamageEvent.FLAG_FULL_CHARGE == 0:
+			return BossDamageResult.REJECTED
+		armor_damage = boss_armor_fixed_step
+	boss_armor = maxf(boss_armor - armor_damage, 0.0)
+	boss_armor_changed.emit(boss_armor, boss_max_armor)
+	if is_zero_approx(boss_armor):
+		boss_armor_broken.emit()
+	return BossDamageResult.ACCEPTED
 
 
 func request_projectile(

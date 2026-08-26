@@ -6,7 +6,9 @@ extends Resource
 	"needle", "bulwark", "jackal", "lobber", "sapper",
 	"hound", "mule", "basilisk", "lancer", "static",
 	"kestrel", "rainmaker", "shrike", "cinder", "aegis",
-	"longbow", "hive", "goliath", "nemesis", "leviathan"
+	"longbow", "hive", "goliath", "nemesis", "leviathan",
+	"reclaimed_breacher", "graft_runner", "choir_siren",
+	"ossuary_crawler", "seraph_carrier", "pale_engine"
 ) var kind: String = "soldier"
 @export var delay: float = 0.0
 @export var position: Vector2 = Vector2.ZERO
