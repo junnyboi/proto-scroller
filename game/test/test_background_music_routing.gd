@@ -64,6 +64,8 @@ func test_title_sync_source_keeps_cached_callbacks_and_browser_commit_only() -> 
 	assert_true(source.contains("AudioServer.set_bus_mute"))
 	assert_true(source.contains("phase == \"scheduled\""))
 	assert_true(source.contains("seconds_until_rendered"))
+	assert_true(source.contains("audio_activation_requested.connect"))
+	assert_true(source.contains("_activate_title_music_from_interaction"))
 	assert_false(source.contains("func _process"))
 
 

@@ -24,7 +24,7 @@ Both loops were generated with **Veo 3.1**, silent, eight seconds, 1080p, with a
 
 ## Web masters
 
-The shipping masters were deterministically resized and compressed with FFmpeg while retaining 24 fps, H.264 High Profile, YUV 4:2:0, no audio, and fast-start metadata:
+The initial shipping masters were deterministically resized and compressed with FFmpeg while retaining 24 fps, H.264 High Profile, YUV 4:2:0, no audio, and fast-start metadata:
 
 ```bash
 ffmpeg -i <master> -an -vf 'scale=<target>:flags=lanczos,fps=24' \
@@ -32,11 +32,25 @@ ffmpeg -i <master> -an -vf 'scale=<target>:flags=lanczos,fps=24' \
   -pix_fmt yuv420p -movflags +faststart <shipping.mp4>
 ```
 
+## Loop-seam correction
+
+Frame-level analysis found that both generated masters returned closest to their opening composition at frame 183, then drifted during frames 184–191. The landscape frame 191 → 0 seam was particularly visible: its mean absolute error was 3.48× the median adjacent-frame change. The repaired masters preserve frames 0–183 exactly and reconstruct only frames 184–191 with a cosine-eased interpolation from frame 183 to the exact opening frame. They remain 192 frames, 24 fps, and exactly eight seconds, so the authored frame-88 landscape and frame-66 portrait impact synchronization is unchanged.
+
+The deterministic regression command is:
+
+```bash
+python3 scripts/verify-title-loop-seam.py \
+  client/public/title-video/title-loop-landscape.mp4 \
+  client/public/title-video/title-loop-portrait.mp4
+```
+
+It requires H.264, the exact orientation geometry, 24 fps, 192 frames, eight seconds, end-to-start MAE at most 0.004, and correlation at least 0.998. The corrected landscape seam measures MAE 0.00285 and correlation 0.99931; portrait measures MAE 0.00338 and correlation 0.99863.
+
 | File | Geometry | Bytes | SHA-256 |
 |---|---:|---:|---|
-| `title-loop-landscape.mp4` | 1280×720 | 1,415,095 | `9d1a90b166d071f0e60a0b519ebb2bc9479988d4c99fa25e2d534fd73b161f83` |
-| `title-loop-portrait.mp4` | 720×1280 | 1,364,828 | `cd6fabaa3ccb231fb3a992db0a00c55f08c4cae1f0a89206958fb36392096c75` |
+| `title-loop-landscape.mp4` | 1280×720 | 1,983,162 | `5134aecf83b921bc3b7be12260b79b7bbddb27fde62fa1977590fb3ddf8a07ff` |
+| `title-loop-portrait.mp4` | 720×1280 | 1,914,617 | `bfc65d653a3b408aeba690a99fb1cb1dc6a8b0ffcabeeab7e8688c6b2a5b1839` |
 
 ## Runtime behavior
 
-The Web host chooses the matching orientation before activation and locks that source when the trusted **Begin Expedition** action occurs. The measured ground-contact/spark frames are **frame 88 at 3.666667 seconds** in landscape and **frame 66 at 2.750000 seconds** in portrait. A browser animation-clock and compensated-timer race captures the production music source inside a bounded 350 ms horizon, then schedules its sample-zero downbeat directly on the Web Audio clock for the corresponding rendered impact; telemetry is published at `window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__`. Rotation can switch sources before activation but cannot replace the locked source afterward. Godot calibrates the transition against the browser-reported rendered-output delay so the impact remains visible for **350 ms after the audible downbeat** before title fade-out. Playback or scheduling failure uses a bounded audible fallback so launch is never stranded. Native builds continue to use the canonical static artwork and immediate music startup.
+On Web, the first trusted title-screen interaction—keyboard, click, tap, or gamepad button, including **Begin Expedition**—unlocks audio, chooses the matching orientation, and locks that cinematic source. The measured ground-contact/spark frames are **frame 88 at 3.666667 seconds** in landscape and **frame 66 at 2.750000 seconds** in portrait. A browser animation-clock and compensated-timer race captures the production music source inside a bounded one-second horizon, then schedules its sample-zero downbeat directly on the Web Audio clock for the next corresponding rendered impact. If the current impact is too close to preserve the scheduling horizon, the target advances to the following eight-second loop. Music therefore begins while the title remains visible instead of waiting for launch; telemetry is published at `window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__`. Rotation can switch sources before activation but cannot replace the locked source afterward. When launch is the first interaction, Godot calibrates the transition against the browser-reported rendered-output delay so the impact remains visible for **350 ms after the audible downbeat** before title fade-out. Playback or scheduling failure uses a bounded audible fallback so launch is never stranded. Native builds continue to use the canonical static artwork and immediate music startup.

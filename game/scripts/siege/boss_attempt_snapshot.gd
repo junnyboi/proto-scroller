@@ -52,6 +52,13 @@ func capture(
 	return true
 
 
+func capture_boss_runtime(session: CommandBossSession) -> bool:
+	if not valid or session == null or not session.active():
+		return false
+	boss_state = session.capture_attempt_state()
+	return true
+
+
 func restore(
 	lease: ArenaLease,
 	session: CommandBossSession,

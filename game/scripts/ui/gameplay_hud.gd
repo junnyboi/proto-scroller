@@ -289,7 +289,8 @@ func set_campaign_boss_status(
 	armor_maximum: float,
 	body: float,
 	body_maximum: float,
-	evidence_id: StringName
+	evidence_id: StringName,
+	live_feedback: Dictionary = {}
 ) -> void:
 	if definition == null or state == &"IDLE" or state == &"COMPLETE":
 		hide_boss_status()
@@ -300,8 +301,14 @@ func set_campaign_boss_status(
 		"phase": L10n.t("boss.state.%s" % String(state).to_lower()),
 		"armor": "%03d" % roundi(clampf(armor / maxf(armor_maximum, 1.0), 0.0, 1.0) * 100.0),
 		"body": "%03d" % roundi(clampf(body / maxf(body_maximum, 1.0), 0.0, 1.0) * 100.0),
-		"objective": L10n.t("boss.objective.finish"),
-		"evidence": L10n.t("boss.evidence.%s" % String(evidence_id).to_lower()),
+		"objective": String(live_feedback.get(
+			"objective", L10n.t("boss.objective.finish")
+		)),
+		"evidence": String(live_feedback.get(
+			"consequence",
+			L10n.t("boss.evidence.%s" % String(evidence_id).to_lower())
+		)),
+		"attack": String(live_feedback.get("attack", L10n.t("boss.attack.none"))),
 	})
 
 
@@ -782,6 +789,7 @@ func _apply_landscape_layout() -> void:
 	combo_label.position = Vector2(764.0, 28.0)
 	combo_label.size = Vector2(176.0, 32.0)
 	combo_label.add_theme_font_size_override(&"font_size", 22)
+	combo_ring.custom_minimum_size = Vector2(38.0, 38.0)
 	combo_ring.position = Vector2(712.0, 24.0)
 	combo_ring.size = Vector2(38.0, 38.0)
 	momentum_track.position = Vector2(490.0, 66.0)
@@ -841,6 +849,7 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	combo_label.position = Vector2(panel_width - 102.0, 56.0)
 	combo_label.size = Vector2(94.0, 18.0)
 	combo_label.add_theme_font_size_override(&"font_size", 12)
+	combo_ring.custom_minimum_size = Vector2(16.0, 16.0)
 	combo_ring.position = Vector2(panel_width - 122.0, 57.0)
 	combo_ring.size = Vector2(16.0, 16.0)
 	momentum_track.position = Vector2(8.0, 73.0)

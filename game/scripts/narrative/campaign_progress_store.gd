@@ -30,7 +30,7 @@ var _document: Dictionary = {
 		"unlocked_reveals": [], "completed_bosses": [], "seen_endings": [],
 		"selected_ending": "", "route_unlock_chunk": 0, "transaction_ids": [],
 		"pending_reward_grants": [], "applied_reward_transactions": [],
-		"continuity_generation": 0,
+		"boss_results": {}, "continuity_generation": 0,
 	},
 }
 
@@ -84,6 +84,14 @@ func commit_boss_transaction(payload: Dictionary) -> bool:
 		_append_valid_dossier(progress, StringName(dossier_id))
 	for evidence_id: Variant in payload.get("evidence_ids", []):
 		_append_valid_evidence(progress, StringName(evidence_id))
+	for evidence_id: Variant in payload.get("lost_evidence_ids", []):
+		_append_valid_evidence_loss(progress, StringName(evidence_id))
+	var boss_result: Dictionary = payload.get("boss_result", {})
+	var boss_id: String = String(payload.get("boss_id", ""))
+	if not boss_id.is_empty() and not boss_result.is_empty():
+		var results: Dictionary = progress.get("boss_results", {}) as Dictionary
+		results[boss_id] = boss_result.duplicate(true)
+		progress["boss_results"] = results
 	var ending_id: String = String(payload.get("ending_id", ""))
 	if not ending_id.is_empty():
 		progress["selected_ending"] = ending_id
@@ -328,6 +336,7 @@ func snapshot() -> Dictionary:
 		"transaction_ids": _progress_ids("transaction_ids"),
 		"pending_reward_grants": pending_reward_grants(),
 		"applied_reward_transactions": _progress_ids("applied_reward_transactions"),
+		"boss_results": progress.get("boss_results", {}).duplicate(true),
 		"echo7_resolved": echo7_resolved(),
 		"finale_eligible": finale_eligible(),
 	}
@@ -523,6 +532,7 @@ func _empty_progress() -> Dictionary:
 		"transaction_ids": [],
 		"pending_reward_grants": [],
 		"applied_reward_transactions": [],
+		"boss_results": {},
 		"continuity_generation": 0,
 	}
 
@@ -539,6 +549,17 @@ func _append_valid_dossier(progress: Dictionary, dossier_id: StringName) -> void
 		var reveals: Array = progress.get("unlocked_reveals", []) as Array
 		_append_unique(reveals, String(definition.reveal_id))
 		progress["unlocked_reveals"] = reveals
+
+
+func _append_valid_evidence_loss(progress: Dictionary, evidence_id: StringName) -> void:
+	if not DossierCatalog.is_evidence_flag(evidence_id):
+		return
+	var evidence: Array = progress.get("evidence", []) as Array
+	if evidence.has(String(evidence_id)):
+		return
+	var lost: Array = progress.get("lost_evidence", []) as Array
+	_append_unique(lost, String(evidence_id))
+	progress["lost_evidence"] = lost
 
 
 func _append_valid_evidence(progress: Dictionary, evidence_id: StringName) -> void:

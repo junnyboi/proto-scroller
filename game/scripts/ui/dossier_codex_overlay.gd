@@ -158,9 +158,32 @@ func _show_definition(index: int) -> void:
 		L10n.t(definition.body_primary_key)
 		+ "\n\n"
 		+ L10n.t(definition.body_secondary_key)
+		+ _boss_result_wording(definition)
 		if unlocked
 		else L10n.t("narrative.codex.locked_body")
 	)
+
+
+func _boss_result_wording(definition: DossierDefinition) -> String:
+	var results: Dictionary = _snapshot.get("boss_results", {})
+	var result: Dictionary = results.get(String(definition.boss_id), {})
+	if result.is_empty():
+		return ""
+	if definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+		return "\n\n" + L10n.t(
+			"narrative.dossier.business_crown_reserve_treasury.result_preserved"
+			if bool(result.get("archive_preserved", false))
+			else "narrative.dossier.business_crown_reserve_treasury.result_lost"
+		)
+	if definition.boss_id == &"SAMARITAN_15":
+		var lost: int = int(result.get("pod_loss_count", 0))
+		return "\n\n" + L10n.t(
+			"narrative.dossier.residential_nightglass_mutual_clinic.result_preserved"
+			if lost == 0
+			else "narrative.dossier.residential_nightglass_mutual_clinic.result_losses",
+			{"lost": lost, "rescued": int(result.get("rescue_tally", 4))}
+		)
+	return ""
 
 
 func _build() -> void:

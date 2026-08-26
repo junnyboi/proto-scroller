@@ -176,7 +176,13 @@ static func _ensure_catalog() -> void:
 				&"wreck_receivers": 1,
 			},
 			{&"procedural_infantry": 2},
-			[&"SETTLEMENT_SWEEP", &"FORECLOSURE_STAMP", &"AUDIT_BEAM"]
+			[
+				&"SETTLEMENT_SWEEP",
+				&"DOUBLE_ENTRY_BARRAGE",
+				&"FORECLOSURE_STAMP",
+				&"AUDIT_BEAM",
+				&"FOUNDATION_CASCADE",
+			]
 		),
 		_make_definition(
 			&"SAMARITAN_15",
@@ -197,7 +203,12 @@ static func _ensure_catalog() -> void:
 				&"wreck_receivers": 1,
 			},
 			{&"procedural_siege": 1, &"procedural_light": 1},
-			[&"FALSE_EVACUATION", &"RED_TAG_REQUISITION", &"BLACKOUT_HARVEST"]
+			[
+				&"TRIAGE_SWEEP",
+				&"PRESSURE_SENTENCE",
+				&"EXTRACTION_CLAMP",
+				&"BLACKOUT_HARVEST",
+			]
 		),
 		_make_definition(
 			&"MIMESIS_04",
@@ -356,11 +367,12 @@ static func _make_phases(
 	support_reservations: Dictionary
 ) -> Array[BossPhaseDefinition]:
 	var phases: Array[BossPhaseDefinition] = []
-	var thresholds: PackedFloat32Array = PackedFloat32Array([1.0, 0.66, 0.33])
 	for index: int in range(phase_ids.size()):
 		var phase: BossPhaseDefinition = BossPhaseDefinition.new()
 		phase.phase_id = phase_ids[index]
-		phase.health_threshold = thresholds[index]
+		phase.health_threshold = (
+			1.0 - float(index) / float(maxi(phase_ids.size(), 1))
+		)
 		phase.attack_choices = PackedStringArray([String(phase_ids[index]).to_lower()])
 		phase.telegraph_profile = &"BOSS_STANDARD"
 		phase.recovery_duration = 0.75

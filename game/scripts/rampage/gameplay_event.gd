@@ -16,6 +16,7 @@ enum Kind {
 	CAUSAL_CHAIN,
 	BOSS_STATE,
 	GROUND_SMASH_SHOCKWAVE,
+	PLAYER_DAMAGE_TAKEN,
 }
 
 const PROP_BREAK: StringName = &"PROP_BREAK"
@@ -26,6 +27,7 @@ const CELL_BREACH: StringName = &"CELL_BREACH"
 const CHAIN_COLLAPSE: StringName = &"CHAIN_COLLAPSE"
 const CATALYST_TRIGGER: StringName = &"CATALYST_TRIGGER"
 const SHOCKWAVE_CUE: StringName = &"GROUND_SMASH_SHOCKWAVE"
+const ENEMY_KILL: StringName = &"ENEMY_KILL"
 
 var event_id: int = 0
 var dedupe_key: StringName = &""

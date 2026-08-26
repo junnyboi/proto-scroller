@@ -38,6 +38,11 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	siege.boss_session.state_changed.connect(_refresh_hud)
 	siege.boss_session.armor_changed.connect(_on_boss_durability_changed)
 	siege.boss_session.body_changed.connect(_on_boss_durability_changed)
+	siege.boss_session.utility_pool.vertical_slice.attack_changed.connect(_on_slice_feedback_changed)
+	siege.boss_session.utility_pool.vertical_slice.archive_revealed.connect(_on_slice_feedback_changed)
+	siege.boss_session.utility_pool.vertical_slice.rescue_tally_changed.connect(
+		_on_slice_feedback_changed
+	)
 
 
 func _process(_delta: float) -> void:
@@ -92,6 +97,8 @@ func owns_combat() -> bool:
 
 func fail_attempt() -> bool:
 	if not owns_combat() or attempt_failed:
+		return false
+	if not attempt_snapshot.capture_boss_runtime(siege.boss_session):
 		return false
 	attempt_failed = true
 	siege.boss_session.stop()
@@ -190,6 +197,12 @@ func _on_boss_completed(_elapsed_seconds: float) -> void:
 	if not owns_combat():
 		return
 	var completed_definition: BossEncounterDefinition = active_definition
+	var choir: ProjectChoirRuntime = siege.dependencies.city.project_choir_runtime
+	if choir != null and not choir.commit_boss_completion(
+		completed_definition,
+		siege.boss_session.completion_payload()
+	):
+		return
 	_completed_ids[completed_definition.boss_id] = true
 	active_gate.consume()
 	arena_lease.release()
@@ -218,9 +231,14 @@ func _refresh_hud(_state: StringName = &"") -> void:
 		armor_maximum,
 		body,
 		active_definition.health,
-		active_definition.evidence_flag_id
+		active_definition.evidence_flag_id,
+		session.live_boss_feedback()
 	)
 
 
 func _on_boss_durability_changed(_current: float, _maximum: float) -> void:
+	_refresh_hud()
+
+
+func _on_slice_feedback_changed(_first: Variant = null, _second: Variant = null) -> void:
 	_refresh_hud()

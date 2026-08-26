@@ -2,6 +2,7 @@ class_name TitleScreen
 extends Control
 
 signal start_requested
+signal audio_activation_requested
 
 const LANDSCAPE_ART: Texture2D = preload(
 	"res://art/ui/title_screen/command_deck_landscape.jpg"
@@ -39,6 +40,7 @@ var campaign_panel: CampaignProgressPanel
 var dossier_codex: DossierCodexOverlay
 var _capture_action: StringName = &""
 var _capture_gamepad: bool = false
+var _audio_activation_emitted: bool = false
 
 @onready var background_art: TextureRect = %BackgroundArt
 @onready var briefing_art: TextureRect = %BriefingArt
@@ -168,6 +170,7 @@ func _exit_tree() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	_request_title_audio_activation(event)
 	if _capture_action.is_empty():
 		return
 	if not _capture_gamepad and event is InputEventKey:
@@ -199,6 +202,25 @@ func _input(event: InputEvent) -> void:
 		)
 		_complete_binding_capture()
 		get_viewport().set_input_as_handled()
+
+
+func _request_title_audio_activation(event: InputEvent) -> void:
+	if _audio_activation_emitted or initialized:
+		return
+	var trusted_press: bool = false
+	if event is InputEventKey:
+		var key_event: InputEventKey = event as InputEventKey
+		trusted_press = key_event.pressed and not key_event.echo
+	elif event is InputEventMouseButton:
+		trusted_press = (event as InputEventMouseButton).pressed
+	elif event is InputEventScreenTouch:
+		trusted_press = (event as InputEventScreenTouch).pressed
+	elif event is InputEventJoypadButton:
+		trusted_press = (event as InputEventJoypadButton).pressed
+	if not trusted_press:
+		return
+	_audio_activation_emitted = true
+	audio_activation_requested.emit()
 
 
 func _unhandled_input(event: InputEvent) -> void:

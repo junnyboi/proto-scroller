@@ -24,10 +24,11 @@ mkdir -p \
 	  artifacts/visible_facade_cycle \
 		  artifacts/project_choir_wp1 \
 		  artifacts/project_choir_enemies \
-		  artifacts/project_choir_finale \
-		  artifacts/boss_attack_matrix \
-		  artifacts/boss_rig_gallery \
-		  artifacts/enemy_variety \
+			  artifacts/project_choir_finale \
+			  artifacts/boss_attack_matrix \
+			  artifacts/boss_rig_gallery \
+			  artifacts/boss_vertical_slice \
+			  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/power_box_repair \
 	  artifacts/directives \
@@ -65,6 +66,11 @@ grep -Fq 'variant/extensions_support=false' export_presets.cfg
 grep -Fq 'variant/thread_support=false' export_presets.cfg
 ! grep -Eq '^exclude_filter=.*art/bosses/\*' export_presets.cfg
 grep -Fq 'audio/music/bosses/*' export_presets.cfg
+printf '%s\n' '[L1] title-loop timing and seam continuity'
+python3 ../scripts/verify-title-loop-seam.py \
+	../client/public/title-video/title-loop-landscape.mp4 \
+	../client/public/title-video/title-loop-portrait.mp4 \
+	| tee artifacts/title-loop-seam.json
 for boss_art in \
 	art/bosses/settlement-engine-s04.webp \
 	art/bosses/samaritan-15.webp \
@@ -131,10 +137,10 @@ PUNCH_DURATION="$(
 		audio/sfx/robot/double_punch_impact.wav
 )"
 awk -v duration="$PUNCH_DURATION" 'BEGIN {
-	exit !(duration >= 1.17 && duration <= 1.19)
+	exit !(duration >= 0.46 && duration <= 0.48)
 }'
 test "$(sha256sum audio/sfx/robot/double_punch_impact.wav | cut -d' ' -f1)" = \
-	"ac4dc961a2828c14c58f856f58a9cef817391d02cd35bb858c5315c22bab0793"
+	"070c680f847e87f66a62cb41df4daf2e841946ef46b83dba4eaebec651af31ea"
 for photon_cue in \
 	audio/sfx/robot/photon_charge.wav \
 	audio/sfx/robot/photon_full_hit.wav; do
@@ -265,6 +271,19 @@ jq -e '
 	and ([.checks[].passed] | all)
 	and .shot == ""
 ' artifacts/boss_rig_gallery/report-landscape.json >/dev/null
+
+printf '%s\n' '[L4] Business and Residential boss vertical slice'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+	-s selftest/boss_vertical_slice_scenario.gd
+jq -e '
+	.done == true
+	and .result == "PASS"
+	and .orientation == "landscape"
+	and (.business.attacks | length) == 5
+	and (.residential.attacks | length) == 4
+	and .residential.central_cradle_preserved == true
+	and ([.checks[].passed] | all)
+' artifacts/boss_vertical_slice/report-landscape.json >/dev/null
 
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
@@ -527,11 +546,33 @@ if [[ "$MODE" == "full" ]]; then
 	  test -s artifacts/boss_rig_gallery/boss-rig-gallery-portrait.png
 	  grep -Fq '720 x 1280' \
 	    <<< "$(file artifacts/boss_rig_gallery/boss-rig-gallery-portrait.png)"
-	  diff \
-	    <(jq -S '.mechanical_signatures' artifacts/boss_rig_gallery/report-landscape.json) \
-	    <(jq -S '.mechanical_signatures' artifacts/boss_rig_gallery/report-portrait.json)
+		  diff \
+		    <(jq -S '.mechanical_signatures' artifacts/boss_rig_gallery/report-landscape.json) \
+		    <(jq -S '.mechanical_signatures' artifacts/boss_rig_gallery/report-portrait.json)
 
-		  printf '%s\n' '[L5] Project CHOIR finale landscape'
+		  printf '%s\n' '[L5] Business and Residential boss vertical slice landscape'
+		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+		    --resolution 1280x720 -s selftest/boss_vertical_slice_scenario.gd
+		  jq -e '.done == true and .result == "PASS" and .orientation == "landscape"
+		    and ([.checks[].passed] | all)' \
+		    artifacts/boss_vertical_slice/report-landscape.json >/dev/null
+		  test -s artifacts/boss_vertical_slice/business-landscape.png
+		  test -s artifacts/boss_vertical_slice/residential-landscape.png
+
+		  printf '%s\n' '[L5] Business and Residential boss vertical slice portrait'
+		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+		    --audio-driver Dummy --path . --resolution 720x1280 \
+		    -s selftest/boss_vertical_slice_scenario.gd
+		  jq -e '.done == true and .result == "PASS" and .orientation == "portrait"
+		    and ([.checks[].passed] | all)' \
+		    artifacts/boss_vertical_slice/report-portrait.json >/dev/null
+		  test -s artifacts/boss_vertical_slice/business-portrait.png
+		  test -s artifacts/boss_vertical_slice/residential-portrait.png
+		  diff \
+		    <(jq -S '[.business.signature, .residential.signature]' artifacts/boss_vertical_slice/report-landscape.json) \
+		    <(jq -S '[.business.signature, .residential.signature]' artifacts/boss_vertical_slice/report-portrait.json)
+
+			  printf '%s\n' '[L5] Project CHOIR finale landscape'
 		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 		    --resolution 1280x720 -s selftest/project_choir_finale_scenario.gd
 		  jq -e '.done == true and .result == "PASS" and .pylon_count == 5
@@ -655,12 +696,16 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-warning.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-warning.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-landscape.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-landscape.png
+	  mv artifacts/weapon_shop/weapon-shop-warning.png \
+	    artifacts/weapon_shop/weapon-shop-warning-landscape.png
 	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
 	    artifacts/weapon_shop/weapon-shop-confirm-landscape.png
 
@@ -671,12 +716,16 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-warning.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-warning.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-portrait.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-portrait.png
+	  mv artifacts/weapon_shop/weapon-shop-warning.png \
+	    artifacts/weapon_shop/weapon-shop-warning-portrait.png
 		  mv artifacts/weapon_shop/weapon-shop-confirm.png \
 		    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
 
@@ -695,6 +744,23 @@ if [[ "$MODE" == "full" ]]; then
 		  grep -Fq '720 x 1280' <<< "$(file artifacts/new_game_plus/new-game-plus.png)"
 		  mv artifacts/new_game_plus/new-game-plus.png \
 		    artifacts/new_game_plus/new-game-plus-portrait.png
+
+		  printf '%s\n' '[L5] landscape kill-combo visual scenario'
+		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+		    --resolution 1280x720 -s selftest/kill_combo_visual_scenario.gd
+		  test -s artifacts/kill_combo/kill-combo.png
+		  grep -Fq '1280 x 720' <<< "$(file artifacts/kill_combo/kill-combo.png)"
+		  mv artifacts/kill_combo/kill-combo.png \
+		    artifacts/kill_combo/kill-combo-landscape.png
+
+		  printf '%s\n' '[L5] portrait kill-combo visual scenario'
+		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+		    --audio-driver Dummy --path . --resolution 720x1280 \
+		    -s selftest/kill_combo_visual_scenario.gd
+		  test -s artifacts/kill_combo/kill-combo.png
+		  grep -Fq '720 x 1280' <<< "$(file artifacts/kill_combo/kill-combo.png)"
+		  mv artifacts/kill_combo/kill-combo.png \
+		    artifacts/kill_combo/kill-combo-portrait.png
 
 		  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \

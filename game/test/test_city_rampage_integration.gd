@@ -4,7 +4,7 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 
 
-func test_prop_destruction_updates_combo_momentum_and_hud() -> void:
+func test_prop_destruction_updates_score_and_momentum_without_kill_combo() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -16,7 +16,7 @@ func test_prop_destruction_updates_combo_momentum_and_hud() -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_eq(city.score, 450)
-	assert_eq(city.rampage_session.current_multiplier(), 2)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_almost_eq(city.rampage_session.momentum_value(), 12.0, 0.01)
 	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
 	var combo_label: Label = city.get_node(^"HUD/ComboLabel") as Label
@@ -25,10 +25,8 @@ func test_prop_destruction_updates_combo_momentum_and_hud() -> void:
 	) as ComboDecayRing
 	var momentum_label: Label = city.get_node(^"HUD/MomentumLabel") as Label
 	assert_eq(score_label.text, "00000450")
-	assert_eq(combo_label.text, "x2 COMBO")
-	assert_true(combo_label.visible)
-	assert_true(combo_ring.visible)
-	assert_gt(combo_ring.ratio, 0.98)
+	assert_false(combo_label.visible)
+	assert_false(combo_ring.visible)
 	assert_eq(momentum_label.text, "MOMENTUM 012%")
 	_record_test_execution()
 
@@ -49,6 +47,35 @@ func test_motion_gain_and_heavy_hostile_hit_loss_reach_live_session() -> void:
 	)
 	assert_true(city.robot.receive_damage(heavy_event))
 	assert_almost_eq(city.rampage_session.momentum_value(), 0.0, 0.001)
+	_record_test_execution()
+
+
+func test_consecutive_enemy_kills_multiply_score_until_any_player_damage() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var targets: Array[EnemyActor2D] = [city.soldier, city.tank, city.helicopter]
+	for index: int in range(targets.size()):
+		assert_true(city.rampage_events.enemy_defeated(
+			targets[index],
+			DamageEvent.new(7000 + index, city.robot, 999.0, &"test_kill"),
+			100,
+			city.robot
+		))
+	assert_eq(city.score, 600)
+	assert_eq(city.rampage_session.current_multiplier(), 3)
+	assert_eq(city.gameplay_hud.combo_label.text, "x3 KILL COMBO")
+	assert_true(city.gameplay_hud.combo_label.visible)
+	assert_true(city.robot.receive_damage(DamageEvent.new(
+		7100,
+		city.soldier,
+		1.0,
+		&"rifle"
+	)))
+	assert_eq(city.rampage_session.current_multiplier(), 1)
+	assert_eq(city.rampage_session.combo_tracker.current_chain_count, 0)
+	assert_false(city.gameplay_hud.combo_label.visible)
+	assert_eq(city.rampage_session.heavy_hit_count, 0)
 	_record_test_execution()
 
 
@@ -81,7 +108,7 @@ func test_approved_event_values_and_surge_acceleration_reach_live_scene() -> voi
 		320.0
 	)
 	assert_true(cell.receive_damage(cell_event))
-	assert_eq(city.rampage_session.current_multiplier(), 2)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.momentum_value(), 20.0)
 	city.rampage_session.publish(GameplayEvent.new(
 		&"surge_seed",

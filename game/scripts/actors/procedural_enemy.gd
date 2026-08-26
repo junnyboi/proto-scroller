@@ -35,6 +35,7 @@ var remains_family: StringName = &"vehicle"
 var encounter_runtime: EncounterRuntime
 var ablative_armor: float = 0.0
 var maximum_ablative_armor: float = 0.0
+var boss_support_id: StringName = &""
 
 var state: State = State.APPROACH
 var _cooldown: float = 0.4
@@ -50,6 +51,7 @@ var _extra_projectile_reservations: Array[int] = []
 
 func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> void:
 	archetype_id = p_archetype_id
+	boss_support_id = &""
 	profile = p_profile.duplicate(true)
 	display_name = String(profile.get("display_name", String(archetype_id).to_upper()))
 	family = StringName(profile.get("family", &""))
@@ -81,6 +83,44 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	else:
 		motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED
 		remove_from_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+
+
+func configure_boss_support(presentation_id: StringName) -> bool:
+	if not presentation_id in [&"reclaimed_breacher", &"graft_runner"]:
+		return false
+	if (
+		presentation_id == &"reclaimed_breacher" and family != &"siege"
+	) or (
+		presentation_id == &"graft_runner" and family != &"light"
+	):
+		return false
+	var presentation: Dictionary = EnemyArchetypeCatalog.profile(presentation_id)
+	if presentation.is_empty():
+		return false
+	boss_support_id = presentation_id
+	display_name = String(presentation.display_name)
+	move_speed = float(presentation.speed)
+	acceleration = float(presentation.acceleration)
+	preferred_range = float(presentation.preferred_range)
+	minimum_range = float(presentation.minimum_range)
+	attack_interval = float(presentation.attack_interval)
+	projectile_kind = StringName(presentation.projectile_kind)
+	projectile_speed = float(presentation.projectile_speed)
+	projectile_damage = float(presentation.damage)
+	anticipation_duration = float(presentation.anticipation)
+	behavior = StringName(presentation.behavior)
+	movement_style = StringName(presentation.movement_style)
+	attack_style = StringName(presentation.attack_style)
+	if visual != null:
+		visual.texture = load(String(presentation.texture)) as Texture2D
+		var display_size: Vector2 = presentation.display as Vector2
+		var texture_size: Vector2 = visual.texture.get_size()
+		visual.scale = display_size / Vector2(
+			maxf(texture_size.x, 1.0),
+			maxf(texture_size.y, 1.0)
+		)
+	set_meta(&"boss_support_id", boss_support_id)
+	return true
 
 
 func _ready() -> void:
@@ -129,7 +169,7 @@ func _physics_process(delta: float) -> void:
 
 func receive_damage(event: DamageEvent) -> bool:
 	if (
-		archetype_id in [&"bulwark", &"reclaimed_breacher"]
+		(archetype_id == &"bulwark" or boss_support_id == &"reclaimed_breacher")
 		and event != null
 		and event.damage_type != &"ground_smash"
 	):
@@ -218,7 +258,7 @@ func _can_attack() -> bool:
 	if not attack_gate_enabled or state == State.ANTICIPATE:
 		return false
 	if (
-		archetype_id == &"graft_runner"
+		(archetype_id == &"graft_runner" or boss_support_id == &"graft_runner")
 		and (encounter_runtime == null or encounter_runtime.target_mark_remaining <= 0.0)
 	):
 		return false

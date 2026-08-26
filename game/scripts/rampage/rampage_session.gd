@@ -37,10 +37,11 @@ func _init() -> void:
 func publish(event: GameplayEvent) -> bool:
 	if not event_hub.accept(event):
 		return false
-	var score_multiplier: int = combo_tracker.current_multiplier
+	var score_multiplier: int = 1
+	if combo_tracker.register_event(event):
+		score_multiplier = combo_tracker.current_multiplier
 	run_score.apply_event(event, score_multiplier)
 	run_experience.apply_event(event)
-	combo_tracker.register_event(event)
 	momentum_meter.apply_event(event)
 	rare_event_tracker.register_event(event)
 	causal_chain_tracker.register(event)
@@ -49,7 +50,8 @@ func publish(event: GameplayEvent) -> bool:
 	if event.kind == GameplayEvent.Kind.PLAYER_HEAVY_HIT:
 		heavy_hit_count += 1
 		run_score.lose_half_pending()
-		combo_tracker.apply_heavy_hit_penalty()
+	elif event.kind == GameplayEvent.Kind.PLAYER_DAMAGE_TAKEN:
+		combo_tracker.break_on_damage()
 	event_hub.broadcast(event)
 	return true
 
