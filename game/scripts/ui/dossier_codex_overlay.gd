@@ -14,6 +14,7 @@ var shade: ColorRect
 var panel: ColorRect
 var heading_label: Label
 var progress_label: Label
+var evidence_label: Label
 var dossier_list: ItemList
 var evidence_image: TextureRect
 var detail_title: Label
@@ -64,6 +65,15 @@ func refresh_locale() -> void:
 		"dossiers": int(_snapshot.get("dossier_count", 0)),
 		"total": CityDistrictCatalog.BUILDING_VARIANT_COUNT,
 	})
+	evidence_label.text = L10n.t("narrative.codex.evidence", {
+		"evidence": int(_snapshot.get("evidence_count", 0)),
+		"total": DossierCatalog.EVIDENCE_FLAGS.size(),
+		"echo_status": L10n.t(
+			"narrative.echo7.resolved"
+			if bool(_snapshot.get("echo7_resolved", false))
+			else "narrative.echo7.ambiguous"
+		),
+	})
 	close_button.text = L10n.t("narrative.codex.close")
 	dossier_list.clear()
 	for definition: DossierDefinition in _definitions:
@@ -89,8 +99,10 @@ func apply_responsive_layout(viewport_size: Vector2) -> void:
 		heading_label.size = Vector2(viewport_size.x - 84.0, 42.0)
 		progress_label.position = Vector2(42.0, 92.0)
 		progress_label.size = Vector2(viewport_size.x - 84.0, 30.0)
-		dossier_list.position = Vector2(42.0, 138.0)
-		dossier_list.size = Vector2(viewport_size.x - 84.0, 420.0)
+		evidence_label.position = Vector2(42.0, 120.0)
+		evidence_label.size = Vector2(viewport_size.x - 84.0, 42.0)
+		dossier_list.position = Vector2(42.0, 170.0)
+		dossier_list.size = Vector2(viewport_size.x - 84.0, 388.0)
 		evidence_image.position = Vector2(48.0, 582.0)
 		evidence_image.size = Vector2(96.0, 166.0)
 		detail_title.position = Vector2(164.0, 582.0)
@@ -106,8 +118,10 @@ func apply_responsive_layout(viewport_size: Vector2) -> void:
 		heading_label.size = Vector2(viewport_size.x - 164.0, 42.0)
 		progress_label.position = Vector2(82.0, 108.0)
 		progress_label.size = Vector2(430.0, 30.0)
-		dossier_list.position = Vector2(82.0, 154.0)
-		dossier_list.size = Vector2(440.0, 464.0)
+		evidence_label.position = Vector2(82.0, 134.0)
+		evidence_label.size = Vector2(440.0, 42.0)
+		dossier_list.position = Vector2(82.0, 182.0)
+		dossier_list.size = Vector2(440.0, 436.0)
 		evidence_image.position = Vector2(570.0, 170.0)
 		evidence_image.size = Vector2(128.0, 220.0)
 		detail_title.position = Vector2(724.0, 170.0)
@@ -172,6 +186,11 @@ func _build() -> void:
 	progress_label.add_theme_font_size_override(&"font_size", 18)
 	progress_label.modulate = MUTED_COLOR
 	add_child(progress_label)
+	evidence_label = Label.new()
+	evidence_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	evidence_label.add_theme_font_size_override(&"font_size", 15)
+	evidence_label.modulate = ACCENT_COLOR
+	add_child(evidence_label)
 	dossier_list = ItemList.new()
 	dossier_list.focus_mode = Control.FOCUS_ALL
 	dossier_list.add_theme_font_size_override(&"font_size", 16)

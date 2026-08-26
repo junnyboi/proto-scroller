@@ -20,7 +20,7 @@ func _run() -> void:
 	root.content_scale_size = viewport_size
 	root.size = viewport_size
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ARTIFACT_DIR))
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	_remove_saves()
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	root.add_child(city)
 	await process_frame
@@ -75,14 +75,16 @@ func _run() -> void:
 	_write_report(orientation)
 	city.queue_free()
 	await process_frame
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	_remove_saves()
 	quit(0 if _failures.is_empty() else 1)
 
 
 func _prepare_eligible_store(store: CampaignProgressStore) -> void:
 	for index: int in range(FinaleEligibilitySnapshot.DOSSIER_REQUIREMENT):
 		store.collect_dossier(DossierCatalog.definitions()[index].dossier_id)
-	for evidence_id: StringName in [&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL"]:
+	for evidence_id: StringName in [
+		&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
+	]:
 		store.preserve_evidence(evidence_id)
 
 
@@ -125,3 +127,9 @@ func _write_report(orientation: String) -> void:
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(_report, "  "))
+
+
+func _remove_saves() -> void:
+	for path: String in [SAVE_PATH, SAVE_PATH + ".tmp", SAVE_PATH + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

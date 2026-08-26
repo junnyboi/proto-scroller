@@ -1,14 +1,6 @@
 class_name ProjectChoirRuntime
 extends Node
 
-const DISTRICT_EVIDENCE: Dictionary[StringName, StringName] = {
-	&"BUSINESS": &"LEDGER",
-	&"RESIDENTIAL": &"NURSERY",
-	&"ENTERTAINMENT": &"STAGE",
-	&"MILITARY": &"ARSENAL",
-	&"ROYAL": &"CROWN",
-}
-
 var campaign_progress: CampaignProgressStore
 var director: NarrativeDirector
 var facade_reveal: FacadeRevealRuntime
@@ -32,6 +24,7 @@ func setup(city: CitySlice, progress: CampaignProgressStore) -> void:
 		campaign_progress = CampaignProgressStore.new()
 		campaign_progress.name = "EphemeralCampaignProgressStore"
 		add_child(campaign_progress)
+		campaign_progress.reset_memory()
 	assert(DossierCatalog.validation_errors().is_empty())
 	facade_reveal = FacadeRevealRuntime.new()
 	facade_reveal.name = "FacadeRevealRuntime"
@@ -46,7 +39,12 @@ func setup(city: CitySlice, progress: CampaignProgressStore) -> void:
 	city.world_stream.district_changed.connect(_on_spatial_district_changed)
 	city.streamed_destructibles.building_cell_destroyed.connect(_on_building_cell_destroyed)
 	city.encounter_runtime.enemy_acquired.connect(director.handle_enemy_acquired)
+	city.encounter_runtime.enemy_died.connect(director.handle_enemy_defeated)
 	city.run_lifecycle.run_finished.connect(_on_run_finished)
+	var boss_campaign: BossCampaignDirector = city.urban_siege.boss_campaign
+	boss_campaign.attempt_started.connect(director.handle_boss_attempt_started)
+	boss_campaign.boss_completed.connect(director.handle_boss_completed)
+	city.urban_siege.boss_session.state_changed.connect(director.handle_boss_state_changed)
 	var initial_district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(
 		city.world_stream.current_logical_chunk
 	)
@@ -68,21 +66,11 @@ func _on_building_cell_destroyed(
 	_event: DamageEvent
 ) -> void:
 	director.handle_building_cell_destroyed(building, column, row)
-	_award_completed_district_evidence(building.current_variant_id())
 	_try_release_containment(building, column, row)
 
 
 func containment_release_count() -> int:
 	return _released_containment.size()
-
-
-func _award_completed_district_evidence(variant_id: StringName) -> void:
-	var definition: DossierDefinition = DossierCatalog.definition_for_variant(variant_id)
-	if definition == null or not DISTRICT_EVIDENCE.has(definition.district_id):
-		return
-	if campaign_progress.district_dossier_count(definition.district_id) < 5:
-		return
-	campaign_progress.preserve_evidence(DISTRICT_EVIDENCE[definition.district_id])
 
 
 func _try_release_containment(
