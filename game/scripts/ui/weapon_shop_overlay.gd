@@ -7,6 +7,7 @@ signal continue_requested
 
 var shade: ColorRect
 var backplate: TextureRect
+var insufficient_flash: ColorRect
 var frame: PanelContainer
 var title_label: Label
 var tagline_label: Label
@@ -25,9 +26,13 @@ var district: CityDistrictProfile
 var active: bool = false
 var current_score: int = 0
 var transaction_burst_count: int = 0
+var insufficient_warning_count: int = 0
+var last_insufficient_product_id: StringName = &""
 var _statuses: Dictionary[StringName, StringName] = {}
 var _previews: Dictionary[StringName, Array] = {}
 var _input_armed_frame: int = 0
+var _flash_tween: Tween
+var _shake_tween: Tween
 
 
 func _ready() -> void:
@@ -88,6 +93,7 @@ func show_shop(
 func hide_shop() -> void:
 	active = false
 	visible = false
+	_reset_insufficient_warning()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialogue_panel.hide_dialogue()
@@ -133,12 +139,35 @@ func play_transaction_success(product: WeaponShopProduct) -> void:
 	transaction_burst_count += 1
 
 
+func play_insufficient_warning(product_id: StringName) -> void:
+	if not active or product_id.is_empty():
+		return
+	_reset_insufficient_warning()
+	last_insufficient_product_id = product_id
+	insufficient_warning_count += 1
+	insufficient_flash.visible = true
+	insufficient_flash.modulate.a = 0.0
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(insufficient_flash, "modulate:a", 1.0, 0.055)
+	_flash_tween.tween_interval(0.045)
+	_flash_tween.tween_property(insufficient_flash, "modulate:a", 0.0, 0.24)
+	_flash_tween.tween_callback(func() -> void: insufficient_flash.visible = false)
+	_shake_tween = create_tween()
+	for offset: Vector2 in [
+		Vector2(9.0, 0.0), Vector2(-9.0, 0.0), Vector2(7.0, 0.0),
+		Vector2(-7.0, 0.0), Vector2(4.0, 0.0), Vector2(-4.0, 0.0),
+	]:
+		_shake_tween.tween_property(self, "position", offset, 0.032)
+	_shake_tween.tween_property(self, "position", Vector2.ZERO, 0.04)
+
+
 func apply_responsive_layout() -> void:
 	if shade == null:
 		return
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	backplate.size = viewport_size
 	shade.size = viewport_size
+	insufficient_flash.size = viewport_size
 	frame.position = Vector2(18.0, 18.0)
 	frame.size = viewport_size - Vector2(36.0, 36.0)
 	if viewport_size.y > viewport_size.x:
@@ -156,6 +185,13 @@ func _build_controls() -> void:
 	shade = ColorRect.new()
 	shade.color = Color(0.004, 0.01, 0.016, 0.60)
 	add_child(shade)
+	insufficient_flash = ColorRect.new()
+	insufficient_flash.name = "InsufficientScoreFlash"
+	insufficient_flash.color = Color(0.92, 0.035, 0.045, 0.34)
+	insufficient_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	insufficient_flash.z_index = 45
+	insufficient_flash.visible = false
+	add_child(insufficient_flash)
 	frame = PanelContainer.new()
 	var frame_style: StyleBoxFlat = StyleBoxFlat.new()
 	frame_style.bg_color = Color(0.015, 0.025, 0.032, 0.88)
@@ -184,6 +220,7 @@ func _build_controls() -> void:
 		card.name = "WeaponShopCard%d" % index
 		card.preview_requested.connect(_on_card_preview_requested)
 		card.purchase_requested.connect(_on_card_purchase_requested)
+		card.insufficient_attempted.connect(play_insufficient_warning)
 		add_child(card)
 		cards.append(card)
 	cards[0].focus_neighbor_right = cards[1].get_path()
@@ -323,7 +360,24 @@ func _focus_first_available() -> void:
 		if card.available():
 			card.grab_focus()
 			return
+	for card: WeaponShopCard in cards:
+		if card.status == &"funds":
+			card.grab_focus()
+			return
 	continue_button.grab_focus()
+
+
+func _reset_insufficient_warning() -> void:
+	if _flash_tween != null:
+		_flash_tween.kill()
+	if _shake_tween != null:
+		_shake_tween.kill()
+	_flash_tween = null
+	_shake_tween = null
+	position = Vector2.ZERO
+	if insufficient_flash != null:
+		insufficient_flash.visible = false
+		insufficient_flash.modulate.a = 0.0
 
 
 func _card_for(product_id: StringName) -> WeaponShopCard:

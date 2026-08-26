@@ -76,6 +76,7 @@ const WEAPON_SHOP_CARDS: int = WeaponShopCatalog.PRODUCTS_PER_DISTRICT
 const WEAPON_SHOP_DIALOGUES: int = 1
 const WEAPON_SHOP_CONFIRMATIONS: int = 1
 const WEAPON_SHOP_STAT_PREVIEWS: int = 1
+const WEAPON_SHOP_WARNING_OVERLAYS: int = 1
 const WEAPON_SHOP_TRANSACTION_PARTICLES: int = 2
 const WEAPON_SHOP_EFFECT_RUNTIMES: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
@@ -244,6 +245,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"weapon_shop_stat_previews": (
 			1 if city.weapon_shop_assembler.overlay.preview_panel != null else 0
 		),
+		"weapon_shop_warning_overlays": (
+			1 if city.weapon_shop_assembler.overlay.insufficient_flash != null else 0
+		),
 		"weapon_shop_transaction_particles": (
 			int(city.weapon_shop_assembler.overlay.upgrade_particles != null)
 			+ int(city.weapon_shop_assembler.overlay.repair_particles != null)
@@ -373,6 +377,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "weapon_shop_dialogues", WEAPON_SHOP_DIALOGUES)
 	_check_equal(errors, data, "weapon_shop_confirmations", WEAPON_SHOP_CONFIRMATIONS)
 	_check_equal(errors, data, "weapon_shop_stat_previews", WEAPON_SHOP_STAT_PREVIEWS)
+	_check_equal(
+		errors,
+		data,
+		"weapon_shop_warning_overlays",
+		WEAPON_SHOP_WARNING_OVERLAYS
+	)
 	_check_equal(
 		errors,
 		data,

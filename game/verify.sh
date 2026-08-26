@@ -655,12 +655,16 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-warning.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-warning.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-landscape.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-landscape.png
+	  mv artifacts/weapon_shop/weapon-shop-warning.png \
+	    artifacts/weapon_shop/weapon-shop-warning-landscape.png
 	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
 	    artifacts/weapon_shop/weapon-shop-confirm-landscape.png
 
@@ -671,12 +675,16 @@ if [[ "$MODE" == "full" ]]; then
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-intro.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-warning.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-warning.png)"
 	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-portrait.png
 	  mv artifacts/weapon_shop/weapon-shop-intro.png \
 	    artifacts/weapon_shop/weapon-shop-intro-portrait.png
+	  mv artifacts/weapon_shop/weapon-shop-warning.png \
+	    artifacts/weapon_shop/weapon-shop-warning-portrait.png
 		  mv artifacts/weapon_shop/weapon-shop-confirm.png \
 		    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
 
