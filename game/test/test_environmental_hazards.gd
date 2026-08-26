@@ -140,6 +140,8 @@ func test_active_sprites_are_alpha_clean_and_fit_authored_pixel_bounds() -> void
 			1
 		)
 		assert_not_null(actor, hazard_id)
+		assert_eq(actor.get_meta(&"street_destructible_kind"), hazard_id, hazard_id)
+		assert_gt(actor.current_health, 0.0, hazard_id)
 		assert_eq(profile.display as Vector2, EXPECTED_DISPLAYS[hazard_id], hazard_id)
 		var rendered: Vector2 = actor.visual.texture.get_size() * actor.visual.scale
 		var expected: Vector2 = EXPECTED_DISPLAYS[hazard_id] as Vector2

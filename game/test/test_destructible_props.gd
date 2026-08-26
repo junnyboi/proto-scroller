@@ -9,6 +9,8 @@ func test_cars_and_streetlamps_require_multiple_hits_then_fragment() -> void:
 	await get_tree().process_frame
 	var debris_before: int = city.debris_pool.active_count()
 	var debris_nodes_before: int = city.debris_pool.get_child_count()
+	assert_eq(city.car.get_meta(&"street_destructible_kind"), &"car")
+	assert_eq(city.streetlamp.get_meta(&"street_destructible_kind"), &"streetlamp")
 	assert_eq(city.car.max_health, 260.0)
 	assert_eq(city.streetlamp.max_health, 160.0)
 	assert_true(city.car.receive_damage(_prop_hit(city, city.car, 6110, 130.0)))
