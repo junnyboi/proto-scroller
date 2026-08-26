@@ -155,7 +155,7 @@ jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
 printf '%s\n' '[L4] charged-smash headless scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 	-s selftest/charge_attack_scenario.gd
-jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP" and .hit_shot.status == "SKIP"' \
+jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP" and .max_shot.status == "SKIP" and .release_shot.status == "SKIP" and .hit_shot.status == "SKIP"' \
 	artifacts/charge_attack/report.json >/dev/null
 
 printf '%s\n' '[L4] directive-card headless lifecycle scenario'
@@ -256,27 +256,39 @@ if [[ "$MODE" == "full" ]]; then
 		  cp artifacts/city_slice/city-slice-rubble-landscape.png \
 		    artifacts/city_slice/city-slice-rubble.png
 
-		  printf '%s\n' '[L5] landscape charged-smash visual scenario'
-		  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
-		    -s selftest/charge_attack_scenario.gd
-		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .hit_shot.status == "PASS"' \
-		    artifacts/charge_attack/report.json >/dev/null
-		  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/charge-attack.png)"
-		  mv artifacts/charge_attack/charge-attack.png \
-		    artifacts/charge_attack/charge-attack-landscape.png
-		  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/full-charge-hit.png)"
+			  printf '%s\n' '[L5] landscape charged-smash visual scenario'
+			  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+			    -s selftest/charge_attack_scenario.gd
+			  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .max_shot.status == "PASS" and .release_shot.status == "PASS" and .hit_shot.status == "PASS"' \
+			    artifacts/charge_attack/report.json >/dev/null
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/charge-attack.png)"
+			  mv artifacts/charge_attack/charge-attack.png \
+			    artifacts/charge_attack/charge-attack-landscape.png
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/max-charge.png)"
+			  mv artifacts/charge_attack/max-charge.png \
+			    artifacts/charge_attack/max-charge-landscape.png
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/release-shockwave.png)"
+			  mv artifacts/charge_attack/release-shockwave.png \
+			    artifacts/charge_attack/release-shockwave-landscape.png
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/full-charge-hit.png)"
 		  mv artifacts/charge_attack/full-charge-hit.png \
 		    artifacts/charge_attack/full-charge-hit-landscape.png
 
-		  printf '%s\n' '[L5] portrait charged-smash visual scenario'
-		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
-		    --resolution 720x1280 -s selftest/charge_attack_scenario.gd
-		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .hit_shot.status == "PASS"' \
-		    artifacts/charge_attack/report.json >/dev/null
-		  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/charge-attack.png)"
-		  mv artifacts/charge_attack/charge-attack.png \
-		    artifacts/charge_attack/charge-attack-portrait.png
-		  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/full-charge-hit.png)"
+			  printf '%s\n' '[L5] portrait charged-smash visual scenario'
+			  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+			    --resolution 720x1280 -s selftest/charge_attack_scenario.gd
+			  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .max_shot.status == "PASS" and .release_shot.status == "PASS" and .hit_shot.status == "PASS"' \
+			    artifacts/charge_attack/report.json >/dev/null
+			  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/charge-attack.png)"
+			  mv artifacts/charge_attack/charge-attack.png \
+			    artifacts/charge_attack/charge-attack-portrait.png
+			  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/max-charge.png)"
+			  mv artifacts/charge_attack/max-charge.png \
+			    artifacts/charge_attack/max-charge-portrait.png
+			  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/release-shockwave.png)"
+			  mv artifacts/charge_attack/release-shockwave.png \
+			    artifacts/charge_attack/release-shockwave-portrait.png
+			  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/full-charge-hit.png)"
 		  mv artifacts/charge_attack/full-charge-hit.png \
 		    artifacts/charge_attack/full-charge-hit-portrait.png
 		  cp artifacts/charge_attack/charge-attack-landscape.png \

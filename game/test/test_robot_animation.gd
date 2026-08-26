@@ -167,7 +167,7 @@ func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on
 	assert_false(sprite.is_playing())
 	assert_eq(presenter.charge_particle_emitter_count(), 1)
 	assert_eq(presenter.charge_particle_capacity(), RobotAnimationPresenter.CHARGE_PARTICLE_CAPACITY)
-	assert_true(presenter.charge_particles_emitting())
+	assert_false(presenter.charge_particles_emitting())
 	assert_eq(particles.color, RobotAnimationPresenter.CHARGE_PARTICLE_COLOR)
 	assert_same(particles.texture, RobotAnimationPresenter.PHOTON_CORE_TEXTURE)
 	assert_lt(particles.radial_accel_max, 0.0)
@@ -178,7 +178,11 @@ func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on
 	assert_eq(presenter.charge_sfx_play_count, 2)
 	assert_same(presenter._charge_sfx_player.stream, RobotAnimationPresenter.PHOTON_CHARGE_SFX)
 	assert_eq(presenter._charge_sfx_player.bus, GameAudioBus.MECHANICS)
-	attacks._process(1.0)
+	attacks._process(RobotAnimationPresenter.CHARGE_PARTICLE_DELAY_SECONDS - 0.001)
+	assert_false(presenter.charge_particles_emitting())
+	attacks._process(0.001)
+	assert_true(presenter.charge_particles_emitting())
+	attacks._process(0.4)
 	assert_eq(sprite.frame, 0)
 	assert_false(sprite.is_playing())
 	assert_almost_eq(presenter.last_charge_progress, 0.5, 0.0001)
@@ -199,6 +203,7 @@ func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on
 	assert_false(presenter.charge_particles_emitting())
 	assert_false(presenter.charge_meter_visible())
 	assert_false(presenter.charge_core_visible())
+	assert_false(presenter.release_shockwave_visible())
 	assert_false(presenter._charge_sfx_player.playing)
 	assert_true(sprite.is_playing())
 	var spec: AttackSpec = attacks.current_spec
@@ -226,10 +231,12 @@ func test_pause_cancels_charge_and_clears_particles_without_releasing_attack() -
 	assert_false(presenter.attacking)
 	assert_false(presenter.charging)
 	assert_false(presenter.charge_particles_emitting())
+	assert_false(presenter.release_shockwave_visible())
 	assert_false(presenter._charge_voice_player.playing)
 	assert_eq(sprite.animation, &"idle_s")
 	assert_false(sprite.is_playing())
 	assert_false(attacks.release_charge())
+	assert_false(presenter.release_shockwave_visible())
 	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
 
 
@@ -255,6 +262,7 @@ func test_full_charge_stops_particles_at_two_seconds_but_keeps_first_frame_froze
 	)
 	assert_eq(presenter._charge_voice_player.bus, GameAudioBus.VOICE)
 	assert_false(presenter.charge_particles_emitting())
+	assert_true(presenter.charge_core_max_shifted())
 	assert_eq(sprite.frame, 0)
 	assert_false(sprite.is_playing())
 	presenter._process(0.25)
@@ -265,7 +273,21 @@ func test_full_charge_stops_particles_at_two_seconds_but_keeps_first_frame_froze
 	assert_true(presenter._charge_voice_player.playing)
 	assert_false(presenter.charge_meter_visible())
 	assert_false(presenter.charge_core_visible())
+	assert_true(presenter.release_shockwave_visible())
+	assert_almost_eq(
+		presenter.release_shockwave_scale(),
+		RobotAnimationPresenter.RELEASE_SHOCKWAVE_START_SCALE,
+		0.0001
+	)
 	assert_true(sprite.is_playing())
+	presenter._process(RobotAnimationPresenter.RELEASE_SHOCKWAVE_SECONDS * 0.5)
+	assert_true(presenter.release_shockwave_visible())
+	assert_gt(
+		presenter.release_shockwave_scale(),
+		RobotAnimationPresenter.RELEASE_SHOCKWAVE_START_SCALE
+	)
+	presenter._process(RobotAnimationPresenter.RELEASE_SHOCKWAVE_SECONDS * 0.51)
+	assert_false(presenter.release_shockwave_visible())
 	attacks.cancel_attack()
 	assert_false(presenter._charge_voice_player.playing)
 
