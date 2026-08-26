@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name EnemyActor2D
 extends CharacterBody2D
 
@@ -66,6 +67,7 @@ var role_badge: EnemyRoleBadge
 var structural_target: StructuralBuilding2D
 var catalyst_target: Catalyst2D
 var boss_mode: bool = false
+var hidden_authority: bool = false
 var boss_armor: float = 0.0
 var boss_max_armor: float = 0.0
 var boss_armor_policy: ArmorPolicy = ArmorPolicy.LEGACY_AMOUNT_BASED
@@ -328,6 +330,26 @@ func set_attack_gate(enabled: bool) -> void:
 		cancel_telegraph()
 
 
+func set_hidden_authority(enabled: bool) -> void:
+	hidden_authority = enabled
+	velocity = Vector2.ZERO
+	set_physics_process(not enabled and active and not dead)
+	if visual != null:
+		visual.visible = not enabled and active and not dead
+	var body_collision: CollisionShape2D = get_node_or_null(
+		^"CollisionShape2D"
+	) as CollisionShape2D
+	if body_collision != null:
+		body_collision.disabled = enabled
+	var hurt_collision: CollisionShape2D = get_node_or_null(
+		^"Hurtbox/CollisionShape2D"
+	) as CollisionShape2D
+	if hurt_collision != null:
+		hurt_collision.disabled = enabled
+	collision_layer = 0 if enabled else _base_collision_layer
+	collision_mask = 0 if enabled else _base_collision_mask
+
+
 func apply_profiles(
 	role_profile: EnemyRoleProfile,
 	trait_profile: EnemyTraitProfile
@@ -402,6 +424,7 @@ func activate(spawn_position: Vector2, p_target: GiantRobotController) -> void:
 	activation_generation += 1
 	active = true
 	dead = false
+	set_hidden_authority(false)
 	visible = true
 	global_position = spawn_position
 	velocity = Vector2.ZERO
@@ -433,6 +456,7 @@ func deactivate() -> void:
 	boss_max_armor = 0.0
 	boss_armor_policy = ArmorPolicy.LEGACY_AMOUNT_BASED
 	boss_armor_fixed_step = 110.0
+	hidden_authority = false
 	active = false
 	dead = false
 	visible = false

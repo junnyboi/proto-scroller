@@ -77,7 +77,8 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 			110.0,
 			enemy.global_position,
 			event,
-			false
+			false,
+			enemy.boss_mode
 		)
 	else:
 		wreck.activate(

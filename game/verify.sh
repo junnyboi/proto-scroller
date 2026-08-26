@@ -22,10 +22,12 @@ mkdir -p \
   artifacts/city_slice \
 	  artifacts/endless_terrain \
 	  artifacts/visible_facade_cycle \
-	  artifacts/project_choir_wp1 \
-	  artifacts/project_choir_enemies \
-	  artifacts/project_choir_finale \
-	  artifacts/enemy_variety \
+		  artifacts/project_choir_wp1 \
+		  artifacts/project_choir_enemies \
+		  artifacts/project_choir_finale \
+		  artifacts/boss_attack_matrix \
+		  artifacts/boss_rig_gallery \
+		  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/directives \
 	  artifacts/upgrades \
@@ -232,6 +234,28 @@ jq -e '
 	and .choice_shot == ""
 	and .ending_shot == ""
 ' artifacts/project_choir_finale/report-landscape.json >/dev/null
+
+printf '%s\n' '[L4] boss attack matrix headless scenario'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+	-s selftest/boss_attack_matrix_scenario.gd
+jq -e '
+	.done == true
+	and .result == "PASS"
+	and .facade_rows == 320
+	and ([.checks[].passed] | all)
+' artifacts/boss_attack_matrix/report.json >/dev/null
+
+printf '%s\n' '[L4] boss rig gallery headless scenario'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+	-s selftest/boss_rig_gallery_scenario.gd
+jq -e '
+	.done == true
+	and .result == "PASS"
+	and .orientation == "landscape"
+	and (.boss_ids | length) == 5
+	and ([.checks[].passed] | all)
+	and .shot == ""
+' artifacts/boss_rig_gallery/report-landscape.json >/dev/null
 
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
@@ -465,6 +489,38 @@ if [[ "$MODE" == "full" ]]; then
 	  test -s artifacts/project_choir_enemies/hybrid-gallery-portrait.png
 	  grep -Fq '720 x 1280' \
 	    <<< "$(file artifacts/project_choir_enemies/hybrid-gallery-portrait.png)"
+
+	  printf '%s\n' '[L5] boss rig gallery landscape'
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+	    --resolution 1280x720 -s selftest/boss_rig_gallery_scenario.gd
+	  jq -e '
+	    .done == true
+	    and .result == "PASS"
+	    and .orientation == "landscape"
+	    and (.boss_ids | length) == 5
+	    and ([.checks[].passed] | all)
+	  ' artifacts/boss_rig_gallery/report-landscape.json >/dev/null
+	  test -s artifacts/boss_rig_gallery/boss-rig-gallery-landscape.png
+	  grep -Fq '1280 x 720' \
+	    <<< "$(file artifacts/boss_rig_gallery/boss-rig-gallery-landscape.png)"
+
+	  printf '%s\n' '[L5] boss rig gallery portrait'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+	    --audio-driver Dummy --path . --resolution 720x1280 \
+	    -s selftest/boss_rig_gallery_scenario.gd
+	  jq -e '
+	    .done == true
+	    and .result == "PASS"
+	    and .orientation == "portrait"
+	    and (.boss_ids | length) == 5
+	    and ([.checks[].passed] | all)
+	  ' artifacts/boss_rig_gallery/report-portrait.json >/dev/null
+	  test -s artifacts/boss_rig_gallery/boss-rig-gallery-portrait.png
+	  grep -Fq '720 x 1280' \
+	    <<< "$(file artifacts/boss_rig_gallery/boss-rig-gallery-portrait.png)"
+	  diff \
+	    <(jq -S '.mechanical_signatures' artifacts/boss_rig_gallery/report-landscape.json) \
+	    <(jq -S '.mechanical_signatures' artifacts/boss_rig_gallery/report-portrait.json)
 
 		  printf '%s\n' '[L5] Project CHOIR finale landscape'
 		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
