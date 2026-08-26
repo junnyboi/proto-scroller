@@ -46,29 +46,29 @@ static func _ensure_catalog() -> void:
 		return
 	_products = {
 		&"BUSINESS": [
-			_product(&"foreclosure_slugs", &"BUSINESS", 3200, &"ballistic_damage", 0.15),
-			_product(&"hostile_leverage", &"BUSINESS", 4200, &"weapon_damage", 0.12),
-			_product(&"collateral_refinance", &"BUSINESS", 2400, &"repair", 0.0, 0.35),
+			_product(&"foreclosure_slugs", &"BUSINESS", 12800, &"ballistic_damage", 0.15),
+			_product(&"hostile_leverage", &"BUSINESS", 16800, &"weapon_damage", 0.12),
+			_product(&"collateral_refinance", &"BUSINESS", 9600, &"repair", 0.0, 0.35),
 		],
 		&"RESIDENTIAL": [
-			_product(&"patchwork_nanoweld", &"RESIDENTIAL", 2800, &"repair", 0.0, 0.50),
-			_product(&"scrapheap_magnetics", &"RESIDENTIAL", 4800, &"debris_damage", 0.35),
-			_product(&"borrowed_shock_coils", &"RESIDENTIAL", 5200, &"melee_radius", 0.18),
+			_product(&"patchwork_nanoweld", &"RESIDENTIAL", 11200, &"repair", 0.0, 0.50),
+			_product(&"scrapheap_magnetics", &"RESIDENTIAL", 19200, &"debris_damage", 0.35),
+			_product(&"borrowed_shock_coils", &"RESIDENTIAL", 20800, &"melee_radius", 0.18),
 		],
 		&"ENTERTAINMENT": [
-			_product(&"encore_capacitors", &"ENTERTAINMENT", 6200, &"weapon_cooldown", 0.15),
-			_product(&"jackpot_chamber", &"ENTERTAINMENT", 6800, &"critical_chance", 0.20),
-			_product(&"backstage_triage", &"ENTERTAINMENT", 3800, &"repair", 0.0, 0.65),
+			_product(&"encore_capacitors", &"ENTERTAINMENT", 24800, &"weapon_cooldown", 0.15),
+			_product(&"jackpot_chamber", &"ENTERTAINMENT", 27200, &"critical_chance", 0.20),
+			_product(&"backstage_triage", &"ENTERTAINMENT", 15200, &"repair", 0.0, 0.65),
 		],
 		&"MILITARY": [
-			_product(&"siege_breaching_load", &"MILITARY", 8200, &"structural_damage", 0.25),
-			_product(&"hunter_killer_link", &"MILITARY", 9000, &"elite_damage", 0.20),
-			_product(&"gantry_overhaul", &"MILITARY", 5000, &"repair", 0.0, 1.0),
+			_product(&"siege_breaching_load", &"MILITARY", 32800, &"structural_damage", 0.25),
+			_product(&"hunter_killer_link", &"MILITARY", 36000, &"elite_damage", 0.20),
+			_product(&"gantry_overhaul", &"MILITARY", 20000, &"repair", 0.0, 1.0),
 		],
 		&"ROYAL": [
-			_product(&"sovereign_aegis", &"ROYAL", 12000, &"aegis", 0.15, 1.0),
-			_product(&"crownfire_protocol", &"ROYAL", 13500, &"all_damage", 0.25),
-			_product(&"chronoseal_governor", &"ROYAL", 11000, &"weapon_cooldown", 0.20),
+			_product(&"sovereign_aegis", &"ROYAL", 48000, &"aegis", 0.15, 1.0),
+			_product(&"crownfire_protocol", &"ROYAL", 54000, &"all_damage", 0.25),
+			_product(&"chronoseal_governor", &"ROYAL", 44000, &"weapon_cooldown", 0.20),
 		],
 	}
 
