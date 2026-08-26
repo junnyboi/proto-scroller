@@ -65,6 +65,11 @@ grep -Fq 'variant/extensions_support=false' export_presets.cfg
 grep -Fq 'variant/thread_support=false' export_presets.cfg
 ! grep -Eq '^exclude_filter=.*art/bosses/\*' export_presets.cfg
 grep -Fq 'audio/music/bosses/*' export_presets.cfg
+printf '%s\n' '[L1] title-loop timing and seam continuity'
+python3 ../scripts/verify-title-loop-seam.py \
+	../client/public/title-video/title-loop-landscape.mp4 \
+	../client/public/title-video/title-loop-portrait.mp4 \
+	| tee artifacts/title-loop-seam.json
 for boss_art in \
 	art/bosses/settlement-engine-s04.webp \
 	art/bosses/samaritan-15.webp \
