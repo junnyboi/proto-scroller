@@ -111,6 +111,7 @@ func _begin_title_music_sync() -> bool:
 	if not background_music_output_available() or background_music_player.stream == null:
 		return false
 	_title_music_sync_pending = true
+	_title_music_commit_msec = 0
 	_title_music_commit_callback = JavaScriptBridge.create_callback(
 		_on_title_music_commit_callback
 	)
@@ -136,6 +137,11 @@ func _on_title_music_calibration_callback(arguments: Array) -> void:
 	var phase: String = str(arguments[0])
 	if phase == "prewarm":
 		_prewarm_title_music_decoder()
+	elif phase == "scheduled" and arguments.size() >= 2:
+		var seconds_until_rendered: float = clampf(float(arguments[1]), 0.0, 1.0)
+		_title_music_commit_msec = (
+			Time.get_ticks_msec() + int(seconds_until_rendered * 1000.0)
+		)
 
 
 func _prewarm_title_music_decoder() -> void:
@@ -167,7 +173,8 @@ func _on_title_music_commit_callback(_arguments: Array) -> void:
 	background_music_player.play(0.0)
 	_title_music_sync_pending = false
 	_title_music_committed = true
-	_title_music_commit_msec = Time.get_ticks_msec()
+	if _title_music_commit_msec <= Time.get_ticks_msec():
+		_title_music_commit_msec = Time.get_ticks_msec()
 
 
 func _commit_title_music_fallback(_reason: String) -> void:
@@ -217,6 +224,8 @@ func start_game_with_transition() -> void:
 			await get_tree().process_frame
 		if not _title_music_committed:
 			_commit_title_music_fallback("godot-timeout")
+		else:
+			await get_tree().process_frame
 		var visible_until_msec: int = _title_music_commit_msec + int(
 			TITLE_IMPACT_HOLD_SECONDS * 1000.0
 		)

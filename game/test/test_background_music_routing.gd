@@ -62,6 +62,8 @@ func test_title_sync_source_keeps_cached_callbacks_and_browser_commit_only() -> 
 	assert_true(source.contains("background_music_player.play(0.0)"))
 	assert_true(source.contains("TITLE_PREWARM_POSITION_SECONDS"))
 	assert_true(source.contains("AudioServer.set_bus_mute"))
+	assert_true(source.contains("phase == \"scheduled\""))
+	assert_true(source.contains("seconds_until_rendered"))
 	assert_false(source.contains("func _process"))
 
 

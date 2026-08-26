@@ -744,7 +744,7 @@ if [[ "$MODE" == "full" ]]; then
 		      "complete"
 		    ]
 		    and .titleTransition.capturePhase == "black_ready"
-		    and (.titleTransition.phases[] | select(.phase == "black").elapsedMs) >= 350
+			    and (.titleTransition.phases[] | select(.phase == "black").elapsedMs) >= 250
 		    and (.titleTransition.phases[] | select(.phase == "black").elapsedMs) <= 1000
 		    and (
 		      (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)

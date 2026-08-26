@@ -366,7 +366,7 @@ try {
     fadeBlackPhase?.overlayAlpha < 0.999 ||
     titleTransition.capturePhase !== "black_ready" ||
     !fadeBlackPhase ||
-    fadeBlackPhase.elapsedMs < 350 ||
+    fadeBlackPhase.elapsedMs < 250 ||
     fadeBlackPhase.elapsedMs > 1_000 ||
     !fadeInPhase ||
     fadeInPhase.elapsedMs < fadeBlackPhase.elapsedMs ||

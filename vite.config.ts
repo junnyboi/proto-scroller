@@ -7,6 +7,7 @@ const PROJECT_ROOT = import.meta.dirname;
 function vitePluginGodotStatic(): Plugin {
   const gameRoot = path.resolve(PROJECT_ROOT, "client", "public", "game");
   const contentTypes: Record<string, string> = {
+    ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
     ".pck": "application/octet-stream",
     ".png": "image/png",

@@ -375,6 +375,8 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 	var shell_source: String = FileAccess.get_file_as_string(
 		"res://../scripts/patch-title-video-shell.mjs"
 	)
+	assert_true(shell_source.contains("fullscreen canvas resize policy"))
+	assert_true(shell_source.contains("canvasResizePolicy\":2"))
 	for runtime_source: String in [host_source, shell_source]:
 		assert_true(runtime_source.contains("title-loop-landscape.mp4"))
 		assert_true(runtime_source.contains("title-loop-portrait.mp4"))
@@ -389,6 +391,13 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 		assert_true(runtime_source.contains("__PROTO_SCROLLER_TITLE_MUSIC_SYNC__"))
 		assert_true(runtime_source.contains("forceTitleVideoReject"))
 		assert_true(runtime_source.contains("video-playback-rejected"))
+		assert_true(runtime_source.contains("targetPerformanceTime"))
+		assert_true(runtime_source.contains("setTimeout"))
+		assert_true(runtime_source.contains("TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS"))
+		assert_true(runtime_source.contains("effectiveWhen"))
+		assert_true(runtime_source.contains("scheduleToImpact"))
+		assert_true(runtime_source.contains("secondsUntilRendered"))
+		assert_true(runtime_source.contains("scheduled"))
 	assert_true(host_source.contains("88 / 24"))
 	assert_true(host_source.contains("66 / 24"))
 	_record_test_execution()
