@@ -21,25 +21,25 @@ cd game
 ./verify.sh --full
 ```
 
-The standard gate performs a direct import, strict GDScript lint and parse-log checks, the complete GUT suite, a bounded headless boot, and deterministic title-screen, charged-smash, city-slice, directive-card, district-gallery, enemy-variety, street-volatility, and endless-terrain scenarios. The endless lane traverses all five spatial districts, records district and variant identities with a catalog SHA-256, restores prior destruction after stream recycling, and rejects post-warm node growth. The full gate adds Xvfb visual scenarios at **1280×720** and **720×1280**, produces a cache-bypassed release export through the repository's `Web` preset, and runs a required Chromium gameplay smoke. The browser lane proves both silent eight-second title loops decode, advance, select the correct orientation, and disappear when gameplay begins; it then enters gameplay, proves Web background audio is running, holds and releases a real Space input while proving first-frame freeze, charge particles, proportional damage, and animation resume. It triggers and resolves a real upgrade offer, moves the robot beyond the mechanics-audio attenuation radius, and proves ground slam, punch, Dash, recharge, upgrade-confirm, walk-servo, and footstep cues remain active and co-located before both directional walk clips advance. A required render `SKIP`, browser phase failure, logged parse diagnostic, zero-test run, missing export artifact, oversized PCK, or nonzero process exit is blocking.
+The standard gate performs a direct import, strict GDScript lint and parse-log checks, the complete GUT suite, a bounded headless boot, and deterministic title-screen, charged-smash, city-slice, directive-card, district-gallery, enemy-variety, street-volatility, and endless-terrain scenarios. The endless lane traverses all five spatial districts, records district and variant identities with a catalog SHA-256, restores prior destruction after stream recycling, and rejects post-warm node growth. The full gate adds Xvfb visual scenarios at **1280×720** and **720×1280**, produces a cache-bypassed release export through the repository's `Web` preset, and runs a required Chromium gameplay smoke. The browser lane proves both silent eight-second title loops decode, advance, select the correct orientation, and transition through an input-blocking fade to full black before gameplay is revealed; it then enters gameplay, proves Web background audio is running, holds and releases a real Space input while proving first-frame freeze, charge particles, proportional damage, and animation resume. It triggers and resolves a real upgrade offer, moves the robot beyond the mechanics-audio attenuation radius, and proves ground slam, punch, Dash, recharge, upgrade-confirm, walk-servo, and footstep cues remain active and co-located before both directional walk clips advance. A required render `SKIP`, browser phase failure, logged parse diagnostic, zero-test run, missing export artifact, oversized PCK, or nonzero process exit is blocking.
 
 ### Latest verified baseline
 
-The full harness last passed on **2026-08-26** against source revision `28da94ddd6532c3ec99ff3255f33b7ea5f2bc482` using `Godot 4.7.2.stable.official.ed1daf0bf`.
+The full harness last passed on **2026-08-26** against gameplay revision `da5703a0a0f5bd2f9453632cffc1261f51911797` using `Godot 4.7.2.stable.official.ed1daf0bf`; the docs-only shared-main merge at `e4e66b17d163a75e12e06069dc2102a904471c9d` then repeated direct import, bounded boot, the focused fade test, a fresh Web export, frontend builds, and the complete Chromium smoke.
 
 | Check | Result |
 |---|---|
 | Harness command | `./verify.sh --full` |
 | Process result | Exit `0`; `[VERIFY-PASS] mode=full` |
-| GUT suite | 51 scripts; 312 of 312 tests passed; 30,008 assertions |
+| GUT suite | 52 scripts; 313 of 313 tests passed; 30,022 assertions |
 | Headless scenarios | Title screen, city slice, enemy variety, street volatility, and endless terrain passed |
 | Visual scenarios | Required landscape and portrait renders passed |
 | Reference title render | SHA-256 `92775e50df36c046d6c81347c2d672450c38d62167e1b48d723172067f34d590` |
 | Web release export | 9 generated Godot files plus two MP4 title loops and two static fallbacks; HTML, JavaScript, WebAssembly, and PCK present |
-| PCK size | 14,109,168 bytes, below the 16 MiB harness limit |
-| Browser gameplay smoke | Landscape 1280×720 and portrait 720×1280 title loops decoded, advanced, and selected correctly; the landscape video paused when gameplay began. Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass`; the exported punch cue reported 1.17 seconds, ground slam and punch reported the exact 25-percent-reduced 8.54365 dB playback level, and all audited SFX passed at progression distance with zero drops |
+| PCK size | 14,111,600 bytes, below the 16 MiB harness limit |
+| Browser gameplay smoke | Landscape 1280×720 and portrait 720×1280 title loops decoded, advanced, and selected correctly; `idle → fade_out → black → black_ready → fade_in → complete` passed, the held 1280×720 transition frame was fully black, and the landscape video paused before gameplay appeared. Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass`; the exported punch cue reported 1.17 seconds, ground slam and punch reported the exact 25-percent-reduced 8.54365 dB playback level, and all audited SFX passed at progression distance with zero drops |
 | Error scan | No script, parse, browser console, request, fatal, or crash errors |
-| Duration | 729 seconds |
+| Duration | 727 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
