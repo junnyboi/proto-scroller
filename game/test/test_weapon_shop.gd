@@ -140,6 +140,11 @@ func test_hover_preview_confirmation_and_upgrade_feedback_are_transactional() ->
 	assert_eq(overlay.preview_panel.active_product_id, card.product.product_id)
 	assert_string_contains(overlay.preview_panel.rows_label.text, "100%")
 	assert_not_null(overlay.preview_panel.get_node_or_null("StatPreviewContainer"))
+	assert_eq(overlay.preview_panel.get_child_count(), 4)
+	for child: Node in overlay.preview_panel.get_children():
+		if child is Label:
+			assert_false((child as Label).text.contains("AVAILABLE"))
+			assert_false((child as Label).text.contains("CONFIRM TO PURCHASE"))
 	assert_null(overlay.get_node_or_null("TransactionFeedback"))
 	var score_before: int = score.score
 	card._on_pressed()
