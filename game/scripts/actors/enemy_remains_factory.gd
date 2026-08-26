@@ -108,6 +108,10 @@ func total_count() -> int:
 	return _active_wrecks.size() + _free_wrecks.size()
 
 
+func release_wreck(wreck: EnemyWreck2D) -> void:
+	_release_wreck(wreck)
+
+
 func _on_wreck_scrapped(wreck: EnemyWreck2D, event: DamageEvent) -> void:
 	spawn_scrap(wreck, event)
 	var points: int = 300 if wreck.airborne_crash else 400

@@ -131,6 +131,22 @@ func release_all() -> void:
 	_release_machine_gun_impacts()
 
 
+func release_hostile(player_root: Node) -> void:
+	var active_copy: Array[Projectile2D] = _active_order.duplicate()
+	for projectile: Projectile2D in active_copy:
+		var source: Node = projectile.source
+		var player_owned: bool = (
+			player_root != null
+			and is_instance_valid(source)
+			and (source == player_root or player_root.is_ancestor_of(source))
+		)
+		if not player_owned:
+			release(projectile)
+	for reservation_id: int in _reservations.keys():
+		if _reservations[reservation_id] != &"player_bullet":
+			_reservations.erase(reservation_id)
+
+
 func release_partition(kind: StringName) -> void:
 	var partition: StringName = _partition_for_kind(kind)
 	var active_copy: Array[Projectile2D] = _active_order.duplicate()

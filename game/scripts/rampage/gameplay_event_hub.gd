@@ -33,3 +33,17 @@ func broadcast(event: GameplayEvent) -> void:
 func reset_run() -> void:
 	_dedupe_keys.clear()
 	_accepted_events.clear()
+
+
+func capture_attempt_state() -> Dictionary:
+	return {
+		"next_event_id": _next_event_id,
+		"dedupe_keys": _dedupe_keys.duplicate(true),
+		"accepted_events": _accepted_events.duplicate(true),
+	}
+
+
+func restore_attempt_state(state: Dictionary) -> void:
+	_next_event_id = int(state.get("next_event_id", _next_event_id))
+	_dedupe_keys = state.get("dedupe_keys", {}).duplicate(true)
+	_accepted_events = state.get("accepted_events", {}).duplicate(true)

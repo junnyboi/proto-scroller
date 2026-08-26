@@ -122,6 +122,34 @@ func active_prop_count() -> int:
 	return props.size()
 
 
+func building_for_chunk(chunk: CityStreetChunk) -> StructuralBuilding2D:
+	if chunk == null:
+		return null
+	return _slot_buildings.get(chunk.get_instance_id()) as StructuralBuilding2D
+
+
+func bind_landmark_for_chunk(chunk: CityStreetChunk, variant_id: StringName) -> bool:
+	var target: StructuralBuilding2D = building_for_chunk(chunk)
+	var landmark: StructuralBuildingVariant = CityDistrictCatalog.variant_by_id(variant_id)
+	if target == null or landmark == null:
+		return false
+	if target.current_variant_id() == variant_id:
+		return true
+	var displaced: StructuralBuildingVariant = CityDistrictCatalog.variant_by_id(
+		target.current_variant_id()
+	)
+	for candidate: StructuralBuilding2D in buildings:
+		if candidate != target and candidate.current_variant_id() == variant_id:
+			if displaced == null or not candidate.apply_variant(displaced):
+				return false
+			candidate.set_meta(&"building_variant_id", displaced.variant_id)
+	if not target.apply_variant(landmark):
+		return false
+	target.set_meta(&"building_variant_id", landmark.variant_id)
+	building_configured.emit(target, chunk.logical_index, landmark.variant_id)
+	return true
+
+
 func mutation_count() -> int:
 	return ledger.state_count()
 

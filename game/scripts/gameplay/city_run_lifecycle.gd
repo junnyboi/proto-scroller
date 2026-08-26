@@ -49,6 +49,15 @@ func setup(p_city: CitySlice) -> void:
 
 
 func robot_defeated() -> void:
+	if (
+		city.urban_siege != null
+		and city.urban_siege.boss_campaign != null
+		and city.urban_siege.boss_campaign.fail_attempt()
+	):
+		city.game_over_active = true
+		city.mobile_controls.set_controls_enabled(false)
+		city.gameplay_hud.show_game_over()
+		return
 	_finish_run(false)
 
 
@@ -142,6 +151,8 @@ func _on_directive_choices_offered(profiles: Array[DirectiveProfile]) -> void:
 
 
 func _on_boss_state_changed(state: StringName) -> void:
+	if city.urban_siege.boss_campaign.owns_combat():
+		return
 	var boss: CommandBossSession = city.urban_siege.boss_session
 	var armor: float = boss.boss.boss_armor if boss.boss != null else 0.0
 	city.gameplay_hud.set_boss_status(state, armor, CommandBossSession.ARMOR)
@@ -151,6 +162,8 @@ func _on_boss_state_changed(state: StringName) -> void:
 
 
 func _on_boss_armor_changed(current: float, maximum: float) -> void:
+	if city.urban_siege.boss_campaign.owns_combat():
+		return
 	city.gameplay_hud.set_boss_status(city.urban_siege.boss_session.state, current, maximum)
 
 

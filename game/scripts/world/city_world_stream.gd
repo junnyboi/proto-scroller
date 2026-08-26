@@ -36,6 +36,7 @@ var post_warm_creation_count: int = 0
 var floating_origin: FloatingOriginRuntime = FloatingOriginRuntime.new()
 var chunks: Array[CityStreetChunk] = []
 var landmark_root: Node2D
+var _resident_lease_owner: Object
 
 
 func setup(p_robot: GiantRobotController, p_run_seed: int = 0) -> void:
@@ -74,7 +75,7 @@ func advance_stream() -> void:
 		floating_origin.commit(chunk_delta)
 		origin_shift_requested.emit(Vector2(-float(chunk_delta) * CHUNK_WIDTH, 0.0), chunk_delta)
 	var next_chunk: int = logical_index_for_runtime_x(robot.global_position.x)
-	if next_chunk == current_logical_chunk:
+	if next_chunk == current_logical_chunk or resident_lease_active():
 		if chunk_delta != 0:
 			_refresh_window()
 		return
@@ -109,6 +110,23 @@ func set_landmark_root(p_landmark_root: Node2D) -> void:
 
 func active_chunk_count() -> int:
 	return chunks.size()
+
+
+func begin_resident_lease(owner: Object) -> bool:
+	if owner == null or (_resident_lease_owner != null and _resident_lease_owner != owner):
+		return false
+	_resident_lease_owner = owner
+	return true
+
+
+func end_resident_lease(owner: Object) -> void:
+	if _resident_lease_owner == owner:
+		_resident_lease_owner = null
+		_refresh_window()
+
+
+func resident_lease_active() -> bool:
+	return _resident_lease_owner != null
 
 
 func logical_index_for_runtime_x(runtime_x: float) -> int:
@@ -179,6 +197,11 @@ func reset_stream(p_run_seed: int = 0) -> void:
 
 
 func _refresh_window() -> void:
+	if resident_lease_active():
+		for chunk: CityStreetChunk in chunks:
+			chunk.position.x = runtime_x_for_logical_index(chunk.logical_index)
+		_update_landmark_root()
+		return
 	var desired: Array[int] = []
 	for logical_index: int in range(
 		current_logical_chunk - BEHIND_CHUNKS,

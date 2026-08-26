@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name DistrictResponseDirector
 extends EncounterDirector
 
@@ -50,6 +51,8 @@ var _beat_pending: Array[Dictionary] = []
 var _hazard_pending: Array[Dictionary] = []
 var _act_completion_emitted: bool = false
 var _act_advance_blocked: bool = false
+var _boss_suspended: bool = false
+var _boss_resume_snapshot: Dictionary = {}
 
 
 func setup(p_runtime: EncounterRuntime, p_waves: Array[EnemyWave]) -> void:
@@ -125,6 +128,8 @@ func stop() -> void:
 	_hazard_pending.clear()
 	_act_completion_emitted = false
 	_act_advance_blocked = false
+	_boss_suspended = false
+	_boss_resume_snapshot.clear()
 	if _beat_reservation_id != 0:
 		ledger.cancel(_beat_reservation_id)
 	_beat_reservation_id = 0
@@ -148,7 +153,7 @@ func _process(delta: float) -> void:
 
 
 func advance(delta: float) -> void:
-	if not running or completed or runtime == null or district == null:
+	if not running or completed or runtime == null or district == null or _boss_suspended:
 		return
 	elapsed += delta
 	act_elapsed += delta
@@ -216,6 +221,66 @@ func current_act_progress() -> float:
 		return 0.0
 	var act: DistrictAct = district.acts[phase_index]
 	return clampf(act_elapsed / maxf(_scaled_target_duration(act), 1.0), 0.0, 1.0)
+
+
+func suspend_for_boss() -> Dictionary:
+	if district == null or _boss_suspended:
+		return _boss_resume_snapshot.duplicate(true)
+	_boss_resume_snapshot = {
+		"running": running,
+		"completed": completed,
+		"state": state,
+		"phase_index": phase_index,
+		"beat_index": beat_index,
+		"next_beat_index": beat_index + 1,
+		"elapsed": elapsed,
+		"act_elapsed": act_elapsed,
+		"pressure_remaining": pressure_remaining,
+		"recovery_remaining": recovery_remaining,
+		"pressure_profile": current_pressure_profile,
+		"act_completion_emitted": _act_completion_emitted,
+		"act_advance_blocked": _act_advance_blocked,
+	}
+	_boss_suspended = true
+	_beat_pending.clear()
+	_hazard_pending.clear()
+	if _beat_reservation_id != 0:
+		ledger.cancel(_beat_reservation_id)
+		_beat_reservation_id = 0
+	ledger.cancel_all()
+	runtime.set_attack_gate(false)
+	return _boss_resume_snapshot.duplicate(true)
+
+
+func resume_after_boss(recovery_seconds: float) -> bool:
+	if not _boss_suspended or _boss_resume_snapshot.is_empty():
+		return false
+	running = bool(_boss_resume_snapshot.running)
+	completed = bool(_boss_resume_snapshot.completed)
+	phase_index = int(_boss_resume_snapshot.phase_index)
+	beat_index = int(_boss_resume_snapshot.next_beat_index) - 1
+	elapsed = float(_boss_resume_snapshot.elapsed)
+	act_elapsed = float(_boss_resume_snapshot.act_elapsed)
+	current_pressure_profile = _boss_resume_snapshot.pressure_profile as DistrictPressureProfile
+	_act_completion_emitted = bool(_boss_resume_snapshot.act_completion_emitted)
+	_act_advance_blocked = bool(_boss_resume_snapshot.act_advance_blocked)
+	pressure_remaining = 0.0
+	recovery_remaining = maxf(recovery_seconds, 0.0)
+	state = STATE_RECOVERY
+	_boss_suspended = false
+	_boss_resume_snapshot.clear()
+	runtime.set_attack_gate(false)
+	recovery_started.emit(recovery_remaining)
+	return true
+
+
+func discard_boss_suspension() -> void:
+	_boss_suspended = false
+	_boss_resume_snapshot.clear()
+
+
+func is_suspended_for_boss() -> bool:
+	return _boss_suspended
 
 
 func _advance_act() -> void:

@@ -49,6 +49,21 @@ func add_experience(amount: int, accepted_event_id: int = 0) -> int:
 	return levels_gained
 
 
+func capture_attempt_state() -> Dictionary:
+	return {
+		"level": level,
+		"current": current_experience,
+		"total": total_experience,
+	}
+
+
+func restore_attempt_state(state: Dictionary) -> void:
+	level = int(state.get("level", level))
+	current_experience = int(state.get("current", current_experience))
+	total_experience = int(state.get("total", total_experience))
+	experience_changed.emit(level, current_experience, experience_required())
+
+
 func experience_required() -> int:
 	return required_for_level(level) if level < MAX_LEVEL else 0
 

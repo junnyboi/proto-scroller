@@ -12,6 +12,7 @@ signal projectile_requested(
 signal died(actor: EnemyActor2D, event: DamageEvent)
 signal profile_changed(actor: EnemyActor2D)
 signal boss_armor_changed(current: float, maximum: float)
+signal health_changed(current: float, maximum: float)
 signal boss_armor_broken()
 
 enum ArmorPolicy {
@@ -166,6 +167,7 @@ func receive_damage(event: DamageEvent) -> bool:
 	if not is_equal_approx(incoming_damage_multiplier, 1.0):
 		accepted_event = accepted_event.scaled(incoming_damage_multiplier)
 	current_health = maxf(current_health - accepted_event.amount, 0.0)
+	health_changed.emit(current_health, max_health)
 	var melee_hit: bool = accepted_event.damage_type in [&"jab_cross", &"ground_smash"]
 	var knockback_scale: float = 0.28 if melee_hit else 0.18
 	if melee_hit and current_health > 0.0:

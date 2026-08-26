@@ -3,6 +3,7 @@ extends Node
 
 signal state_changed(state: StringName)
 signal armor_changed(current: float, maximum: float)
+signal body_changed(current: float, maximum: float)
 signal completed(elapsed_seconds: float)
 
 const STATE_IDLE: StringName = &"IDLE"
@@ -79,6 +80,8 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		boss.boss_armor_changed.connect(_on_boss_armor_changed)
 	if not boss.boss_armor_broken.is_connected(_on_boss_armor_broken):
 		boss.boss_armor_broken.connect(_on_boss_armor_broken)
+	if not boss.health_changed.is_connected(_on_boss_health_changed):
+		boss.health_changed.connect(_on_boss_health_changed)
 	elapsed_seconds = 0.0
 	_state_elapsed = 0.0
 	_set_state(STATE_SCREEN)
@@ -106,6 +109,7 @@ func stop() -> void:
 		dependencies.encounter_runtime.release(boss)
 	if boss_wreck != null:
 		boss_wreck.finisher_requires_ground_smash = false
+		dependencies.remains_factory.release_wreck(boss_wreck)
 	boss = null
 	boss_wreck = null
 	active_definition = null
@@ -122,6 +126,30 @@ func active() -> bool:
 	return state != STATE_IDLE and state != STATE_COMPLETE
 
 
+func capture_attempt_state() -> Dictionary:
+	return {
+		"state": STATE_SCREEN,
+		"elapsed_seconds": 0.0,
+		"state_elapsed": 0.0,
+		"generation_token": generation_token,
+		"definition_id": (
+			active_definition.boss_id if active_definition != null else &""
+		),
+		"armor": active_definition.armor if active_definition != null else ARMOR,
+		"health": active_definition.health if active_definition != null else HEALTH,
+	}
+
+
+func restore_attempt_state(snapshot: Dictionary) -> void:
+	stop()
+	elapsed_seconds = float(snapshot.get("elapsed_seconds", 0.0))
+	_state_elapsed = float(snapshot.get("state_elapsed", 0.0))
+
+
+func _on_boss_health_changed(current: float, maximum: float) -> void:
+	body_changed.emit(current, maximum)
+
+
 func _on_boss_armor_changed(current: float, maximum: float) -> void:
 	armor_changed.emit(current, maximum)
 
@@ -133,6 +161,7 @@ func _on_boss_armor_broken() -> void:
 
 func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> void:
 	if enemy == boss:
+		body_changed.emit(0.0, boss.max_health)
 		dependencies.encounter_runtime.set_attack_gate(false)
 
 

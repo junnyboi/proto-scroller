@@ -133,6 +133,21 @@ func reserved_units(key: StringName = &"") -> int:
 	return total
 
 
+func capture_reservation_state() -> Dictionary:
+	return {
+		"generation": generation_token,
+		"next_id": _next_reservation_id,
+		"reservations": _reservations.duplicate(true),
+	}
+
+
+func restore_reservation_state(state: Dictionary) -> void:
+	_cleanup_current_generation()
+	generation_token = int(state.get("generation", generation_token))
+	_next_reservation_id = int(state.get("next_id", _next_reservation_id))
+	_reservations = state.get("reservations", {}).duplicate(true)
+
+
 func area_count() -> int:
 	return lane_damage_areas.size() + line_areas.size() + wreck_receivers.size()
 

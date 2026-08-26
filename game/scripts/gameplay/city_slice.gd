@@ -302,7 +302,6 @@ func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
 		urban_siege.hazard_pressure.rebase_cached_world_state(offset)
 	if camera_rig != null:
 		camera_rig.reset_after_origin_shift()
-
 func _on_stream_window_changed(_logical_index: int) -> void:
 	_refresh_primary_destructibles()
 	var target: StructuralBuilding2D = building
@@ -640,6 +639,7 @@ func present_defeat() -> void:
 func _on_retry_pressed() -> void:
 	if not game_over_active:
 		return
+	if urban_siege.boss_campaign != null and urban_siege.boss_campaign.retry_attempt(): return
 	retry_requested.emit()
 
 

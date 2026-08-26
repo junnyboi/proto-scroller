@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name GameplayHud
 extends CanvasLayer
 
@@ -260,15 +261,42 @@ func set_directive_bank(points: int) -> void:
 
 func set_boss_status(state: StringName, current: float = 0.0, maximum: float = 1.0) -> void:
 	if state == &"IDLE" or state == &"COMPLETE":
-		boss_label.visible = false
+		hide_boss_status()
 		return
 	boss_label.visible = true
 	var ratio: int = roundi(clampf(current / maxf(maximum, 1.0), 0.0, 1.0) * 100.0)
-	var state_key: String = "boss.state.%s" % String(state).to_lower()
 	boss_label.text = L10n.t("hud.command_status", {
-		"state": L10n.t(state_key),
+		"state": L10n.t("boss.state.%s" % String(state).to_lower()),
 		"ratio": "%03d" % ratio,
 	})
+
+
+func set_campaign_boss_status(
+	definition: BossEncounterDefinition,
+	state: StringName,
+	armor: float,
+	armor_maximum: float,
+	body: float,
+	body_maximum: float,
+	evidence_id: StringName
+) -> void:
+	if definition == null or state == &"IDLE" or state == &"COMPLETE":
+		hide_boss_status()
+		return
+	boss_label.visible = true
+	boss_label.text = L10n.t("hud.campaign_boss_status", {
+		"name": L10n.t(definition.display_name_key),
+		"phase": L10n.t("boss.state.%s" % String(state).to_lower()),
+		"armor": "%03d" % roundi(clampf(armor / maxf(armor_maximum, 1.0), 0.0, 1.0) * 100.0),
+		"body": "%03d" % roundi(clampf(body / maxf(body_maximum, 1.0), 0.0, 1.0) * 100.0),
+		"objective": L10n.t("boss.objective.finish"),
+		"evidence": L10n.t("boss.evidence.%s" % String(evidence_id).to_lower()),
+	})
+
+
+func hide_boss_status() -> void:
+	if boss_label != null:
+		boss_label.visible = false
 
 
 func show_directive_result(
@@ -535,7 +563,7 @@ func _build_boss_status() -> void:
 	boss_label = Label.new()
 	boss_label.name = "BossStatus"
 	boss_label.position = Vector2(400.0, 146.0)
-	boss_label.size = Vector2(480.0, 38.0)
+	boss_label.size = Vector2(660.0, 58.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boss_label.add_theme_font_size_override(&"font_size", 21)
 	boss_label.modulate = Color("ff8c64")
@@ -711,9 +739,9 @@ func _apply_landscape_layout() -> void:
 	siege_progress.apply_width(500.0)
 	directive_card.position = Vector2(808.0, 382.0)
 	boss_label.position = Vector2(400.0, 146.0)
-	boss_label.size = Vector2(480.0, 38.0)
+	boss_label.size = Vector2(660.0, 58.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	boss_label.add_theme_font_size_override(&"font_size", 21)
+	boss_label.add_theme_font_size_override(&"font_size", 18)
 	_apply_landscape_terminal_layout()
 
 
@@ -770,9 +798,9 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	siege_progress.apply_width(panel_width)
 	directive_card.position = Vector2(18.0, viewport_size.y - 338.0)
 	boss_label.position = Vector2(0.0, 226.0)
-	boss_label.size = Vector2(panel_width, 24.0)
+	boss_label.size = Vector2(panel_width, 42.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	boss_label.add_theme_font_size_override(&"font_size", 12)
+	boss_label.add_theme_font_size_override(&"font_size", 10)
 	_apply_portrait_terminal_layout(viewport_size)
 
 

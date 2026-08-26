@@ -153,6 +153,8 @@ Every implementation work package follows the same shared-branch protocol. Befor
 
 **Purpose:** Make district-ending fights deterministic in the streamed world before designing individual attacks.
 
+**Status: Complete (2026-08-26).** Authored gates now arm at logical chunks **7, 15, 23, 31, and 39** before the next district; each leases exactly the existing six streamed chunks/buildings and rebinds one in-place landmark without allocation. `BossSiegeInterlock` captures the siege cursor and pressure state, clears pending reservations and competing combat/presentation systems without acquiring a run-pause lease, then resumes exactly the next unconsumed beat after one deterministic recovery. `BossAttemptSnapshot` restores six-cell structure state, score, experience, event history, causal recorder state, robot state, gate ownership, and utility reservations while deliberately starting a fresh boss generation. The responsive HUD presents localized boss identity, phase, armor/body percentages, objective, and evidence status. After integrating the concurrent hybrid-CHOIR, transition, weapon-shop, and New Game Plus releases, Godot 4.7.2 import, touched-file lint, the complete affected focused matrix, localization parity/font coverage, and the final standard gate passed **58 scripts, 358 tests, and 32,271 assertions** in **638 seconds**. The full matrix also enforced the 650-line `CitySlice` budget—because architecture is apparently measured in both contracts and blank lines.
+
 **Implementation:**
 
 - Add `BossGateMarker` at each east-cap trigger before the next chunk boundary.

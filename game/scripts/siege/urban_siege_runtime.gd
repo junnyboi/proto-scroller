@@ -49,8 +49,10 @@ var directives: DirectiveSession
 var pause_coordinator: RunPauseCoordinator
 var trait_runtime: EnemyTraitRuntime
 var boss_session: CommandBossSession
+var boss_campaign: BossCampaignDirector
 var run_seed: int = 0
 var cycle_count: int = 1
+var run_active: bool = false
 var selected_recipe: DistrictRecipe
 var selected_contract: RunContract
 var _directive_pause_token: int = 0
@@ -108,6 +110,10 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	boss_session.setup(dependencies)
 	boss_session.completed.connect(_on_boss_completed)
 	add_child(boss_session)
+	boss_campaign = BossCampaignDirector.new()
+	boss_campaign.name = "BossCampaignDirector"
+	boss_campaign.setup(self)
+	add_child(boss_campaign)
 	pause_coordinator = RunPauseCoordinator.new()
 	pause_coordinator.name = "RunPauseCoordinator"
 	pause_coordinator.setup(dependencies, director, catalysts, hazards)
@@ -123,11 +129,14 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 
 
 func start_run(p_seed: int = 0) -> void:
+	run_active = true
 	run_seed = p_seed
 	cycle_count = 1
 	_offered_district_keys.clear()
 	_pending_district_offer = &""
 	directives.reset_run_state()
+	if boss_campaign != null:
+		boss_campaign.reset_run()
 	if dependencies.city.world_stream != null:
 		dependencies.city.world_stream.configure_run(run_seed)
 	_prepare_cycle()
@@ -183,7 +192,10 @@ func _process(delta: float) -> void:
 
 
 func stop_run() -> void:
+	run_active = false
 	_pending_district_offer = &""
+	if boss_campaign != null:
+		boss_campaign.stop()
 	if director != null:
 		director.stop()
 	if catalysts != null:
@@ -208,10 +220,24 @@ func reset_run() -> void:
 		boss_session.reset_state()
 	if director != null:
 		director.reset_to_contact()
+	if boss_campaign != null:
+		boss_campaign.reset_run()
 
 
 func is_simulation_paused() -> bool:
 	return pause_coordinator != null and pause_coordinator.is_paused()
+
+
+func set_boss_gate_owned(owned: bool) -> void:
+	if owned:
+		_pending_district_offer = &""
+		_withdraw_directive_presentation()
+	elif run_active:
+		_try_present_pending_district_offer()
+
+
+func withdraw_directive_for_boss() -> void:
+	_withdraw_directive_presentation()
 
 
 func _on_phase_changed(index: int, display_name: String) -> void:
@@ -275,6 +301,8 @@ func _offer_district_once(district_id: StringName) -> void:
 func _try_present_pending_district_offer() -> void:
 	if _pending_district_offer.is_empty():
 		return
+	if boss_campaign != null and boss_campaign.owns_combat():
+		return
 	if pause_coordinator != null and pause_coordinator.is_paused():
 		return
 	if dependencies.telegraphs != null and dependencies.telegraphs.active_count() > 0:
@@ -298,6 +326,8 @@ func _on_arc_completed() -> void:
 
 
 func _on_boss_completed(_elapsed_seconds: float) -> void:
+	if boss_campaign != null and boss_campaign.owns_combat():
+		return
 	district_completed.emit()
 
 

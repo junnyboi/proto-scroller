@@ -57,6 +57,24 @@ func reset_run() -> void:
 	pending_changed.emit(0)
 
 
+func capture_attempt_state() -> Dictionary:
+	return {
+		"safe_score": safe_score,
+		"pending_value": pending_bank.value,
+		"pending_remaining": pending_bank.bank_remaining,
+	}
+
+
+func restore_attempt_state(state: Dictionary) -> void:
+	safe_score = int(state.get("safe_score", safe_score))
+	pending_bank.value = int(state.get("pending_value", pending_bank.value))
+	pending_bank.bank_remaining = float(
+		state.get("pending_remaining", pending_bank.bank_remaining)
+	)
+	score_changed.emit(score, 0)
+	pending_changed.emit(pending_bank.value)
+
+
 func deduct(points: int) -> int:
 	var deduction: int = mini(maxi(points, 0), score)
 	if deduction <= 0:

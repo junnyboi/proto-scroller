@@ -70,6 +70,22 @@ func reset() -> void:
 	_order.clear()
 
 
+func capture_attempt_state() -> Dictionary:
+	return {
+		"best_depth": best_depth,
+		"rejected_count": rejected_count,
+		"records": _records.duplicate(true),
+		"order": _order.duplicate(),
+	}
+
+
+func restore_attempt_state(state: Dictionary) -> void:
+	best_depth = int(state.get("best_depth", best_depth))
+	rejected_count = int(state.get("rejected_count", rejected_count))
+	_records = state.get("records", {}).duplicate(true)
+	_order.assign(state.get("order", []))
+
+
 func _evict_if_needed() -> void:
 	if _order.size() < MAX_RECORDS:
 		return
