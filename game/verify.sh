@@ -62,9 +62,10 @@ test "$CITY_SLICE_LINES" -le 650
 printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
 test -z "$(find art audio -type f \( -iname '*candidate*' -o -iname '*carrier*' -o -iname '*original*' \) -print -quit)"
 for cue in \
-  audio/sfx/rampage/overdrive_activation.wav \
-  audio/sfx/rampage/combo_break.wav \
-	  audio/sfx/upgrades/upgrade_confirm.wav \
+	  audio/sfx/rampage/overdrive_activation.wav \
+	  audio/sfx/rampage/combo_break.wav \
+		  audio/sfx/ui/transition_full_black_boom.wav \
+		  audio/sfx/upgrades/upgrade_confirm.wav \
 	  audio/sfx/robot/robot_footstep.wav \
 	  audio/sfx/robot/robot_servo.wav \
 	  audio/sfx/robot/robot_dash_warp_drive.wav \
@@ -88,6 +89,15 @@ DASH_WARP_DURATION="$(
 awk -v duration="$DASH_WARP_DURATION" 'BEGIN {
 	exit !(duration >= 1.0 && duration <= 3.0)
 }'
+TRANSITION_BOOM_DURATION="$(
+	ffprobe -v error -show_entries format=duration -of csv=p=0 \
+		audio/sfx/ui/transition_full_black_boom.wav
+)"
+awk -v duration="$TRANSITION_BOOM_DURATION" 'BEGIN {
+	exit !(duration >= 1.34 && duration <= 1.36)
+}'
+test "$(sha256sum audio/sfx/ui/transition_full_black_boom.wav | cut -d' ' -f1)" = \
+	"cca66e67364e69695febad14faa30f09c2cf5a906abae4cd8205fa2b623a558f"
 PUNCH_DURATION="$(
 	ffprobe -v error -show_entries format=duration -of csv=p=0 \
 		audio/sfx/robot/double_punch_impact.wav
@@ -539,11 +549,17 @@ if [[ "$MODE" == "full" ]]; then
 	    timeout --preserve-status --signal=TERM --kill-after=5s 180s pnpm smoke:web
 	  )
 		  test -s artifacts/browser/title-video-landscape.png
-		  test -s artifacts/browser/title-video-portrait.png
-		  test -s artifacts/browser/title-fade-transition.png
-		  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-video-landscape.png)"
-		  grep -Fq '720 x 1280' <<< "$(file artifacts/browser/title-video-portrait.png)"
-		  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-fade-transition.png)"
+			  test -s artifacts/browser/title-video-portrait.png
+			  test -s artifacts/browser/title-fade-transition.png
+			  test -s artifacts/browser/death-fade-transition.png
+			  test -s artifacts/browser/death-summary.png
+			  test -s artifacts/browser/return-title-fade-transition.png
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-video-landscape.png)"
+			  grep -Fq '720 x 1280' <<< "$(file artifacts/browser/title-video-portrait.png)"
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-fade-transition.png)"
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/death-fade-transition.png)"
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/death-summary.png)"
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/return-title-fade-transition.png)"
 	  jq -e '
 	    .status == "PASS"
 	    and .titleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-landscape.mp4"
@@ -552,12 +568,13 @@ if [[ "$MODE" == "full" ]]; then
 	    and .titleVideo.videoWidth == 1280
 	    and .titleVideo.videoHeight == 720
 		    and .titleVideo.loop == true
-		    and .titleVideo.muted == true
-		    and .titleVideo.stoppedForGameplay == true
-		    and (.titleTransition.phases | map(.phase)) == [
-		      "idle",
-		      "fade_out",
-		      "black",
+			    and .titleVideo.muted == true
+			    and .titleVideo.stoppedForGameplay == true
+			    and .titleTransition.kind == "start_game"
+			    and .titleTransition.boomCount == 1
+			    and (.titleTransition.phases | map(.phase)) == [
+			      "fade_out",
+			      "black",
 		      "black_ready",
 		      "fade_in",
 		      "complete"
@@ -577,9 +594,33 @@ if [[ "$MODE" == "full" ]]; then
 		      (.titleTransition.phases[] | select(.phase == "complete").elapsedMs)
 		      - (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)
 		    ) <= 1000
-		    and .titleTransition.elapsedMs <= 5000
-		    and .titleTransition.durationMs <= 6000
-		    and .portraitTitleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
+			    and .titleTransition.elapsedMs <= 5000
+			    and .titleTransition.durationMs <= 6000
+			    and .deathTransition.kind == "defeat"
+			    and .deathTransition.boomCount == 2
+			    and (.deathTransition.phases | map(.phase)) == [
+			      "fade_out",
+			      "black",
+			      "black_ready",
+			      "fade_in",
+			      "complete"
+			    ]
+			    and (.deathTransition.phases[] | select(.phase == "fade_out").boomCount) == 1
+			    and (.deathTransition.phases[] | select(.phase == "black").boomCount) == 2
+			    and (.deathTransition.phases[] | select(.phase == "black").overlayAlpha) >= 0.999
+			    and .returnTitleTransition.kind == "return_title"
+			    and .returnTitleTransition.boomCount == 3
+			    and (.returnTitleTransition.phases | map(.phase)) == [
+			      "fade_out",
+			      "black",
+			      "black_ready",
+			      "fade_in",
+			      "complete"
+			    ]
+			    and (.returnTitleTransition.phases[] | select(.phase == "fade_out").boomCount) == 2
+			    and (.returnTitleTransition.phases[] | select(.phase == "black").boomCount) == 3
+			    and (.returnTitleTransition.phases[] | select(.phase == "black").overlayAlpha) >= 0.999
+			    and .portraitTitleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
 	    and .portraitTitleVideo.duration >= 7.9
 	    and .portraitTitleVideo.duration <= 8.1
 	    and .portraitTitleVideo.videoWidth == 720
@@ -598,9 +639,10 @@ if [[ "$MODE" == "full" ]]; then
 	      "attack_started",
 	      "upgrade_visible",
 	      "upgrade_resolved",
-	      "post_upgrade_sfx_ok",
-	      "east_walk_ok",
-	      "pass"
+		      "post_upgrade_sfx_ok",
+		      "east_walk_ok",
+		      "pass",
+		      "defeat_requested"
 	    ]
 	  ' artifacts/browser/upgrade-transition.json >/dev/null
 	  test -s artifacts/browser/upgrade-transition.png

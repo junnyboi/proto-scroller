@@ -22,6 +22,18 @@ const TITLE_FADE_SCREENSHOT_PATH = path.join(
   ARTIFACT_DIR,
   "title-fade-transition.png"
 );
+const DEATH_FADE_SCREENSHOT_PATH = path.join(
+  ARTIFACT_DIR,
+  "death-fade-transition.png"
+);
+const DEATH_SUMMARY_SCREENSHOT_PATH = path.join(
+  ARTIFACT_DIR,
+  "death-summary.png"
+);
+const RETURN_TITLE_FADE_SCREENSHOT_PATH = path.join(
+  ARTIFACT_DIR,
+  "return-title-fade-transition.png"
+);
 const FAILURE_SCREENSHOT_PATH = path.join(
   ARTIFACT_DIR,
   "upgrade-transition-failure.png"
@@ -41,6 +53,7 @@ const EXPECTED_PHASES = [
   "post_upgrade_sfx_ok",
   "east_walk_ok",
   "pass",
+  "defeat_requested",
 ];
 
 await mkdir(ARTIFACT_DIR, { recursive: true });
@@ -70,6 +83,8 @@ let report = {
   titleVideo: null,
   portraitTitleVideo: null,
   titleTransition: null,
+  deathTransition: null,
+  returnTitleTransition: null,
 };
 
 try {
@@ -286,13 +301,16 @@ try {
   if (
     JSON.stringify(titleTransitionPhases) !==
       JSON.stringify([
-        "idle",
         "fade_out",
         "black",
         "black_ready",
         "fade_in",
         "complete",
       ]) ||
+    titleTransition.kind !== "start_game" ||
+    titleTransition.boomCount !== 1 ||
+    fadeBlackPhase?.boomCount !== 1 ||
+    fadeBlackPhase?.overlayAlpha < 0.999 ||
     titleTransition.capturePhase !== "black_ready" ||
     !fadeBlackPhase ||
     fadeBlackPhase.elapsedMs < 350 ||
@@ -382,6 +400,40 @@ try {
     await page.keyboard.up("a");
   }
 
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_HOLD_TITLE_TRANSITION__ = true;
+    window.__PROTO_SCROLLER_TRIGGER_DEFEAT__ = true;
+  });
+  await waitForPhase(page, "defeat_requested", 30_000);
+  await waitForTransition(page, "defeat", "black_ready", 10_000);
+  await page.screenshot({ path: DEATH_FADE_SCREENSHOT_PATH });
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_HOLD_TITLE_TRANSITION__ = false;
+  });
+  await waitForTransition(page, "defeat", "complete", 5_000);
+  const deathTransition = await transitionSnapshot(page);
+  assertFullBlackTransition(deathTransition, "defeat", 2);
+  await page.screenshot({ path: DEATH_SUMMARY_SCREENSHOT_PATH });
+
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_HOLD_TITLE_TRANSITION__ = true;
+  });
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await waitForTransition(page, "return_title", "black_ready", 10_000);
+  await page.screenshot({ path: RETURN_TITLE_FADE_SCREENSHOT_PATH });
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_HOLD_TITLE_TRANSITION__ = false;
+  });
+  await waitForTransition(page, "return_title", "complete", 5_000);
+  const returnTitleTransition = await transitionSnapshot(page);
+  assertFullBlackTransition(returnTitleTransition, "return_title", 3);
+  await page.waitForFunction(
+    () => document.body.classList.contains("title-backdrop-active"),
+    undefined,
+    { timeout: 10_000 }
+  );
+
   const phases = await smokeHistory(page);
   assertPhaseContract(phases);
 
@@ -462,6 +514,15 @@ try {
       stoppedForGameplay: true,
     },
     titleTransition,
+    deathTransition: {
+      ...deathTransition,
+      screenshot: path.relative(ROOT, DEATH_FADE_SCREENSHOT_PATH),
+      summaryScreenshot: path.relative(ROOT, DEATH_SUMMARY_SCREENSHOT_PATH),
+    },
+    returnTitleTransition: {
+      ...returnTitleTransition,
+      screenshot: path.relative(ROOT, RETURN_TITLE_FADE_SCREENSHOT_PATH),
+    },
     portraitTitleVideo: {
       ...portraitTitleVideo,
       advancedTime: portraitAdvancedTime,
@@ -516,6 +577,51 @@ async function waitForHttp(url, timeoutMs, child) {
     await new Promise(resolve => setTimeout(resolve, 150));
   }
   throw new Error(`Timed out waiting for ${url}`);
+}
+
+async function waitForTransition(activePage, kind, phase, timeoutMs) {
+  await activePage.waitForFunction(
+    expected => {
+      const transition = window.__PROTO_SCROLLER_TITLE_TRANSITION__;
+      return (
+        transition?.kind === expected.kind &&
+        transition?.phase === expected.phase
+      );
+    },
+    { kind, phase },
+    { timeout: timeoutMs }
+  );
+}
+
+async function transitionSnapshot(activePage) {
+  return activePage.evaluate(() => ({
+    ...window.__PROTO_SCROLLER_TITLE_TRANSITION__,
+    phases: window.__PROTO_SCROLLER_TITLE_TRANSITION__?.phases?.map(entry => ({
+      ...entry,
+    })),
+  }));
+}
+
+function assertFullBlackTransition(transition, kind, boomCount) {
+  const phases = transition.phases ?? [];
+  const names = phases.map(entry => entry.phase);
+  const expected = ["fade_out", "black", "black_ready", "fade_in", "complete"];
+  const fadeOut = phases.find(entry => entry.phase === "fade_out");
+  const black = phases.find(entry => entry.phase === "black");
+  if (
+    transition.kind !== kind ||
+    JSON.stringify(names) !== JSON.stringify(expected) ||
+    fadeOut?.boomCount !== boomCount - 1 ||
+    black?.boomCount !== boomCount ||
+    black?.overlayAlpha < 0.999 ||
+    transition.boomCount !== boomCount ||
+    transition.phase !== "complete" ||
+    transition.overlayAlpha > 0.001
+  ) {
+    throw new Error(
+      `${kind} full-black transition failed: ${JSON.stringify(transition)}`
+    );
+  }
 }
 
 async function smokeHistory(activePage) {

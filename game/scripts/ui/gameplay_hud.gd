@@ -2,6 +2,7 @@ class_name GameplayHud
 extends CanvasLayer
 
 signal retry_pressed
+signal title_pressed
 signal extract_pressed
 signal continue_pressed
 
@@ -36,6 +37,7 @@ var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
 var retry_button: Button
+var title_button: Button
 var extract_button: Button
 var continue_button: Button
 var rare_labels: Array[Label] = []
@@ -306,6 +308,7 @@ func show_cycle_choice(cycle: int, can_continue: bool) -> void:
 	overlay_title.text = L10n.t("hud.district_secured")
 	overlay_summary.text = L10n.t("hud.cycle_complete", {"cycle": cycle})
 	retry_button.visible = false
+	title_button.visible = false
 	extract_button.visible = true
 	continue_button.visible = can_continue
 	game_over_overlay.visible = true
@@ -560,6 +563,15 @@ func _build_game_over_overlay() -> void:
 	retry_button.add_theme_font_size_override(&"font_size", 30)
 	retry_button.pressed.connect(retry_pressed.emit)
 	game_over_overlay.add_child(retry_button)
+	title_button = Button.new()
+	title_button.name = "TitleButton"
+	title_button.position = Vector2(650.0, 430.0)
+	title_button.size = Vector2(225.0, 78.0)
+	title_button.text = L10n.t("hud.title_screen")
+	title_button.focus_mode = Control.FOCUS_ALL
+	title_button.add_theme_font_size_override(&"font_size", 24)
+	title_button.pressed.connect(title_pressed.emit)
+	game_over_overlay.add_child(title_button)
 	extract_button = Button.new()
 	extract_button.name = "ExtractButton"
 	extract_button.position = Vector2(445.0, 430.0)
@@ -751,8 +763,10 @@ func _apply_landscape_terminal_layout() -> void:
 	overlay_title.size = Vector2(470.0, 72.0)
 	overlay_summary.position = Vector2(405.0, 296.0)
 	overlay_summary.size = Vector2(470.0, 128.0)
-	retry_button.position = Vector2(490.0, 430.0)
-	retry_button.size = Vector2(300.0, 78.0)
+	retry_button.position = Vector2(405.0, 430.0)
+	retry_button.size = Vector2(225.0, 78.0)
+	title_button.position = Vector2(650.0, 430.0)
+	title_button.size = Vector2(225.0, 78.0)
 	extract_button.position = Vector2(445.0, 430.0)
 	continue_button.position = Vector2(650.0, 430.0)
 
@@ -765,8 +779,10 @@ func _apply_portrait_terminal_layout(viewport_size: Vector2) -> void:
 	overlay_title.size = Vector2(viewport_size.x - 104.0, 82.0)
 	overlay_summary.position = Vector2(52.0, 430.0)
 	overlay_summary.size = Vector2(viewport_size.x - 104.0, 236.0)
-	retry_button.position = Vector2(150.0, 720.0)
-	retry_button.size = Vector2(viewport_size.x - 300.0, 88.0)
+	retry_button.position = Vector2(82.0, 720.0)
+	retry_button.size = Vector2(258.0, 88.0)
+	title_button.position = Vector2(viewport_size.x - 340.0, 720.0)
+	title_button.size = Vector2(258.0, 88.0)
 	extract_button.position = Vector2(82.0, 720.0)
 	extract_button.size = Vector2(258.0, 88.0)
 	continue_button.position = Vector2(viewport_size.x - 340.0, 720.0)
@@ -775,6 +791,7 @@ func _apply_portrait_terminal_layout(viewport_size: Vector2) -> void:
 
 func _hide_terminal_choices() -> void:
 	retry_button.visible = true
+	title_button.visible = true
 	extract_button.visible = false
 	continue_button.visible = false
 

@@ -2,7 +2,8 @@ class_name CitySlice
 extends Node2D
 
 signal retry_requested
-
+signal defeat_requested
+signal title_requested
 const WORLD_LAYER: int = 1 << 0
 const ROBOT_LAYER: int = 1 << 1
 const BUILDING_LAYER: int = 1 << 3
@@ -109,7 +110,6 @@ var material_audio_play_count: int:
 			else 0
 		)
 
-
 func _ready() -> void:
 	CityWorldBuilder.build_environment(self)
 	_build_services()
@@ -177,7 +177,6 @@ func _web_gameplay_smoke_requested() -> bool:
 func trigger_test_stomp() -> int:
 	return robot.request_stomp()
 
-
 func all_destructibles_broken() -> bool:
 	return (
 		building != null
@@ -187,7 +186,6 @@ func all_destructibles_broken() -> bool:
 		and streetlamp.is_broken
 		and car.is_broken
 	)
-
 
 func _build_services() -> void:
 	runtime_services = CityRuntimeServices.new()
@@ -243,7 +241,6 @@ func _build_destructibles() -> void:
 	add_child(streamed_destructibles)
 	_refresh_primary_destructibles()
 
-
 func _build_world_stream() -> void:
 	world_stream = WORLD_STREAM_SCRIPT.new() as CityWorldStream
 	world_stream.name = "CityWorldStream"
@@ -254,7 +251,6 @@ func _build_world_stream() -> void:
 	district_transition_banner = DISTRICT_TRANSITION_SCRIPT.new()
 	add_child(district_transition_banner)
 	world_stream.district_changed.connect(_on_spatial_district_changed)
-
 
 func _build_enemies() -> void:
 	telegraph_presenter = TELEGRAPH_SCRIPT.new() as TelegraphPresenter2D
@@ -273,7 +269,6 @@ func _build_enemies() -> void:
 		encounter_runtime.acquire(&"soldier", Vector2(1320.0, 542.5))
 		encounter_runtime.acquire(&"tank", Vector2(1700.0, 551.0))
 		encounter_runtime.acquire(&"helicopter", Vector2(1500.0, 180.0))
-
 
 func _build_urban_siege() -> void:
 	var dependencies: UrbanSiegeDependencies = UrbanSiegeDependencies.new()
@@ -296,7 +291,6 @@ func _build_urban_siege() -> void:
 	if DisplayServer.get_name() != "headless":
 		urban_siege.start_run()
 
-
 func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
 	var parallax: Node = get_node_or_null(^"ParallaxCity")
 	var excluded: Array[Node] = [world_stream, landmark_root, parallax]
@@ -307,7 +301,6 @@ func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
 	if camera_rig != null:
 		camera_rig.reset_after_origin_shift()
 
-
 func _on_stream_window_changed(_logical_index: int) -> void:
 	_refresh_primary_destructibles()
 	var target: StructuralBuilding2D = building
@@ -317,7 +310,6 @@ func _on_stream_window_changed(_logical_index: int) -> void:
 	for enemy: EnemyActor2D in encounter_runtime.all_actors():
 		enemy.structural_target = target
 
-
 func _on_spatial_district_changed(
 	previous_district_id: StringName,
 	_district_id: StringName,
@@ -326,7 +318,6 @@ func _on_spatial_district_changed(
 	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_chunk)
 	if not weapon_shop_assembler.queue_transition(previous_district_id, district, logical_chunk):
 		district_transition_banner.present(district, logical_chunk)
-
 
 func _refresh_primary_destructibles() -> void:
 	if streamed_destructibles == null:
@@ -338,6 +329,7 @@ func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
 	gameplay_hud.setup(robot, contextual_attacks)
 	gameplay_hud.retry_pressed.connect(_on_retry_pressed)
+	gameplay_hud.title_pressed.connect(_on_title_pressed)
 	add_child(gameplay_hud)
 	var experience: RunExperience = rampage_session.run_experience
 	experience.experience_changed.connect(gameplay_hud._set_experience)
@@ -394,7 +386,6 @@ func _on_robot_heavy_impact(
 	)
 	gameplay_hud.set_objective("objective.impact_registered")
 
-
 func _material_for_target(
 	target: Node,
 	hit_position: Vector2
@@ -414,7 +405,6 @@ func _material_for_target(
 	if target is EnemyWreck2D:
 		return (target as EnemyWreck2D).get_material_profile()
 	return StructuralMaterialProfile.concrete()
-
 
 func _on_streamed_building_damage_applied(
 	streamed_building: StructuralBuilding2D,
@@ -440,7 +430,6 @@ func _on_streamed_building_damage_applied(
 		material_profile
 	)
 
-
 func _on_streamed_building_cell_destroyed(
 	streamed_building: StructuralBuilding2D,
 	column: int,
@@ -448,7 +437,6 @@ func _on_streamed_building_cell_destroyed(
 	event: DamageEvent
 ) -> void:
 	rampage_events.cell_destroyed(column, row, event, streamed_building, robot)
-
 
 func _on_streamed_building_chain_started(
 	streamed_building: StructuralBuilding2D,
@@ -459,7 +447,6 @@ func _on_streamed_building_chain_started(
 	gameplay_hud.set_objective(
 		"objective.steel_failure" if kind == &"steel_support_chain" else "objective.floor_lost"
 	)
-
 
 func _on_streamed_building_chain_step(
 	streamed_building: StructuralBuilding2D,
@@ -639,6 +626,13 @@ func _on_robot_health_changed(current: float, maximum: float) -> void:
 
 
 func _on_robot_defeated() -> void:
+	if defeat_requested.get_connections().is_empty():
+		present_defeat()
+	else:
+		defeat_requested.emit()
+
+
+func present_defeat() -> void:
 	if run_lifecycle != null:
 		run_lifecycle.robot_defeated()
 
@@ -647,3 +641,9 @@ func _on_retry_pressed() -> void:
 	if not game_over_active:
 		return
 	retry_requested.emit()
+
+
+func _on_title_pressed() -> void:
+	if not game_over_active:
+		return
+	title_requested.emit()

@@ -834,6 +834,7 @@ func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> voi
 	await get_tree().process_frame
 	main.start_game()
 	await get_tree().process_frame
+	main.title_transition_duration_scale = 0.18
 	var first_city: CitySlice = main.city_slice
 	first_city._add_score(500)
 	first_city.rampage_session.publish(GameplayEvent.new(
@@ -847,6 +848,10 @@ func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> voi
 	))
 	var fatal_event: DamageEvent = DamageEvent.new(9001, null, 9999.0)
 	assert_true(first_city.robot.receive_damage(fatal_event))
+	for _frame: int in range(240):
+		if not main.title_transition_active:
+			break
+		await get_tree().process_frame
 	assert_true(first_city.game_over_active)
 	var overlay: Control = first_city.get_node(^"HUD/GameOverOverlay") as Control
 	var retry_button: Button = overlay.get_node(^"RetryButton") as Button

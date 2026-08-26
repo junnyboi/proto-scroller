@@ -45,7 +45,9 @@ func _run() -> void:
 		return
 	if not await _run_east_walk():
 		return
-	await _run_west_walk()
+	if not await _run_west_walk():
+		return
+	await _request_browser_defeat()
 
 
 func _prepare_environment() -> void:
@@ -302,6 +304,22 @@ func _run_west_walk() -> bool:
 		"rank_total": _rank_total(),
 	})
 	return true
+
+
+func _request_browser_defeat() -> void:
+	if not OS.has_feature("web"):
+		return
+	if not await _wait_until(
+		func() -> bool:
+			return bool(JavaScriptBridge.eval("Boolean(window.__PROTO_SCROLLER_TRIGGER_DEFEAT__)"))
+	):
+		_fail("browser did not arm the deterministic defeat transition")
+		return
+	var fatal_event: DamageEvent = DamageEvent.new(EVENT_ID + 1, null, 99_999.0)
+	if not robot.receive_damage(fatal_event):
+		_fail("browser fatal damage was rejected")
+		return
+	_publish(&"defeat_requested", {"health": robot.current_health})
 
 
 func _upgrade_is_interactive() -> bool:

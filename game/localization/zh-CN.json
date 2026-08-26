@@ -99,6 +99,7 @@
   "hud.ground_locked": "地面重击锁定 / 径向冲击",
   "hud.jab_cross_committed": "刺拳连击 / 动能已传递",
   "hud.retry": "重试",
+  "hud.title_screen": "返回标题",
   "hud.extract": "撤离",
   "hud.continue": "继续",
 
