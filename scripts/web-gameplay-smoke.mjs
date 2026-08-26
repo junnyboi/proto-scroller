@@ -18,6 +18,10 @@ const TITLE_PORTRAIT_SCREENSHOT_PATH = path.join(
   ARTIFACT_DIR,
   "title-video-portrait.png"
 );
+const TITLE_FADE_SCREENSHOT_PATH = path.join(
+  ARTIFACT_DIR,
+  "title-fade-transition.png"
+);
 const FAILURE_SCREENSHOT_PATH = path.join(
   ARTIFACT_DIR,
   "upgrade-transition-failure.png"
@@ -65,6 +69,7 @@ let report = {
   workletModules: [],
   titleVideo: null,
   portraitTitleVideo: null,
+  titleTransition: null,
 };
 
 try {
@@ -236,7 +241,75 @@ try {
     );
   }
   await page.screenshot({ path: TITLE_LANDSCAPE_SCREENSHOT_PATH });
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_HOLD_TITLE_TRANSITION__ = true;
+  });
+  const titleTransitionStartedAt = Date.now();
   await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    () => window.__PROTO_SCROLLER_TITLE_TRANSITION__?.phase === "black_ready",
+    undefined,
+    { timeout: 10_000 }
+  );
+  const titleTransitionCapture = await page.evaluate(() => ({
+    elapsedMs: Date.now(),
+    telemetry: window.__PROTO_SCROLLER_TITLE_TRANSITION__,
+  }));
+  await page.screenshot({ path: TITLE_FADE_SCREENSHOT_PATH });
+  await page.evaluate(() => {
+    window.__PROTO_SCROLLER_HOLD_TITLE_TRANSITION__ = false;
+  });
+  await page.waitForFunction(
+    () => window.__PROTO_SCROLLER_TITLE_TRANSITION__?.phase === "complete",
+    undefined,
+    { timeout: 5_000 }
+  );
+  const titleTransition = await page.evaluate(() => ({
+    ...window.__PROTO_SCROLLER_TITLE_TRANSITION__,
+  }));
+  titleTransition.durationMs = Date.now() - titleTransitionStartedAt;
+  titleTransition.capturePhase = titleTransitionCapture.telemetry?.phase;
+  titleTransition.captureElapsedMs =
+    titleTransitionCapture.elapsedMs - titleTransitionStartedAt;
+  const titleTransitionPhases = titleTransition.phases?.map(
+    entry => entry.phase
+  );
+  const fadeBlackPhase = titleTransition.phases?.find(
+    entry => entry.phase === "black"
+  );
+  const fadeInPhase = titleTransition.phases?.find(
+    entry => entry.phase === "fade_in"
+  );
+  const fadeCompletePhase = titleTransition.phases?.find(
+    entry => entry.phase === "complete"
+  );
+  if (
+    JSON.stringify(titleTransitionPhases) !==
+      JSON.stringify([
+        "idle",
+        "fade_out",
+        "black",
+        "black_ready",
+        "fade_in",
+        "complete",
+      ]) ||
+    titleTransition.capturePhase !== "black_ready" ||
+    !fadeBlackPhase ||
+    fadeBlackPhase.elapsedMs < 350 ||
+    fadeBlackPhase.elapsedMs > 1_000 ||
+    !fadeInPhase ||
+    fadeInPhase.elapsedMs < fadeBlackPhase.elapsedMs ||
+    fadeInPhase.elapsedMs - fadeBlackPhase.elapsedMs > 3_000 ||
+    !fadeCompletePhase ||
+    fadeCompletePhase.elapsedMs - fadeInPhase.elapsedMs < 200 ||
+    fadeCompletePhase.elapsedMs - fadeInPhase.elapsedMs > 1_000 ||
+    titleTransition.elapsedMs > 5_000 ||
+    titleTransition.durationMs > 6_000
+  ) {
+    throw new Error(
+      `title transition contract failed: ${JSON.stringify(titleTransition)}`
+    );
+  }
   await waitForPhase(page, "ready", 30_000);
   await page.waitForFunction(
     () => {
@@ -388,6 +461,7 @@ try {
       screenshot: path.relative(ROOT, TITLE_LANDSCAPE_SCREENSHOT_PATH),
       stoppedForGameplay: true,
     },
+    titleTransition,
     portraitTitleVideo: {
       ...portraitTitleVideo,
       advancedTime: portraitAdvancedTime,

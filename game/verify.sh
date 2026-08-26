@@ -534,10 +534,12 @@ if [[ "$MODE" == "full" ]]; then
 	    cd ..
 	    timeout --preserve-status --signal=TERM --kill-after=5s 180s pnpm smoke:web
 	  )
-	  test -s artifacts/browser/title-video-landscape.png
-	  test -s artifacts/browser/title-video-portrait.png
-	  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-video-landscape.png)"
-	  grep -Fq '720 x 1280' <<< "$(file artifacts/browser/title-video-portrait.png)"
+		  test -s artifacts/browser/title-video-landscape.png
+		  test -s artifacts/browser/title-video-portrait.png
+		  test -s artifacts/browser/title-fade-transition.png
+		  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-video-landscape.png)"
+		  grep -Fq '720 x 1280' <<< "$(file artifacts/browser/title-video-portrait.png)"
+		  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-fade-transition.png)"
 	  jq -e '
 	    .status == "PASS"
 	    and .titleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-landscape.mp4"
@@ -545,10 +547,35 @@ if [[ "$MODE" == "full" ]]; then
 	    and .titleVideo.duration <= 8.1
 	    and .titleVideo.videoWidth == 1280
 	    and .titleVideo.videoHeight == 720
-	    and .titleVideo.loop == true
-	    and .titleVideo.muted == true
-	    and .titleVideo.stoppedForGameplay == true
-	    and .portraitTitleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
+		    and .titleVideo.loop == true
+		    and .titleVideo.muted == true
+		    and .titleVideo.stoppedForGameplay == true
+		    and (.titleTransition.phases | map(.phase)) == [
+		      "idle",
+		      "fade_out",
+		      "black",
+		      "black_ready",
+		      "fade_in",
+		      "complete"
+		    ]
+		    and .titleTransition.capturePhase == "black_ready"
+		    and (.titleTransition.phases[] | select(.phase == "black").elapsedMs) >= 350
+		    and (.titleTransition.phases[] | select(.phase == "black").elapsedMs) <= 1000
+		    and (
+		      (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)
+		      - (.titleTransition.phases[] | select(.phase == "black").elapsedMs)
+		    ) <= 3000
+		    and (
+		      (.titleTransition.phases[] | select(.phase == "complete").elapsedMs)
+		      - (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)
+		    ) >= 200
+		    and (
+		      (.titleTransition.phases[] | select(.phase == "complete").elapsedMs)
+		      - (.titleTransition.phases[] | select(.phase == "fade_in").elapsedMs)
+		    ) <= 1000
+		    and .titleTransition.elapsedMs <= 5000
+		    and .titleTransition.durationMs <= 6000
+		    and .portraitTitleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
 	    and .portraitTitleVideo.duration >= 7.9
 	    and .portraitTitleVideo.duration <= 8.1
 	    and .portraitTitleVideo.videoWidth == 720
