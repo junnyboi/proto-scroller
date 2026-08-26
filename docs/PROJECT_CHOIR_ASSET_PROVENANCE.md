@@ -1,0 +1,23 @@
+# Project CHOIR Asset Provenance
+
+All Project CHOIR visual assets were generated with **GPT Image 2** on 2026-08-26. Enemy and boss prompts used the approved Project CHOIR concepts plus existing Proto Scroller production art as style and silhouette references. Sprite generations used a solid `#FF00FF` chroma background and explicitly requested orthographic, complete, gameplay-readable subjects.
+
+| Production asset | GPT Image 2 source | Purpose |
+|---|---|---|
+| `game/art/city/enemies/archetypes/21-reclaimed-breacher.png` | `docs/story-concepts/production-sources/21-reclaimed-breacher-source.png` | Residential close-range bio-weapon. |
+| `game/art/city/enemies/archetypes/22-graft-runner.png` | `docs/story-concepts/production-sources/22-graft-runner-source.png` | Residential/Military pack attacker and carrier payload. |
+| `game/art/city/enemies/archetypes/23-choir-siren.png` | `docs/story-concepts/production-sources/23-choir-siren-source.png` | Entertainment support and weapon-disruption unit. |
+| `game/art/city/enemies/archetypes/24-ossuary-crawler.png` | `docs/story-concepts/production-sources/24-ossuary-crawler-source.png` | Entertainment containment-release threat. |
+| `game/art/city/enemies/archetypes/25-seraph-carrier.png` | `docs/story-concepts/production-sources/25-seraph-carrier-source.png` | Military airborne carrier. |
+| `game/art/city/enemies/archetypes/26-pale-engine.png` | `docs/story-concepts/production-sources/26-pale-engine-source.png` | Military/Royal siege organism. |
+| `game/art/finale/choir-prime-core.png` | `docs/story-concepts/production-sources/choir-prime-core-source.png` | Royal final boss core. |
+| `game/art/finale/choir-pylon.png` | `docs/story-concepts/production-sources/choir-pylon-source.png` | Five color-modulated finale organs. |
+| `game/art/narrative/memory-glass-node.png` | `docs/story-concepts/production-sources/memory-glass-node-source.png` | Dossier and evidence-node marker. |
+| `game/art/narrative/choir-black-lab.jpg` | `docs/story-concepts/01-project-choir-black-lab.jpg` | Destructible-facade laboratory reveal. |
+| `game/art/narrative/continuity-cradle.jpg` | Direct GPT Image 2 generation | Title codex and pilot-continuity reveal. |
+
+The reproducible processor at `scripts/process-choir-assets.py` removes the chroma background, rejects isolated debris by retaining the primary connected alpha component, trims transparent margins, downscales to production dimensions, and compresses the two narrative panoramas. It does not draw or invent visual content. Raw source renders remain outside `game/` so the Godot import and Web export cannot include them accidentally.
+
+## Localization font subset
+
+The expanded Simplified Chinese narrative catalog requires 702 unique catalog codepoints after synchronization with the district-shop release. `scripts/build-cjk-font-subset.py` deterministically rebuilds `game/art/fonts/DroidSansFallbackFull-ProtoScroller.ttf` from the Apache-2.0 system source `/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf`, retaining only current `zh-CN.json` characters plus invariant control glyphs. The WP1 subset is 104,032 bytes and passes the repository's full-catalog glyph coverage test.

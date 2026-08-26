@@ -6,6 +6,9 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const RESPONSIVE_VIEWPORT_SCRIPT: Script = preload(
 	"res://scripts/main/responsive_viewport.gd"
 )
+const CAMPAIGN_PROGRESS_SCRIPT: Script = preload(
+	"res://scripts/narrative/campaign_progress_store.gd"
+)
 const DUMMY_AUDIO_DRIVER_NAME: String = "Dummy"
 const FADE_TO_BLACK_SECONDS: float = 0.45
 const FADE_FROM_BLACK_SECONDS: float = 0.35
@@ -13,6 +16,7 @@ const FADE_FROM_BLACK_SECONDS: float = 0.35
 var title_screen: TitleScreen
 var city_slice: CitySlice
 var responsive_viewport: ResponsiveViewport
+var campaign_progress: CampaignProgressStore
 var title_transition_active: bool = false
 var title_transition_duration_scale: float = 1.0
 var _title_transition_started_msec: int = 0
@@ -23,6 +27,10 @@ var _title_transition_started_msec: int = 0
 func _ready() -> void:
 	InputBindingSettings.apply_saved()
 	AudioVolumeSettings.apply_saved()
+	campaign_progress = CAMPAIGN_PROGRESS_SCRIPT.new() as CampaignProgressStore
+	campaign_progress.name = "CampaignProgressStore"
+	add_child(campaign_progress)
+	campaign_progress.setup()
 	responsive_viewport = RESPONSIVE_VIEWPORT_SCRIPT.new() as ResponsiveViewport
 	responsive_viewport.name = "ResponsiveViewport"
 	add_child(responsive_viewport)
@@ -111,12 +119,14 @@ func retry_game() -> void:
 func _spawn_city_slice() -> void:
 	city_slice = CITY_SCENE.instantiate() as CitySlice
 	city_slice.name = "CitySlice"
+	city_slice.campaign_progress = campaign_progress
 	city_slice.retry_requested.connect(retry_game)
 	add_child(city_slice)
 
 
 func _show_title() -> void:
 	title_screen = TITLE_SCENE.instantiate() as TitleScreen
+	title_screen.configure_campaign(campaign_progress.snapshot())
 	title_screen.start_requested.connect(start_game_with_transition)
 	add_child(title_screen)
 

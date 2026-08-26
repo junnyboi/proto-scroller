@@ -38,9 +38,7 @@ const TELEGRAPH_SCRIPT: Script = preload(
 const WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT: Script = preload(
 	"res://scripts/quality/web_gameplay_smoke_probe.gd"
 )
-const CONTACT_DISTRICT: DistrictDefinition = preload(
-	"res://resources/siege/district_contact.tres"
-)
+const CONTACT_DISTRICT: DistrictDefinition = preload("res://resources/siege/district_contact.tres")
 const GLASS_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/glass_shatter.wav"
 )
@@ -81,6 +79,8 @@ var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
 var encounter_director: EncounterDirector
 var urban_siege: UrbanSiegeRuntime
+var campaign_progress: CampaignProgressStore
+var project_choir_runtime: ProjectChoirRuntime
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
@@ -108,7 +108,6 @@ var material_audio_play_count: int:
 			if impact_feedback_pool != null
 			else 0
 		)
-
 
 func _ready() -> void:
 	CityWorldBuilder.build_environment(self)
@@ -147,6 +146,7 @@ func _ready() -> void:
 	run_lifecycle.name = "CityRunLifecycle"
 	run_lifecycle.setup(self)
 	add_child(run_lifecycle)
+	project_choir_runtime = ProjectChoirRuntime.mount(self, campaign_progress)
 	upgrade_assembler = PlayerUpgradeAssembler.new()
 	add_child(upgrade_assembler)
 	var upgrade_errors: PackedStringArray = upgrade_assembler.setup(self)

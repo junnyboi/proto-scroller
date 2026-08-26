@@ -22,6 +22,11 @@ signal building_chain_step(
 )
 signal building_chain_completed(building: StructuralBuilding2D, kind: StringName)
 signal building_destroyed(building: StructuralBuilding2D, event: DamageEvent)
+signal building_configured(
+	building: StructuralBuilding2D,
+	logical_chunk: int,
+	variant_id: StringName
+)
 signal prop_destroyed(
 	prop: DestructibleProp2D,
 	event: DamageEvent,
@@ -257,6 +262,11 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	lamp.restore_stream_state(
 		Vector2(blueprint.lamp_x, blueprint.lamp_y),
 		ledger.restore(lamp_id)
+	)
+	building_configured.emit(
+		building,
+		blueprint.logical_index,
+		blueprint.building_variant_id
 	)
 
 

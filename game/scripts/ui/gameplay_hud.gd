@@ -12,6 +12,9 @@ const COMBO_GRACE_SECONDS: float = 3.0
 const FIRST_RUN_TUTORIAL_SCRIPT: Script = preload(
 	"res://scripts/ui/first_run_combat_tutorial.gd"
 )
+const TRANSMISSION_TOAST_SCRIPT: Script = preload(
+	"res://scripts/ui/transmission_toast.gd"
+)
 
 var health_label: Label
 var status_label: Label
@@ -31,6 +34,7 @@ var directive_choice_overlay: DirectiveChoiceOverlay
 var upgrade_choice_overlay: UpgradeChoiceOverlay
 var weapon_status_strip: WeaponStatusStrip
 var first_run_tutorial: FirstRunCombatTutorial
+var transmission_toast: TransmissionToast
 var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
@@ -55,6 +59,8 @@ var _experience_ratio: float = 0.0
 var _displayed_combo_multiplier: int = -1
 var _displayed_overdrive_key: String = ""
 var _displayed_overdrive_seconds: String = ""
+var _campaign_dossier_count: int = 0
+var _continuity_generation: int = 0
 
 
 func setup(
@@ -77,6 +83,7 @@ func _ready() -> void:
 	_build_directive_choice_overlay()
 	_build_upgrade_ui()
 	_build_boss_status()
+	_build_transmission_toast()
 	_build_first_run_tutorial()
 	_build_game_over_overlay()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
@@ -211,6 +218,11 @@ func set_objective(key: String, placeholders: Dictionary = {}) -> void:
 		objective_label.text = L10n.t(key, placeholders)
 
 
+func _set_campaign_summary(dossier_count: int, continuity_generation: int) -> void:
+	_campaign_dossier_count = maxi(dossier_count, 0)
+	_continuity_generation = maxi(continuity_generation, 0)
+
+
 func set_siege_progress(
 	index: int,
 	total: int,
@@ -294,10 +306,15 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 			tokens.weakest = L10n.t(
 				"summary.metric.%s" % String(summary.weakest_metric).to_lower()
 			)
-		var summary_key: String = "hud.summary" if completed else "hud.summary_game_over"
-		overlay_summary.text = L10n.t(summary_key, tokens)
-	else:
-		overlay_summary.text = L10n.t("hud.chassis_signal_lost")
+			var summary_key: String = "hud.summary" if completed else "hud.summary_game_over"
+			overlay_summary.text = L10n.t(summary_key, tokens)
+		else:
+			overlay_summary.text = L10n.t("hud.chassis_signal_lost")
+	overlay_summary.text += "\n" + L10n.t("narrative.summary.progress", {
+		"dossiers": _campaign_dossier_count,
+		"total": CityDistrictCatalog.BUILDING_VARIANT_COUNT,
+		"generation": _continuity_generation,
+	})
 	game_over_overlay.visible = true
 	retry_button.grab_focus()
 
@@ -510,6 +527,11 @@ func _build_boss_status() -> void:
 	add_child(boss_label)
 
 
+func _build_transmission_toast() -> void:
+	transmission_toast = TRANSMISSION_TOAST_SCRIPT.new() as TransmissionToast
+	add_child(transmission_toast)
+
+
 func _build_first_run_tutorial() -> void:
 	first_run_tutorial = FIRST_RUN_TUTORIAL_SCRIPT.new() as FirstRunCombatTutorial
 	first_run_tutorial.setup(_robot, _contextual_attacks)
@@ -601,6 +623,8 @@ func _apply_responsive_layout() -> void:
 		first_run_tutorial.apply_responsive_layout(viewport_size)
 	if directive_card != null:
 		directive_card.apply_responsive_layout(viewport_size)
+	if transmission_toast != null:
+		transmission_toast.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout() -> void:

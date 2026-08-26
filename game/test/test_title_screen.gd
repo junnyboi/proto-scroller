@@ -262,6 +262,51 @@ func test_settings_and_briefing_are_mutually_exclusive() -> void:
 	_record_test_execution()
 
 
+func test_campaign_archive_renders_injected_progress_and_focus_safe_codex() -> void:
+	var archive_screen: TitleScreen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
+	archive_screen.configure_campaign({
+		"dossiers": PackedStringArray([
+			"dossier_business_mercy_exchange_annex",
+		]),
+		"dossier_count": 1,
+		"continuity_generation": 3,
+	})
+	archive_screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
+	archive_screen.audio_preference_path = AUDIO_PREFERENCE_PATH
+	archive_screen.input_preference_path = INPUT_PREFERENCE_PATH
+	add_child_autofree(archive_screen)
+	await get_tree().process_frame
+	assert_true(archive_screen.open_briefing())
+	assert_true(archive_screen.campaign_panel.progress_label.text.contains("1 / 25"))
+	assert_true(archive_screen.campaign_panel.continuity_label.text.contains("3"))
+	archive_screen.campaign_panel.codex_button.pressed.emit()
+	assert_true(archive_screen.dossier_codex.visible)
+	assert_true(
+		archive_screen.dossier_codex.detail_title.text.contains("Mercy Exchange Annex")
+	)
+	assert_false(archive_screen.dossier_codex.detail_body.text.contains("encrypted"))
+	archive_screen.dossier_codex.dossier_list.select(1)
+	archive_screen.dossier_codex.dossier_list.item_selected.emit(1)
+	assert_eq(
+		archive_screen.dossier_codex.detail_title.text,
+		L10n.t("narrative.codex.locked_title")
+	)
+	var cancel_event: InputEventAction = InputEventAction.new()
+	cancel_event.action = &"ui_cancel"
+	cancel_event.pressed = true
+	archive_screen._unhandled_input(cancel_event)
+	assert_false(archive_screen.dossier_codex.visible)
+	await get_tree().process_frame
+	assert_eq(
+		get_viewport().gui_get_focus_owner(),
+		archive_screen.campaign_panel.codex_button
+	)
+	assert_true(archive_screen.select_language("zh-CN"))
+	assert_true(archive_screen.campaign_panel.heading_label.text.contains("合唱"))
+	assert_eq(int(archive_screen.campaign_snapshot.dossier_count), 1)
+	_record_test_execution()
+
+
 func test_all_ui_text_meets_the_32_pixel_rendered_height_pin() -> void:
 	var measured_controls: int = 0
 	var minimum_height: float = INF

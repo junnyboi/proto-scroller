@@ -1,6 +1,8 @@
 class_name CityRunLifecycle
 extends Node
 
+signal run_finished(completed: bool, summary: RunSummarySnapshot)
+
 var city: CitySlice
 
 
@@ -244,6 +246,7 @@ func _finish_run(completed: bool) -> void:
 		city.overdrive_session.activation_count,
 		run_metrics
 	)
+	run_finished.emit(completed, summary)
 	if completed:
 		city.gameplay_hud.show_district_complete(summary)
 	else:
