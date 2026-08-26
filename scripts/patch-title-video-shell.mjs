@@ -95,6 +95,14 @@ function nonSilent(buffer) {
 	};
 	prototype.__protoScrollerStartWrapped = true;
 })();
+window.protoScrollerResumeTitleAudio = function () {
+	const contexts = [...titleAudioContexts];
+	const telemetry = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__ = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__ || { sourceKind: 'title-lifecycle-queued', committed: false, commitStatus: 'queued-at-title' };
+	Promise.all(contexts.map(context => context.resume())).then(() => {
+		Object.assign(telemetry, { audioContextState: contexts.find(context => context.state === 'running')?.state || 'unavailable', committed: true, commitStatus: 'title-interaction-resumed' });
+	}).catch(() => Object.assign(telemetry, { fallback: true, fallbackReason: 'title-interaction-resume-rejected', commitStatus: 'resume-rejected' }));
+	return contexts.length > 0;
+};
 function commitTitleBeat(generation, commitCallback, calibrationCallback, fallbackReason) {
 	if (generation !== titleGeneration) return;
 	if (titleFrame) cancelAnimationFrame(titleFrame); if (titleTimer) clearTimeout(titleTimer); titleFrame = 0; titleTimer = 0;

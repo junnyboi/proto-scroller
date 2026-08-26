@@ -139,6 +139,11 @@ func test_hover_preview_confirmation_and_upgrade_feedback_are_transactional() ->
 	assert_true(overlay.preview_panel.visible)
 	assert_eq(overlay.preview_panel.active_product_id, card.product.product_id)
 	assert_string_contains(overlay.preview_panel.rows_label.text, "100%")
+	assert_eq(
+		overlay.preview_panel.rows_label.get_theme_font_size(&"font_size"),
+		WeaponShopStatPreviewPanel.PROJECTED_STAT_FONT_SIZE
+	)
+	assert_eq(WeaponShopStatPreviewPanel.PROJECTED_STAT_FONT_SIZE, 22)
 	assert_not_null(overlay.preview_panel.get_node_or_null("StatPreviewContainer"))
 	assert_eq(overlay.preview_panel.get_child_count(), 4)
 	for child: Node in overlay.preview_panel.get_children():
