@@ -22,6 +22,7 @@ var post_warm_creation_count: int = 0
 var activation_count: int = 0
 var impact_count: int = 0
 var recycle_count: int = 0
+var activation_denial_count: int = 0
 var chain_trigger_count: int = 0
 var last_hazard_id: StringName = &""
 var last_chain_source: StringName = &""
@@ -60,8 +61,11 @@ func activate(
 		post_warm_creation_count += 1
 		return null
 	if actor.active:
-		recycle_count += 1
-		actor.reset_hazard()
+		activation_denial_count += 1
+		return null
+	if active_count() >= RuntimeBudget.ACTIVE_HAZARDS:
+		activation_denial_count += 1
+		return null
 	var position_value: Vector2 = world_position
 	position_value.y = CitySlice.LAND_VISUAL_BASELINE_Y
 	actor.activate(

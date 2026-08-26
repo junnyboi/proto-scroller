@@ -156,11 +156,37 @@ func _run() -> void:
 			city.streamed_destructibles.mutation_count(),
 		]
 	)
+	var sprint_profile: DistrictPressureProfile = DistrictPressureCatalog.effective_profile(
+		&"ROYAL",
+		city.rampage_session.run_experience.level
+	)
 	_check(
-		"progression_pressure_scaled",
-		city.world_stream.progression_tier() == CityWorldStream.MAX_PROGRESSION_TIER,
-		"tier=%d max_chunk=%d"
-		% [city.world_stream.progression_tier(), city.world_stream.maximum_visited_chunk]
+		"royal_pressure_is_readiness_gated",
+		city.world_stream.progression_tier() == CityWorldStream.MAX_PROGRESSION_TIER
+		and sprint_profile.district_id == &"BUSINESS",
+		"distance_tier=%d level=%d effective=%s max_chunk=%d"
+		% [
+			city.world_stream.progression_tier(),
+			city.rampage_session.run_experience.level,
+			sprint_profile.district_id,
+			city.world_stream.maximum_visited_chunk,
+		]
+	)
+	city.rampage_session.run_experience.level = 5
+	var ready_profile: DistrictPressureProfile = DistrictPressureCatalog.effective_profile(
+		&"ROYAL",
+		city.rampage_session.run_experience.level
+	)
+	_check(
+		"royal_pressure_unlocks_at_level_five",
+		ready_profile.district_id == &"ROYAL"
+		and ready_profile.live_threat_ceiling == DistrictPressureCatalog.MAX_LIVE_THREAT,
+		"level=%d effective=%s threat_ceiling=%d"
+		% [
+			city.rampage_session.run_experience.level,
+			ready_profile.district_id,
+			ready_profile.live_threat_ceiling,
+		]
 	)
 	city.robot.global_position.x = (
 		city.world_stream.runtime_x_for_logical_index(40)

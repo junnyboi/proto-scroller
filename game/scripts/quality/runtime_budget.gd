@@ -133,10 +133,16 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"hazard_total": city.urban_siege.hazards.total_count(),
 		"hazard_active": city.urban_siege.hazards.active_count(),
 		"hazard_post_warm_creations": city.urban_siege.hazards.post_warm_creation_count,
+		"hazard_activation_denials": city.urban_siege.hazards.activation_denial_count,
 		"hazard_vfx_slots": city.urban_siege.hazards.vfx_pool.slot_count(),
 		"hazard_audio_voices": city.urban_siege.hazards.audio_pool.voice_count(),
 		"hazard_pending_peak": city.urban_siege.director.peak_hazard_pending,
 		"hazard_pressure_peak": city.urban_siege.hazard_pressure.peak_used_budget,
+		"district_pressure_peak_tier": city.urban_siege.director.progression_peak_tier,
+		"district_pressure_peak_threat": city.urban_siege.director.progression_peak_threat,
+		"district_copy_degradations": (
+			city.urban_siege.director.progression_degradation_count
+		),
 		"street_chunks": city.world_stream.active_chunk_count(),
 		"street_post_warm_creations": city.world_stream.post_warm_creation_count,
 		"floating_origin_runtimes": 1 if city.world_stream.floating_origin != null else 0,
@@ -335,6 +341,16 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		errors.append(
 			"hazard_pressure_peak=%d cap=%d"
 			% [data.hazard_pressure_peak, HAZARD_PRESSURE]
+		)
+	if int(data.district_pressure_peak_tier) > CityWorldStream.MAX_PROGRESSION_TIER:
+		errors.append(
+			"district_pressure_peak_tier=%d cap=%d"
+			% [data.district_pressure_peak_tier, CityWorldStream.MAX_PROGRESSION_TIER]
+		)
+	if int(data.district_pressure_peak_threat) > DistrictPressureCatalog.MAX_LIVE_THREAT:
+		errors.append(
+			"district_pressure_peak_threat=%d cap=%d"
+			% [data.district_pressure_peak_threat, DistrictPressureCatalog.MAX_LIVE_THREAT]
 		)
 	if int(data.telegraph_peak) > TELEGRAPH_RECORDS:
 		errors.append("telegraph_peak=%d cap=%d" % [data.telegraph_peak, TELEGRAPH_RECORDS])
