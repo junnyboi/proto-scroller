@@ -10,6 +10,7 @@ const FLAG_DIRECTIVE_SKYBREAKER: int = 1 << 3
 const FLAG_VOLATILE: int = 1 << 4
 const FLAG_KINETIC_FIELD: int = 1 << 5
 const FLAG_HAZARD: int = 1 << 6
+const FLAG_FULL_CHARGE: int = 1 << 7
 const MAX_CAUSAL_DEPTH: int = 3
 
 var attack_id: int

@@ -14,6 +14,11 @@ signal profile_changed(actor: EnemyActor2D)
 signal boss_armor_changed(current: float, maximum: float)
 signal boss_armor_broken()
 
+enum ArmorPolicy {
+	LEGACY_AMOUNT_BASED,
+	FULL_CHARGE_FIXED_STEP,
+}
+
 const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
 const SURVIVING_MELEE_KNOCKBACK_MULTIPLIER: float = 5.0
 
@@ -54,6 +59,8 @@ var catalyst_target: Catalyst2D
 var boss_mode: bool = false
 var boss_armor: float = 0.0
 var boss_max_armor: float = 0.0
+var boss_armor_policy: ArmorPolicy = ArmorPolicy.LEGACY_AMOUNT_BASED
+var boss_armor_fixed_step: float = 110.0
 var player_anticipation_count: int = 0
 var player_strike_reaction_count: int = 0
 var last_player_reaction_attack_id: int = 0
@@ -138,7 +145,12 @@ func receive_damage(event: DamageEvent) -> bool:
 	if boss_mode and boss_armor > 0.0:
 		if event.damage_type != &"jab_cross":
 			return false
-		boss_armor = maxf(boss_armor - event.amount, 0.0)
+		var armor_damage: float = event.amount
+		if boss_armor_policy == ArmorPolicy.FULL_CHARGE_FIXED_STEP:
+			if event.effect_flags & DamageEvent.FLAG_FULL_CHARGE == 0:
+				return false
+			armor_damage = boss_armor_fixed_step
+		boss_armor = maxf(boss_armor - armor_damage, 0.0)
 		boss_armor_changed.emit(boss_armor, boss_max_armor)
 		if is_zero_approx(boss_armor):
 			boss_armor_broken.emit()
@@ -316,10 +328,17 @@ func clear_profiles() -> void:
 		role_badge.configure(null, null)
 
 
-func configure_boss(armor: float, exposed_health: float) -> void:
+func configure_boss(
+	armor: float,
+	exposed_health: float,
+	armor_policy: ArmorPolicy = ArmorPolicy.LEGACY_AMOUNT_BASED,
+	fixed_step: float = 110.0
+) -> void:
 	boss_mode = true
 	boss_max_armor = maxf(armor, 1.0)
 	boss_armor = boss_max_armor
+	boss_armor_policy = armor_policy
+	boss_armor_fixed_step = maxf(fixed_step, 1.0)
 	max_health = maxf(exposed_health, 1.0)
 	current_health = max_health
 	boss_armor_changed.emit(boss_armor, boss_max_armor)
@@ -359,6 +378,8 @@ func deactivate() -> void:
 	boss_mode = false
 	boss_armor = 0.0
 	boss_max_armor = 0.0
+	boss_armor_policy = ArmorPolicy.LEGACY_AMOUNT_BASED
+	boss_armor_fixed_step = 110.0
 	active = false
 	dead = false
 	visible = false

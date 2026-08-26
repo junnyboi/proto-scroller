@@ -49,6 +49,18 @@ const PAUSE_COORDINATORS: int = 1
 const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS + PROCEDURAL_ENEMIES
 const TRAIT_RUNTIMES: int = 1
 const BOSS_SESSIONS: int = 1
+const BOSS_RIGS: int = 1
+const BOSS_CONTROLLERS: int = 1
+const BOSS_ARENA_ADAPTERS: int = 1
+const BOSS_PYLON_PRESENTATIONS: int = BossUtilityPool.PYLON_PRESENTATION_CAPACITY
+const BOSS_PROJECTION_SLOTS: int = BossUtilityPool.PROJECTION_SLOT_CAPACITY
+const BOSS_MARKERS: int = BossUtilityPool.MARKER_CAPACITY
+const BOSS_LANE_DAMAGE_AREAS: int = BossUtilityPool.LANE_DAMAGE_AREA_CAPACITY
+const BOSS_LINE_AREAS: int = BossUtilityPool.LINE_AREA_CAPACITY
+const BOSS_COLLAPSE_LISTENERS: int = BossUtilityPool.COLLAPSE_LISTENER_CAPACITY
+const BOSS_POD_VISUALS: int = BossUtilityPool.POD_VISUAL_CAPACITY
+const BOSS_RECLAMATION_ANCHORS: int = BossUtilityPool.RECLAMATION_ANCHOR_CAPACITY
+const BOSS_WRECK_RECEIVERS: int = BossUtilityPool.WRECK_RECEIVER_CAPACITY
 const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
 const DISTRICT_RECIPES: int = 3
 const RUN_CONTRACTS: int = 3
@@ -190,6 +202,20 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"role_badges": city.encounter_runtime.total_count(),
 		"trait_runtimes": 1 if city.urban_siege.trait_runtime != null else 0,
 		"boss_sessions": 1 if city.urban_siege.boss_session != null else 0,
+		"boss_rigs": _boss_utility_count(city, &"rig"),
+		"boss_controllers": _boss_utility_count(city, &"controller"),
+		"boss_arena_adapters": _boss_utility_count(city, &"arena_adapter"),
+		"boss_pylon_presentations": _boss_utility_count(city, &"pylons"),
+		"boss_projection_slots": _boss_utility_count(city, &"projections"),
+		"boss_markers": _boss_utility_count(city, &"markers"),
+		"boss_lane_damage_areas": _boss_utility_count(city, &"lane_areas"),
+		"boss_line_areas": _boss_utility_count(city, &"line_areas"),
+		"boss_collapse_listeners": _boss_utility_count(city, &"collapse_listeners"),
+		"boss_pod_visuals": _boss_utility_count(city, &"pod_visuals"),
+		"boss_reclamation_anchors": _boss_utility_count(city, &"anchors"),
+		"boss_wreck_receivers": _boss_utility_count(city, &"wreck_receivers"),
+		"boss_post_warm_creations": _boss_utility_count(city, &"post_warm_creations"),
+		"boss_reservations": _boss_utility_count(city, &"reservations"),
 		"causal_records": city.rampage_session.causal_chain_tracker.active_count(),
 		"district_recipes": city.urban_siege.DISTRICT_DECK.recipes.size(),
 		"run_contracts": city.urban_siege.RUN_CONTRACTS.size(),
@@ -308,6 +334,20 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "role_badges", ROLE_BADGES)
 	_check_equal(errors, data, "trait_runtimes", TRAIT_RUNTIMES)
 	_check_equal(errors, data, "boss_sessions", BOSS_SESSIONS)
+	_check_equal(errors, data, "boss_rigs", BOSS_RIGS)
+	_check_equal(errors, data, "boss_controllers", BOSS_CONTROLLERS)
+	_check_equal(errors, data, "boss_arena_adapters", BOSS_ARENA_ADAPTERS)
+	_check_equal(errors, data, "boss_pylon_presentations", BOSS_PYLON_PRESENTATIONS)
+	_check_equal(errors, data, "boss_projection_slots", BOSS_PROJECTION_SLOTS)
+	_check_equal(errors, data, "boss_markers", BOSS_MARKERS)
+	_check_equal(errors, data, "boss_lane_damage_areas", BOSS_LANE_DAMAGE_AREAS)
+	_check_equal(errors, data, "boss_line_areas", BOSS_LINE_AREAS)
+	_check_equal(errors, data, "boss_collapse_listeners", BOSS_COLLAPSE_LISTENERS)
+	_check_equal(errors, data, "boss_pod_visuals", BOSS_POD_VISUALS)
+	_check_equal(errors, data, "boss_reclamation_anchors", BOSS_RECLAMATION_ANCHORS)
+	_check_equal(errors, data, "boss_wreck_receivers", BOSS_WRECK_RECEIVERS)
+	_check_equal(errors, data, "boss_post_warm_creations", 0)
+	_check_equal(errors, data, "boss_reservations", 0)
 	_check_equal(errors, data, "district_recipes", DISTRICT_RECIPES)
 	_check_equal(errors, data, "run_contracts", RUN_CONTRACTS)
 	_check_equal(
@@ -508,3 +548,41 @@ static func _missile_explosion_visual_slot_count(city: CitySlice) -> int:
 		city.upgrade_assembler.runtimes.get(&"MISSILE") as MissileWeapon
 	)
 	return runtime.explosion_visuals.size() if runtime != null else 0
+
+
+static func _boss_utility_count(city: CitySlice, kind: StringName) -> int:
+	if city.urban_siege == null or city.urban_siege.boss_session == null:
+		return 0
+	var pool: BossUtilityPool = city.urban_siege.boss_session.utility_pool
+	if pool == null:
+		return 0
+	match kind:
+		&"rig":
+			return pool.rig_count()
+		&"controller":
+			return pool.controller_count()
+		&"arena_adapter":
+			return pool.arena_adapter_count()
+		&"pylons":
+			return pool.pylon_count()
+		&"projections":
+			return pool.projection_count()
+		&"markers":
+			return pool.marker_count()
+		&"lane_areas":
+			return pool.lane_damage_areas.size()
+		&"line_areas":
+			return pool.line_areas.size()
+		&"collapse_listeners":
+			return pool.collapse_listener_count()
+		&"pod_visuals":
+			return pool.pod_visual_count()
+		&"anchors":
+			return pool.reclamation_anchor_count()
+		&"wreck_receivers":
+			return pool.wreck_receiver_count()
+		&"post_warm_creations":
+			return pool.post_warm_creation_count
+		&"reservations":
+			return pool.reservation_count()
+	return 0

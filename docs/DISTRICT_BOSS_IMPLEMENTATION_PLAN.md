@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 
-**Status:** Proposed; implementation has not started
+**Status:** In progress — WP0 complete
 
 **Companion design:** `docs/DISTRICT_BOSS_ENCOUNTER_PROPOSAL.md`
 
@@ -120,6 +120,8 @@ Every implementation work package follows the same shared-branch protocol. Befor
 ### WP0 — Canon, catalog, and compatibility foundation
 
 **Purpose:** Freeze the approved roster and create data contracts before introducing encounter behavior.
+
+**Status: Complete (2026-08-26).** The canonical five-definition catalog, immutable phase/outcome contracts, opt-in fixed-step full-charge armor policy, compatibility-preserving `CommandBossSession.start_definition()` path, shared prewarmed utility union, generation/reservation APIs, and runtime-budget telemetry are implemented. The five GPT Image 2 runtime silhouettes and five Lyria 3 Pro boss themes are also staged with provenance as a compact **1,571,351-byte** source pack; final acceptance remains the measured Web PCK delta in WP7/WP8. Godot 4.7.2 import and lint passed. After integrating the concurrent Project CHOIR narrative and weapon-shop foundations, the corrected complete standard gate passed **336 tests and 31,496 assertions** in **653 seconds**, including enemy-variety attack-gate coverage after preserving the legacy session-stop contract.
 
 **Implementation:**
 
