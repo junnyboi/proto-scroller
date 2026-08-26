@@ -25,7 +25,7 @@ The standard gate performs a direct import, strict GDScript lint and parse-log c
 
 ### Latest verified baseline
 
-The full harness last passed on **2026-08-26** against merged gameplay revision `ead3388b6090430ea6d149a0e0de92f9c4af4fbf` using `Godot 4.7.2.stable.official.ed1daf0bf`.
+The full harness last passed on **2026-08-26** against source revision `28da94ddd6532c3ec99ff3255f33b7ea5f2bc482` using `Godot 4.7.2.stable.official.ed1daf0bf`.
 
 | Check | Result |
 |---|---|
@@ -39,7 +39,7 @@ The full harness last passed on **2026-08-26** against merged gameplay revision 
 | PCK size | 14,109,168 bytes, below the 16 MiB harness limit |
 | Browser gameplay smoke | Landscape 1280×720 and portrait 720×1280 title loops decoded, advanced, and selected correctly; the landscape video paused when gameplay began. Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass`; the exported punch cue reported 1.17 seconds, ground slam and punch reported the exact 25-percent-reduced 8.54365 dB playback level, and all audited SFX passed at progression distance with zero drops |
 | Error scan | No script, parse, browser console, request, fatal, or crash errors |
-| Duration | 709 seconds |
+| Duration | 729 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
@@ -64,6 +64,8 @@ Forward logical-chunk progress selects geography independently of the six-act si
 | **Royal — The Crownward** | ≥ 32 | Laureate Processional Gate; Aurelian Menagerie Conservatory; Tribunal of Nine Seals; Ministry of Privilege Spire; Palace of the Last Sovereign |
 
 All 25 buildings reuse the fixed six-building resident pool and the established three-column by two-row destruction topology. Variant changes reconfigure facade atlas regions, dimensions, material resistance, deterministic crack seeds, pipes, cables, hollow edges, and rubble geometry in place before mutation restore. The complete visual briefs and GPT Image 2 concept boards are documented in [`docs/DISTRICT_DESTRUCTION_DESIGN.md`](docs/DISTRICT_DESTRUCTION_DESIGN.md); phased architecture, risk controls, and measured gates are recorded in [`docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md`](docs/DISTRICT_DESTRUCTION_IMPLEMENTATION_PLAN.md).
+
+Each spatial district owns a validated pool of three unique missions. Mission selection is deterministic for the run seed, cycle, and district; crossing a district boundary withdraws the old objective without a score penalty and offers the destination pool once per cycle. Active mission cards expose the authoritative pause-aware countdown, timer bar, objective count, objective progress bar, instruction, and pending score in both viewport orientations. Combat pressure also follows the spatial district through five readiness-gated profiles: enemy-copy allowance, absolute live threat, cadence, recovery, elite chance, and hazard pressure rise monotonically from Business through Royal while retaining fixed pool and runtime caps. Full mission, telemetry, and balance specifications plus measured verification evidence are recorded in [`docs/DISTRICT_MISSIONS_AND_BALANCE_PLAN.md`](docs/DISTRICT_MISSIONS_AND_BALANCE_PLAN.md).
 
 The proposed narrative campaign, **Project CHOIR**, connects the five districts, twenty-five facades, retries, directives, and enemy escalation to a human bio-weapons conspiracy. Its storyline, phased implementation plan, and GPT Image 2 laboratory, enemy, carrier, and final-boss concepts are documented in [`docs/PROJECT_CHOIR_STORY_PROPOSAL.md`](docs/PROJECT_CHOIR_STORY_PROPOSAL.md).
 

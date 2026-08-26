@@ -1,7 +1,7 @@
 # District Missions and Difficulty Escalation Plan
 
 **Author:** Manus AI  
-**Status:** In progress — planning complete  
+**Status:** Complete — implemented, verified, pushed, and deployed
 **Target branch:** `main`  
 **Engine:** Godot 4.7.2-stable
 
@@ -92,6 +92,8 @@ Add district pressure profiles, readiness gating, threat-aware enemy copies, and
 ### WP4 — Release verification and deployment
 
 Re-fetch shared `main`, integrate concurrent work by fast-forward only, and rerun affected gates. Execute direct import, bounded boot, full GUT, Xvfb landscape/portrait scenarios, log scans, Web export, package-size enforcement, and Chromium smoke. Refresh the existing `proto-scroller` WebDev project, preserve the fullscreen iframe, run TypeScript/build checks, verify exact storage payloads and runtime input over HTTP, save a checkpoint, and publish when the tool is available.
+
+**Status: Complete.** Shared `main` was fast-forwarded through the responsive cinematic-title release and the exact combined source revision `28da94ddd6532c3ec99ff3255f33b7ea5f2bc482` passed the authoritative Godot 4.7.2 full gate in **729 seconds**: **312/312 tests**, **30,008 assertions**, direct import, bounded boot, all headless scenarios, required 1280×720 and 720×1280 Xvfb renders, log scans, a nine-file Web export, a **14,109,168-byte** PCK below the 16 MiB cap, and Chromium gameplay smoke. Mission-card active/failure states and readiness-gated Royal traversal were visually inspected in both orientations. Existing WebDev project `proto-scroller` was preserved as a fullscreen, borderless, zero-margin iframe and concurrent checkpoint `440f833c` was adopted because it had already deployed the same certified source. The public deployment at `https://protoscoll-enopta8p.manus.space/` returned the exact 39,514,754-byte Godot 4.7.2 WASM and 14,109,168-byte PCK, streamed both orientation-specific title loops, entered gameplay through trusted input, accepted movement, Dash, and Smash, paused the title video after handoff, filled the dynamic viewport, and produced no runtime-console errors.
 
 ## Verification Matrix
 
