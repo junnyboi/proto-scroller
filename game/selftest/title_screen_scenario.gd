@@ -72,6 +72,12 @@ func _run() -> void:
 		button.text.contains(L10n.t("title.begin")),
 		"text=%s" % [button.text]
 	)
+	_check(
+		"payback_line_break",
+		(screen.get_node("%InstructionLabel") as Label).text.contains("...\n"),
+		"text=%s" % [(screen.get_node("%InstructionLabel") as Label).text]
+	)
+	_check("input_hint_removed", screen.get_node_or_null("HintLabel") == null, "removed=true")
 	_check_briefing_content(screen)
 	_check_language_selector(screen)
 	_check("button_focused", button.has_focus(), "focused=%s" % [button.has_focus()])
@@ -226,7 +232,7 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 	)
 	_check(
 		"language_below_launch",
-		language_selector.get_global_rect().position.y >= button_rect.end.y,
+		language_selector.get_global_rect().position.y >= button_rect.end.y + 16.0,
 		"button=%s language=%s" % [button_rect, language_selector.get_global_rect()]
 	)
 	_check(

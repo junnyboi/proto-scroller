@@ -63,8 +63,9 @@ func test_launch_scene_contract() -> void:
 	assert_eq(title_label.text, "PROTOS")
 	assert_eq(
 		(screen.get_node("%InstructionLabel") as Label).text,
-		"An evil organisation killed everyone you love... it's payback time!"
+		"An evil organisation killed everyone you love...\nit's payback time!"
 	)
+	assert_null(screen.get_node_or_null("HintLabel"))
 	assert_eq(english_button.text, "EN")
 	assert_eq(chinese_button.text, "CN")
 	assert_true(english_button.button_pressed)
@@ -292,8 +293,8 @@ func test_launch_action_does_not_overlap_briefing_action() -> void:
 	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
 	assert_gte(
 		language_selector.get_global_rect().position.y,
-		initialize_button.get_global_rect().end.y,
-		"The language selector must remain below the launch action."
+		initialize_button.get_global_rect().end.y + 16.0,
+		"The launch action must retain at least 16 px of bottom spacing."
 	)
 	assert_false(
 		initialize_button.get_global_rect().intersects(briefing_toggle.get_global_rect()),
@@ -312,6 +313,12 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 	assert_false(source.contains("func _draw"), "Procedural title graphics are forbidden.")
 	assert_false(source.contains("draw_line"), "Procedural title graphics are forbidden.")
 	assert_false(source.contains("draw_circle"), "Procedural title graphics are forbidden.")
+	assert_true(source.contains("protoScrollerSetTitleBackdropActive"))
+	var host_source: String = FileAccess.get_file_as_string("res://../client/src/main.ts")
+	assert_true(host_source.contains("title-loop-landscape.mp4"))
+	assert_true(host_source.contains("title-loop-portrait.mp4"))
+	assert_true(host_source.contains("title-poster-landscape.jpg"))
+	assert_true(host_source.contains("title-poster-portrait.jpg"))
 	_record_test_execution()
 
 

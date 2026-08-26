@@ -49,9 +49,10 @@ run_engine "$GODOT" --headless --path . --import
 printf '%s\n' '[L1] parse and lint'
 "$GODOT" --version | grep -Fq '4.7.2'
 grep -Fq 'config/features=PackedStringArray("4.7", "GL Compatibility")' project.godot
-grep -Fq 'window/size/viewport_width=1280' project.godot
-grep -Fq 'window/size/viewport_height=720' project.godot
-grep -Fq 'window/stretch/mode="canvas_items"' project.godot
+	grep -Fq 'window/size/viewport_width=1280' project.godot
+	grep -Fq 'window/size/viewport_height=720' project.godot
+	grep -Fq 'window/per_pixel_transparency/allowed=true' project.godot
+	grep -Fq 'window/stretch/mode="canvas_items"' project.godot
 grep -Fq 'window/stretch/aspect="keep"' project.godot
 grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
 grep -Fq 'variant/extensions_support=false' export_presets.cfg
@@ -471,8 +472,31 @@ if [[ "$MODE" == "full" ]]; then
 	  (
 	    cd ..
 	    pnpm patch:web-audio
+	    pnpm patch:title-video
 	  )
 	  test -s ../client/public/game/game.html
+	  test -s ../client/public/title-video/title-loop-landscape.mp4
+	  test -s ../client/public/title-video/title-loop-portrait.mp4
+	  test -s ../client/public/title-video/title-poster-landscape.jpg
+	  test -s ../client/public/title-video/title-poster-portrait.jpg
+	  grep -Fq 'id="title-video-backdrop"' ../client/public/game/game.html
+	  grep -Fq 'protoScrollerSetTitleBackdropActive' ../client/public/game/game.html
+	  test "$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 \
+	    ../client/public/title-video/title-loop-landscape.mp4 | wc -l)" -eq 0
+	  test "$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 \
+	    ../client/public/title-video/title-loop-portrait.mp4 | wc -l)" -eq 0
+	  test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height \
+	    -of csv=s=x:p=0 ../client/public/title-video/title-loop-landscape.mp4)" = '1280x720'
+	  test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height \
+	    -of csv=s=x:p=0 ../client/public/title-video/title-loop-portrait.mp4)" = '720x1280'
+	  awk -v duration="$(ffprobe -v error -show_entries format=duration -of csv=p=0 \
+	    ../client/public/title-video/title-loop-landscape.mp4)" \
+	    'BEGIN { exit !(duration >= 7.99 && duration <= 8.01) }'
+	  awk -v duration="$(ffprobe -v error -show_entries format=duration -of csv=p=0 \
+	    ../client/public/title-video/title-loop-portrait.mp4)" \
+	    'BEGIN { exit !(duration >= 7.99 && duration <= 8.01) }'
+	  test "$(stat -c %s ../client/public/title-video/title-loop-landscape.mp4)" -le 2000000
+	  test "$(stat -c %s ../client/public/title-video/title-loop-portrait.mp4)" -le 2000000
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.wasm' -size +0c -printf '.' | wc -c)" -ge 1
   test "$(find ../client/public/game -maxdepth 1 -type f -name '*.pck' -size +0c -printf '.' | wc -c)" -ge 1
 	  test "$(find ../client/public/game -maxdepth 1 -type f -name '*.js' -size +0c -printf '.' | wc -c)" -ge 1
@@ -490,8 +514,27 @@ if [[ "$MODE" == "full" ]]; then
 	    cd ..
 	    timeout --preserve-status --signal=TERM --kill-after=5s 180s pnpm smoke:web
 	  )
+	  test -s artifacts/browser/title-video-landscape.png
+	  test -s artifacts/browser/title-video-portrait.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/browser/title-video-landscape.png)"
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/browser/title-video-portrait.png)"
 	  jq -e '
 	    .status == "PASS"
+	    and .titleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-landscape.mp4"
+	    and .titleVideo.duration >= 7.9
+	    and .titleVideo.duration <= 8.1
+	    and .titleVideo.videoWidth == 1280
+	    and .titleVideo.videoHeight == 720
+	    and .titleVideo.loop == true
+	    and .titleVideo.muted == true
+	    and .titleVideo.stoppedForGameplay == true
+	    and .portraitTitleVideo.currentSrc == "http://127.0.0.1:4173/title-video/title-loop-portrait.mp4"
+	    and .portraitTitleVideo.duration >= 7.9
+	    and .portraitTitleVideo.duration <= 8.1
+	    and .portraitTitleVideo.videoWidth == 720
+	    and .portraitTitleVideo.videoHeight == 1280
+	    and .portraitTitleVideo.loop == true
+	    and .portraitTitleVideo.muted == true
 	    and (.audioContextStates | index("running")) != null
 	    and .phases[0].details.background_music_playing == true
 	    and (.workletModules | length) == 2

@@ -9,6 +9,7 @@
     "start": "NODE_ENV=production node dist/index.js",
     "preview": "vite preview --host",
     "patch:web-audio": "node scripts/patch-godot-worklet-base.mjs client/public/game/game.js",
+    "patch:title-video": "node scripts/patch-title-video-shell.mjs client/public/game/game.html",
     "smoke:web": "node scripts/web-gameplay-smoke.mjs",
     "check": "tsc --noEmit",
     "format": "prettier --write ."

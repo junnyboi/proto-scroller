@@ -43,6 +43,7 @@ type GodotEngineConstructor = {
 declare global {
   interface Window {
     Engine?: GodotEngineConstructor;
+    protoScrollerSetTitleBackdropActive?: (active: boolean) => void;
     protoScrollerResolution?: WebRenderResolution;
   }
 }
@@ -64,6 +65,23 @@ if (!root) {
 
 root.innerHTML = `
   <main class="game-host">
+    <picture id="title-poster-backdrop" class="title-poster-backdrop" aria-hidden="true">
+      <source media="(orientation: portrait)" srcset="/title-video/title-poster-portrait.jpg" />
+      <img src="/title-video/title-poster-landscape.jpg" alt="" />
+    </picture>
+    <video
+      id="title-video-backdrop"
+      class="title-video-backdrop"
+      muted
+      loop
+      autoplay
+      playsinline
+      preload="auto"
+      aria-hidden="true"
+    >
+      <source media="(orientation: portrait)" src="/title-video/title-loop-portrait.mp4" type="video/mp4" />
+      <source src="/title-video/title-loop-landscape.mp4" type="video/mp4" />
+    </video>
     <canvas id="canvas" class="game-canvas" tabindex="0" aria-label="Proto Scroller">
       Your browser does not support the canvas element.
     </canvas>
@@ -99,6 +117,9 @@ function requireElement<T extends HTMLElement>(id: string): T {
 }
 
 const canvas = requireElement<HTMLCanvasElement>("canvas");
+const titleVideoBackdrop = requireElement<HTMLVideoElement>(
+  "title-video-backdrop"
+);
 const runtimeState = requireElement<HTMLElement>("runtime-state");
 const loaderStage = requireElement<HTMLElement>("loader-stage");
 const loaderProgress = requireElement<HTMLProgressElement>("loader-progress");
@@ -115,6 +136,22 @@ let resizeFrame = 0;
 let loadingComplete = false;
 let latestPercent: number | null = null;
 const downloadTelemetry = new DownloadTelemetryTracker();
+
+window.protoScrollerSetTitleBackdropActive = (active: boolean): void => {
+  document.body.classList.toggle("title-backdrop-active", active);
+  if (active) {
+    const playPromise = titleVideoBackdrop.play();
+    if (playPromise) void playPromise.catch(() => undefined);
+  } else {
+    titleVideoBackdrop.pause();
+  }
+};
+titleVideoBackdrop.addEventListener(
+  "playing",
+  () => titleVideoBackdrop.classList.add("is-ready"),
+  { once: true }
+);
+window.protoScrollerSetTitleBackdropActive(true);
 
 loaderRetry.addEventListener("click", () => window.location.reload());
 
@@ -176,22 +213,26 @@ function showError(message: string): void {
 }
 
 function nextPaint(): Promise<void> {
-  return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+  return new Promise(resolve => window.requestAnimationFrame(() => resolve()));
 }
 
 updateCanvasResolution();
-window.addEventListener("resize", queueCanvasResolutionUpdate, { passive: true });
+window.addEventListener("resize", queueCanvasResolutionUpdate, {
+  passive: true,
+});
 
 const slowLoadTimer = window.setTimeout(() => {
   if (loadingComplete) return;
-  loaderDetail.textContent = latestPercent === null
-    ? "Connecting to game storage. This can take longer on a cold deployment…"
-    : `${loaderPercent.textContent} received. Initializing the ${formatMebibytes(ENGINE_WASM_BYTES + GAME_PACK_BYTES)} runtime…`;
+  loaderDetail.textContent =
+    latestPercent === null
+      ? "Connecting to game storage. This can take longer on a cold deployment…"
+      : `${loaderPercent.textContent} received. Initializing the ${formatMebibytes(ENGINE_WASM_BYTES + GAME_PACK_BYTES)} runtime…`;
 }, SLOW_LOAD_NOTICE_MS);
 
 const retryTimer = window.setTimeout(() => {
   if (loadingComplete) return;
-  loaderDetail.textContent = "Loading is taking longer than expected. You can retry safely.";
+  loaderDetail.textContent =
+    "Loading is taking longer than expected. You can retry safely.";
   loaderRetry.hidden = false;
 }, RETRY_NOTICE_MS);
 

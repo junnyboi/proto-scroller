@@ -108,11 +108,11 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 			title_font.has_char(token_character.unicode_at(0)),
 			"Missing invariant control glyph: %s" % token_character
 		)
-	assert_eq((screen.get_node("HintLabel") as Label).text, "ENTER  /  A  /  TAP")
+	assert_null(screen.get_node_or_null("HintLabel"))
 	assert_eq((screen.get_node("%TitleLabel") as Label).text, "PROTOS")
 	assert_eq(
 		(screen.get_node("%InstructionLabel") as Label).text,
-		"敌军已控制城市。全面报复。"
+		"敌军已控制城市。\n全面报复。"
 	)
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
 	assert_true(controls.contains("移动 A/D"))

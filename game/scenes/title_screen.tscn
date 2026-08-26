@@ -190,17 +190,6 @@ theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
 theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
 text = ""
 
-[node name="HintLabel" type="Label" parent="."]
-layout_mode = 0
-offset_left = 430.0
-offset_top = 412.0
-offset_right = 620.0
-offset_bottom = 458.0
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.301961, 0.454902, 0.470588, 1)
-text = ""
-vertical_alignment = 1
-
 [node name="LanguageSelector" type="HBoxContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 0

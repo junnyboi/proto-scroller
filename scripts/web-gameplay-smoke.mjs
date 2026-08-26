@@ -10,6 +10,14 @@ const ROOT = path.resolve(SCRIPT_DIR, "..");
 const ARTIFACT_DIR = path.join(ROOT, "game", "artifacts", "browser");
 const REPORT_PATH = path.join(ARTIFACT_DIR, "upgrade-transition.json");
 const SCREENSHOT_PATH = path.join(ARTIFACT_DIR, "upgrade-transition.png");
+const TITLE_LANDSCAPE_SCREENSHOT_PATH = path.join(
+  ARTIFACT_DIR,
+  "title-video-landscape.png"
+);
+const TITLE_PORTRAIT_SCREENSHOT_PATH = path.join(
+  ARTIFACT_DIR,
+  "title-video-portrait.png"
+);
 const FAILURE_SCREENSHOT_PATH = path.join(
   ARTIFACT_DIR,
   "upgrade-transition-failure.png"
@@ -55,6 +63,8 @@ let report = {
   requestFailures,
   httpErrors,
   workletModules: [],
+  titleVideo: null,
+  portraitTitleVideo: null,
 };
 
 try {
@@ -153,7 +163,8 @@ try {
     if (
       url.includes("/game/") ||
       url.includes("/manus-storage/") ||
-      url.includes("/remote-engine/")
+      url.includes("/remote-engine/") ||
+      url.includes("/title-video/")
     ) {
       requestFailures.push(
         `${url}: ${request.failure()?.errorText ?? "unknown failure"}`
@@ -172,8 +183,73 @@ try {
     undefined,
     { timeout: 120_000 }
   );
+  await page.waitForFunction(
+    () => {
+      const video = document.getElementById("title-video-backdrop");
+      return (
+        video instanceof HTMLVideoElement &&
+        document.body.classList.contains("title-backdrop-active") &&
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        !video.paused &&
+        video.currentTime > 0
+      );
+    },
+    undefined,
+    { timeout: 30_000 }
+  );
+  const titleVideoStart = await page.evaluate(() => {
+    const video = document.getElementById("title-video-backdrop");
+    if (!(video instanceof HTMLVideoElement)) return null;
+    return {
+      currentSrc: video.currentSrc,
+      currentTime: video.currentTime,
+      duration: video.duration,
+      loop: video.loop,
+      muted: video.muted,
+      paused: video.paused,
+      readyState: video.readyState,
+      videoHeight: video.videoHeight,
+      videoWidth: video.videoWidth,
+    };
+  });
+  await page.waitForTimeout(350);
+  const titleVideoAdvancedTime = await page.evaluate(() => {
+    const video = document.getElementById("title-video-backdrop");
+    return video instanceof HTMLVideoElement ? video.currentTime : 0;
+  });
+  if (
+    !titleVideoStart ||
+    !titleVideoStart.currentSrc.endsWith(
+      "/title-video/title-loop-landscape.mp4"
+    ) ||
+    titleVideoStart.duration < 7.9 ||
+    titleVideoStart.duration > 8.1 ||
+    !titleVideoStart.loop ||
+    !titleVideoStart.muted ||
+    titleVideoStart.paused ||
+    titleVideoStart.videoWidth !== 1280 ||
+    titleVideoStart.videoHeight !== 720 ||
+    titleVideoAdvancedTime <= titleVideoStart.currentTime
+  ) {
+    throw new Error(
+      `title video contract failed: ${JSON.stringify({ titleVideoStart, titleVideoAdvancedTime })}`
+    );
+  }
+  await page.screenshot({ path: TITLE_LANDSCAPE_SCREENSHOT_PATH });
   await page.keyboard.press("Enter");
   await waitForPhase(page, "ready", 30_000);
+  await page.waitForFunction(
+    () => {
+      const video = document.getElementById("title-video-backdrop");
+      return (
+        video instanceof HTMLVideoElement &&
+        !document.body.classList.contains("title-backdrop-active") &&
+        video.paused
+      );
+    },
+    undefined,
+    { timeout: 10_000 }
+  );
   await page.keyboard.down("Space");
   try {
     await waitForPhase(page, "charge_started", 30_000);
@@ -235,6 +311,65 @@ try {
 
   const phases = await smokeHistory(page);
   assertPhaseContract(phases);
+
+  await page.setViewportSize({ width: 720, height: 1280 });
+  await page.goto(report.url, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await page.waitForFunction(
+    () => {
+      const video = document.getElementById("title-video-backdrop");
+      return (
+        video instanceof HTMLVideoElement &&
+        document.querySelector("canvas.is-ready") &&
+        !document.getElementById("runtime-state") &&
+        document.body.classList.contains("title-backdrop-active") &&
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        !video.paused &&
+        video.currentTime > 0 &&
+        video.currentSrc.endsWith("/title-video/title-loop-portrait.mp4")
+      );
+    },
+    undefined,
+    { timeout: 120_000 }
+  );
+  const portraitTitleVideo = await page.evaluate(() => {
+    const video = document.getElementById("title-video-backdrop");
+    if (!(video instanceof HTMLVideoElement)) return null;
+    return {
+      currentSrc: video.currentSrc,
+      currentTime: video.currentTime,
+      duration: video.duration,
+      loop: video.loop,
+      muted: video.muted,
+      paused: video.paused,
+      readyState: video.readyState,
+      videoHeight: video.videoHeight,
+      videoWidth: video.videoWidth,
+    };
+  });
+  await page.waitForTimeout(350);
+  const portraitAdvancedTime = await page.evaluate(() => {
+    const video = document.getElementById("title-video-backdrop");
+    return video instanceof HTMLVideoElement ? video.currentTime : 0;
+  });
+  if (
+    !portraitTitleVideo ||
+    portraitTitleVideo.duration < 7.9 ||
+    portraitTitleVideo.duration > 8.1 ||
+    !portraitTitleVideo.loop ||
+    !portraitTitleVideo.muted ||
+    portraitTitleVideo.paused ||
+    portraitTitleVideo.videoWidth !== 720 ||
+    portraitTitleVideo.videoHeight !== 1280 ||
+    portraitAdvancedTime <= portraitTitleVideo.currentTime
+  ) {
+    throw new Error(
+      `portrait title video contract failed: ${JSON.stringify({ portraitTitleVideo, portraitAdvancedTime })}`
+    );
+  }
+  await page.screenshot({ path: TITLE_PORTRAIT_SCREENSHOT_PATH });
   if (browserErrors.length > 0) {
     throw new Error(`browser console errors: ${browserErrors.join(" | ")}`);
   }
@@ -247,6 +382,17 @@ try {
     phases,
     audioContextStates,
     workletModules,
+    titleVideo: {
+      ...titleVideoStart,
+      advancedTime: titleVideoAdvancedTime,
+      screenshot: path.relative(ROOT, TITLE_LANDSCAPE_SCREENSHOT_PATH),
+      stoppedForGameplay: true,
+    },
+    portraitTitleVideo: {
+      ...portraitTitleVideo,
+      advancedTime: portraitAdvancedTime,
+      screenshot: path.relative(ROOT, TITLE_PORTRAIT_SCREENSHOT_PATH),
+    },
     screenshot: path.relative(ROOT, SCREENSHOT_PATH),
   };
   console.log(`[WEB-GAMEPLAY-SMOKE-PASS] phases=${EXPECTED_PHASES.join(",")}`);

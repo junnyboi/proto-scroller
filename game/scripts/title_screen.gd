@@ -91,6 +91,7 @@ var _capture_gamepad: bool = false
 
 
 func _ready() -> void:
+	_set_web_title_backdrop_active(true)
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	briefing_toggle.pressed.connect(toggle_briefing)
 	briefing_backdrop.pressed.connect(close_briefing)
@@ -146,6 +147,10 @@ func _ready() -> void:
 	L10n.apply_locale_font(self)
 	L10n.apply_cjk_font(chinese_button)
 	_apply_responsive_layout()
+
+
+func _exit_tree() -> void:
+	_set_web_title_backdrop_active(false)
 
 
 func _input(event: InputEvent) -> void:
@@ -445,7 +450,6 @@ func _apply_localized_text() -> void:
 		if initialized
 		else ">  %s" % L10n.t("title.begin")
 	)
-	($HintLabel as Label).text = L10n.t("title.input_hint")
 	_refresh_control_copy()
 	briefing_toggle.text = L10n.t(
 		"title.briefing_close" if briefing_open else "title.briefing_available"
@@ -508,10 +512,9 @@ func _apply_landscape_layout() -> void:
 	briefing_art.texture = _briefing_texture(false)
 	_set_rect(%TitleLabel, Rect2(52.0, 246.0, 680.0, 78.0))
 	_set_rect(%InstructionLabel, Rect2(52.0, 326.0, 740.0, 72.0))
-	_set_rect(initialize_button, Rect2(52.0, 412.0, 360.0, 72.0))
-	_set_rect($HintLabel, Rect2(430.0, 424.0, 190.0, 46.0))
-	_set_rect(language_selector, Rect2(52.0, 486.0, 282.0, 48.0))
-	_set_rect($StatusRail, Rect2(52.0, 550.0, 760.0, 94.0))
+	_set_rect(initialize_button, Rect2(52.0, 412.0, 360.0, 80.0))
+	_set_rect(language_selector, Rect2(52.0, 512.0, 282.0, 48.0))
+	_set_rect($StatusRail, Rect2(52.0, 570.0, 760.0, 74.0))
 	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
 	_set_rect(settings_button, Rect2(1068.0, 16.0, 196.0, 48.0))
 	_set_rect(settings_panel, Rect2(330.0, 100.0, 620.0, 520.0))
@@ -523,10 +526,9 @@ func _apply_portrait_layout() -> void:
 	briefing_art.texture = _briefing_texture(true)
 	_set_rect(%TitleLabel, Rect2(56.0, 88.0, 608.0, 82.0))
 	_set_rect(%InstructionLabel, Rect2(56.0, 174.0, 608.0, 110.0))
-	_set_rect(initialize_button, Rect2(104.0, 790.0, 512.0, 92.0))
-	_set_rect($HintLabel, Rect2(260.0, 888.0, 200.0, 46.0))
-	_set_rect(language_selector, Rect2(174.0, 940.0, 372.0, 52.0))
-	_set_rect($StatusRail, Rect2(54.0, 1012.0, 612.0, 140.0))
+	_set_rect(initialize_button, Rect2(104.0, 790.0, 512.0, 100.0))
+	_set_rect(language_selector, Rect2(174.0, 920.0, 372.0, 52.0))
+	_set_rect($StatusRail, Rect2(54.0, 992.0, 612.0, 160.0))
 	_set_rect(briefing_toggle, Rect2(174.0, 1190.0, 372.0, 58.0))
 	_set_rect(settings_button, Rect2(504.0, 20.0, 200.0, 56.0))
 	_set_rect(settings_panel, Rect2(54.0, 300.0, 612.0, 610.0))
@@ -575,3 +577,16 @@ func _set_rect(control: Control, rect: Rect2) -> void:
 	control.size = rect.size
 	control.set_deferred(&"position", rect.position)
 	control.set_deferred(&"size", rect.size)
+
+
+func _set_web_title_backdrop_active(active: bool) -> void:
+	if not OS.has_feature("web"):
+		return
+	background_art.visible = not active
+	get_viewport().transparent_bg = active
+	RenderingServer.set_default_clear_color(
+		Color(0.0, 0.0, 0.0, 0.0) if active else Color(0.008, 0.016, 0.035, 1.0)
+	)
+	JavaScriptBridge.eval(
+		"window.protoScrollerSetTitleBackdropActive?.(%s);" % [str(active).to_lower()]
+	)

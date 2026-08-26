@@ -13,6 +13,51 @@ html, body, #canvas {
 
 body {
 	color: white;
+}
+
+#title-poster-backdrop, #title-video-backdrop {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	object-fit: cover;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 180ms ease-out;
+}
+
+#title-poster-backdrop {
+	z-index: 0;
+}
+
+#title-poster-backdrop img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+#title-video-backdrop {
+	z-index: 1;
+}
+
+body.title-backdrop-active #title-poster-backdrop,
+body.title-backdrop-active #title-video-backdrop.is-ready {
+	opacity: 1;
+}
+
+#canvas {
+	position: relative;
+	z-index: 2;
+}
+
+#status {
+	z-index: 3;
+}
+
+body {
+	color: white;
 	background-color: black;
 	overflow: hidden;
 	touch-action: none;
@@ -95,6 +140,14 @@ body {
 
 	</head>
 	<body>
+		<picture id="title-poster-backdrop" aria-hidden="true">
+			<source media="(orientation: portrait)" srcset="/title-video/title-poster-portrait.jpg">
+			<img src="/title-video/title-poster-landscape.jpg" alt="">
+		</picture>
+		<video id="title-video-backdrop" muted loop autoplay playsinline preload="auto" aria-hidden="true">
+			<source media="(orientation: portrait)" src="/title-video/title-loop-portrait.mp4" type="video/mp4">
+			<source src="/title-video/title-loop-landscape.mp4" type="video/mp4">
+		</video>
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
 		</canvas>
@@ -111,7 +164,25 @@ body {
 
 		<script src="game.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"game","experimentalVK":false,"fileSizes":{"game.pck":13823212,"game.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const titleVideoBackdrop = document.getElementById('title-video-backdrop');
+window.protoScrollerSetTitleBackdropActive = function (active) {
+	document.body.classList.toggle('title-backdrop-active', Boolean(active));
+	if (!titleVideoBackdrop) return;
+	if (active) {
+		const playPromise = titleVideoBackdrop.play();
+		if (playPromise) playPromise.catch(() => {});
+	} else {
+		titleVideoBackdrop.pause();
+	}
+};
+if (titleVideoBackdrop) {
+	titleVideoBackdrop.addEventListener('playing', () => {
+		titleVideoBackdrop.classList.add('is-ready');
+	}, { once: true });
+}
+window.protoScrollerSetTitleBackdropActive(true);
+
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"game","experimentalVK":false,"fileSizes":{"game.pck":14095992,"game.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
