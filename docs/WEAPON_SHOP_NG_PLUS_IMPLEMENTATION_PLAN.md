@@ -36,7 +36,7 @@ Dialogue uses a generated district operator portrait, speaker name, two localize
 
 ### 3.2 Stat preview
 
-Focus, pointer hover, or touch selection updates a persistent preview panel. The panel displays a localized statistic label, current value, resulting value, signed delta, and a concise mechanical interpretation. Repair products show current integrity versus repaired integrity. Compound modifiers display the actual cumulative result rather than merely echoing the product percentage.
+Focus, pointer hover, or touch selection updates a persistent preview panel. The panel uses a lightweight translucent `StyleBoxFlat` rather than generated frame artwork. It displays each localized statistic label on its own line with the current and resulting values directly beneath it. Repair products show current integrity versus repaired integrity. Compound modifiers display the actual cumulative result rather than merely echoing the product percentage.
 
 | Effect family | Before/after source |
 |---|---|
@@ -56,7 +56,7 @@ Selecting an available card opens an input-blocking confirmation modal above the
 
 ### 3.4 Successful transaction feedback
 
-A successful upgrade emits a cyan-gold circuitry burst centered on the purchased card, flashes the preview value, plays the distinct upgrade-purchase cue, updates the score, and marks the card sold. A successful repair emits a mint-white nanoweld burst, briefly sweeps a repair glow through the integrity value, plays the distinct repair cue, and displays the exact restored integrity. Failed transactions do not emit success effects or consume score.
+A successful upgrade emits a cyan-gold circuitry burst centered on the purchased card, flashes the preview value, plays the distinct upgrade-purchase cue, updates the score, and marks the card sold. A successful repair emits a mint-white nanoweld burst, briefly sweeps a repair glow through the integrity value, plays the distinct repair cue, and displays the exact restored integrity. No redundant transaction-status banner is shown beneath the products; card state, credit total, preview values, audio, and particles provide the confirmation. Failed transactions do not emit success effects or consume score.
 
 ## 4. New Game+ architecture
 
@@ -74,7 +74,7 @@ All new static UI artwork will be generated with **GPT Image 2** and then determ
 | District operator portraits | 5 | Intro transmission panel | WebP, 512×512, ≤70 KB each |
 | Product icons | 15 | One unique icon per catalog product | Transparent WebP, 256×256, ≤25 KB each |
 | Confirmation frame | 1 | Confirmation modal decoration | Transparent WebP, ≤80 KB |
-| Stat preview frame | 1 | Before/after panel decoration | Transparent WebP, ≤80 KB |
+| Stat preview container | 1 | Before/after panel decoration | Runtime `StyleBoxFlat`; no texture payload |
 | Rampage Credit sigil | 1 | Economy explanation and price emphasis | Transparent WebP, ≤30 KB |
 | Upgrade success burst | 1 | Transaction particle texture | Transparent WebP/PNG, ≤40 KB |
 | Repair success burst | 1 | Repair particle texture | Transparent WebP/PNG, ≤40 KB |
@@ -109,7 +109,7 @@ Both cues must remain audible under ducked music, stay below clipping, and pass 
 
 **Phase 2 — Interstitial architecture and dialogue: complete.** Shops now open at deterministic act-completion boundaries rather than spatial district crossings: Business after Act 1, Residential after Act 2, Entertainment after Act 3, Military after Act 4, and Royal only after the terminal boss. The next act is held until checkout, milestone/directive presentation waits behind the shop, spatial district banners remain independent, score banking occurs on entry, and a generated-portrait operator dialogue explains the Rampage Score tradeoff before product interaction. Royal checkout now precedes terminal cycle choices.
 
-**Phase 3 — Transaction clarity and feedback: complete.** Hover, mouse entry, and controller focus now populate a generated-frame before/after stat panel with exact live values. Every available product opens a purchase confirmation prompt showing the selected module, projected score deduction, and stat delta; canceling preserves score and state. Successful purchases and repairs use distinct carrier-derived PCM16 cues on the fixed UI voice pool and separate generated-texture particle bursts without runtime node growth.
+**Phase 3 — Transaction clarity and feedback: complete.** Hover, mouse entry, and controller focus now populate a simple styled before/after stat panel with exact live values split into label and value lines. Every available product opens a purchase confirmation prompt showing the selected module, projected score deduction, and stat delta; canceling preserves score and state. Successful purchases and repairs use distinct carrier-derived PCM16 cues on the fixed UI voice pool and separate generated-texture particle bursts without runtime node growth or a redundant footer banner.
 
 **Phase 4 — Royal checkout and New Game+: complete.** Closing the Royal shop now opens an explicit generated-insignia New Game+ choice. Continuing banks and preserves the current Rampage Score, player health, level-up ranks, shop upgrades, and directive path; clears transient combo/telegraph/projectile/remains state; restores the destructible city, parallax, camera, robot, and stream to Business/Act 1; and reuses the same bounded pools. Every pooled base, procedural, elite, reinforcement, and command-boss unit receives exactly `2.0×` maximum health and `2.0×` outgoing attack damage in cycle two, applied centrally and exactly once.
 

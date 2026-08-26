@@ -39,9 +39,6 @@ const PRODUCT_ICONS: Dictionary = {
 const CONFIRMATION_FRAME: Texture2D = preload(
 	"res://art/ui/weapon_shop/confirmation_frame.webp"
 )
-const STAT_PREVIEW_FRAME: Texture2D = preload(
-	"res://art/ui/weapon_shop/stat_preview_frame.webp"
-)
 const RAMPAGE_CREDIT: Texture2D = preload("res://art/ui/weapon_shop/rampage_credit.webp")
 const UPGRADE_BURST: Texture2D = preload(
 	"res://art/ui/weapon_shop/upgrade_success_burst.webp"

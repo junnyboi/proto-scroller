@@ -14,7 +14,6 @@ var credit_icon: TextureRect
 var score_caption: Label
 var score_label: Label
 var warning_label: Label
-var feedback_label: Label
 var continue_button: Button
 var preview_panel: WeaponShopStatPreviewPanel
 var dialogue_panel: WeaponShopDialoguePanel
@@ -76,7 +75,6 @@ func show_shop(
 		)
 	_set_accent(accent)
 	set_score(score)
-	feedback_label.text = ""
 	preview_panel.visible = false
 	active = true
 	visible = true
@@ -121,10 +119,6 @@ func update_status(product_id: StringName, status: StringName) -> void:
 			break
 	preview_panel.update_status(product_id, status)
 	_focus_first_available()
-
-
-func show_feedback(key: String) -> void:
-	feedback_label.text = L10n.t(key)
 
 
 func play_transaction_success(product: WeaponShopProduct) -> void:
@@ -201,9 +195,6 @@ func _build_controls() -> void:
 	warning_label = _label(17, Color("d98262"))
 	warning_label.text = L10n.t("shop.score_warning")
 	add_child(warning_label)
-	feedback_label = _label(17, Color("7ae4ff"))
-	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(feedback_label)
 	continue_button = Button.new()
 	continue_button.text = L10n.t("shop.continue")
 	continue_button.add_theme_font_size_override(&"font_size", 22)
@@ -252,8 +243,6 @@ func _apply_landscape(viewport_size: Vector2) -> void:
 	preview_panel.size = Vector2(preview_width, card_height)
 	warning_label.position = Vector2(52.0, viewport_size.y - 76.0)
 	warning_label.size = Vector2(viewport_size.x - 420.0, 32.0)
-	feedback_label.position = Vector2(viewport_size.x * 0.34, viewport_size.y - 76.0)
-	feedback_label.size = Vector2(viewport_size.x * 0.32, 32.0)
 	continue_button.position = Vector2(viewport_size.x - 280.0, viewport_size.y - 90.0)
 	continue_button.size = Vector2(220.0, 52.0)
 	for card: WeaponShopCard in cards:
@@ -283,9 +272,7 @@ func _apply_portrait(viewport_size: Vector2) -> void:
 		cards[index].position = Vector2(44.0, 346.0 + float(index) * (card_height + 14.0))
 		cards[index].size = Vector2(card_width, card_height)
 	warning_label.position = Vector2(44.0, viewport_size.y - 170.0)
-	warning_label.size = Vector2(viewport_size.x - 88.0, 42.0)
-	feedback_label.position = Vector2(44.0, viewport_size.y - 128.0)
-	feedback_label.size = Vector2(viewport_size.x - 88.0, 28.0)
+	warning_label.size = Vector2(viewport_size.x - 308.0, 58.0)
 	continue_button.position = Vector2(viewport_size.x - 264.0, viewport_size.y - 92.0)
 	continue_button.size = Vector2(220.0, 52.0)
 	cards[0].focus_neighbor_bottom = cards[1].get_path()
