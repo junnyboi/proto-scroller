@@ -2,6 +2,7 @@ extends SceneTree
 
 const REPORT_PATH: String = "res://artifacts/charge_attack/report.json"
 const SHOT_PATH: String = "res://artifacts/charge_attack/charge-attack.png"
+const HIT_SHOT_PATH: String = "res://artifacts/charge_attack/full-charge-hit.png"
 const MAX_FRAMES: int = 600
 
 var checks: Array[Dictionary] = []
@@ -42,15 +43,19 @@ func _run() -> void:
 	city.contextual_attacks.set_process(false)
 	city.robot.global_position = Vector2(760.0, 460.0)
 	city.robot.velocity.x = city.robot.max_speed
-	var presenter: RobotAnimationPresenter = city.robot.get_node(
-		^"RobotAnimationPresenter"
-	) as RobotAnimationPresenter
-	var sprite: AnimatedSprite2D = city.robot.get_node(
-		^"VisualRoot/RobotAnimatedSprite"
-	) as AnimatedSprite2D
-	var particles: CPUParticles2D = city.robot.get_node(
-		^"VisualRoot/MeleeChargeParticles"
-	) as CPUParticles2D
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var sprite: AnimatedSprite2D = (
+		city.robot.get_node(^"VisualRoot/RobotAnimatedSprite") as AnimatedSprite2D
+	)
+	var particles: CPUParticles2D = (
+		city.robot.get_node(^"VisualRoot/MeleeChargeParticles") as CPUParticles2D
+	)
+	var meter_frame: Sprite2D = (
+		city.robot.get_node(^"VisualRoot/PhotonChargeMeter/Frame") as Sprite2D
+	)
+	var core: Sprite2D = city.robot.get_node(^"VisualRoot/PhotonChestCore") as Sprite2D
 	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
 	var attack_id: int = city.contextual_attacks.begin_charge()
 	city.contextual_attacks._process(1.5)
@@ -59,8 +64,10 @@ func _run() -> void:
 	_check("charge_started", attack_id > 0, "attack_id=%d" % attack_id)
 	_check(
 		"jab_cross_selected",
-		city.contextual_attacks.current_spec != null
-		and city.contextual_attacks.current_spec.is_jab_cross(),
+		(
+			city.contextual_attacks.current_spec != null
+			and city.contextual_attacks.current_spec.is_jab_cross()
+		),
 		"spec=%s" % city.contextual_attacks.current_spec
 	)
 	_check(
@@ -75,17 +82,60 @@ func _run() -> void:
 	)
 	_check(
 		"golden_particles_converge",
-		presenter.charge_particles_emitting()
-		and particles.color == RobotAnimationPresenter.CHARGE_PARTICLE_COLOR
-		and particles.radial_accel_max < 0.0,
-		"emitting=%s color=%s radial=%.1f"
-		% [particles.emitting, particles.color, particles.radial_accel_max]
+		(
+			presenter.charge_particles_emitting()
+			and particles.color == RobotAnimationPresenter.CHARGE_PARTICLE_COLOR
+			and particles.texture == RobotAnimationPresenter.PHOTON_CORE_TEXTURE
+			and particles.radial_accel_max < 0.0
+		),
+		(
+			"emitting=%s color=%s radial=%.1f"
+			% [particles.emitting, particles.color, particles.radial_accel_max]
+		)
+	)
+	_check(
+		"generated_charge_meter_tracks_progress",
+		(
+			presenter.charge_meter_visible()
+			and is_equal_approx(presenter.charge_meter_fill_ratio(), 0.75)
+			and meter_frame.texture == RobotAnimationPresenter.CHARGE_METER_FRAME_TEXTURE
+		),
+		(
+			"visible=%s ratio=%.3f texture=%s"
+			% [
+				presenter.charge_meter_visible(),
+				presenter.charge_meter_fill_ratio(),
+				meter_frame.texture,
+			]
+		)
+	)
+	_check(
+		"photon_core_grows_at_chest",
+		(
+			presenter.charge_core_visible()
+			and core.texture == RobotAnimationPresenter.PHOTON_CORE_TEXTURE
+			and core.scale.x > RobotAnimationPresenter.CHARGE_CORE_MIN_SCALE
+		),
+		(
+			"visible=%s scale=%.3f texture=%s"
+			% [presenter.charge_core_visible(), core.scale.x, core.texture]
+		)
+	)
+	_check(
+		"charging_audio_started_once",
+		presenter.charge_sfx_play_count == 1,
+		"count=%d" % presenter.charge_sfx_play_count
 	)
 	_check(
 		"fixed_node_budget",
 		int(RuntimeBudget.snapshot(city).node_count) == baseline_nodes,
-		"baseline=%d current=%d"
-		% [baseline_nodes, int(RuntimeBudget.snapshot(city).node_count)]
+		"baseline=%d current=%d" % [baseline_nodes, int(RuntimeBudget.snapshot(city).node_count)]
+	)
+	_check(
+		"fixed_photon_capacity",
+		presenter.charge_particle_capacity()
+		== RobotAnimationPresenter.CHARGE_PARTICLE_CAPACITY,
+		"capacity=%d" % presenter.charge_particle_capacity()
 	)
 	var shot_status: String = "SKIP"
 	var shot_path: String = ""
@@ -106,17 +156,36 @@ func _run() -> void:
 		)
 		shot_status = "PASS" if save_error == OK else "FAIL"
 		shot_path = SHOT_PATH
+	city.contextual_attacks._process(0.5)
+	_check(
+		"full_charge_announced_once",
+		(
+			is_equal_approx(city.contextual_attacks.charge_progress(), 1.0)
+			and presenter.full_charge_voice_play_count == 1
+		),
+		(
+			"progress=%.3f voice_count=%d"
+			% [
+				city.contextual_attacks.charge_progress(),
+				presenter.full_charge_voice_play_count,
+			]
+		)
+	)
 	var released: bool = city.contextual_attacks.release_charge()
 	_check("charge_released", released, "released=%s" % released)
 	_check(
 		"damage_scaled",
-		city.contextual_attacks.current_spec != null
-		and is_equal_approx(city.contextual_attacks.current_spec.actor_damage, 253.75),
-		"damage=%.2f"
-		% (
-			city.contextual_attacks.current_spec.actor_damage
-			if city.contextual_attacks.current_spec != null
-			else 0.0
+		(
+			city.contextual_attacks.current_spec != null
+			and is_equal_approx(city.contextual_attacks.current_spec.actor_damage, 290.0)
+		),
+		(
+			"damage=%.2f"
+			% (
+				city.contextual_attacks.current_spec.actor_damage
+				if city.contextual_attacks.current_spec != null
+				else 0.0
+			)
 		)
 	)
 	_check(
@@ -124,12 +193,48 @@ func _run() -> void:
 		sprite.is_playing() and not presenter.charge_particles_emitting(),
 		"playing=%s particles=%s" % [sprite.is_playing(), particles.emitting]
 	)
+	var hit_position: Vector2 = city.robot.global_position + Vector2(170.0, -34.0)
+	_check(
+		"confirmed_full_charge_enemy_hit",
+		city.contextual_attacks.report_enemy_hit(attack_id, hit_position, 1),
+		"attack_id=%d position=%s" % [attack_id, hit_position]
+	)
+	_check(
+		"full_charge_hit_feedback",
+		(
+			presenter.full_charge_hit_flash_visible()
+			and presenter.full_charge_hit_sfx_play_count == 1
+			and city.impact_feedback_director.full_charge_hit_feedback_count == 1
+			and city.hit_stop.last_duration_ms == ImpactFeedbackDirector.FULL_CHARGE_HIT_STOP_MS
+		),
+		(
+			"flash=%s audio=%d feedback=%d hit_stop=%d"
+			% [
+				presenter.full_charge_hit_flash_visible(),
+				presenter.full_charge_hit_sfx_play_count,
+				city.impact_feedback_director.full_charge_hit_feedback_count,
+				city.hit_stop.last_duration_ms,
+			]
+		)
+	)
+	var hit_shot_status: String = "SKIP"
+	var hit_shot_path: String = ""
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		var hit_image: Image = root.get_texture().get_image()
+		var hit_save_error: Error = hit_image.save_png(
+			ProjectSettings.globalize_path(HIT_SHOT_PATH)
+		)
+		_check("hit_shot_saved", hit_save_error == OK, "error=%s" % hit_save_error)
+		hit_shot_status = "PASS" if hit_save_error == OK else "FAIL"
+		hit_shot_path = HIT_SHOT_PATH
 	_check("frame_budget", elapsed_frames <= MAX_FRAMES, "frames=%d" % elapsed_frames)
+	city.hit_stop.cancel_and_restore()
 	city.queue_free()
 	await process_frame
 	# Work around godotengine/godot#76745 in fixed-FPS command-line runs.
 	OS.delay_msec(100)
-	_finish(shot_status, shot_path)
+	_finish(shot_status, shot_path, hit_shot_status, hit_shot_path)
 
 
 func _target_size() -> Vector2i:
@@ -145,7 +250,12 @@ func _check(check_name: String, passed: bool, detail: String) -> void:
 	print("[CHECK] %s %s — %s" % ["PASS" if passed else "FAIL", check_name, detail])
 
 
-func _finish(shot_status: String, shot_path: String) -> void:
+func _finish(
+	shot_status: String,
+	shot_path: String,
+	hit_shot_status: String = "SKIP",
+	hit_shot_path: String = ""
+) -> void:
 	if completed:
 		return
 	completed = true
@@ -157,6 +267,7 @@ func _finish(shot_status: String, shot_path: String) -> void:
 		"result": "PASS" if all_passed else "FAIL",
 		"checks": checks,
 		"shot": {"status": shot_status, "path": shot_path},
+		"hit_shot": {"status": hit_shot_status, "path": hit_shot_path},
 		"frames": elapsed_frames,
 	}
 	DirAccess.make_dir_recursive_absolute(

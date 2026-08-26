@@ -8,6 +8,8 @@ signal dodge_buffered(attack_id: int, direction: int)
 signal charge_started(spec: AttackSpec)
 signal charge_updated(spec: AttackSpec, duration: float, progress: float, multiplier: float)
 signal charge_released(spec: AttackSpec, duration: float, multiplier: float)
+signal attack_cancelled(spec: AttackSpec)
+signal full_charge_enemy_hit(spec: AttackSpec, world_position: Vector2, enemy_count: int)
 
 enum Phase {
 	READY,
@@ -38,6 +40,7 @@ var _busy: bool = false
 var _buffered_dodge_direction: int = 0
 var _charging: bool = false
 var _charge_duration: float = 0.0
+var _last_full_charge_hit_attack_id: int = 0
 
 
 func setup(robot: GiantRobotController) -> void:
@@ -62,6 +65,7 @@ func _ready() -> void:
 	add_child(resolver)
 	jab_cross_impact = JabCrossImpact.new()
 	jab_cross_impact.name = "JabCrossImpact"
+	jab_cross_impact.enemy_hit_resolved.connect(_on_jab_cross_enemy_hit_resolved)
 	add_child(jab_cross_impact)
 	if _robot != null:
 		_robot.set_attack_controller(self)
@@ -157,6 +161,7 @@ func begin_charge() -> int:
 	_busy = true
 	_charging = true
 	_charge_duration = 0.0
+	_last_full_charge_hit_attack_id = 0
 	_buffered_dodge_direction = 0
 	phase = Phase.CHARGING
 	_robot._set_attack_locked(true)
@@ -196,6 +201,20 @@ func charge_damage_multiplier() -> float:
 	return lerpf(1.0, MAX_CHARGE_DAMAGE_MULTIPLIER, charge_progress())
 
 
+func report_enemy_hit(attack_id: int, world_position: Vector2, enemy_count: int) -> bool:
+	if (
+		current_spec == null
+		or current_spec.attack_id != attack_id
+		or not current_spec.is_fully_charged()
+		or enemy_count <= 0
+		or _last_full_charge_hit_attack_id == attack_id
+	):
+		return false
+	_last_full_charge_hit_attack_id = attack_id
+	full_charge_enemy_hit.emit(current_spec, world_position, enemy_count)
+	return true
+
+
 func request_dodge(direction: int) -> bool:
 	var normalized_direction: int = clampi(direction, -1, 1)
 	if _robot == null or normalized_direction == 0 or not _robot.dodge_ready:
@@ -226,6 +245,7 @@ func cancel_attack() -> void:
 		_robot._set_attack_locked(false)
 	_restore_pose()
 	if cancelled_spec != null:
+		attack_cancelled.emit(cancelled_spec)
 		attack_finished.emit(cancelled_spec)
 
 
@@ -316,6 +336,15 @@ func _restore_pose() -> void:
 		_rest_scale.y
 	)
 	_visual_root.rotation = _rest_rotation
+
+
+func _on_jab_cross_enemy_hit_resolved(
+	spec: AttackSpec,
+	enemy_count: int,
+	world_position: Vector2
+) -> void:
+	if spec != null:
+		report_enemy_hit(spec.attack_id, world_position, enemy_count)
 
 
 func _visual_scale_x(facing: int) -> float:

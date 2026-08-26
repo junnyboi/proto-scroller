@@ -216,7 +216,19 @@ func test_mobile_controls_drive_robot_and_smash_then_disable_on_defeat() -> void
 	assert_lt(city.tank.current_health, city.tank.max_health)
 	assert_eq(city.haptics_adapter.request_count, haptic_count_after_upgrade + 1)
 	assert_true(city.mobile_controls.joystick_active)
-	var structural_cell: Destructible2D = city.building.get_cell(0, 1)
+	var structural_cell: Destructible2D
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			var candidate: Destructible2D = city.building.get_cell(column, row)
+			if candidate != null and not candidate.is_destroyed():
+				structural_cell = candidate
+				break
+		if structural_cell != null:
+			break
+	assert_not_null(structural_cell)
+	if structural_cell == null:
+		return
+	assert_false(structural_cell.is_destroyed())
 	assert_true(
 		structural_cell.receive_damage(
 			DamageEvent.new(

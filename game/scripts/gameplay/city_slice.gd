@@ -124,6 +124,7 @@ func _ready() -> void:
 	contextual_attacks.name = "ContextualAttackController"
 	contextual_attacks.setup(robot)
 	add_child(contextual_attacks)
+	destruction_director.enemy_hits_resolved.connect(contextual_attacks.report_enemy_hit)
 	air_target_lock_runtime = AirTargetLockRuntime.new()
 	air_target_lock_runtime.name = "AirTargetLockRuntime"
 	air_target_lock_runtime.setup(robot, contextual_attacks)

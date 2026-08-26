@@ -82,6 +82,14 @@ Extend catalog tests to check complete roster coverage across multiple run seeds
 
 **Regression gate:** focused catalog/stream tests, all-25 live endless traversal, `./verify.sh --full`, five landscape district galleries, portrait gallery inspection, representative live landscape/portrait frames, non-threaded Web export, and Chromium gameplay smoke. Commit and push after green.
 
+### WP3C — Natural breach traversal and visible facade cycling
+
+Replace per-cell ground collision teardown with a continuous full-height passage contract. Destroying any ground-row structural cell must retain the authored hollow and rubble visuals while disabling every intact collider in that facade, allowing the robot to walk through low and tall silhouettes alike. The passage state must be reconstructed from the mutation ledger after pooled slot reuse.
+
+Add a non-teleport unit regression that destroys one ground cell, advances the robot with normal horizontal physics, and requires the next facade variant to become active. Add an Xvfb visual scenario that naturally reaches all five Business facades at their intact gameplay approach points and captures five unique landscape plus five unique portrait frames. This gate exists because the previous all-25 traversal test teleported between chunks and therefore could validate data mapping while stepping around a physical wall.
+
+**Regression gate:** focused destruction and pooled-stream tests; normal-input passage reproduction; five unique naturally reached Business facades in 1280×720 and 720×1280; `./verify.sh --full`; direct boot; Web export; Chromium gameplay smoke; clean runtime logs. Commit and push after green.
+
 ### WP4 — Web runtime, Manus WebDev deployment, and continuity
 
 Re-fetch upstream and repeat affected gates if the revision moves. Export through the repository’s `Web` preset and require HTML, JavaScript, WASM, and PCK artifacts with recorded SHA-256 checksums and sizes. Serve over HTTP and run browser smoke checks for canvas readiness, movement, smash, district trace, mutation restore, portrait resize, request failures, console errors, MIME types, and WebGL context loss.
@@ -97,9 +105,9 @@ Refresh the existing `proto-scroller` WebDev project only; preserve its fullscre
 | Data | 5 districts, 25 globally unique variants, six valid material cells each |
 | Determinism | Stable district/variant output by seed and logical chunk; direct addressability of all entries |
 | Runtime shape | 6 streamed buildings, 36 damage-pattern nodes, zero post-warm creation, constant node count |
-| Destruction | Cracks, cable/pipe details, hollow cells, rubble edges, support transfer, floor and steel chains |
+| Destruction | Cracks, cable/pipe details, hollow cells, rubble edges, support transfer, floor and steel chains; any ground breach opens a full-height walkable passage |
 | Persistence | District/variant identity, health, destroyed mask, crack signature, and detail mask restored after recycling |
-| Visual | Five district galleries plus representative landscape and portrait gameplay frames inspected |
+| Visual | Five district galleries, five naturally reached Business facades, and representative landscape and portrait gameplay frames inspected |
 | Export | Nonempty HTML/JS/WASM/PCK; PCK ≤ 16 MiB; checksum manifest recorded |
 | Browser | HTTP 200 assets, correct MIME, clean console/network logs, playable input, responsive iframe |
 | Delivery | Per-work-package push, final WebDev checkpoint, published deployment, updated continuity docs |
@@ -118,7 +126,9 @@ The primary risk is package growth. Runtime facade sprites are therefore compact
 | WP3 | Completed | This work-package commit | 25 GPT Image 2 facades bound and gallery-verified in both orientations; 269 GUT tests passed; Web PCK measured 13,817,516 bytes under the 16 MiB ceiling; standard harness passed in 474 s |
 | WP3A | Completed | This work-package commit | Four boundary transitions and responsive banner validated; 273 GUT tests passed with 27,879 assertions; all five trace IDs and catalog digest passed; post-integration standard harness passed in 463 s |
 | WP3B | Completed | This bugfix commit | Root cause confirmed as hash-modulo roster collisions (2/5 Entertainment and 3/5 Residential at seed zero). Full gate passed in 586 s with 288/288 tests and 28,467 assertions; all 25 live facade IDs and texture paths matched across five districts; landscape/portrait galleries and live Crownward renders passed; Web PCK measured 13,796,484 bytes; Chromium smoke passed. |
+| WP3C | Completed | `c1c9c5b99ab6af47c8751774426d1b011039fa1a` | Root cause confirmed as intact neighboring and overhead cell colliders retaining a physical wall after a visible ground breach. The non-teleport passage test and ten natural traversal screenshots require all five Business facades to become actual gameplay targets. The pushed-revision full gate passed in 667 s with 301/301 tests and 28,786 assertions; five distinct landscape and five distinct portrait approach frames passed; Web PCK measured 14,105,752 bytes; Chromium gameplay smoke passed. |
 | WP4 | Completed | `c85fb134d7a03d83b93e8692dceaf5469fff0a25` | 279/279 GUT tests and 27,935 assertions passed; full harness passed in 607 s; PCK 13,766,156 bytes; mission-card, district, mobile, melee-audio, export, and Chromium lanes passed; WebDev checkpoint `6f4645ed` published |
+| Post-WP4 presentation maintenance | Completed | This maintenance commit | Replaced the English title hook with the user-approved payback story, expanded responsive story bounds, and lifted only the robot visual root to a tested 15–16 px road-line clearance. Full gate passed in 711 s with 296/296 tests and 28,672 assertions; title and gameplay landscape/portrait renders, 9-file Web export, 13,823,212-byte PCK, and Chromium gameplay smoke passed. |
 
 ## Deployment Record
 

@@ -21,6 +21,7 @@ mkdir -p \
 	  artifacts/title_screen \
   artifacts/city_slice \
 	  artifacts/endless_terrain \
+	  artifacts/visible_facade_cycle \
 	  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/directives \
@@ -69,9 +70,12 @@ for cue in \
 	  audio/sfx/robot/dodge_energy_recharged.wav \
 	  audio/sfx/robot/ground_slam_impact.wav \
 	  audio/sfx/robot/double_punch_impact.wav \
+	  audio/sfx/robot/photon_charge.wav \
+	  audio/sfx/robot/photon_full_hit.wav \
 	  audio/voice/air_target_acquired.wav \
 	  audio/voice/target_lost.wav \
 	  audio/voice/target_destroyed.wav \
+	  audio/voice/fully_charged.wav \
 	  audio/sfx/debris/debris_enemy_thud.wav; do
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
 		test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
@@ -83,6 +87,25 @@ DASH_WARP_DURATION="$(
 awk -v duration="$DASH_WARP_DURATION" 'BEGIN {
 	exit !(duration >= 1.0 && duration <= 3.0)
 }'
+PUNCH_DURATION="$(
+	ffprobe -v error -show_entries format=duration -of csv=p=0 \
+		audio/sfx/robot/double_punch_impact.wav
+)"
+awk -v duration="$PUNCH_DURATION" 'BEGIN {
+	exit !(duration >= 1.17 && duration <= 1.19)
+}'
+test "$(sha256sum audio/sfx/robot/double_punch_impact.wav | cut -d' ' -f1)" = \
+	"ac4dc961a2828c14c58f856f58a9cef817391d02cd35bb858c5315c22bab0793"
+for photon_cue in \
+	audio/sfx/robot/photon_charge.wav \
+	audio/sfx/robot/photon_full_hit.wav; do
+	PHOTON_DURATION="$(
+		ffprobe -v error -show_entries format=duration -of csv=p=0 "$photon_cue"
+	)"
+	awk -v duration="$PHOTON_DURATION" 'BEGIN {
+		exit !(duration >= 1.0 && duration <= 3.0)
+	}'
+done
 PARSE_LOG="artifacts/parse-lint.log"
 : > "$PARSE_LOG"
 while IFS= read -r -d '' script; do
@@ -131,7 +154,7 @@ jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
 printf '%s\n' '[L4] charged-smash headless scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 	-s selftest/charge_attack_scenario.gd
-jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
+jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP" and .hit_shot.status == "SKIP"' \
 	artifacts/charge_attack/report.json >/dev/null
 
 printf '%s\n' '[L4] directive-card headless lifecycle scenario'
@@ -235,20 +258,26 @@ if [[ "$MODE" == "full" ]]; then
 		  printf '%s\n' '[L5] landscape charged-smash visual scenario'
 		  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
 		    -s selftest/charge_attack_scenario.gd
-		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .hit_shot.status == "PASS"' \
 		    artifacts/charge_attack/report.json >/dev/null
 		  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/charge-attack.png)"
 		  mv artifacts/charge_attack/charge-attack.png \
 		    artifacts/charge_attack/charge-attack-landscape.png
+		  grep -Fq '1280 x 720' <<< "$(file artifacts/charge_attack/full-charge-hit.png)"
+		  mv artifacts/charge_attack/full-charge-hit.png \
+		    artifacts/charge_attack/full-charge-hit-landscape.png
 
 		  printf '%s\n' '[L5] portrait charged-smash visual scenario'
 		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
 		    --resolution 720x1280 -s selftest/charge_attack_scenario.gd
-		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
+		  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .hit_shot.status == "PASS"' \
 		    artifacts/charge_attack/report.json >/dev/null
 		  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/charge-attack.png)"
 		  mv artifacts/charge_attack/charge-attack.png \
 		    artifacts/charge_attack/charge-attack-portrait.png
+		  grep -Fq '720 x 1280' <<< "$(file artifacts/charge_attack/full-charge-hit.png)"
+		  mv artifacts/charge_attack/full-charge-hit.png \
+		    artifacts/charge_attack/full-charge-hit-portrait.png
 		  cp artifacts/charge_attack/charge-attack-landscape.png \
 		    artifacts/charge_attack/charge-attack.png
 
@@ -274,6 +303,42 @@ if [[ "$MODE" == "full" ]]; then
 	  while IFS= read -r gallery_shot; do
 	    grep -Fq '720 x 1280' <<< "$(file "$gallery_shot")"
 	  done < <(find artifacts/district_gallery -maxdepth 1 -type f \
+	    -name '*-portrait.png' | LC_ALL=C sort)
+
+	  printf '%s\n' '[L5] landscape natural five-facade traversal scenario'
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+	    --resolution 1280x720 \
+	    -s selftest/visible_facade_cycle_scenario.gd
+	  jq -e '
+	    .done == true
+	    and .result == "PASS"
+	    and .orientation == "landscape"
+	    and (.variants | length) == 5
+	    and ([.variants[]] | unique | length) == 5
+	  ' artifacts/visible_facade_cycle/report-landscape.json >/dev/null
+	  test "$(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
+	    -name '*-landscape.png' -size +0c | wc -l)" -eq 5
+	  while IFS= read -r facade_shot; do
+	    grep -Fq '1280 x 720' <<< "$(file "$facade_shot")"
+	  done < <(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
+	    -name '*-landscape.png' | LC_ALL=C sort)
+
+	  printf '%s\n' '[L5] portrait natural five-facade traversal scenario'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+	    --audio-driver Dummy --path . --resolution 720x1280 \
+	    -s selftest/visible_facade_cycle_scenario.gd
+	  jq -e '
+	    .done == true
+	    and .result == "PASS"
+	    and .orientation == "portrait"
+	    and (.variants | length) == 5
+	    and ([.variants[]] | unique | length) == 5
+	  ' artifacts/visible_facade_cycle/report-portrait.json >/dev/null
+	  test "$(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
+	    -name '*-portrait.png' -size +0c | wc -l)" -eq 5
+	  while IFS= read -r facade_shot; do
+	    grep -Fq '720 x 1280' <<< "$(file "$facade_shot")"
+	  done < <(find artifacts/visible_facade_cycle -maxdepth 1 -type f \
 	    -name '*-portrait.png' | LC_ALL=C sort)
 
 	  printf '%s\n' '[L5] windowed enemy-variety render scenario'

@@ -201,6 +201,81 @@ func test_player_frame_11_dispatches_shake_enemy_recoil_and_knockback_without_fl
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
+func test_confirmed_full_charge_enemy_hit_triggers_maximum_feedback_transaction() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.deactivate()
+	city.robot.global_position = Vector2(900.0, 460.0)
+	city.robot.facing = 1
+	city.robot.velocity.x = city.robot.max_speed
+	city.tank.max_health = 5000.0
+	city.tank.activate(city.robot.global_position + Vector2(120.0, 60.0), city.robot)
+	city.tank.set_physics_process(false)
+	await get_tree().physics_frame
+	city.hit_stop.enabled = true
+	city.contextual_attacks.resolver.jab_cross_anticipation_seconds = 0.0
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var prior_health: float = city.tank.current_health
+	var attack_id: int = city.contextual_attacks.begin_charge()
+	city.contextual_attacks._process(ContextualAttackController.MAX_CHARGE_SECONDS)
+	assert_true(city.contextual_attacks.release_charge())
+	assert_gt(attack_id, 0)
+	assert_lt(city.tank.current_health, prior_health)
+	assert_eq(city.impact_feedback_director.full_charge_hit_feedback_count, 1)
+	assert_eq(city.impact_feedback_director.last_full_charge_enemy_count, 1)
+	assert_true(city.hit_stop.is_active())
+	assert_eq(city.hit_stop.last_duration_ms, ImpactFeedbackDirector.FULL_CHARGE_HIT_STOP_MS)
+	assert_eq(city.haptics_adapter.last_duration_ms, ImpactFeedbackDirector.FULL_CHARGE_HAPTIC_MS)
+	assert_gt(city.camera_rig.impact_velocity.length(), 0.0)
+	assert_eq(presenter.full_charge_hit_sfx_play_count, 1)
+	var photon_hit_voice_found: bool = false
+	for player: AudioStreamPlayer2D in presenter._audio_players:
+		photon_hit_voice_found = (
+			photon_hit_voice_found
+			or player.stream == RobotAnimationPresenter.PHOTON_FULL_HIT_SFX
+		)
+	assert_true(photon_hit_voice_found)
+	assert_true(presenter.full_charge_hit_flash_visible())
+	city.hit_stop.cancel_and_restore()
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
+func test_fully_charged_ground_smash_enemy_hit_uses_same_signature_feedback() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.set_physics_process(false)
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.deactivate()
+	city.robot.global_position = Vector2(900.0, 460.0)
+	city.robot.velocity = Vector2.ZERO
+	city.soldier.max_health = 5000.0
+	city.soldier.activate(city.robot.global_position + Vector2(80.0, 0.0), city.robot)
+	city.soldier.set_physics_process(false)
+	await get_tree().physics_frame
+	city.contextual_attacks.resolver.ground_anticipation_seconds = 0.0
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	var prior_health: float = city.soldier.current_health
+	assert_gt(city.contextual_attacks.begin_charge(), 0)
+	city.contextual_attacks._process(ContextualAttackController.MAX_CHARGE_SECONDS)
+	assert_true(city.contextual_attacks.release_charge())
+	await get_tree().physics_frame
+	assert_lt(city.soldier.current_health, prior_health)
+	assert_eq(city.impact_feedback_director.full_charge_hit_feedback_count, 1)
+	assert_eq(city.impact_feedback_director.last_full_charge_enemy_count, 1)
+	assert_gt(city.hit_stop.request_count, 0)
+	assert_eq(presenter.full_charge_hit_sfx_play_count, 1)
+	assert_true(presenter.full_charge_hit_flash_visible())
+	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
+
+
 func test_surviving_melee_hit_applies_fivefold_knockback() -> void:
 	var enemy: EnemyActor2D = EnemyActor2D.new()
 	enemy.max_health = 1000.0

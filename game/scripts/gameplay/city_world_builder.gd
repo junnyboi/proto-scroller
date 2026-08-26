@@ -12,7 +12,8 @@ const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
-const ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y: float = 62.0
+const ROBOT_ROAD_CLEARANCE_PIXELS: float = 15.0
+const ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y: float = 47.5
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
 const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
 const SKY_TEXTURE: Texture2D = preload("res://art/city/parallax/sky.png")
@@ -50,7 +51,7 @@ static func build_robot(
 ) -> GiantRobotController:
 	var robot: GiantRobotController = ROBOT_SCRIPT.new() as GiantRobotController
 	robot.name = "Robot"
-	robot.position = Vector2(760.0, 460.0)
+	robot.position = Vector2(760.0, 466.5)
 	robot.max_health = 800.0
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0

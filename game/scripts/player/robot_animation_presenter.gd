@@ -2,6 +2,11 @@ class_name RobotAnimationPresenter
 extends Node
 
 const ATTACK_EVENT_FRAME: int = AttackResolver.ATTACK_EVENT_FRAME
+const PUNCH_CONTACT_FRAMES: Array[int] = [11, 14]
+const PUNCH_CONTACT_INTERVAL_SECONDS: float = (
+	float(PUNCH_CONTACT_FRAMES[1] - PUNCH_CONTACT_FRAMES[0])
+	/ RobotSpriteFramesBuilder.DEFAULT_FPS
+)
 const WALK_REFERENCE_SPEED: float = 260.0
 const AUDIO_VOICE_CAPACITY: int = 4
 const AFTERIMAGE_CAPACITY: int = 8
@@ -12,14 +17,28 @@ const DUST_INTERVAL: float = 0.055
 const CRITICAL_HEALTH_RATIO: float = 0.25
 const ATTACK_IMPACT_BASE_VOLUME_DB: float = 1.5
 const ATTACK_IMPACT_GAIN_DB: float = 9.5424250941
+const ATTACK_IMPACT_REDUCTION_DB: float = -2.4987747322
 const ATTACK_IMPACT_VOLUME_DB: float = (
 	ATTACK_IMPACT_BASE_VOLUME_DB + ATTACK_IMPACT_GAIN_DB
+	+ ATTACK_IMPACT_REDUCTION_DB
 )
 const CRITICAL_SMOKE_OFFSET: Vector2 = Vector2(28.0, -42.0)
 const CHARGE_PARTICLE_OFFSET: Vector2 = Vector2(0.0, 34.0)
+const CHARGE_PARTICLE_CAPACITY: int = 56
+const CHARGE_METER_OFFSET: Vector2 = Vector2(0.0, -82.0)
+const CHARGE_METER_FILL_SIZE: Vector2 = Vector2(150.0, 7.0)
+const CHARGE_CORE_MIN_SCALE: float = 0.055
+const CHARGE_CORE_MAX_SCALE: float = 0.26
+const FULL_CHARGE_HIT_FLASH_SECONDS: float = 0.26
 const CHARGE_PARTICLE_COLOR: Color = Color(1.0, 0.72, 0.16, 0.92)
 const CRITICAL_SMOKE_TEXTURE: Texture2D = preload(
 	"res://art/player/weapons/missile_explosion_smoke.png"
+)
+const CHARGE_METER_FRAME_TEXTURE: Texture2D = preload(
+	"res://art/ui/gameplay/photon_charge_meter_frame.png"
+)
+const PHOTON_CORE_TEXTURE: Texture2D = preload(
+	"res://art/player/vfx/photon_core_orb.png"
 )
 const WALK_SERVO_FRAMES: Array[int] = [2, 15]
 const WALK_CONTACT_FRAMES: Array[int] = [5, 18]
@@ -41,6 +60,15 @@ const GROUND_SLAM_IMPACT_SFX: AudioStream = preload(
 const DOUBLE_PUNCH_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/robot/double_punch_impact.wav"
 )
+const PHOTON_CHARGE_SFX: AudioStream = preload(
+	"res://audio/sfx/robot/photon_charge.wav"
+)
+const PHOTON_FULL_HIT_SFX: AudioStream = preload(
+	"res://audio/sfx/robot/photon_full_hit.wav"
+)
+const FULLY_CHARGED_VOICE: AudioStream = preload(
+	"res://audio/voice/fully_charged.wav"
+)
 
 var robot: GiantRobotController
 var sprite: AnimatedSprite2D
@@ -53,6 +81,9 @@ var servo_play_count: int = 0
 var dash_warp_sfx_play_count: int = 0
 var dodge_recharged_sfx_play_count: int = 0
 var attack_impact_play_count: int = 0
+var charge_sfx_play_count: int = 0
+var full_charge_voice_play_count: int = 0
+var full_charge_hit_sfx_play_count: int = 0
 var audio_recycle_count: int = 0
 var audio_drop_count: int = 0
 var audio_preemption_count: int = 0
@@ -62,9 +93,12 @@ var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
 var charging: bool = false
 var last_charge_progress: float = 0.0
+var last_full_charge_hit_position: Vector2 = Vector2.ZERO
 var dust_intensity_scale: float = 1.0
 var _audio_players: Array[AudioStreamPlayer2D] = []
 var _status_sfx_player: AudioStreamPlayer
+var _charge_sfx_player: AudioStreamPlayer2D
+var _charge_voice_player: AudioStreamPlayer
 var _voice_started_order: int = 0
 var _afterimage_root: Node2D
 var _afterimages: Array[Sprite2D] = []
@@ -76,6 +110,14 @@ var _dust_elapsed: float = 0.0
 var _dodge_facing: int = 1
 var _critical_smoke: CPUParticles2D
 var _charge_particles: CPUParticles2D
+var _charge_meter_root: Node2D
+var _charge_meter_fill: ColorRect
+var _charge_meter_frame: Sprite2D
+var _charge_core: Sprite2D
+var _full_charge_hit_flash: Sprite2D
+var _full_charge_announced: bool = false
+var _charge_pulse_elapsed: float = 0.0
+var _full_charge_hit_flash_remaining: float = 0.0
 
 
 func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
@@ -95,6 +137,7 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	_prewarm_dust()
 	_prewarm_critical_smoke()
 	_prewarm_charge_particles()
+	_prewarm_charge_visuals()
 	_on_health_changed(robot.current_health, robot.max_health)
 	_show_idle()
 
@@ -104,10 +147,17 @@ func bind_attacks(controller: ContextualAttackController) -> void:
 	controller.charge_started.connect(_on_charge_started)
 	controller.charge_updated.connect(_on_charge_updated)
 	controller.charge_released.connect(_on_charge_released)
+	controller.attack_cancelled.connect(_on_attack_cancelled)
+	controller.full_charge_enemy_hit.connect(_on_full_charge_enemy_hit)
 
 
 func audio_voice_count() -> int:
-	return _audio_players.size() + (1 if _status_sfx_player != null else 0)
+	return (
+		_audio_players.size()
+		+ (1 if _status_sfx_player != null else 0)
+		+ (1 if _charge_sfx_player != null else 0)
+		+ (1 if _charge_voice_player != null else 0)
+	)
 
 
 func afterimage_slot_count() -> int:
@@ -142,12 +192,43 @@ func charge_particle_emitter_count() -> int:
 	return 1 if _charge_particles != null else 0
 
 
+func charge_particle_capacity() -> int:
+	return _charge_particles.amount if _charge_particles != null else 0
+
+
 func charge_particles_emitting() -> bool:
 	return _charge_particles != null and _charge_particles.emitting
 
 
+func charge_meter_visible() -> bool:
+	return _charge_meter_root != null and _charge_meter_root.visible
+
+
+func charge_meter_fill_ratio() -> float:
+	if _charge_meter_fill == null:
+		return 0.0
+	return _charge_meter_fill.size.x / CHARGE_METER_FILL_SIZE.x
+
+
+func charge_core_visible() -> bool:
+	return _charge_core != null and _charge_core.visible
+
+
+func charge_visual_count() -> int:
+	return (
+		(1 if _charge_meter_root != null else 0)
+		+ (1 if _charge_core != null else 0)
+		+ (1 if _full_charge_hit_flash != null else 0)
+	)
+
+
+func full_charge_hit_flash_visible() -> bool:
+	return _full_charge_hit_flash != null and _full_charge_hit_flash.visible
+
+
 func _process(delta: float) -> void:
 	_advance_afterimages(delta)
+	_advance_charge_visuals(delta)
 	if dodging:
 		_afterimage_elapsed += delta
 		while _afterimage_elapsed >= AFTERIMAGE_INTERVAL:
@@ -200,10 +281,26 @@ func _on_charge_started(spec: AttackSpec) -> void:
 		return
 	charging = true
 	last_charge_progress = 0.0
+	_full_charge_announced = false
+	_charge_pulse_elapsed = 0.0
 	sprite.pause()
 	sprite.set_frame_and_progress(0, 0.0)
 	if _charge_particles != null:
 		_charge_particles.emitting = true
+	if _charge_meter_root != null:
+		_charge_meter_root.visible = true
+	if _charge_meter_fill != null:
+		_charge_meter_fill.size.x = 0.0
+	if _charge_core != null:
+		_charge_core.visible = true
+		_charge_core.scale = Vector2.ONE * CHARGE_CORE_MIN_SCALE
+	if _charge_voice_player != null:
+		_charge_voice_player.stop()
+	if _charge_sfx_player != null:
+		_charge_sfx_player.stop()
+		_charge_sfx_player.play()
+		charge_sfx_play_count += 1
+		last_audio_cue = &"photon_charge"
 
 
 func _on_charge_updated(
@@ -217,9 +314,30 @@ func _on_charge_updated(
 	last_charge_progress = clampf(progress, 0.0, 1.0)
 	if _charge_particles != null:
 		_charge_particles.emitting = last_charge_progress < 1.0
-		_charge_particles.amount = 28 + roundi(last_charge_progress * 28.0)
 		_charge_particles.initial_velocity_min = 44.0 + last_charge_progress * 24.0
 		_charge_particles.initial_velocity_max = 104.0 + last_charge_progress * 46.0
+		_charge_particles.radial_accel_min = -420.0 - last_charge_progress * 520.0
+		_charge_particles.radial_accel_max = -260.0 - last_charge_progress * 390.0
+	if _charge_meter_fill != null:
+		_charge_meter_fill.size.x = CHARGE_METER_FILL_SIZE.x * last_charge_progress
+		_charge_meter_fill.color = Color(1.0, 0.43, 0.06, 0.96).lerp(
+			Color(1.0, 0.93, 0.50, 1.0),
+			last_charge_progress
+		)
+	if _charge_core != null:
+		var core_scale: float = lerpf(
+			CHARGE_CORE_MIN_SCALE,
+			CHARGE_CORE_MAX_SCALE,
+			last_charge_progress
+		)
+		_charge_core.scale = Vector2.ONE * core_scale
+	if last_charge_progress >= 1.0 and not _full_charge_announced:
+		_full_charge_announced = true
+		if _charge_voice_player != null:
+			_charge_voice_player.stop()
+			_charge_voice_player.play()
+			full_charge_voice_play_count += 1
+			last_audio_cue = &"fully_charged"
 
 
 func _on_charge_released(
@@ -232,8 +350,16 @@ func _on_charge_released(
 	charging = false
 	if _charge_particles != null:
 		_charge_particles.emitting = false
+	_hide_charge_visuals()
 	sprite.speed_scale = 1.0
 	sprite.play()
+
+
+func _on_attack_cancelled(spec: AttackSpec) -> void:
+	if spec == null or spec.attack_id != selected_attack_id:
+		return
+	if _charge_voice_player != null:
+		_charge_voice_player.stop()
 
 
 func _on_attack_committed(mode: int, attack_id: int) -> void:
@@ -268,11 +394,30 @@ func _on_attack_finished(spec: AttackSpec) -> void:
 	last_charge_progress = 0.0
 	if _charge_particles != null:
 		_charge_particles.emitting = false
+	_hide_charge_visuals()
 	selected_attack_id = 0
 	if robot.locomotion_state == GiantRobotController.LocomotionState.WALK:
 		_play_walk()
 	else:
 		_show_idle()
+
+
+func _on_full_charge_enemy_hit(
+	spec: AttackSpec,
+	world_position: Vector2,
+	enemy_count: int
+) -> void:
+	if spec == null or not spec.is_fully_charged() or enemy_count <= 0:
+		return
+	_play_mechanics(PHOTON_FULL_HIT_SFX, &"photon_full_hit", 5.0, 1.0)
+	last_full_charge_hit_position = world_position
+	full_charge_hit_sfx_play_count += 1
+	if _full_charge_hit_flash != null:
+		_full_charge_hit_flash.global_position = world_position
+		_full_charge_hit_flash.scale = Vector2.ONE * 0.22
+		_full_charge_hit_flash.modulate = Color(1.0, 0.92, 0.55, 1.0)
+		_full_charge_hit_flash.visible = true
+		_full_charge_hit_flash_remaining = FULL_CHARGE_HIT_FLASH_SECONDS
 
 
 func _on_dodge_started(p_facing: int, _duration: float) -> void:
@@ -408,12 +553,14 @@ func _prewarm_charge_particles() -> void:
 	_charge_particles = CPUParticles2D.new()
 	_charge_particles.name = "MeleeChargeParticles"
 	_charge_particles.position = CHARGE_PARTICLE_OFFSET
-	_charge_particles.amount = 28
+	_charge_particles.texture = PHOTON_CORE_TEXTURE
+	_charge_particles.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_charge_particles.amount = CHARGE_PARTICLE_CAPACITY
 	_charge_particles.lifetime = 0.72
 	_charge_particles.preprocess = 0.35
 	_charge_particles.randomness = 0.82
 	_charge_particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	_charge_particles.emission_sphere_radius = 165.0
+	_charge_particles.emission_sphere_radius = 210.0
 	_charge_particles.direction = Vector2.ZERO
 	_charge_particles.spread = 180.0
 	_charge_particles.gravity = Vector2.ZERO
@@ -423,12 +570,55 @@ func _prewarm_charge_particles() -> void:
 	_charge_particles.radial_accel_max = -190.0
 	_charge_particles.damping_min = 18.0
 	_charge_particles.damping_max = 30.0
-	_charge_particles.scale_amount_min = 3.0
-	_charge_particles.scale_amount_max = 7.0
+	_charge_particles.scale_amount_min = 0.018
+	_charge_particles.scale_amount_max = 0.045
 	_charge_particles.color = CHARGE_PARTICLE_COLOR
 	_charge_particles.z_index = 2
 	_charge_particles.emitting = false
 	visual_root.add_child(_charge_particles)
+
+
+func _prewarm_charge_visuals() -> void:
+	var visual_root: Node2D = robot.get_node_or_null(^"VisualRoot") as Node2D
+	if visual_root == null:
+		return
+	_charge_meter_root = Node2D.new()
+	_charge_meter_root.name = "PhotonChargeMeter"
+	_charge_meter_root.position = CHARGE_METER_OFFSET
+	_charge_meter_root.z_index = 7
+	_charge_meter_root.visible = false
+	visual_root.add_child(_charge_meter_root)
+	_charge_meter_fill = ColorRect.new()
+	_charge_meter_fill.name = "Fill"
+	_charge_meter_fill.position = -CHARGE_METER_FILL_SIZE * 0.5
+	_charge_meter_fill.size = Vector2(0.0, CHARGE_METER_FILL_SIZE.y)
+	_charge_meter_fill.color = Color(1.0, 0.43, 0.06, 0.96)
+	_charge_meter_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_charge_meter_root.add_child(_charge_meter_fill)
+	_charge_meter_frame = Sprite2D.new()
+	_charge_meter_frame.name = "Frame"
+	_charge_meter_frame.texture = CHARGE_METER_FRAME_TEXTURE
+	_charge_meter_frame.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_charge_meter_frame.scale = Vector2.ONE * 0.25
+	_charge_meter_root.add_child(_charge_meter_frame)
+	_charge_core = Sprite2D.new()
+	_charge_core.name = "PhotonChestCore"
+	_charge_core.texture = PHOTON_CORE_TEXTURE
+	_charge_core.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_charge_core.position = CHARGE_PARTICLE_OFFSET
+	_charge_core.scale = Vector2.ONE * CHARGE_CORE_MIN_SCALE
+	_charge_core.z_index = 6
+	_charge_core.visible = false
+	visual_root.add_child(_charge_core)
+	_full_charge_hit_flash = Sprite2D.new()
+	_full_charge_hit_flash.name = "FullChargeHitFlash"
+	_full_charge_hit_flash.texture = PHOTON_CORE_TEXTURE
+	_full_charge_hit_flash.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_full_charge_hit_flash.top_level = true
+	_full_charge_hit_flash.z_as_relative = false
+	_full_charge_hit_flash.z_index = 120
+	_full_charge_hit_flash.visible = false
+	add_child(_full_charge_hit_flash)
 
 
 func _prewarm_audio() -> void:
@@ -445,6 +635,20 @@ func _prewarm_audio() -> void:
 	_status_sfx_player.name = "RobotStatusRechargeSfx"
 	_status_sfx_player.bus = GameAudioBus.MECHANICS
 	add_child(_status_sfx_player)
+	_charge_sfx_player = AudioStreamPlayer2D.new()
+	_charge_sfx_player.name = "PhotonChargeSfx"
+	_charge_sfx_player.stream = PHOTON_CHARGE_SFX
+	_charge_sfx_player.max_distance = 1500.0
+	_charge_sfx_player.attenuation = 0.45
+	_charge_sfx_player.volume_db = 3.0
+	_charge_sfx_player.bus = GameAudioBus.MECHANICS
+	add_child(_charge_sfx_player)
+	_charge_voice_player = AudioStreamPlayer.new()
+	_charge_voice_player.name = "FullyChargedVoice"
+	_charge_voice_player.stream = FULLY_CHARGED_VOICE
+	_charge_voice_player.volume_db = -1.5
+	_charge_voice_player.bus = GameAudioBus.VOICE
+	add_child(_charge_voice_player)
 
 
 func _prewarm_afterimages() -> void:
@@ -512,6 +716,46 @@ func _advance_afterimages(delta: float) -> void:
 			ghost.visible = false
 
 
+func _advance_charge_visuals(delta: float) -> void:
+	if charging and last_charge_progress >= 1.0:
+		_charge_pulse_elapsed += maxf(delta, 0.0)
+		var pulse: float = 1.0 + sin(_charge_pulse_elapsed * 11.0) * 0.055
+		if _charge_core != null:
+			_charge_core.scale = Vector2.ONE * CHARGE_CORE_MAX_SCALE * pulse
+			_charge_core.rotation += delta * 0.32
+		if _charge_meter_root != null:
+			_charge_meter_root.scale = Vector2.ONE * (1.0 + (pulse - 1.0) * 0.45)
+		if _charge_meter_frame != null:
+			_charge_meter_frame.modulate = Color(1.0, 0.91, 0.55, 1.0)
+	elif _charge_meter_root != null:
+		_charge_meter_root.scale = Vector2.ONE
+		if _charge_meter_frame != null:
+			_charge_meter_frame.modulate = Color.WHITE
+	if _full_charge_hit_flash == null or not _full_charge_hit_flash.visible:
+		return
+	_full_charge_hit_flash_remaining = maxf(
+		_full_charge_hit_flash_remaining - maxf(delta, 0.0), 0.0
+	)
+	var flash_ratio: float = _full_charge_hit_flash_remaining / FULL_CHARGE_HIT_FLASH_SECONDS
+	_full_charge_hit_flash.scale = Vector2.ONE * lerpf(0.56, 0.22, flash_ratio)
+	_full_charge_hit_flash.modulate.a = flash_ratio * flash_ratio
+	if is_zero_approx(_full_charge_hit_flash_remaining):
+		_full_charge_hit_flash.visible = false
+
+
+func _hide_charge_visuals() -> void:
+	if _charge_sfx_player != null:
+		_charge_sfx_player.stop()
+	if _charge_meter_root != null:
+		_charge_meter_root.visible = false
+		_charge_meter_root.scale = Vector2.ONE
+	if _charge_core != null:
+		_charge_core.visible = false
+		_charge_core.rotation = 0.0
+	_full_charge_announced = false
+	_charge_pulse_elapsed = 0.0
+
+
 func _play_mechanics(
 	stream: AudioStream,
 	cue: StringName,
@@ -539,6 +783,8 @@ func _play_mechanics(
 		footstep_play_count += 1
 	elif cue in [&"ground_slam_impact", &"double_punch_impact"]:
 		attack_impact_play_count += 1
+	elif cue == &"photon_full_hit":
+		pass
 	else:
 		servo_play_count += 1
 		if cue == &"dash_warp":
@@ -563,7 +809,7 @@ func _acquire_audio_voice(priority: int) -> AudioStreamPlayer2D:
 
 func _priority_for_mechanics(cue: StringName) -> int:
 	match cue:
-		&"ground_slam_impact", &"double_punch_impact", &"dash_warp":
+		&"ground_slam_impact", &"double_punch_impact", &"dash_warp", &"photon_full_hit":
 			return AudioVoicePriority.SIGNATURE
 		&"attack_windup":
 			return AudioVoicePriority.MAJOR

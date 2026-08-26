@@ -205,6 +205,7 @@ func _capture_attack_sfx(
 	)
 	snapshot.attack_id = attack_id
 	snapshot.cue = String(presenter.last_audio_cue)
+	snapshot.length_seconds = stream.get_length()
 	if not await _wait_until(func() -> bool: return not city.contextual_attacks.is_busy()):
 		snapshot.ok = false
 		snapshot.reason = "attack_finish_timeout"
@@ -252,6 +253,7 @@ func _voice_snapshot(voice: AudioStreamPlayer2D) -> Dictionary:
 		"playing": voice.playing,
 		"distance_to_robot": voice.global_position.distance_to(robot.global_position),
 		"max_distance": voice.max_distance,
+		"volume_db": voice.volume_db,
 		"stream": voice.stream.resource_path if voice.stream != null else "",
 	}
 
