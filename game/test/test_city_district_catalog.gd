@@ -23,14 +23,14 @@ func test_forward_chunk_boundaries_select_the_authored_districts() -> void:
 	var expectations: Dictionary[int, StringName] = {
 		-64: &"BUSINESS",
 		0: &"BUSINESS",
-		7: &"BUSINESS",
-		8: &"RESIDENTIAL",
-		15: &"RESIDENTIAL",
-		16: &"ENTERTAINMENT",
-		23: &"ENTERTAINMENT",
-		24: &"MILITARY",
-		31: &"MILITARY",
-		32: &"ROYAL",
+		4: &"BUSINESS",
+		5: &"RESIDENTIAL",
+		9: &"RESIDENTIAL",
+		10: &"ENTERTAINMENT",
+		14: &"ENTERTAINMENT",
+		15: &"MILITARY",
+		19: &"MILITARY",
+		20: &"ROYAL",
 		96: &"ROYAL",
 	}
 	for logical_index: int in expectations:
@@ -43,7 +43,7 @@ func test_forward_chunk_boundaries_select_the_authored_districts() -> void:
 
 
 func test_blueprint_selection_is_replayable_and_order_independent() -> void:
-	var indices: Array[int] = [-12, -1, 0, 7, 8, 15, 16, 24, 32, 48]
+	var indices: Array[int] = [-12, -1, 0, 4, 5, 9, 10, 15, 20, 48]
 	var forward: Dictionary[int, StringName] = {}
 	for logical_index: int in indices:
 		var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(917, logical_index)

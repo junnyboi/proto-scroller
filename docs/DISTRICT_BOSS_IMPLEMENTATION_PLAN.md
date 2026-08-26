@@ -126,7 +126,7 @@ Every implementation work package follows the same shared-branch protocol. Befor
 **Implementation:**
 
 - Add `BossEncounterDefinition`, `BossPhaseDefinition`, `BossCampaignCatalog`, and validation tests.
-- Author five definitions with triggers 7, 15, 23, 31, and 39 and the approved names.
+- Author five definitions with the current five-building district-cap triggers 4, 9, 14, 19, and 24 and the approved names.
 - Add `BossOutcome` with `PURGE`, `DISENTANGLE`, and `ASCENSION_FAILURE`.
 - Add `DamageEvent.FLAG_FULL_CHARGE`, propagate it from `AttackSpec` through `JabCrossImpact`, and add the optional `FULL_CHARGE_FIXED_STEP` armor policy while preserving the default legacy amount-based policy.
 - Introduce a data-driven path behind `CommandBossSession` while retaining the current no-argument `start()` behavior.
@@ -153,7 +153,7 @@ Every implementation work package follows the same shared-branch protocol. Befor
 
 **Purpose:** Make district-ending fights deterministic in the streamed world before designing individual attacks.
 
-**Status: Complete (2026-08-26).** Authored gates now arm at logical chunks **7, 15, 23, 31, and 39** before the next district; each leases exactly the existing six streamed chunks/buildings and rebinds one in-place landmark without allocation. `BossSiegeInterlock` captures the siege cursor and pressure state, clears pending reservations and competing combat/presentation systems without acquiring a run-pause lease, then resumes exactly the next unconsumed beat after one deterministic recovery. `BossAttemptSnapshot` restores six-cell structure state, score, experience, event history, causal recorder state, robot state, gate ownership, and utility reservations while deliberately starting a fresh boss generation. The responsive HUD presents localized boss identity, phase, armor/body percentages, objective, and evidence status. After integrating the concurrent hybrid-CHOIR, transition, weapon-shop, and New Game Plus releases, Godot 4.7.2 import, touched-file lint, the complete affected focused matrix, localization parity/font coverage, and the final standard gate passed **58 scripts, 358 tests, and 32,271 assertions** in **638 seconds**. The full matrix also enforced the 650-line `CitySlice` budget—because architecture is apparently measured in both contracts and blank lines.
+**Status: Complete (2026-08-26; route geometry updated 2026-08-27).** Authored gates now arm at logical chunks **4, 9, 14, 19, and 24** after each five-building geographic clear; each leases exactly the existing six streamed chunks/buildings and rebinds one in-place landmark without allocation. `BossSiegeInterlock` captures the siege cursor and pressure state, clears pending reservations and competing combat/presentation systems without acquiring a run-pause lease, then resumes exactly the next unconsumed beat after one deterministic recovery. `BossAttemptSnapshot` restores six-cell structure state, score, experience, event history, causal recorder state, robot state, gate ownership, and utility reservations while deliberately starting a fresh boss generation. The responsive HUD presents localized boss identity, phase, armor/body percentages, objective, and evidence status. After integrating the concurrent hybrid-CHOIR, transition, weapon-shop, and New Game Plus releases, Godot 4.7.2 import, touched-file lint, the complete affected focused matrix, localization parity/font coverage, and the final standard gate passed **58 scripts, 358 tests, and 32,271 assertions** in **638 seconds**. The full matrix also enforced the 650-line `CitySlice` budget—because architecture is apparently measured in both contracts and blank lines.
 
 **Implementation:**
 
@@ -179,7 +179,7 @@ Every implementation work package follows the same shared-branch protocol. Befor
 - `game/test/test_boss_campaign_gates.gd`
 - `game/test/test_boss_retry_restore.gd`
 
-**Exit gate:** Gates trigger exactly once at 7/15/23/31/39, no seventh chunk appears, floating-origin shifts do not move targets away from hurt regions, and retry returns every measured state to the pre-`SCREEN` snapshot. During a boss, siege elapsed time, beat cursor, hazard/catalyst/directive state, pending counts, and reservation ledger remain frozen or empty while robot input stays live. Completion resumes exactly the next unconsumed beat after one deterministic recovery interval.
+**Exit gate:** Gates trigger exactly once at 4/9/14/19/24, no unearned next-district chunk is traversable, floating-origin shifts do not move targets away from hurt regions, and retry returns every measured state to the pre-`SCREEN` snapshot. During a boss, siege elapsed time, beat cursor, hazard/catalyst/directive state, pending counts, and reservation ledger remain frozen or empty while robot input stays live. Completion resumes exactly the next unconsumed beat after one deterministic recovery interval.
 
 ### WP2 — Narrative state, dossiers, evidence, and transactions
 

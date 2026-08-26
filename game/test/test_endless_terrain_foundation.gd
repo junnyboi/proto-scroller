@@ -4,21 +4,39 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const EPSILON: float = 0.5
 
 
-func test_six_chunk_window_reuses_fixed_nodes_across_long_bidirectional_travel() -> void:
+func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> void:
 	var city: CitySlice = await _spawn_city()
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
 	assert_eq(city.world_stream.active_chunk_count(), CityWorldStream.CHUNK_CAPACITY)
-	for logical_index: int in range(-48, 49):
-		_move_to_logical_chunk(city, logical_index)
-		_assert_contiguous_window(city.world_stream)
-	for logical_index: int in range(48, -49, -1):
+	for logical_index: int in range(0, 49):
 		_move_to_logical_chunk(city, logical_index)
 		_assert_contiguous_window(city.world_stream)
 	assert_eq(RuntimeBudget.snapshot(city).node_count, baseline_nodes)
 	assert_eq(city.world_stream.post_warm_creation_count, 0)
 	assert_gte(city.world_stream.floating_origin.shift_count, 2)
-	assert_eq(city.world_stream.minimum_visited_chunk, -48)
+	assert_eq(city.world_stream.minimum_visited_chunk, 0)
 	assert_eq(city.world_stream.maximum_visited_chunk, 48)
+	assert_almost_eq(
+		city.world_stream.rear_frontier_logical_x,
+		city.world_stream.furthest_progress_logical_x
+		- CityWorldStream.LEFT_RETENTION_DISTANCE,
+		EPSILON
+	)
+	var attempted_left_x: float = city.world_stream.rear_frontier_runtime_x() - 900.0
+	city.robot.global_position.x = attempted_left_x
+	city.world_stream.advance_stream()
+	assert_gte(
+		city.robot.global_position.x,
+		city.world_stream.rear_frontier_runtime_x()
+		+ CityWorldStream.ROBOT_BARRIER_CLEARANCE
+	)
+	for chunk: CityStreetChunk in city.world_stream.chunks:
+		if (
+			float(chunk.logical_index + 1) * CityWorldStream.CHUNK_WIDTH
+			+ CityWorldStream.CHUNK_CONTENT_OVERHANG
+			<= city.world_stream.rear_frontier_logical_x
+		):
+			assert_true(chunk.culled)
 	_record_test_execution()
 
 
@@ -30,6 +48,57 @@ func test_blueprints_are_seeded_by_run_and_logical_chunk_not_pool_slot() -> void
 	assert_eq(first.lane_phase, repeated.lane_phase)
 	assert_eq(first.asphalt_color, repeated.asphalt_color)
 	assert_ne(first.generation_seed, neighbor.generation_seed)
+	_record_test_execution()
+
+
+func test_five_unique_buildings_unlock_the_next_district_once() -> void:
+	var city: CitySlice = await _spawn_city()
+	var stream: CityWorldStream = city.world_stream
+	var business: CityDistrictProfile = CityDistrictCatalog.districts()[0]
+	assert_eq(stream.unlocked_district_index, 0)
+	assert_false(stream.district_exit_is_unlocked(0))
+	for index: int in range(business.building_variants.size()):
+		var variant: StructuralBuildingVariant = business.building_variants[index]
+		var building: StructuralBuilding2D = StructuralBuilding2D.new()
+		building.set_meta(&"district_id", business.district_id)
+		building.set_meta(&"district_index", business.district_index)
+		building.set_meta(&"building_variant_id", variant.variant_id)
+		assert_true(stream.report_building_cleared(building))
+		assert_false(stream.report_building_cleared(building))
+		building.free()
+		assert_eq(stream.district_clear_count(business.district_id), index + 1)
+		assert_almost_eq(
+			stream.district_exit_barrier.position.x,
+			float(index + 2) * CityWorldStream.CHUNK_WIDTH,
+			EPSILON
+		)
+	assert_true(stream.district_exit_is_unlocked(0))
+	assert_eq(stream.unlocked_district_index, 1)
+	assert_almost_eq(
+		stream.district_exit_barrier.position.x,
+		float(CityDistrictCatalog.CHUNKS_PER_DISTRICT + 1)
+		* CityWorldStream.CHUNK_WIDTH,
+		EPSILON
+	)
+	_record_test_execution()
+
+
+func test_culled_chunk_restores_original_collision_layers_when_reused() -> void:
+	var chunk: CityStreetChunk = CityStreetChunk.new()
+	add_child_autofree(chunk)
+	await get_tree().process_frame
+	var original_layer: int = chunk.ground.collision_layer
+	var original_mask: int = chunk.ground.collision_mask
+	chunk.set_culled(true)
+	assert_true(chunk.culled)
+	assert_false(chunk.visible)
+	assert_eq(chunk.ground.collision_layer, 0)
+	assert_eq(chunk.ground.collision_mask, 0)
+	chunk.set_culled(false)
+	assert_false(chunk.culled)
+	assert_true(chunk.visible)
+	assert_eq(chunk.ground.collision_layer, original_layer)
+	assert_eq(chunk.ground.collision_mask, original_mask)
 	_record_test_execution()
 
 
@@ -59,6 +128,7 @@ func test_robot_crosses_a_streamed_ground_seam_without_falling() -> void:
 func test_floating_origin_preserves_live_relative_positions_and_telegraphs() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.encounter_runtime.release_all()
+	_unlock_districts_through(city.world_stream, 32)
 	city.robot.global_position.x = CityWorldStream.CHUNK_WIDTH * 32.0 + 240.0
 	var enemy: EnemyActor2D = city.encounter_runtime.acquire(
 		&"soldier",
@@ -156,11 +226,30 @@ func _spawn_city() -> CitySlice:
 
 
 func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
+	_unlock_districts_through(city.world_stream, logical_index)
 	city.robot.global_position.x = (
 		city.world_stream.runtime_x_for_logical_index(logical_index)
 		+ CityWorldStream.CHUNK_WIDTH * 0.5
 	)
 	city.world_stream.advance_stream()
+
+
+func _unlock_districts_through(stream: CityWorldStream, logical_index: int) -> void:
+	var target_district_index: int = CityDistrictCatalog.district_index_for_chunk(
+		logical_index
+	)
+	while stream.unlocked_district_index < target_district_index:
+		var district: CityDistrictProfile = CityDistrictCatalog.districts()[
+			stream.unlocked_district_index
+		]
+		stream.current_district_id = district.district_id
+		for variant: StructuralBuildingVariant in district.building_variants:
+			var building: StructuralBuilding2D = StructuralBuilding2D.new()
+			building.set_meta(&"district_id", district.district_id)
+			building.set_meta(&"district_index", district.district_index)
+			building.set_meta(&"building_variant_id", variant.variant_id)
+			assert_true(stream.report_building_cleared(building))
+			building.free()
 
 
 func _assert_contiguous_window(stream: CityWorldStream) -> void:

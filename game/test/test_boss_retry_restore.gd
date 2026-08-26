@@ -13,7 +13,7 @@ func before_each() -> void:
 	await get_tree().process_frame
 	city.urban_siege.run_active = true
 	campaign = city.urban_siege.boss_campaign
-	definition = BossCampaignCatalog.definition_for_trigger(7)
+	definition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger_gate()
 
 
@@ -115,11 +115,11 @@ func test_repeated_failure_retry_keeps_runtime_counts_and_one_gate_lease() -> vo
 
 
 func _trigger_gate() -> void:
-	city.robot.global_position.x = city.world_stream.runtime_x_for_logical_index(7) + 100.0
+	city.robot.global_position.x = city.world_stream.runtime_x_for_logical_index(4) + 100.0
 	city.world_stream.advance_stream()
 	await get_tree().process_frame
 	city.robot.global_position.x = (
-		(7.0 + BossCampaignDirector.GATE_APPROACH_FRACTION) * CityWorldStream.CHUNK_WIDTH
+		(4.0 + BossCampaignDirector.GATE_APPROACH_FRACTION) * CityWorldStream.CHUNK_WIDTH
 		- float(city.world_stream.floating_origin.origin_chunk) * CityWorldStream.CHUNK_WIDTH
 		+ 1.0
 	)

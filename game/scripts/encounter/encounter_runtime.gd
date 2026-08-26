@@ -165,6 +165,15 @@ func release_all() -> void:
 	target_mark_remaining = 0.0
 
 
+func cull_behind(_logical_x: float, runtime_x: float) -> int:
+	var released: int = 0
+	for enemy: EnemyActor2D in all_actors():
+		if enemy.active and enemy.global_position.x < runtime_x:
+			release(enemy)
+			released += 1
+	return released
+
+
 func configure_cycle_difficulty(
 	health_multiplier: float,
 	attack_multiplier: float

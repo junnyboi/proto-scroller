@@ -1,7 +1,7 @@
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
-const EXPECTED_TRIGGERS: Array[int] = [7, 15, 23, 31, 39]
+const EXPECTED_TRIGGERS: Array[int] = [4, 9, 14, 19, 24]
 
 
 func test_authored_gates_trigger_once_before_each_district_transition() -> void:
@@ -31,7 +31,7 @@ func test_gate_lease_uses_six_existing_chunks_and_one_landmark() -> void:
 	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
 		baseline_ids.append(building.get_instance_id())
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(7)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	assert_true(campaign.arena_lease.active)
 	assert_eq(campaign.arena_lease.resident_count(), CityWorldStream.CHUNK_CAPACITY)
@@ -47,7 +47,7 @@ func test_gate_lease_uses_six_existing_chunks_and_one_landmark() -> void:
 func test_origin_rebase_keeps_gate_and_arena_anchors_aligned() -> void:
 	var city: CitySlice = await _spawn_city()
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(7)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	var gate_before: Vector2 = campaign.active_gate.cached_world_anchor
 	var anchor_before: Vector2 = campaign.arena_lease.cached_building_anchors[0]
@@ -65,7 +65,7 @@ func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 	city.encounter_runtime.release_all()
 	director.start()
 	director.advance(0.01)
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(7)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	var frozen_elapsed: float = director.elapsed
 	var frozen_phase: int = director.phase_index
@@ -98,7 +98,7 @@ func test_success_resumes_next_unconsumed_beat_after_one_recovery() -> void:
 	director.start()
 	director.advance(0.01)
 	var captured_beat: int = director.beat_index
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(7)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	var boss: TankEnemy = siege.boss_session.boss
 	for attack_id: int in range(81_001, 81_004):
@@ -124,7 +124,7 @@ func test_success_resumes_next_unconsumed_beat_after_one_recovery() -> void:
 func test_stop_and_reset_clear_campaign_and_siege_suspension() -> void:
 	var city: CitySlice = await _spawn_city()
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(7)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	campaign.stop()
 	assert_false(campaign.owns_combat())
@@ -135,12 +135,12 @@ func test_stop_and_reset_clear_campaign_and_siege_suspension() -> void:
 	campaign.reset_run()
 	assert_false(campaign.owns_combat())
 	assert_false(city.urban_siege.director.is_suspended_for_boss())
-	assert_eq(campaign.gate_for_trigger(7).trigger_count, 0)
+	assert_eq(campaign.gate_for_trigger(4).trigger_count, 0)
 
 
 func test_campaign_hud_uses_localized_name_phase_durability_and_evidence() -> void:
 	var city: CitySlice = await _spawn_city()
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(7)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	var text: String = city.gameplay_hud.boss_label.text
 	assert_true(city.gameplay_hud.boss_label.visible)

@@ -7,27 +7,27 @@ func test_catalog_has_exact_canonical_roster_triggers_and_campaign_results() -> 
 	assert_eq(definitions.size(), BossCampaignCatalog.DEFINITION_COUNT)
 	var expected: Array[Array] = [
 		[
-			&"SETTLEMENT_ENGINE_S04", &"BUSINESS", 7, 8,
+			&"SETTLEMENT_ENGINE_S04", &"BUSINESS", 4, 5,
 			"SETTLEMENT ENGINE S-04 — The Fiduciary Saint",
 			&"B05_EASTBOUND_CONSIDERATION", &"LEDGER",
 		],
 		[
-			&"SAMARITAN_15", &"RESIDENTIAL", 15, 16,
+			&"SAMARITAN_15", &"RESIDENTIAL", 9, 10,
 			"SAMARITAN-15 — The Last Evacuation",
 			&"ASHWATER_INTAKE_MANIFEST", &"NURSERY",
 		],
 		[
-			&"MIMESIS_04", &"ENTERTAINMENT", 23, 24,
+			&"MIMESIS_04", &"ENTERTAINMENT", 14, 15,
 			"MIMESIS-04 — The Afterimage Conductor",
 			&"AUDIENCE_OF_ONE_0417_CONTINUITY", &"STAGE",
 		],
 		[
-			&"CANTOR_31_PALE_ENGINE", &"MILITARY", 31, 32,
+			&"CANTOR_31_PALE_ENGINE", &"MILITARY", 19, 20,
 			"CANTOR-31 / PALE ENGINE — The Export Surgeon",
 			&"EXPORT_LITANY_31", &"ARSENAL",
 		],
 		[
-			&"CHOIR_PRIME", &"ROYAL", 39, -1,
+			&"CHOIR_PRIME", &"ROYAL", 24, -1,
 			"CHOIR Prime — The Last Sovereign",
 			&"CROWN_05_CONSENT_EXCISION_ORDER", &"CROWN",
 		],

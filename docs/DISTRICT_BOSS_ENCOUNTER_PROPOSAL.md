@@ -14,7 +14,7 @@
 
 ## Executive recommendation
 
-Approve a five-encounter campaign spine in which every district ends with a unique boss at logical chunks **7, 15, 23, 31, and 39**. The encounters should not function as unrelated spectacle fights. Together they must convert the campaign from revenge into investigation, investigation into rescue, rescue into an identity crisis, and that crisis into a final decision about whether copied memories can be owned, weaponized, preserved, or destroyed.[1]
+Approve a five-encounter campaign spine in which each five-building district ends with a unique boss at logical chunks **4, 9, 14, 19, and 24**. The encounters should not function as unrelated spectacle fights. Together they must convert the campaign from revenge into investigation, investigation into rescue, rescue into an identity crisis, and that crisis into a final decision about whether copied memories can be owned, weaponized, preserved, or destroyed.[1]
 
 The approved roster is **SETTLEMENT ENGINE S-04**, **SAMARITAN-15**, **MIMESIS-04**, **CANTOR-31 / PALE ENGINE**, and **CHOIR Prime**. Their mechanical questions escalate in the same order as the narrative horror. Business asks what material and transaction record is carrying value. Residential asks what remains alive and what the player is willing to preserve. Entertainment asks whether a memory is harmless history or an armed reconstruction. Military asks which part of an export-scale production system must be denied first. Royal asks whether destroying a weapon, preserving an archive, and attempting liberation are morally or mechanically equivalent. They are not.
 
@@ -43,11 +43,11 @@ The prior proposal’s **two-ending restriction**, inert ineligible plinth, and 
 
 | Order | District and gate | Boss | District truth | Dominant mastery test | Bounded support |
 |---:|---|---|---|---|---|
-| 1 | **Business**, chunk **7** | **SETTLEMENT ENGINE S-04 — The Fiduciary Saint** | The victims’ neural maps were invoiced and transported east. | Read glass, concrete, and steel; sever exact reconciliation pins; preserve an optional archive. | One Bulwark and one Sapper total. |
-| 2 | **Residential**, chunk **15** | **SAMARITAN-15 — The Last Evacuation** | The 04:17 blackout harvested a controlled population; living captives remain. | Protect occupied glass, interrupt extraction, and read wet versus energized lanes. | One Reclaimed Breacher; up to two sequential Graft Runners. |
-| 3 | **Entertainment**, chunk **23** | **MIMESIS-04 — The Afterimage Conductor** | P-01’s biological body died; the pilot is a copied continuity process. | Distinguish safe memory traces from delayed armed footprints. | One CHOIR Siren, deployed once. |
-| 4 | **Military**, chunk **31** | **CANTOR-31 / PALE ENGINE — The Export Surgeon** | The city is a demonstration range for an exportable adaptive army. | Deny production anchors, survive serialized artillery, and break the guidance spine. | One Graft Runner maximum; Seraph scale remains environmental. |
-| 5 | **Royal**, chunk **39** | **CHOIR Prime — The Last Sovereign** | The family’s originals are dead, but coherent copied echoes remain trapped inside the weapon. | Synthesize five learned grammars, destroy the command core, or choose a severance outcome. | No live minions; projections and pooled telegraphs only. |
+| 1 | **Business**, chunk **4** | **SETTLEMENT ENGINE S-04 — The Fiduciary Saint** | The victims’ neural maps were invoiced and transported east. | Read glass, concrete, and steel; sever exact reconciliation pins; preserve an optional archive. | One Bulwark and one Sapper total. |
+| 2 | **Residential**, chunk **9** | **SAMARITAN-15 — The Last Evacuation** | The 04:17 blackout harvested a controlled population; living captives remain. | Protect occupied glass, interrupt extraction, and read wet versus energized lanes. | One Reclaimed Breacher; up to two sequential Graft Runners. |
+| 3 | **Entertainment**, chunk **14** | **MIMESIS-04 — The Afterimage Conductor** | P-01’s biological body died; the pilot is a copied continuity process. | Distinguish safe memory traces from delayed armed footprints. | One CHOIR Siren, deployed once. |
+| 4 | **Military**, chunk **19** | **CANTOR-31 / PALE ENGINE — The Export Surgeon** | The city is a demonstration range for an exportable adaptive army. | Deny production anchors, survive serialized artillery, and break the guidance spine. | One Graft Runner maximum; Seraph scale remains environmental. |
+| 5 | **Royal**, chunk **24** | **CHOIR Prime — The Last Sovereign** | The family’s originals are dead, but coherent copied echoes remain trapped inside the weapon. | Synthesize five learned grammars, destroy the command core, or choose a severance outcome. | No live minions; projections and pooled telegraphs only. |
 
 The escalation is deliberately asymmetric. Actor count does not continuously rise. Instead, the campaign increases **information density, consequence, and moral specificity**. Business uses readable mechanical layers. Residential adds occupied payload state. Entertainment adds temporal information. Military combines one support threat with bounded environmental reclamation. Royal removes live support actors so the finale can serialize five learned grammars and preserve a readable three-outcome decision.
 
@@ -145,15 +145,15 @@ Each boss delivers one immutable fact during combat and repeats it in the result
 
 ## Campaign gates and persistent evidence
 
-The authored route uses four bounded eight-chunk districts followed by the open-ended Royal district, which begins at chunk 32. The main campaign’s Royal assault culminates at chunk 39, but Royal geography may remain valid beyond that point for post-campaign or endless routing. A `BossGateMarker` at each campaign cap fires before the next route can stream. This is safer than relying on `district_changed`, which occurs only after the logical index changes.[4]
+The authored route uses four bounded five-building districts followed by the open-ended Royal district, which begins at chunk 20. Each geographic exit first requires all five unique district facades to be cleared. Boss gates retain their independent campaign authority at chunks 4, 9, 14, 19, and 24, while Royal geography remains valid beyond the finale for post-campaign or endless routing. A `BossGateMarker` at each campaign cap fires before the next route can stream. This is safer than relying on `district_changed`, which occurs only after the logical index changes.[4]
 
 | Trigger | Arena landmark | Unlock | Capstone dossier | Evidence flag |
 |---:|---|---:|---|---|
-| 7 | Crown Reserve Data Treasury | 8 | B-05: Eastbound Consideration | LEDGER |
-| 15 | Rainvault Cooperative / Nightglass Mutual Clinic | 16 | Ashwater Intake Manifest | NURSERY |
-| 23 | House of Static stage mouth | 24 | Audience of One / 04:17 Continuity | STAGE |
-| 31 | Prefect War Keep loading apron | 32 | Export Litany 31 | ARSENAL |
-| 39 | Palace of the Last Sovereign | Campaign finale | CROWN-05: Consent Excision Order | CROWN |
+| 4 | Crown Reserve Data Treasury | 5 | B-05: Eastbound Consideration | LEDGER |
+| 9 | Rainvault Cooperative / Nightglass Mutual Clinic | 10 | Ashwater Intake Manifest | NURSERY |
+| 14 | House of Static stage mouth | 15 | Audience of One / 04:17 Continuity | STAGE |
+| 19 | Prefect War Keep loading apron | 20 | Export Litany 31 | ARSENAL |
+| 24 | Palace of the Last Sovereign | Campaign finale | CROWN-05: Consent Excision Order | CROWN |
 
 The campaign contains **twenty-five dossiers**, one per authored facade, and **five evidence flags**, one per district. Bosses supply the capstone dossier and associated evidence opportunity; the other twenty records remain embedded in district buildings. Dossiers persist when transmitted. Evidence destroyed during optional play never blocks the district and may enter the canonical elite-drop recovery path later in the run.[1]
 

@@ -22,6 +22,8 @@ var lower_asphalt: Polygon2D
 var lane_marks: Array[Line2D] = []
 var ground: StaticBody2D
 var remains_ground: StaticBody2D
+var culled: bool = false
+var _collision_state: Dictionary[int, Vector2i] = {}
 
 
 func _ready() -> void:
@@ -30,6 +32,7 @@ func _ready() -> void:
 
 
 func configure(blueprint: CityChunkBlueprint, runtime_x: float) -> void:
+	set_culled(false)
 	logical_index = blueprint.logical_index
 	generation_seed = blueprint.generation_seed
 	district_index = blueprint.district_index
@@ -50,6 +53,37 @@ func configure(blueprint: CityChunkBlueprint, runtime_x: float) -> void:
 			Vector2(segment_x + 170.0, 694.0),
 		])
 	visible = true
+
+
+func set_culled(should_cull: bool, refresh_descendants: bool = false) -> void:
+	if culled == should_cull and not refresh_descendants:
+		return
+	culled = should_cull
+	if culled:
+		visible = false
+		process_mode = Node.PROCESS_MODE_DISABLED
+		for node: Node in find_children("*", "CollisionObject2D", true, false):
+			var collision_object: CollisionObject2D = node as CollisionObject2D
+			var instance_id: int = collision_object.get_instance_id()
+			if not _collision_state.has(instance_id):
+				_collision_state[instance_id] = Vector2i(
+					collision_object.collision_layer,
+					collision_object.collision_mask
+				)
+			collision_object.collision_layer = 0
+			collision_object.collision_mask = 0
+		return
+	process_mode = Node.PROCESS_MODE_INHERIT
+	visible = true
+	for node: Node in find_children("*", "CollisionObject2D", true, false):
+		var collision_object: CollisionObject2D = node as CollisionObject2D
+		var saved_state: Vector2i = _collision_state.get(
+			collision_object.get_instance_id(),
+			Vector2i(collision_object.collision_layer, collision_object.collision_mask)
+		)
+		collision_object.collision_layer = saved_state.x
+		collision_object.collision_mask = saved_state.y
+	_collision_state.clear()
 
 
 func contains_runtime_x(runtime_x: float) -> bool:

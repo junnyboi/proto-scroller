@@ -2,7 +2,7 @@ class_name BossCampaignCatalog
 extends RefCounted
 
 const DEFINITION_COUNT: int = 5
-const CANONICAL_TRIGGERS: Array[int] = [7, 15, 23, 31, 39]
+const CANONICAL_TRIGGERS: Array[int] = [4, 9, 14, 19, 24]
 const CANONICAL_EVIDENCE: Array[StringName] = [
 	&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
 ]
@@ -158,10 +158,10 @@ static func _ensure_catalog() -> void:
 		return
 	_definitions = [
 		_make_definition(
-			&"SETTLEMENT_ENGINE_S04",
-			&"BUSINESS",
-			7,
-			8,
+				&"SETTLEMENT_ENGINE_S04",
+				&"BUSINESS",
+				4,
+				5,
 			"boss.settlement_engine_s04.name",
 			"SETTLEMENT ENGINE S-04 — The Fiduciary Saint",
 			&"business_crown_reserve_treasury",
@@ -185,10 +185,10 @@ static func _ensure_catalog() -> void:
 			]
 		),
 		_make_definition(
-			&"SAMARITAN_15",
-			&"RESIDENTIAL",
-			15,
-			16,
+				&"SAMARITAN_15",
+				&"RESIDENTIAL",
+				9,
+				10,
 			"boss.samaritan_15.name",
 			"SAMARITAN-15 — The Last Evacuation",
 			&"residential_nightglass_mutual_clinic",
@@ -211,10 +211,10 @@ static func _ensure_catalog() -> void:
 			]
 		),
 		_make_definition(
-			&"MIMESIS_04",
-			&"ENTERTAINMENT",
-			23,
-			24,
+				&"MIMESIS_04",
+				&"ENTERTAINMENT",
+				14,
+				15,
 			"boss.mimesis_04.name",
 			"MIMESIS-04 — The Afterimage Conductor",
 			&"entertainment_house_of_static",
@@ -234,10 +234,10 @@ static func _ensure_catalog() -> void:
 			]
 		),
 		_make_definition(
-			&"CANTOR_31_PALE_ENGINE",
-			&"MILITARY",
-			31,
-			32,
+				&"CANTOR_31_PALE_ENGINE",
+				&"MILITARY",
+				19,
+				20,
 			"boss.cantor_31.name",
 			"CANTOR-31 / PALE ENGINE — The Export Surgeon",
 			&"military_prefect_war_keep",
@@ -259,9 +259,9 @@ static func _ensure_catalog() -> void:
 			]
 		),
 		_make_definition(
-			&"CHOIR_PRIME",
-			&"ROYAL",
-			39,
+				&"CHOIR_PRIME",
+				&"ROYAL",
+				24,
 			-1,
 			"boss.choir_prime.name",
 			"CHOIR Prime — The Last Sovereign",
