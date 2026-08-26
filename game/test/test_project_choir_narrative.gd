@@ -123,7 +123,10 @@ func test_entertainment_containment_breach_releases_two_bounded_crawlers() -> vo
 	await get_tree().process_frame
 	city.urban_siege.stop_run()
 	city.encounter_runtime.release_all()
-	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(16)
+	var entertainment_chunk: int = 2 * CityDistrictCatalog.CHUNKS_PER_DISTRICT
+	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(
+		entertainment_chunk
+	)
 	var variant: StructuralBuildingVariant = district.building_variants[0]
 	assert_true(city.building.apply_variant(variant))
 	var definition: DossierDefinition = DossierCatalog.definition_for_variant(variant.variant_id)
