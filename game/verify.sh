@@ -236,7 +236,7 @@ jq -e '
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
   printf '%s\n' '[L5] windowed render scenario'
-  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/title_screen_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/title_screen/report.json >/dev/null
@@ -257,7 +257,7 @@ if [[ "$MODE" == "full" ]]; then
   printf 'shot_sha256=%s\n' "$SHOT_HASH"
 
   printf '%s\n' '[L5] portrait title render scenario'
-  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
     --resolution 720x1280 -s selftest/title_screen_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/title_screen/report.json >/dev/null
@@ -298,7 +298,7 @@ if [[ "$MODE" == "full" ]]; then
     artifacts/project_choir_wp1/report-portrait.json
 
   printf '%s\n' '[L5] windowed city-slice render scenario'
-  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/city_slice_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/city_slice/report.json >/dev/null
@@ -317,7 +317,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/city_slice/city-slice-rubble-landscape.png
 
 	  printf '%s\n' '[L5] portrait city-slice wreck and rubble render scenario'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 	    --resolution 720x1280 -s selftest/city_slice_scenario.gd
 	  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
 	    artifacts/city_slice/report.json >/dev/null
@@ -341,7 +341,7 @@ if [[ "$MODE" == "full" ]]; then
 		    artifacts/city_slice/city-slice-rubble.png
 
 			  printf '%s\n' '[L5] landscape charged-smash visual scenario'
-			  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+			  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 			    -s selftest/charge_attack_scenario.gd
 			  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .max_shot.status == "PASS" and .release_shot.status == "PASS" and .hit_shot.status == "PASS"' \
 			    artifacts/charge_attack/report.json >/dev/null
@@ -359,7 +359,7 @@ if [[ "$MODE" == "full" ]]; then
 		    artifacts/charge_attack/full-charge-hit-landscape.png
 
 			  printf '%s\n' '[L5] portrait charged-smash visual scenario'
-			  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+			  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 			    --resolution 720x1280 -s selftest/charge_attack_scenario.gd
 			  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS" and .max_shot.status == "PASS" and .release_shot.status == "PASS" and .hit_shot.status == "PASS"' \
 			    artifacts/charge_attack/report.json >/dev/null
@@ -379,7 +379,7 @@ if [[ "$MODE" == "full" ]]; then
 		    artifacts/charge_attack/charge-attack.png
 
 		  printf '%s\n' '[L5] landscape district-building gallery scenario'
-	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 	    -s selftest/district_building_gallery_scenario.gd
 	  jq -e '.done == true and .result == "PASS" and (.districts | length) == 5' \
 	    artifacts/district_gallery/report.json >/dev/null
@@ -391,7 +391,7 @@ if [[ "$MODE" == "full" ]]; then
 	    -name '*-landscape.png' | LC_ALL=C sort)
 
 	  printf '%s\n' '[L5] portrait district-building gallery scenario'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 	    --resolution 720x1280 -s selftest/district_building_gallery_scenario.gd
 	  jq -e '.done == true and .result == "PASS" and (.districts | length) == 5' \
 	    artifacts/district_gallery/report.json >/dev/null
@@ -439,7 +439,7 @@ if [[ "$MODE" == "full" ]]; then
 	    -name '*-portrait.png' | LC_ALL=C sort)
 
 	  printf '%s\n' '[L5] windowed enemy-variety render scenario'
-  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/enemy_variety_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/enemy_variety/report.json >/dev/null
@@ -492,7 +492,7 @@ if [[ "$MODE" == "full" ]]; then
 	    -name '*-portrait.png' | LC_ALL=C sort)
 
   printf '%s\n' '[L5] windowed street-volatility render scenario'
-  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/street_volatility_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/street_volatility/report.json >/dev/null
@@ -501,7 +501,7 @@ if [[ "$MODE" == "full" ]]; then
   grep -Fq '1280 x 720' <<< "$STREET_VOLATILITY_DIMENSIONS"
 
   printf '%s\n' '[L5] windowed endless-terrain render scenario'
-  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/endless_terrain_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
     artifacts/endless_terrain/report.json >/dev/null
@@ -511,7 +511,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/endless_terrain/endless-terrain-landscape.png
 
 	  printf '%s\n' '[L5] portrait endless-terrain district scenario'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 	    --resolution 720x1280 -s selftest/endless_terrain_scenario.gd
 	  jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \
 	    artifacts/endless_terrain/report.json >/dev/null
@@ -522,7 +522,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/endless_terrain/endless-terrain.png
 
 	  printf '%s\n' '[L5] initial city-slice visual scenario'
-  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/city_slice_visual_scenario.gd
   test -s artifacts/city_slice/city-slice-initial.png
   INITIAL_CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice-initial.png)"
@@ -531,7 +531,7 @@ if [[ "$MODE" == "full" ]]; then
     artifacts/city_slice/city-slice-initial-landscape.png
 
   printf '%s\n' '[L5] portrait initial city-slice visual scenario'
-  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
     --resolution 720x1280 -s selftest/city_slice_visual_scenario.gd
   PORTRAIT_CITY_DIMENSIONS="$(file artifacts/city_slice/city-slice-initial.png)"
   grep -Fq '720 x 1280' <<< "$PORTRAIT_CITY_DIMENSIONS"
@@ -541,7 +541,7 @@ if [[ "$MODE" == "full" ]]; then
 		    artifacts/city_slice/city-slice-initial.png
 
 	  printf '%s\n' '[L5] portrait mobile-controls visual scenario'
-	  run_engine xvfb-run -a "$GODOT" --path . --resolution 720x1280 \
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 720x1280 \
 	    -s selftest/mobile_controls_visual_scenario.gd
 	  test -s artifacts/mobile_controls/mobile-controls-portrait.png
 	  grep -Fq '720 x 1280' <<< "$(
@@ -549,7 +549,7 @@ if [[ "$MODE" == "full" ]]; then
 	  )"
 
 		  printf '%s\n' '[L5] landscape upgrade overlay visual scenario'
-	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 	    -s selftest/upgrade_overlay_visual_scenario.gd
 	  test -s artifacts/upgrades/upgrade-choice.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/upgrades/upgrade-choice.png)"
@@ -557,7 +557,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/upgrades/upgrade-choice-landscape.png
 
 	  printf '%s\n' '[L5] portrait upgrade overlay visual scenario'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 	    --resolution 720x1280 -s selftest/upgrade_overlay_visual_scenario.gd
 	  test -s artifacts/upgrades/upgrade-choice.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/upgrades/upgrade-choice.png)"
@@ -565,7 +565,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/upgrades/upgrade-choice-portrait.png
 
 	  printf '%s\n' '[L5] landscape weapon-shop visual scenario'
-	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 	    -s selftest/weapon_shop_visual_scenario.gd
 	  test -s artifacts/weapon_shop/weapon-shop.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
@@ -581,7 +581,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/weapon_shop/weapon-shop-confirm-landscape.png
 
 	  printf '%s\n' '[L5] portrait weapon-shop visual scenario'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 	    --resolution 720x1280 -s selftest/weapon_shop_visual_scenario.gd
 	  test -s artifacts/weapon_shop/weapon-shop.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
@@ -597,7 +597,7 @@ if [[ "$MODE" == "full" ]]; then
 		    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
 
 		  printf '%s\n' '[L5] landscape New Game+ terminal visual scenario'
-		  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+		  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 		    -s selftest/new_game_plus_visual_scenario.gd
 		  test -s artifacts/new_game_plus/new-game-plus.png
 		  grep -Fq '1280 x 720' <<< "$(file artifacts/new_game_plus/new-game-plus.png)"
@@ -605,7 +605,7 @@ if [[ "$MODE" == "full" ]]; then
 		    artifacts/new_game_plus/new-game-plus-landscape.png
 
 		  printf '%s\n' '[L5] portrait New Game+ terminal visual scenario'
-		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 		    --resolution 720x1280 -s selftest/new_game_plus_visual_scenario.gd
 		  test -s artifacts/new_game_plus/new-game-plus.png
 		  grep -Fq '720 x 1280' <<< "$(file artifacts/new_game_plus/new-game-plus.png)"
@@ -613,7 +613,7 @@ if [[ "$MODE" == "full" ]]; then
 		    artifacts/new_game_plus/new-game-plus-portrait.png
 
 		  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
-	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 	    -s selftest/directive_card_visual_scenario.gd
 	  test -s artifacts/directives/directive-active.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/directives/directive-active.png)"
@@ -625,7 +625,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/directives/directive-failed-landscape.png
 
 	  printf '%s\n' '[L5] portrait active/failed directive-card scenario'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 	    --resolution 720x1280 -s selftest/directive_card_visual_scenario.gd
 	  test -s artifacts/directives/directive-active.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/directives/directive-active.png)"
@@ -637,7 +637,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/directives/directive-failed-portrait.png
 
 	  printf '%s\n' '[L5] landscape weapon-drone visual scenario'
-	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 	    -s selftest/weapon_drone_visual_scenario.gd
 	  test -s artifacts/weapon_drones/weapon-drones-rank-one.png
 	  test -s artifacts/weapon_drones/weapon-drones-max-rank.png
@@ -649,7 +649,7 @@ if [[ "$MODE" == "full" ]]; then
 	    artifacts/weapon_drones/weapon-drones-max-rank-landscape.png
 
 	  printf '%s\n' '[L5] portrait weapon-drone visual scenario'
-	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
 	    --resolution 720x1280 -s selftest/weapon_drone_visual_scenario.gd
 	  test -s artifacts/weapon_drones/weapon-drones-rank-one.png
 	  test -s artifacts/weapon_drones/weapon-drones-max-rank.png

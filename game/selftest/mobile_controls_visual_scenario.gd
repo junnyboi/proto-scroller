@@ -47,11 +47,11 @@ func _run() -> void:
 		or dash_rect.end.y >= smash_rect.position.y
 	):
 		push_error("Mobile DASH button failed portrait layout contract")
-		quit(1)
+		await _finish_city(city, 1)
 		return
 	if not city.robot._start_dodge():
 		push_error("Mobile DASH button could not start cooldown")
-		quit(1)
+		await _finish_city(city, 1)
 		return
 	city.robot.physics_step(0.0, city.robot.dodge_cooldown_seconds + 0.01)
 	controls.process_controls(0.15)
@@ -61,12 +61,12 @@ func _run() -> void:
 		or controls.dash_button.scale.x <= 1.08
 	):
 		push_error("Mobile DASH button failed ready-pulse contract")
-		quit(1)
+		await _finish_city(city, 1)
 		return
 	await RenderingServer.frame_post_draw
 	if DisplayServer.get_name() == "headless":
 		print("[SHOT-SKIPPED] headless lane cannot render")
-		quit(0)
+		await _finish_city(city, 0)
 		return
 	var image: Image = root.get_texture().get_image()
 	DirAccess.make_dir_recursive_absolute(
@@ -74,8 +74,29 @@ func _run() -> void:
 	)
 	var save_error: Error = image.save_png(ProjectSettings.globalize_path(SHOT_PATH))
 	if save_error != OK or image.get_size() != TARGET_SIZE:
-		quit(1)
+		await _finish_city(city, 1)
 		return
-	completed = true
 	print("[MOBILE-CONTROLS-VISUAL-DONE] path=%s" % SHOT_PATH)
-	quit(0)
+	await _finish_city(city, 0)
+
+
+func _finish_city(city: CitySlice, exit_code: int) -> void:
+	completed = true
+	_stop_audio(city)
+	city.queue_free()
+	await process_frame
+	await process_frame
+	quit(exit_code)
+
+
+func _stop_audio(node: Node) -> void:
+	if node is AudioStreamPlayer:
+		var player: AudioStreamPlayer = node as AudioStreamPlayer
+		player.stop()
+		player.stream = null
+	elif node is AudioStreamPlayer2D:
+		var player_2d: AudioStreamPlayer2D = node as AudioStreamPlayer2D
+		player_2d.stop()
+		player_2d.stream = null
+	for child: Node in node.get_children():
+		_stop_audio(child)
