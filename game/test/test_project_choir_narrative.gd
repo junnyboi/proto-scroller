@@ -40,8 +40,8 @@ func test_campaign_progress_round_trips_and_ignores_duplicate_dossiers() -> void
 	var dossier_id: StringName = &"dossier_business_mercy_exchange_annex"
 	assert_true(store.collect_dossier(dossier_id))
 	assert_false(store.collect_dossier(dossier_id))
-	assert_true(store.preserve_evidence(&"mercy_lab_specimen"))
-	assert_false(store.preserve_evidence(&"mercy_lab_specimen"))
+	assert_true(store.preserve_evidence(&"LEDGER"))
+	assert_false(store.preserve_evidence(&"LEDGER"))
 	assert_eq(store.increment_continuity(), 1)
 	assert_true(store.mark_ending_seen(&"BURN_THE_CHOIR"))
 	assert_eq(store.save_count, 4)
@@ -191,8 +191,9 @@ func test_project_choir_localization_exists_in_both_supported_locales() -> void:
 
 
 func _remove_test_save() -> void:
-	if FileAccess.file_exists(TEST_SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE_PATH))
+	for path: String in [TEST_SAVE_PATH, TEST_SAVE_PATH + ".tmp", TEST_SAVE_PATH + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _count_nodes(root: Node) -> int:

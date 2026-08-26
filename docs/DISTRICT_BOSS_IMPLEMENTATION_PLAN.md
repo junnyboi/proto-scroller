@@ -185,6 +185,8 @@ Every implementation work package follows the same shared-branch protocol. Befor
 
 **Purpose:** Create the campaign’s investigation spine independently of boss-specific art.
 
+**Status: Complete (2026-08-26).** The authored facade bijection now loads exactly **25** source-controlled dossier resources, including one canon capstone/evidence mapping for each district boss. Campaign state tracks the five canonical evidence flags, optional loss and deterministic elite-drop recovery, twenty-dossier ECHO-7 resolution, finale eligibility, completed bosses, route unlocks, endings, and reward grants. The versioned JSON store signs the exact embedded snapshot string and performs copy-on-write primary/temp/backup recovery; duplicate transaction IDs, every planned crash boundary, corrupt-primary fallback, legacy ConfigFile migration, and reward consumption are idempotent under focused tests. The title archive and campaign summary expose evidence, ambiguity, and recovered outcomes without blocking play. After integrating the concurrent Project CHOIR finale release, eligibility was reconciled to the approved canon—at least twenty dossiers plus **all five** evidence flags, with no chassis-loss limit—and dossier completion was prevented from silently substituting for boss evidence. English/Simplified Chinese key parity and shipped-font coverage passed. Godot 4.7.2 import, touched-file lint, ten focused compatibility suites, the finale and New Game Plus handoff selftest, and the final complete standard gate passed **62 scripts, 382 tests, and 32,611 assertions** in **689 seconds**.
+
 **Implementation:**
 
 - Add versioned campaign progress for twenty-five dossier IDs and five evidence flags.

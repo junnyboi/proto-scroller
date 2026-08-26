@@ -8,7 +8,7 @@ var store: CampaignProgressStore
 
 
 func before_each() -> void:
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	_remove_saves()
 	city = CITY_SCENE.instantiate() as CitySlice
 	store = CampaignProgressStore.new()
 	store.save_path = SAVE_PATH
@@ -20,7 +20,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	_remove_saves()
 
 
 func test_five_pylon_choir_prime_uses_generated_core_and_fixed_charge_steps() -> void:
@@ -38,24 +38,23 @@ func test_five_pylon_choir_prime_uses_generated_core_and_fixed_charge_steps() ->
 	assert_almost_eq(session.boss.boss_armor, 0.0, 0.001)
 
 
-func test_eligibility_requires_twenty_dossiers_four_evidence_and_limited_losses() -> void:
+func test_eligibility_requires_twenty_dossiers_and_all_five_evidence_flags() -> void:
 	_prepare_eligible_store()
 	var snapshot: FinaleEligibilitySnapshot = FinaleEligibilitySnapshot.from_store(store)
 	assert_true(snapshot.disentangle_eligible)
 	assert_eq(snapshot.dossier_count, 20)
-	assert_eq(snapshot.evidence_count, 4)
+	assert_eq(snapshot.evidence_count, 5)
 	assert_eq(snapshot.continuity_generation, 2)
 	store.increment_continuity()
-	assert_false(FinaleEligibilitySnapshot.from_store(store).disentangle_eligible)
+	assert_true(FinaleEligibilitySnapshot.from_store(store).disentangle_eligible)
 
 
-func test_completed_district_dossiers_award_one_canonical_evidence_flag() -> void:
+func test_completed_district_dossiers_do_not_replace_boss_evidence() -> void:
 	var business: Array[DossierDefinition] = DossierCatalog.district_definitions(&"BUSINESS")
 	for definition: DossierDefinition in business:
 		assert_true(store.collect_dossier(definition.dossier_id))
-	city.project_choir_runtime._award_completed_district_evidence(
-		business.back().building_variant_id
-	)
+	assert_eq(store.evidence_count(), 0)
+	assert_true(store.preserve_evidence(&"LEDGER"))
 	assert_eq(store.evidence_count(), 1)
 	assert_true(store.snapshot().evidence.has("LEDGER"))
 
@@ -121,7 +120,9 @@ func test_resolved_ending_offers_new_game_plus_before_extracting_summary() -> vo
 func _prepare_eligible_store() -> void:
 	for index: int in range(20):
 		store.collect_dossier(DossierCatalog.definitions()[index].dossier_id)
-	for evidence_id: StringName in [&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL"]:
+	for evidence_id: StringName in [
+		&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
+	]:
 		store.preserve_evidence(evidence_id)
 	store.increment_continuity()
 	store.increment_continuity()
@@ -156,3 +157,9 @@ func _visible_pylon_count(session: CommandBossSession) -> int:
 		if pylon.visible:
 			count += 1
 	return count
+
+
+func _remove_saves() -> void:
+	for path: String in [SAVE_PATH, SAVE_PATH + ".tmp", SAVE_PATH + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

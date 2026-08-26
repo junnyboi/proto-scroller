@@ -2,8 +2,7 @@ class_name FinaleEligibilitySnapshot
 extends RefCounted
 
 const DOSSIER_REQUIREMENT: int = 20
-const EVIDENCE_REQUIREMENT: int = 4
-const CONTINUITY_LIMIT: int = 2
+const EVIDENCE_REQUIREMENT: int = 5
 
 var dossier_count: int
 var evidence_count: int
@@ -21,7 +20,6 @@ static func from_store(store: CampaignProgressStore) -> FinaleEligibilitySnapsho
 	snapshot.disentangle_eligible = (
 		snapshot.dossier_count >= DOSSIER_REQUIREMENT
 		and snapshot.evidence_count >= EVIDENCE_REQUIREMENT
-		and snapshot.continuity_generation <= CONTINUITY_LIMIT
 	)
 	return snapshot
 
@@ -33,6 +31,5 @@ func as_dictionary() -> Dictionary:
 		"evidence_count": evidence_count,
 		"evidence_requirement": EVIDENCE_REQUIREMENT,
 		"continuity_generation": continuity_generation,
-		"continuity_limit": CONTINUITY_LIMIT,
 		"disentangle_eligible": disentangle_eligible,
 	}
