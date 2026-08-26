@@ -98,6 +98,10 @@ awk -v duration="$TRANSITION_BOOM_DURATION" 'BEGIN {
 }'
 test "$(sha256sum audio/sfx/ui/transition_full_black_boom.wav | cut -d' ' -f1)" = \
 	"cca66e67364e69695febad14faa30f09c2cf5a906abae4cd8205fa2b623a558f"
+for weapon_shop_import in art/ui/weapon_shop/*.webp.import; do
+	grep -Fq 'compress/mode=1' "$weapon_shop_import"
+	grep -Fq 'compress/lossy_quality=0.8' "$weapon_shop_import"
+done
 PUNCH_DURATION="$(
 	ffprobe -v error -show_entries format=duration -of csv=p=0 \
 		audio/sfx/robot/double_punch_impact.wav
