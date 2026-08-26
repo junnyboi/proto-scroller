@@ -45,7 +45,8 @@ replaceOnce(
   `const titleVideoBackdrop = document.getElementById('title-video-backdrop');
 		const TITLE_SOURCES = { landscape: '/title-video/title-loop-landscape.mp4', portrait: '/title-video/title-loop-portrait.mp4' };
 		const TITLE_IMPACTS = { landscape: 88 / 24, portrait: 66 / 24 };
-		const TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS = 0.35;
+		const TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS = 1.0;
+		const TITLE_SOURCE_CAPTURE_TIMEOUT_MS = 1500;
 		const forceTitleVideoReject = new URLSearchParams(location.search).get('forceTitleVideoReject') === '1';
 	const titleAudioContexts = new Set();
 let titleSourceLocked = false, titleLockedOrientation = null, titleGeneration = 0, titleFrame = 0, titleTimer = 0, titleCapture = null;
@@ -102,7 +103,7 @@ function commitTitleBeat(generation, commitCallback, calibrationCallback, fallba
 	if (fallbackReason) Object.assign(telemetry, { fallback: true, fallbackReason });
 	Object.assign(telemetry, { videoTime: titleVideoBackdrop.currentTime, commitStatus: 'callback-invoked' });
 	titleCapture = { impactSeconds: telemetry.impactSeconds, scheduleToImpact: !fallbackReason, scheduled: delay => calibrationCallback?.('scheduled', delay), done: () => calibrationCallback?.('complete') }; commitCallback();
-	setTimeout(() => { if (generation !== titleGeneration || telemetry.committed) return; Object.assign(telemetry, { fallback: true, fallbackReason: telemetry.fallbackReason || 'non-silent-source-capture-timeout', sourceKind: 'commit-callback-fallback', committed: true, commitStatus: 'fallback-complete' }); titleCapture = null; calibrationCallback?.('complete'); }, 500);
+	setTimeout(() => { if (generation !== titleGeneration || telemetry.committed) return; Object.assign(telemetry, { fallback: true, fallbackReason: telemetry.fallbackReason || 'non-silent-source-capture-timeout', sourceKind: 'commit-callback-fallback', committed: true, commitStatus: 'fallback-complete' }); titleCapture = null; calibrationCallback?.('complete'); }, TITLE_SOURCE_CAPTURE_TIMEOUT_MS);
 }
 window.protoScrollerMarkTitleMusicPrewarm = status => { if (window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__) window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__.prewarmStatus = status; };
 window.protoScrollerCancelTitleBeatCommit = function (reason = 'host-cancelled') {

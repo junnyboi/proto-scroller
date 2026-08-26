@@ -394,6 +394,7 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 		assert_true(runtime_source.contains("targetPerformanceTime"))
 		assert_true(runtime_source.contains("setTimeout"))
 		assert_true(runtime_source.contains("TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS"))
+		assert_true(runtime_source.contains("TITLE_SOURCE_CAPTURE_TIMEOUT_MS"))
 		assert_true(runtime_source.contains("effectiveWhen"))
 		assert_true(runtime_source.contains("scheduleToImpact"))
 		assert_true(runtime_source.contains("secondsUntilRendered"))
