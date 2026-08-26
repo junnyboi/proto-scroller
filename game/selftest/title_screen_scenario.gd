@@ -148,6 +148,7 @@ func _run() -> void:
 				screen.dossier_codex.progress_label.text,
 			]
 		)
+		_check_codex_header_clear(screen.dossier_codex)
 		screen.dossier_codex.close(false)
 		screen.close_briefing()
 		screen.open_settings()
@@ -221,6 +222,28 @@ func _run() -> void:
 	)
 	_check("frame_budget", elapsed_frames <= MAX_FRAMES, _frame_budget_detail())
 	_finish(shot_status, shot_path)
+
+
+func _check_codex_header_clear(codex: DossierCodexOverlay) -> void:
+	var evidence_rect: Rect2 = codex.evidence_label.get_global_rect()
+	var list_rect: Rect2 = codex.dossier_list.get_global_rect()
+	var font: Font = codex.evidence_label.get_theme_font(&"font")
+	var font_size: int = codex.evidence_label.get_theme_font_size(&"font_size")
+	var rendered_bottom: float = (
+		evidence_rect.position.y
+		+ font.get_height(font_size) * float(codex.evidence_label.get_line_count())
+	)
+	_check(
+		"codex_header_clear_of_list",
+		list_rect.position.y >= rendered_bottom + 8.0,
+		"evidence=%s lines=%s rendered_bottom=%.2f list=%s"
+		% [
+			evidence_rect,
+			codex.evidence_label.get_line_count(),
+			rendered_bottom,
+			list_rect,
+		]
+	)
 
 
 func _check_minimum_text_height(screen: TitleScreen, button: Button) -> void:

@@ -33,6 +33,7 @@ func _ready() -> void:
 func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
 	profile = p_profile
 	global_position = world_position
+	set_meta(&"street_destructible_kind", &"power_box")
 	max_health = profile.max_health
 	current_health = max_health
 	armed = true

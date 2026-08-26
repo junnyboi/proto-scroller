@@ -59,6 +59,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.facade_reveal_slots, RuntimeBudget.FACADE_REVEAL_SLOTS)
 	assert_eq(snapshot.streamed_buildings, RuntimeBudget.STREAMED_BUILDINGS)
 	assert_eq(snapshot.streamed_props, RuntimeBudget.STREAMED_PROPS)
+	assert_eq(snapshot.repair_pickup_slots, RuntimeBudget.REPAIR_PICKUP_SLOTS)
 	assert_eq(snapshot.streamed_post_warm_creations, 0)
 	assert_eq(snapshot.world_mutation_ledgers, 1)
 	assert_eq(snapshot.rare_rows, 3)

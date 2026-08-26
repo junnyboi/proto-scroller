@@ -68,6 +68,7 @@ func activate(
 	hazard_id = p_hazard_id
 	profile = p_profile
 	global_position = world_position
+	set_meta(&"street_destructible_kind", hazard_id)
 	facing = 1 if p_facing >= 0 else -1
 	active = true
 	state = STATE_ARMED

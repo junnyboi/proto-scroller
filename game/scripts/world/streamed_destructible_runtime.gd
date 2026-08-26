@@ -186,6 +186,7 @@ func _build_slot(chunk: CityStreetChunk) -> void:
 	buildings.append(building)
 	_slot_buildings[chunk.get_instance_id()] = building
 	var car: DestructibleProp2D = _create_prop("StreamedCar", {
+		"kind": &"car",
 		"intact": CAR_INTACT,
 		"broken": CAR_WRECK,
 		"intact_size": Vector2(165.0, 78.0),
@@ -202,6 +203,7 @@ func _build_slot(chunk: CityStreetChunk) -> void:
 		"wreck_next_hit_fully_destroys": true,
 	})
 	var lamp: DestructibleProp2D = _create_prop("StreamedStreetlamp", {
+		"kind": &"streetlamp",
 		"intact": LAMP_INTACT,
 		"broken": LAMP_BROKEN,
 		"intact_size": Vector2(70.0, 235.0),
@@ -231,6 +233,7 @@ func _create_prop(
 	var prop: DestructibleProp2D = PROP_SCRIPT.new() as DestructibleProp2D
 	prop.name = prop_name
 	prop.z_index = 25
+	prop.set_meta(&"street_destructible_kind", StringName(spec.kind))
 	prop.max_health = float(spec.health)
 	prop.wreck_health = float(spec.wreck_health)
 	prop.gameplay_chunk_count = int(spec.chunks)
