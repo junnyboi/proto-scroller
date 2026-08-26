@@ -171,12 +171,14 @@ let lockedTitleOrientation: TitleOrientation | null = null;
 let titleScheduleGeneration = 0;
 let titleScheduleFrame = 0;
 let titleScheduleTimer = 0;
+let titleTargetOutputPerformanceTime = 0;
 let pendingSourceCapture:
   | {
       generation: number;
-      impactSeconds: number;
-      scheduleToImpact: boolean;
-      scheduled: (secondsUntilRendered: number) => void;
+	      impactSeconds: number;
+	      scheduleToImpact: boolean;
+	      targetOutputPerformanceTime: number;
+	      scheduled: (secondsUntilRendered: number) => void;
       complete: () => void;
     }
   | undefined;
@@ -299,18 +301,19 @@ function installAudioBufferSourceStartProbe(): void {
     ) {
       const context = this.context as TrackedAudioContext;
       const immediateSchedule = when > 0 ? when : context.currentTime;
-      const immediateRenderedVideoTime =
-        titleVideoBackdrop.currentTime +
-        Math.max(
-          0,
-          (outputPerformanceTime(context, immediateSchedule) -
-            performance.now()) /
-            1_000
-        );
-      const schedule = capture.scheduleToImpact
-        ? context.currentTime +
-          Math.max(0, capture.impactSeconds - immediateRenderedVideoTime)
-        : immediateSchedule;
+	      const immediateOutputPerformanceTime = outputPerformanceTime(
+	        context,
+	        immediateSchedule
+	      );
+	      const schedule = capture.scheduleToImpact
+	        ? context.currentTime +
+	          Math.max(
+	            0,
+	            (capture.targetOutputPerformanceTime -
+	              immediateOutputPerformanceTime) /
+	              1_000
+	          )
+	        : immediateSchedule;
       effectiveWhen = schedule;
       const secondsUntilRendered = Math.max(
         0,
@@ -393,10 +396,11 @@ function commitTitleMusic(
   telemetry.videoTime = titleVideoBackdrop.currentTime;
   telemetry.commitStatus = "callback-invoked";
   pendingSourceCapture = {
-    generation,
-    impactSeconds: telemetry.impactSeconds,
-    scheduleToImpact: !fallbackReason,
-    scheduled: secondsUntilRendered =>
+	    generation,
+	    impactSeconds: telemetry.impactSeconds,
+	    scheduleToImpact: !fallbackReason,
+	    targetOutputPerformanceTime: titleTargetOutputPerformanceTime,
+	    scheduled: secondsUntilRendered =>
       calibrationCallback?.("scheduled", secondsUntilRendered),
     complete: () => finishTitleCommit(generation, calibrationCallback),
   };
@@ -467,13 +471,20 @@ async function runTitleBeatScheduler(
     );
     return;
   }
-  const secondsUntilCommit = Math.max(
-    0,
-    telemetry.impactSeconds -
-      titleVideoBackdrop.currentTime -
-      TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS
-  );
-  const targetPerformanceTime = performance.now() + secondsUntilCommit * 1_000;
+	  const currentVideoTime =
+	    ((titleVideoBackdrop.currentTime % TITLE_VIDEO_SECONDS) +
+	      TITLE_VIDEO_SECONDS) %
+	    TITLE_VIDEO_SECONDS;
+	  let secondsUntilImpact = telemetry.impactSeconds - currentVideoTime;
+	  if (secondsUntilImpact <= TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS)
+	    secondsUntilImpact += TITLE_VIDEO_SECONDS;
+	  titleTargetOutputPerformanceTime =
+	    performance.now() + secondsUntilImpact * 1_000;
+	  const secondsUntilCommit =
+	    secondsUntilImpact - TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS;
+	  const targetPerformanceTime =
+	    titleTargetOutputPerformanceTime -
+	    TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS * 1_000;
   titleScheduleTimer = window.setTimeout(
     () => commitTitleMusic(generation, commitCallback, calibrationCallback),
     secondsUntilCommit * 1_000
@@ -483,9 +494,7 @@ async function runTitleBeatScheduler(
     if (generation !== titleScheduleGeneration) return;
     telemetry.videoTime = titleVideoBackdrop.currentTime;
     if (
-      performance.now() >= targetPerformanceTime ||
-      titleVideoBackdrop.currentTime >=
-        telemetry.impactSeconds - TITLE_AUDIO_SCHEDULE_AHEAD_SECONDS
+	      performance.now() >= targetPerformanceTime
     ) {
       commitTitleMusic(generation, commitCallback, calibrationCallback);
       return;
@@ -511,8 +520,9 @@ window.protoScrollerCancelTitleBeatCommit = (reason = "host-cancelled") => {
   titleScheduleGeneration += 1;
   if (titleScheduleFrame) cancelAnimationFrame(titleScheduleFrame);
   if (titleScheduleTimer) window.clearTimeout(titleScheduleTimer);
-  titleScheduleFrame = 0;
-  titleScheduleTimer = 0;
+	  titleScheduleFrame = 0;
+	  titleScheduleTimer = 0;
+	  titleTargetOutputPerformanceTime = 0;
   pendingSourceCapture = undefined;
   const telemetry = window.__PROTO_SCROLLER_TITLE_MUSIC_SYNC__;
   if (telemetry && !telemetry.committed) {

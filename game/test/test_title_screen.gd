@@ -163,6 +163,19 @@ func test_initialize_seam_transitions_once() -> void:
 	_record_test_execution()
 
 
+func test_first_trusted_title_input_requests_audio_once() -> void:
+	var activation_count: Array[int] = [0]
+	screen.audio_activation_requested.connect(func() -> void: activation_count[0] += 1)
+	var key_event: InputEventKey = InputEventKey.new()
+	key_event.pressed = true
+	key_event.keycode = KEY_A
+	screen._input(key_event)
+	screen._input(key_event)
+	assert_eq(activation_count[0], 1)
+	assert_true(screen._audio_activation_emitted)
+	_record_test_execution()
+
+
 func test_settings_menu_applies_and_persists_the_complete_audio_mix() -> void:
 	var settings_layer: Control = screen.get_node("%SettingsLayer") as Control
 	var sliders: Dictionary = {
@@ -397,6 +410,8 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 		assert_true(runtime_source.contains("TITLE_SOURCE_CAPTURE_TIMEOUT_MS"))
 		assert_true(runtime_source.contains("effectiveWhen"))
 		assert_true(runtime_source.contains("scheduleToImpact"))
+		assert_true(runtime_source.contains("titleTargetOutputPerformanceTime"))
+		assert_true(runtime_source.contains("secondsUntilImpact"))
 		assert_true(runtime_source.contains("secondsUntilRendered"))
 		assert_true(runtime_source.contains("scheduled"))
 	assert_true(host_source.contains("88 / 24"))

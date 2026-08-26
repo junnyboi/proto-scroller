@@ -201,6 +201,10 @@ func _title_sync_fallback_delay_seconds() -> float:
 	return TITLE_SYNC_FALLBACK_SECONDS
 
 
+func _activate_title_music_from_interaction() -> void:
+	_begin_title_music_sync()
+
+
 func start_game() -> void:
 	_start_background_music()
 	_cancel_title_music_sync("title-exit")
@@ -304,6 +308,9 @@ func _show_title() -> void:
 	_title_music_committed = background_music_player.playing
 	title_screen = TITLE_SCENE.instantiate() as TitleScreen
 	title_screen.configure_campaign(campaign_progress.snapshot())
+	title_screen.audio_activation_requested.connect(
+		_activate_title_music_from_interaction
+	)
 	title_screen.start_requested.connect(start_game_with_transition)
 	add_child(title_screen)
 
