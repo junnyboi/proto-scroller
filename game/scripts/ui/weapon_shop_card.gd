@@ -92,18 +92,40 @@ func _build_contents() -> void:
 func _apply_layout() -> void:
 	var padding: float = 14.0
 	var compact: bool = size.y < 250.0
-	var icon_size: float = minf(size.x * (0.30 if compact else 0.46), 136.0)
+	if compact:
+		var icon_size: float = minf(size.y - 48.0, 120.0)
+		var text_left: float = icon_size + 42.0
+		product_icon.position = Vector2(18.0, (size.y - icon_size) * 0.5)
+		product_icon.size = Vector2(icon_size, icon_size)
+		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		title_label.position = Vector2(text_left, 18.0)
+		title_label.size = Vector2(size.x - text_left - 20.0, 34.0)
+		description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		description_label.position = Vector2(text_left, 54.0)
+		description_label.size = Vector2(size.x - text_left - 20.0, 72.0)
+		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		price_label.position = Vector2(text_left, size.y - 56.0)
+		price_label.size = Vector2(220.0, 30.0)
+		state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		state_label.position = Vector2(size.x - 220.0, size.y - 54.0)
+		state_label.size = Vector2(198.0, 26.0)
+		return
+	var icon_size: float = minf(size.x * 0.46, 136.0)
 	product_icon.position = Vector2((size.x - icon_size) * 0.5, 8.0)
 	product_icon.size = Vector2(icon_size, icon_size)
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.position = Vector2(padding, product_icon.position.y + icon_size - 4.0)
 	title_label.size = Vector2(size.x - padding * 2.0, 44.0)
+	description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description_label.position = Vector2(padding, title_label.position.y + 42.0)
 	description_label.size = Vector2(
 		size.x - padding * 2.0,
 		maxf(size.y - description_label.position.y - 66.0, 34.0)
 	)
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.position = Vector2(padding, size.y - 60.0)
 	price_label.size = Vector2(size.x - padding * 2.0, 28.0)
+	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	state_label.position = Vector2(padding, size.y - 31.0)
 	state_label.size = Vector2(size.x - padding * 2.0, 22.0)
 

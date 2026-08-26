@@ -129,6 +129,8 @@ func test_hover_preview_confirmation_and_upgrade_feedback_are_transactional() ->
 	assert_true(overlay.preview_panel.visible)
 	assert_eq(overlay.preview_panel.active_product_id, card.product.product_id)
 	assert_string_contains(overlay.preview_panel.rows_label.text, "100%")
+	assert_not_null(overlay.preview_panel.get_node_or_null("StatPreviewContainer"))
+	assert_null(overlay.get_node_or_null("TransactionFeedback"))
 	var score_before: int = score.score
 	card._on_pressed()
 	assert_true(overlay.confirmation_panel.active)
@@ -156,7 +158,10 @@ func test_repair_confirmation_uses_distinct_audio_and_repair_particles() -> void
 	overlay.dialogue_panel._dismiss()
 	var repair_card: WeaponShopCard = overlay.cards[0]
 	repair_card._request_preview()
-	assert_string_contains(overlay.preview_panel.rows_label.text, "CHASSIS INTEGRITY")
+	var preview_lines: PackedStringArray = overlay.preview_panel.rows_label.text.split("\n")
+	assert_eq(preview_lines.size(), 2)
+	assert_eq(preview_lines[0], "CHASSIS INTEGRITY")
+	assert_string_contains(preview_lines[1], ">>")
 	repair_card._on_pressed()
 	overlay.confirmation_panel._confirm()
 	assert_eq(city.impact_feedback_pool.last_cue, AudioCueRegistry.Cue.SHOP_REPAIR)

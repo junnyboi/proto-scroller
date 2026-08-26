@@ -1,7 +1,7 @@
 class_name WeaponShopStatPreviewPanel
 extends Control
 
-var frame_texture: TextureRect
+var background_panel: Panel
 var heading_label: Label
 var product_label: Label
 var rows_label: Label
@@ -27,7 +27,7 @@ func show_preview(
 	active_product_id = product.product_id
 	heading_label.text = L10n.t("shop.preview.title")
 	product_label.text = L10n.t(product.name_key)
-	rows_label.text = WeaponShopStatFormatter.format_rows(rows)
+	rows_label.text = WeaponShopStatFormatter.format_stacked_rows(rows)
 	status_label.text = _status_text(status)
 	visible = true
 
@@ -38,13 +38,17 @@ func update_status(product_id: StringName, status: StringName) -> void:
 
 
 func _build_controls() -> void:
-	frame_texture = TextureRect.new()
-	frame_texture.texture = WeaponShopVisualCatalog.STAT_PREVIEW_FRAME
-	frame_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	frame_texture.stretch_mode = TextureRect.STRETCH_SCALE
-	frame_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	frame_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(frame_texture)
+	background_panel = Panel.new()
+	background_panel.name = "StatPreviewContainer"
+	background_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.012, 0.027, 0.035, 0.94)
+	panel_style.set_border_width_all(2)
+	panel_style.border_color = Color(0.31, 0.64, 0.66, 0.82)
+	panel_style.set_corner_radius_all(4)
+	background_panel.add_theme_stylebox_override(&"panel", panel_style)
+	add_child(background_panel)
 	heading_label = _label(14, Color("f1b36f"))
 	add_child(heading_label)
 	product_label = _label(20, Color("e8f3ef"))
@@ -57,15 +61,19 @@ func _build_controls() -> void:
 
 
 func _apply_layout() -> void:
-	var padding: float = 22.0
-	heading_label.position = Vector2(padding, 14.0)
-	heading_label.size = Vector2(size.x - padding * 2.0, 24.0)
-	product_label.position = Vector2(padding, 40.0)
-	product_label.size = Vector2(size.x - padding * 2.0, 34.0)
-	rows_label.position = Vector2(padding, 76.0)
-	rows_label.size = Vector2(size.x - padding * 2.0, maxf(size.y - 118.0, 38.0))
-	status_label.position = Vector2(padding, size.y - 35.0)
-	status_label.size = Vector2(size.x - padding * 2.0, 24.0)
+	var compact: bool = size.y < 180.0
+	var padding: float = 18.0 if compact else 22.0
+	heading_label.position = Vector2(padding, 10.0 if compact else 14.0)
+	heading_label.size = Vector2(size.x - padding * 2.0, 22.0)
+	product_label.position = Vector2(padding, 30.0 if compact else 40.0)
+	product_label.size = Vector2(size.x - padding * 2.0, 30.0)
+	rows_label.position = Vector2(padding, 56.0 if compact else 78.0)
+	rows_label.size = Vector2(
+		size.x - padding * 2.0,
+		48.0 if compact else maxf(size.y - 128.0, 48.0)
+	)
+	status_label.position = Vector2(padding, size.y - (27.0 if compact else 35.0))
+	status_label.size = Vector2(size.x - padding * 2.0, 22.0)
 
 
 func _status_text(status: StringName) -> String:

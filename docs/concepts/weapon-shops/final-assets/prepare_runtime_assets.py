@@ -53,7 +53,6 @@ for district in DISTRICTS:
 
 SHARED = {
     "confirmation-frame.png": ("confirmation_frame.webp", (720, 540), 82),
-    "stat-preview-frame.png": ("stat_preview_frame.webp", (640, 480), 82),
     "rampage-credit-sigil.png": ("rampage_credit.webp", (192, 192), 84),
     "upgrade-success-burst.png": ("upgrade_success_burst.webp", (256, 256), 86),
     "repair-success-burst.png": ("repair_success_burst.webp", (256, 256), 86),
