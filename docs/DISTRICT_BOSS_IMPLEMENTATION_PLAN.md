@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 
-**Status:** In progress — WP0 complete
+**Status:** Complete — source `bd16ad0`, WebDev checkpoint `cadac459`, public deployment live
 
 **Companion design:** `docs/DISTRICT_BOSS_ENCOUNTER_PROPOSAL.md`
 
@@ -324,21 +324,11 @@ Every implementation work package follows the same shared-branch protocol. Befor
 
 **Purpose:** Verify and publish the exact final tree.
 
-**Implementation:**
+**Status: Complete (2026-08-27).** Shared `main` was synchronized and all seven implementation phases were pushed without rewriting history. Per explicit user directive, repository-wide standard/full release gates were skipped; acceptance relied on the focused phase suites and deterministic encounter scenarios recorded above. A fresh Godot 4.7.2 export from exact source `bd16ad0d1f0b91fdb207b76b4a35bcb6c2b02119` produced nonempty HTML, JavaScript, a **39,514,754-byte** WASM, and an **11,504,828-byte** PCK, leaving **5,272,388 bytes** below the 16 MiB ceiling.
 
-1. Re-fetch and fast-forward shared `main` before the final candidate.
-2. Run direct import and scan import logs.
-3. Run focused boss, campaign, evidence, save, mask, budget, accessibility, and localization tests.
-4. Run the complete GUT suite and repository `./verify.sh`.
-5. Run `./verify.sh --full` with Xvfb visual checks, fresh Web export, and Chromium smoke.
-6. Inspect landscape and portrait screenshots and browser/network/runtime logs.
-7. Require nonempty HTML, JavaScript, WebAssembly, and PCK artifacts; reject an oversized PCK.
-8. Commit and push the verified phase to shared `main` without rewriting history.
-9. Replace the WebDev host’s local generated `game.html`, `game.js`, both audio worklets, icons, and generated loading images whenever the verified export changes them. Upload/remap the exact final WASM and PCK even when the engine WASM checksum is unchanged. Preserve the fullscreen iframe and current title-video behavior.
-10. Update every immutable storage path, `GODOT_CONFIG.fileSizes` value, source revision, byte-size constant, SHA-256, and asset manifest entry in `game.html`, `PLAN.md`, `MEMORY.md`, `ASSETS.md`, `STRUCTURE.md`, and any client source constant discovered by repository search. Stale source, PCK, or WASM metadata is a blocking failure.
-11. Run WebDev type/build checks, restart preview, fetch every local and remote runtime artifact over HTTP, and compare its exact byte size and SHA-256 with the certified export or upload manifest. Exercise movement, dash, smash, and representative boss input; scan console, network, and runtime logs; verify landscape and portrait; save a checkpoint; and publish when the direct control is available.
+The existing WebDev host was semantically merged with concurrent source `789e031` so the complete boss campaign retains the 2× compatible-wave / 0.5× cadence pressure revision and the newer trusted title beat scheduler. The exact final payloads were freshly uploaded and remapped as `/manus-storage/game_d115f29f.wasm` and `/manus-storage/game_d85f95a3.pck`; HTTP downloads matched the export byte-for-byte and by SHA-256. TypeScript and production builds passed. The preview loaded both exact objects, retained title scheduler APIs, accepted Enter, movement, dash, and smash input, stopped the title video on gameplay handoff, rendered fullscreen in landscape and portrait, and produced no blocking console error. WebDev checkpoint **`cadac459`** auto-published to `https://protoscoll-enopta8p.manus.space/`, whose public shell resolves the exact final payload routes.
 
-**Exit gate:** Source revision, export bytes, WebDev checkpoint, and public deployment all refer to the same certified tree.
+**Exit gate:** Passed. Source revision, export bytes, checkpoint `cadac459`, and public deployment refer to the same boss-complete tree and immutable payloads.
 
 ## Verification matrix
 
