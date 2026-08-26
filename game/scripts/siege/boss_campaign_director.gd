@@ -16,6 +16,7 @@ var gates: Array[BossGateMarker] = []
 var arena_lease: ArenaLease = ArenaLease.new()
 var interlock: BossSiegeInterlock = BossSiegeInterlock.new()
 var attempt_snapshot: BossAttemptSnapshot = BossAttemptSnapshot.new()
+var music_director: BossMusicDirector
 var active_definition: BossEncounterDefinition
 var active_gate: BossGateMarker
 var attempt_failed: bool = false
@@ -29,6 +30,12 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	destructibles = siege.dependencies.city.streamed_destructibles
 	arena_lease.setup(world_stream, destructibles)
 	interlock.setup(siege)
+	music_director = BossMusicDirector.new()
+	music_director.setup(_background_music_player())
+	add_child(music_director)
+	attempt_started.connect(music_director.play_definition)
+	attempt_retried.connect(music_director.play_definition)
+	boss_completed.connect(music_director.stop_music)
 	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
 		var marker: BossGateMarker = BossGateMarker.new()
 		marker.configure(definition)
@@ -86,6 +93,8 @@ func reset_run() -> void:
 
 
 func stop() -> void:
+	if music_director != null:
+		music_director.stop_music()
 	if siege != null and siege.boss_session != null:
 		siege.boss_session.stop()
 	if active_gate != null:
@@ -257,3 +266,10 @@ func _on_boss_durability_changed(_current: float, _maximum: float) -> void:
 
 func _on_slice_feedback_changed(_first: Variant = null, _second: Variant = null) -> void:
 	_refresh_hud()
+
+
+func _background_music_player() -> AudioStreamPlayer:
+	var city: CitySlice = siege.dependencies.city
+	if city == null or city.get_parent() == null:
+		return null
+	return city.get_parent().get("background_music_player") as AudioStreamPlayer

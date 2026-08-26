@@ -304,6 +304,8 @@ Every implementation work package follows the same shared-branch protocol. Befor
 
 **Purpose:** Finish campaign presentation without exceeding runtime or package limits.
 
+**Status: Complete (2026-08-27).** The campaign now ships twenty-five district dossiers plus five boss capstones, full English and Simplified Chinese key parity, and zero unsupported glyphs from the boss feature. Five compact GPT Image 2 runtime silhouettes and five Lyria 3 Pro themes are source-controlled with model, prompt-scope, encoding, size, duration, and SHA-256 provenance. `BossMusicDirector` owns one prewarmed Music-bus player, maps every canonical boss ID to a unique looping theme, does not restart the same track on retry, remains mechanically inert when audio is muted, and restores the interrupted city-pressure bed after stop or completion. Accessibility coverage proves every phase has textual identity, a noncolor telegraph profile, and a positive safe gap; grayscale presentation leaves damage geometry unchanged; Royal pylons retain distinct textual identities independent of tint. Music tests passed **6 tests / 58 assertions** and accessibility tests passed **3 tests / 116 assertions**. The runtime source pack measures **1,571,351 bytes**, below the 1,835,008-byte allocation. A fresh Godot 4.7.2 Web export produced a **11,504,828-byte PCK**, leaving **5,272,388 bytes** below the 16 MiB ceiling. Repository-wide release gates remained skipped by user directive.
+
 **Implementation:**
 
 - Complete all twenty-five dossier texts and facade reveal cues.
