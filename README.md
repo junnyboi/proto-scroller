@@ -25,21 +25,21 @@ The standard gate performs a direct import, strict GDScript lint and parse-log c
 
 ### Latest verified baseline
 
-The full harness last passed on **2026-08-26** against gameplay revision `da5703a0a0f5bd2f9453632cffc1261f51911797` using `Godot 4.7.2.stable.official.ed1daf0bf`; the docs-only shared-main merge at `e4e66b17d163a75e12e06069dc2102a904471c9d` then repeated direct import, bounded boot, the focused fade test, a fresh Web export, frontend builds, and the complete Chromium smoke.
+The full harness passed on **2026-08-26** against weapon-shop gameplay revision `3ff79b03d035541a084afa3551609e01d5aeb001` using `Godot 4.7.2.stable.official.ed1daf0bf`.
 
 | Check | Result |
 |---|---|
 | Harness command | `./verify.sh --full` |
 | Process result | Exit `0`; `[VERIFY-PASS] mode=full` |
-| GUT suite | 52 scripts; 313 of 313 tests passed; 30,022 assertions |
-| Headless scenarios | Title screen, city slice, enemy variety, street volatility, and endless terrain passed |
-| Visual scenarios | Required landscape and portrait renders passed |
+| GUT suite | 53 scripts; 319 of 319 tests passed; 30,359 assertions |
+| Headless scenarios | Title screen, city slice, charged smash, directives, district gallery, enemy variety, street volatility, and endless terrain passed |
+| Visual scenarios | Required landscape and portrait renders passed, including the responsive three-product weapon shop |
 | Reference title render | SHA-256 `92775e50df36c046d6c81347c2d672450c38d62167e1b48d723172067f34d590` |
 | Web release export | 9 generated Godot files plus two MP4 title loops and two static fallbacks; HTML, JavaScript, WebAssembly, and PCK present |
-| PCK size | 14,111,600 bytes, below the 16 MiB harness limit |
+| PCK size | 14,148,788 bytes, below the 16 MiB harness limit |
 | Browser gameplay smoke | Landscape 1280×720 and portrait 720×1280 title loops decoded, advanced, and selected correctly; `idle → fade_out → black → black_ready → fade_in → complete` passed, the held 1280×720 transition frame was fully black, and the landscape video paused before gameplay appeared. Both local audio worklets fulfilled; `ready → charge_started → charge_progress → charge_released → attack_started → upgrade_visible → upgrade_resolved → post_upgrade_sfx_ok → east_walk_ok → pass`; the exported punch cue reported 1.17 seconds, ground slam and punch reported the exact 25-percent-reduced 8.54365 dB playback level, and all audited SFX passed at progression distance with zero drops |
 | Error scan | No script, parse, browser console, request, fatal, or crash errors |
-| Duration | 727 seconds |
+| Duration | 700 seconds |
 
 To run only the browser lane after producing a fresh Web export:
 
