@@ -72,6 +72,7 @@ func test_damage_event_lineage_survives_scaled_derivative() -> void:
 func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	var catalysts: CatalystRuntime = city.urban_siege.catalysts
 	assert_eq(catalysts.total_count(), 2)
+	assert_eq(catalysts.repair_pickup_count(), RuntimeBudget.REPAIR_PICKUP_SLOTS)
 	var transformer: Catalyst2D = catalysts.activate(0, TRANSFORMER, Vector2(1100.0, 590.0))
 	assert_eq(catalysts.active_count(), 1)
 	var event: DamageEvent = DamageEvent.new(
@@ -87,13 +88,44 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	assert_true(transformer.spent)
 	assert_eq(transformer.trigger_count, 1)
 	assert_false(transformer.receive_damage(event))
+	assert_eq(catalysts.active_repair_pickup_count(), 1)
+	var pickup: ChassisRepairPickup2D = catalysts.repair_pickups[0]
+	assert_true(pickup.active)
+	assert_eq(pickup.global_position, transformer.global_position + Vector2(0.0, -96.0))
+	city.robot.current_health = city.robot.max_health - 100.0
+	assert_true(pickup.try_collect(city.robot))
+	assert_almost_eq(city.robot.current_health, city.robot.max_health - 60.0, 0.001)
+	assert_false(pickup.active)
+	assert_eq(catalysts.active_repair_pickup_count(), 0)
 	await get_tree().create_timer(0.5).timeout
 	assert_eq(catalysts.pulse_count, 1)
 	assert_eq(catalysts.total_count(), 2)
+	assert_eq(catalysts.repair_pickup_count(), RuntimeBudget.REPAIR_PICKUP_SLOTS)
+
+
+func test_full_health_does_not_waste_the_transformer_repair_pickup() -> void:
+	var catalysts: CatalystRuntime = city.urban_siege.catalysts
+	var transformer: Catalyst2D = catalysts.activate(0, TRANSFORMER, Vector2(900.0, 590.0))
+	var event: DamageEvent = DamageEvent.new(
+		902,
+		city.robot,
+		100.0,
+		&"ground_smash",
+		transformer.global_position,
+		Vector2.RIGHT,
+		400.0
+	)
+	assert_true(transformer.receive_damage(event))
+	var pickup: ChassisRepairPickup2D = catalysts.repair_pickups[0]
+	assert_false(pickup.try_collect(city.robot))
+	assert_true(pickup.active)
+	catalysts.deactivate_all()
+	assert_eq(catalysts.active_repair_pickup_count(), 0)
 
 
 func test_runtime_budget_includes_fixed_catalyst_and_beat_caps() -> void:
 	var snapshot: Dictionary = RuntimeBudget.snapshot(city)
 	assert_eq(snapshot.catalyst_total, RuntimeBudget.CATALYST_SLOTS)
+	assert_eq(snapshot.repair_pickup_slots, RuntimeBudget.REPAIR_PICKUP_SLOTS)
 	assert_lte(snapshot.catalyst_active, RuntimeBudget.ACTIVE_CATALYSTS)
 	assert_eq(RuntimeBudget.validation_errors(city).size(), 0)

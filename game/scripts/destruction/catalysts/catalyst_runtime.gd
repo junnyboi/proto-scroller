@@ -3,12 +3,18 @@ extends Node2D
 
 signal catalyst_triggered(catalyst: Catalyst2D, event: DamageEvent)
 signal catalyst_resolved(catalyst: Catalyst2D, affected_count: int)
+signal repair_pickup_spawned(pickup: ChassisRepairPickup2D)
+signal repair_pickup_collected(repaired_health: float)
 
 const SLOT_COUNT: int = 2
 const CATALYST_SCRIPT: Script = preload("res://scripts/destruction/catalysts/catalyst_2d.gd")
+const REPAIR_PICKUP_SCRIPT: Script = preload(
+	"res://scripts/destruction/catalysts/chassis_repair_pickup_2d.gd"
+)
 
 var dependencies: UrbanSiegeDependencies
 var slots: Array[Catalyst2D] = []
+var repair_pickups: Array[ChassisRepairPickup2D] = []
 var pulse_count: int = 0
 var _next_pulse_attack_id: int = 1_000_000
 
@@ -35,6 +41,12 @@ func _ready() -> void:
 		add_child(catalyst)
 		catalyst.reset_catalyst()
 		slots.append(catalyst)
+		var pickup: ChassisRepairPickup2D = REPAIR_PICKUP_SCRIPT.new()
+		pickup.name = "ChassisRepairPickupSlot%d" % index
+		pickup.z_index = 40
+		pickup.collected.connect(_on_repair_pickup_collected)
+		add_child(pickup)
+		repair_pickups.append(pickup)
 
 
 func activate(slot: int, profile: CatalystProfile, world_position: Vector2) -> Catalyst2D:
@@ -48,6 +60,8 @@ func activate(slot: int, profile: CatalystProfile, world_position: Vector2) -> C
 func deactivate_all() -> void:
 	for catalyst: Catalyst2D in slots:
 		catalyst.reset_catalyst()
+	for pickup: ChassisRepairPickup2D in repair_pickups:
+		pickup.reset_pickup()
 
 
 func active_count() -> int:
@@ -62,9 +76,43 @@ func total_count() -> int:
 	return slots.size()
 
 
+func active_repair_pickup_count() -> int:
+	var count: int = 0
+	for pickup: ChassisRepairPickup2D in repair_pickups:
+		count += 1 if pickup.active else 0
+	return count
+
+
+func repair_pickup_count() -> int:
+	return repair_pickups.size()
+
+
 func _on_catalyst_triggered(catalyst: Catalyst2D, event: DamageEvent) -> void:
 	catalyst_triggered.emit(catalyst, event)
+	if catalyst.profile != null and catalyst.profile.catalyst_id == &"TRANSFORMER":
+		_spawn_repair_pickup(catalyst.global_position + Vector2(0.0, -96.0))
 	_resolve_after_delay(catalyst, event)
+
+
+func _spawn_repair_pickup(world_position: Vector2) -> void:
+	var selected: ChassisRepairPickup2D
+	for pickup: ChassisRepairPickup2D in repair_pickups:
+		if not pickup.active:
+			selected = pickup
+			break
+	if selected == null and not repair_pickups.is_empty():
+		selected = repair_pickups[0]
+	if selected == null:
+		return
+	selected.activate(world_position)
+	repair_pickup_spawned.emit(selected)
+
+
+func _on_repair_pickup_collected(
+	_pickup: ChassisRepairPickup2D,
+	repaired_health: float
+) -> void:
+	repair_pickup_collected.emit(repaired_health)
 
 
 func _resolve_after_delay(catalyst: Catalyst2D, event: DamageEvent) -> void:
