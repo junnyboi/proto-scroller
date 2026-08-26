@@ -1,7 +1,9 @@
 extends SceneTree
 
-const MAX_FRAMES: int = 180
+const MAX_FRAMES: int = 240
 const SHOT_PATH: String = "res://artifacts/weapon_shop/weapon-shop.png"
+const INTRO_PATH: String = "res://artifacts/weapon_shop/weapon-shop-intro.png"
+const CONFIRM_PATH: String = "res://artifacts/weapon_shop/weapon-shop-confirm.png"
 
 var elapsed_frames: int = 0
 var completed: bool = false
@@ -36,30 +38,48 @@ func _run() -> void:
 	city._on_score_changed(12_450, 0)
 	city.robot.current_health = 58.0
 	city.robot.health_changed.emit(city.robot.current_health, city.robot.max_health)
-	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(16)
-	if not city.weapon_shop_assembler.queue_transition(&"RESIDENTIAL", district, 16):
-		quit(1)
-		return
+	city.urban_siege.act_completed.emit(2, &"ESCALATION", "encounter.escalation")
 	await process_frame
 	await RenderingServer.frame_post_draw
-	if not city.weapon_shop_assembler.overlay.visible:
+	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
+	if not overlay.visible or not overlay.dialogue_panel.active:
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":
 		print("[SHOT-SKIPPED] headless lane cannot render")
 		quit(0)
 		return
+	if not _save_frame(INTRO_PATH, target_size):
+		quit(1)
+		return
+	overlay.dialogue_panel._dismiss()
+	await process_frame
+	await RenderingServer.frame_post_draw
+	if not overlay.preview_panel.visible or not _save_frame(SHOT_PATH, target_size):
+		quit(1)
+		return
+	overlay.cards[0]._on_pressed()
+	await process_frame
+	await RenderingServer.frame_post_draw
+	if not overlay.confirmation_panel.active or not _save_frame(CONFIRM_PATH, target_size):
+		quit(1)
+		return
+	completed = true
+	print("[WEAPON-SHOP-VISUAL-DONE] shop=%s intro=%s confirm=%s" % [
+		SHOT_PATH,
+		INTRO_PATH,
+		CONFIRM_PATH,
+	])
+	quit(0)
+
+
+func _save_frame(path: String, target_size: Vector2i) -> bool:
 	var image: Image = root.get_texture().get_image()
 	DirAccess.make_dir_recursive_absolute(
 		ProjectSettings.globalize_path("res://artifacts/weapon_shop")
 	)
-	var save_error: Error = image.save_png(ProjectSettings.globalize_path(SHOT_PATH))
-	if save_error != OK or image.get_size() != target_size:
-		quit(1)
-		return
-	completed = true
-	print("[WEAPON-SHOP-VISUAL-DONE] path=%s" % SHOT_PATH)
-	quit(0)
+	var save_error: Error = image.save_png(ProjectSettings.globalize_path(path))
+	return save_error == OK and image.get_size() == target_size
 
 
 func _target_size() -> Vector2i:

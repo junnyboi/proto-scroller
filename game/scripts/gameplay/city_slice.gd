@@ -39,9 +39,7 @@ const TELEGRAPH_SCRIPT: Script = preload(
 const WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT: Script = preload(
 	"res://scripts/quality/web_gameplay_smoke_probe.gd"
 )
-const CONTACT_DISTRICT: DistrictDefinition = preload(
-	"res://resources/siege/district_contact.tres"
-)
+const CONTACT_DISTRICT: DistrictDefinition = preload("res://resources/siege/district_contact.tres")
 const GLASS_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/glass_shatter.wav"
 )
@@ -82,6 +80,8 @@ var telegraph_presenter: TelegraphPresenter2D
 var encounter_runtime: EncounterRuntime
 var encounter_director: EncounterDirector
 var urban_siege: UrbanSiegeRuntime
+var campaign_progress: CampaignProgressStore
+var project_choir_runtime: ProjectChoirRuntime
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
 var car: DestructibleProp2D
@@ -147,6 +147,7 @@ func _ready() -> void:
 	run_lifecycle.name = "CityRunLifecycle"
 	run_lifecycle.setup(self)
 	add_child(run_lifecycle)
+	project_choir_runtime = ProjectChoirRuntime.mount(self, campaign_progress)
 	upgrade_assembler = PlayerUpgradeAssembler.new()
 	add_child(upgrade_assembler)
 	var upgrade_errors: PackedStringArray = upgrade_assembler.setup(self)
@@ -155,6 +156,7 @@ func _ready() -> void:
 	add_child(weapon_shop_assembler)
 	var shop_errors: PackedStringArray = weapon_shop_assembler.setup(self)
 	assert(shop_errors.is_empty(), "Shop setup failed: %s" % [shop_errors])
+	weapon_shop_assembler.royal_shop_closed.connect(run_lifecycle._on_royal_shop_closed)
 	if _web_gameplay_smoke_requested():
 		var smoke_probe: Node = WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT.new() as Node
 		add_child(smoke_probe)
@@ -311,13 +313,12 @@ func _on_stream_window_changed(_logical_index: int) -> void:
 		enemy.structural_target = target
 
 func _on_spatial_district_changed(
-	previous_district_id: StringName,
+	_previous_district_id: StringName,
 	_district_id: StringName,
 	logical_chunk: int
 ) -> void:
 	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_chunk)
-	if not weapon_shop_assembler.queue_transition(previous_district_id, district, logical_chunk):
-		district_transition_banner.present(district, logical_chunk)
+	district_transition_banner.present(district, logical_chunk)
 
 func _refresh_primary_destructibles() -> void:
 	if streamed_destructibles == null:

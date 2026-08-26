@@ -6,6 +6,8 @@ enum Cue {
 	OVERDRIVE_ACTIVATION,
 	COMBO_BREAK,
 	UPGRADE_CONFIRM,
+	SHOP_PURCHASE,
+	SHOP_REPAIR,
 }
 
 const OVERDRIVE_ACTIVATION_SFX: AudioStream = preload(
@@ -16,6 +18,12 @@ const COMBO_BREAK_SFX: AudioStream = preload(
 )
 const UPGRADE_CONFIRM_SFX: AudioStream = preload(
 	"res://audio/sfx/upgrades/upgrade_confirm.wav"
+)
+const SHOP_PURCHASE_SFX: AudioStream = preload(
+	"res://audio/sfx/shop/shop_purchase.wav"
+)
+const SHOP_REPAIR_SFX: AudioStream = preload(
+	"res://audio/sfx/shop/shop_repair.wav"
 )
 const PROFILES: Dictionary = {
 	Cue.OVERDRIVE_ACTIVATION: {
@@ -37,6 +45,20 @@ const PROFILES: Dictionary = {
 		&"stream": UPGRADE_CONFIRM_SFX,
 		&"bus": &"UI",
 		&"volume_db": -5.0,
+		&"priority": AudioVoicePriority.MAJOR,
+	},
+	Cue.SHOP_PURCHASE: {
+		&"id": &"shop_purchase",
+		&"stream": SHOP_PURCHASE_SFX,
+		&"bus": &"UI",
+		&"volume_db": 2.0,
+		&"priority": AudioVoicePriority.MAJOR,
+	},
+	Cue.SHOP_REPAIR: {
+		&"id": &"shop_repair",
+		&"stream": SHOP_REPAIR_SFX,
+		&"bus": &"UI",
+		&"volume_db": 0.0,
 		&"priority": AudioVoicePriority.MAJOR,
 	},
 }

@@ -60,6 +60,10 @@ const WEAPON_STATUS_STRIPS: int = 1
 const WEAPON_SHOP_SESSIONS: int = 1
 const WEAPON_SHOP_OVERLAYS: int = 1
 const WEAPON_SHOP_CARDS: int = WeaponShopCatalog.PRODUCTS_PER_DISTRICT
+const WEAPON_SHOP_DIALOGUES: int = 1
+const WEAPON_SHOP_CONFIRMATIONS: int = 1
+const WEAPON_SHOP_STAT_PREVIEWS: int = 1
+const WEAPON_SHOP_TRANSACTION_PARTICLES: int = 2
 const WEAPON_SHOP_EFFECT_RUNTIMES: int = 1
 const COSMETIC_DEBRIS_INSTANCES: int = 64
 const SHOCKWAVE_RING_SLOTS: int = 10
@@ -91,6 +95,9 @@ const PENDING_HAZARDS: int = 3
 const HAZARD_PRESSURE: int = 10
 const STREET_CHUNKS: int = 6
 const FLOATING_ORIGIN_RUNTIMES: int = 1
+const NARRATIVE_DIRECTORS: int = 1
+const TRANSMISSION_TOASTS: int = 1
+const FACADE_REVEAL_SLOTS: int = CityWorldStream.CHUNK_CAPACITY
 const MAX_WEB_PCK_BYTES: int = 16 * 1024 * 1024
 
 
@@ -150,6 +157,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"street_chunks": city.world_stream.active_chunk_count(),
 		"street_post_warm_creations": city.world_stream.post_warm_creation_count,
 		"floating_origin_runtimes": 1 if city.world_stream.floating_origin != null else 0,
+			"narrative_directors": 1 if city.project_choir_runtime.director != null else 0,
+			"transmission_toasts": 1 if city.gameplay_hud.transmission_toast != null else 0,
+			"facade_reveal_slots": city.project_choir_runtime.facade_reveal.slot_count(),
 		"streamed_buildings": city.streamed_destructibles.active_building_count(),
 		"streamed_props": city.streamed_destructibles.active_prop_count(),
 		"streamed_post_warm_creations": city.streamed_destructibles.post_warm_creation_count,
@@ -193,6 +203,19 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"weapon_shop_sessions": 1 if city.weapon_shop_assembler.session != null else 0,
 		"weapon_shop_overlays": 1 if city.weapon_shop_assembler.overlay != null else 0,
 		"weapon_shop_cards": city.weapon_shop_assembler.overlay.cards.size(),
+		"weapon_shop_dialogues": (
+			1 if city.weapon_shop_assembler.overlay.dialogue_panel != null else 0
+		),
+		"weapon_shop_confirmations": (
+			1 if city.weapon_shop_assembler.overlay.confirmation_panel != null else 0
+		),
+		"weapon_shop_stat_previews": (
+			1 if city.weapon_shop_assembler.overlay.preview_panel != null else 0
+		),
+		"weapon_shop_transaction_particles": (
+			int(city.weapon_shop_assembler.overlay.upgrade_particles != null)
+			+ int(city.weapon_shop_assembler.overlay.repair_particles != null)
+		),
 		"weapon_shop_effect_runtimes": (
 			1 if city.weapon_shop_assembler.effects != null else 0
 		),
@@ -268,6 +291,9 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "street_chunks", STREET_CHUNKS)
 	_check_equal(errors, data, "street_post_warm_creations", 0)
 	_check_equal(errors, data, "floating_origin_runtimes", FLOATING_ORIGIN_RUNTIMES)
+	_check_equal(errors, data, "narrative_directors", NARRATIVE_DIRECTORS)
+	_check_equal(errors, data, "transmission_toasts", TRANSMISSION_TOASTS)
+	_check_equal(errors, data, "facade_reveal_slots", FACADE_REVEAL_SLOTS)
 	_check_equal(errors, data, "streamed_buildings", STREAMED_BUILDINGS)
 	_check_equal(errors, data, "streamed_props", STREAMED_PROPS)
 	_check_equal(errors, data, "streamed_post_warm_creations", 0)
@@ -297,6 +323,15 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "weapon_shop_sessions", WEAPON_SHOP_SESSIONS)
 	_check_equal(errors, data, "weapon_shop_overlays", WEAPON_SHOP_OVERLAYS)
 	_check_equal(errors, data, "weapon_shop_cards", WEAPON_SHOP_CARDS)
+	_check_equal(errors, data, "weapon_shop_dialogues", WEAPON_SHOP_DIALOGUES)
+	_check_equal(errors, data, "weapon_shop_confirmations", WEAPON_SHOP_CONFIRMATIONS)
+	_check_equal(errors, data, "weapon_shop_stat_previews", WEAPON_SHOP_STAT_PREVIEWS)
+	_check_equal(
+		errors,
+		data,
+		"weapon_shop_transaction_particles",
+		WEAPON_SHOP_TRANSACTION_PARTICLES
+	)
 	_check_equal(
 		errors,
 		data,

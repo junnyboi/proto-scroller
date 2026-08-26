@@ -1,6 +1,8 @@
 class_name CityRunLifecycle
 extends Node
 
+signal run_finished(completed: bool, summary: RunSummarySnapshot)
+
 var city: CitySlice
 
 
@@ -177,6 +179,12 @@ func _on_directive_withdrawn() -> void:
 
 
 func _on_district_completed() -> void:
+	if city.weapon_shop_assembler != null and city.weapon_shop_assembler.queue_royal_completion():
+		return
+	_on_royal_shop_closed()
+
+
+func _on_royal_shop_closed() -> void:
 	city.urban_siege.prepare_terminal_choice()
 	city.gameplay_hud.show_cycle_choice(
 		city.urban_siege.cycle_count,
@@ -244,6 +252,7 @@ func _finish_run(completed: bool) -> void:
 		city.overdrive_session.activation_count,
 		run_metrics
 	)
+	run_finished.emit(completed, summary)
 	if completed:
 		city.gameplay_hud.show_district_complete(summary)
 	else:

@@ -22,6 +22,7 @@ mkdir -p \
   artifacts/city_slice \
 	  artifacts/endless_terrain \
 	  artifacts/visible_facade_cycle \
+	  artifacts/project_choir_wp1 \
 	  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/directives \
@@ -60,7 +61,8 @@ grep -Fq 'variant/thread_support=false' export_presets.cfg
 CITY_SLICE_LINES="$(wc -l < scripts/gameplay/city_slice.gd)"
 test "$CITY_SLICE_LINES" -le 650
 printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
-test -z "$(find art audio -type f \( -iname '*candidate*' -o -iname '*carrier*' -o -iname '*original*' \) -print -quit)"
+test -z "$(find art audio -type f \( -iname '*candidate*' -o -iname '*carrier*' -o -iname '*original*' \) \
+  ! -iname '25-seraph-carrier.png*' -print -quit)"
 for cue in \
 	  audio/sfx/rampage/overdrive_activation.wav \
 	  audio/sfx/rampage/combo_break.wav \
@@ -101,6 +103,13 @@ test "$(sha256sum audio/sfx/ui/transition_full_black_boom.wav | cut -d' ' -f1)" 
 for weapon_shop_import in art/ui/weapon_shop/*.webp.import; do
 	grep -Fq 'compress/mode=1' "$weapon_shop_import"
 	grep -Fq 'compress/lossy_quality=0.8' "$weapon_shop_import"
+done
+for campaign_import in \
+	art/city/enemies/archetypes/{21-reclaimed-breacher,22-graft-runner,23-choir-siren,24-ossuary-crawler,25-seraph-carrier,26-pale-engine}.png.import \
+	art/finale/*.png.import \
+	art/narrative/*.{png,jpg}.import; do
+	grep -Fq 'compress/mode=1' "$campaign_import"
+	grep -Fq 'compress/lossy_quality=0.75' "$campaign_import"
 done
 PUNCH_DURATION="$(
 	ffprobe -v error -show_entries format=duration -of csv=p=0 \
@@ -200,6 +209,12 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/endless_terrain/report.json >/dev/null
 
+printf '%s\n' '[L4] Project CHOIR dossier/reveal headless scenario'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+  -s selftest/project_choir_visual_scenario.gd
+jq -e '.done == true and .result == "PASS" and .shot == ""' \
+  artifacts/project_choir_wp1/report.json >/dev/null
+
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
   printf '%s\n' '[L5] windowed render scenario'
@@ -212,6 +227,14 @@ if [[ "$MODE" == "full" ]]; then
   grep -Fq '1280 x 720' <<< "$DIMENSIONS"
   cp artifacts/title_screen/title-screen.png \
     artifacts/title_screen/title-screen-landscape.png
+  test -s artifacts/title_screen/title-screen-briefing.png
+  test -s artifacts/title_screen/title-screen-codex.png
+  grep -Fq '1280 x 720' <<< "$(file artifacts/title_screen/title-screen-briefing.png)"
+  grep -Fq '1280 x 720' <<< "$(file artifacts/title_screen/title-screen-codex.png)"
+  cp artifacts/title_screen/title-screen-briefing.png \
+    artifacts/project_choir_wp1/briefing-landscape.png
+  cp artifacts/title_screen/title-screen-codex.png \
+    artifacts/project_choir_wp1/codex-landscape.png
   SHOT_HASH="$(sha256sum artifacts/title_screen/title-screen.png | cut -d' ' -f1)"
   printf 'shot_sha256=%s\n' "$SHOT_HASH"
 
@@ -224,8 +247,37 @@ if [[ "$MODE" == "full" ]]; then
   grep -Fq '720 x 1280' <<< "$PORTRAIT_TITLE_DIMENSIONS"
   mv artifacts/title_screen/title-screen.png \
     artifacts/title_screen/title-screen-portrait.png
+  grep -Fq '720 x 1280' <<< "$(file artifacts/title_screen/title-screen-briefing.png)"
+  grep -Fq '720 x 1280' <<< "$(file artifacts/title_screen/title-screen-codex.png)"
+  cp artifacts/title_screen/title-screen-briefing.png \
+    artifacts/project_choir_wp1/briefing-portrait.png
+  cp artifacts/title_screen/title-screen-codex.png \
+    artifacts/project_choir_wp1/codex-portrait.png
   cp artifacts/title_screen/title-screen-landscape.png \
     artifacts/title_screen/title-screen.png
+
+  printf '%s\n' '[L5] landscape Project CHOIR black-lab reveal'
+  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+    --resolution 1280x720 -s selftest/project_choir_visual_scenario.gd
+  jq -e '.done == true and .result == "PASS" and .orientation == "landscape"' \
+    artifacts/project_choir_wp1/report.json >/dev/null
+  grep -Fq '1280 x 720' <<< "$(
+    file artifacts/project_choir_wp1/black-lab-reveal-landscape.png
+  )"
+  cp artifacts/project_choir_wp1/report.json \
+    artifacts/project_choir_wp1/report-landscape.json
+
+  printf '%s\n' '[L5] portrait Project CHOIR black-lab reveal'
+  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+    --audio-driver Dummy --path . --resolution 720x1280 \
+    -s selftest/project_choir_visual_scenario.gd
+  jq -e '.done == true and .result == "PASS" and .orientation == "portrait"' \
+    artifacts/project_choir_wp1/report.json >/dev/null
+  grep -Fq '720 x 1280' <<< "$(
+    file artifacts/project_choir_wp1/black-lab-reveal-portrait.png
+  )"
+  cp artifacts/project_choir_wp1/report.json \
+    artifacts/project_choir_wp1/report-portrait.json
 
   printf '%s\n' '[L5] windowed city-slice render scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \
@@ -455,16 +507,32 @@ if [[ "$MODE" == "full" ]]; then
 	    -s selftest/weapon_shop_visual_scenario.gd
 	  test -s artifacts/weapon_shop/weapon-shop.png
 	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-intro.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
+	  grep -Fq '1280 x 720' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-landscape.png
+	  mv artifacts/weapon_shop/weapon-shop-intro.png \
+	    artifacts/weapon_shop/weapon-shop-intro-landscape.png
+	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
+	    artifacts/weapon_shop/weapon-shop-confirm-landscape.png
 
 	  printf '%s\n' '[L5] portrait weapon-shop visual scenario'
 	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" --path . \
 	    --resolution 720x1280 -s selftest/weapon_shop_visual_scenario.gd
 	  test -s artifacts/weapon_shop/weapon-shop.png
 	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-intro.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-intro.png)"
+	  test -s artifacts/weapon_shop/weapon-shop-confirm.png
+	  grep -Fq '720 x 1280' <<< "$(file artifacts/weapon_shop/weapon-shop-confirm.png)"
 	  mv artifacts/weapon_shop/weapon-shop.png \
 	    artifacts/weapon_shop/weapon-shop-portrait.png
+	  mv artifacts/weapon_shop/weapon-shop-intro.png \
+	    artifacts/weapon_shop/weapon-shop-intro-portrait.png
+	  mv artifacts/weapon_shop/weapon-shop-confirm.png \
+	    artifacts/weapon_shop/weapon-shop-confirm-portrait.png
 
 	  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \

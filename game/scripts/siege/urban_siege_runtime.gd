@@ -2,6 +2,7 @@ class_name UrbanSiegeRuntime
 extends Node
 
 signal act_changed(index: int, act_id: StringName, display_name: String)
+signal act_completed(index: int, act_id: StringName, display_name: String)
 signal beat_changed(act_index: int, beat_index: int, beat_id: StringName)
 signal recovery_started(duration: float)
 signal milestone_reached(milestone: StringName)
@@ -69,6 +70,7 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 		dependencies.rampage_session.run_experience
 	)
 	director.phase_changed.connect(_on_phase_changed)
+	director.act_completed.connect(act_completed.emit)
 	director.beat_changed.connect(beat_changed.emit)
 	director.recovery_started.connect(recovery_started.emit)
 	director.milestone_reached.connect(milestone_reached.emit)

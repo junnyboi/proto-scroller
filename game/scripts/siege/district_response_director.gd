@@ -2,6 +2,7 @@ class_name DistrictResponseDirector
 extends EncounterDirector
 
 signal beat_changed(act_index: int, beat_index: int, beat_id: StringName)
+signal act_completed(act_index: int, act_id: StringName, display_name: String)
 signal recovery_started(duration: float)
 signal milestone_reached(milestone: StringName)
 
@@ -46,6 +47,8 @@ var _chaos_seed: int = CHAOS_SYSTEM_SALT
 var _beat_reservation_id: int = 0
 var _beat_pending: Array[Dictionary] = []
 var _hazard_pending: Array[Dictionary] = []
+var _act_completion_emitted: bool = false
+var _act_advance_blocked: bool = false
 
 
 func setup(p_runtime: EncounterRuntime, p_waves: Array[EnemyWave]) -> void:
@@ -103,6 +106,8 @@ func start() -> void:
 	progression_degradation_count = 0
 	progression_peak_threat = 0
 	peak_hazard_pending = 0
+	_act_completion_emitted = false
+	_act_advance_blocked = false
 	_advance_act()
 
 
@@ -116,6 +121,8 @@ func stop() -> void:
 	recovery_remaining = 0.0
 	_beat_pending.clear()
 	_hazard_pending.clear()
+	_act_completion_emitted = false
+	_act_advance_blocked = false
 	if _beat_reservation_id != 0:
 		ledger.cancel(_beat_reservation_id)
 	_beat_reservation_id = 0
@@ -194,6 +201,14 @@ func is_recovery_active() -> bool:
 	return district != null and state == STATE_RECOVERY
 
 
+func hold_act_advance() -> void:
+	_act_advance_blocked = true
+
+
+func resume_act_advance() -> void:
+	_act_advance_blocked = false
+
+
 func current_act_progress() -> float:
 	if district == null or phase_index < 0 or phase_index >= district.acts.size():
 		return 0.0
@@ -211,6 +226,7 @@ func _advance_act() -> void:
 		return
 	var act: DistrictAct = district.acts[phase_index]
 	act_elapsed = 0.0
+	_act_completion_emitted = false
 	phase_changed.emit(phase_index, act.display_name)
 	state = STATE_WAITING
 
@@ -226,6 +242,11 @@ func _try_start_next_beat() -> void:
 			if not overrun_expired:
 				return
 			runtime.release_all()
+		if not _act_completion_emitted:
+			_act_completion_emitted = true
+			act_completed.emit(phase_index, act.act_id, act.display_name)
+		if _act_advance_blocked:
+			return
 		if not act.milestone_after.is_empty():
 			milestone_reached.emit(act.milestone_after)
 		_advance_act()

@@ -34,6 +34,7 @@ func test_accelerated_arc_visits_every_act_and_completes() -> void:
 	var guard: int = 0
 	while not director.completed and guard < 600:
 		director.advance(1.0)
+		_close_shop_if_active()
 		city.encounter_runtime.release_all()
 		guard += 1
 	assert_true(director.completed)
@@ -70,6 +71,10 @@ func test_bounded_overrun_advances_with_surviving_low_threat() -> void:
 	director.state = DistrictResponseDirector.STATE_WAITING
 	director.act_elapsed = DISTRICT.acts[0].target_duration
 	city.encounter_runtime.acquire(&"soldier", Vector2(1200.0, 542.5))
+	director.advance(0.1)
+	assert_eq(director.phase_index, 0)
+	assert_true(city.weapon_shop_assembler.session.active)
+	_close_shop_if_active()
 	director.advance(0.1)
 	assert_eq(director.phase_index, 1)
 	assert_eq(city.encounter_runtime.active_count(&"soldier"), 1)
@@ -142,6 +147,10 @@ func test_act_five_releases_overrun_survivors_and_starts_max_tier_retaliation() 
 	assert_not_null(city.encounter_runtime.acquire(&"goliath", Vector2(1200.0, 485.0)))
 	assert_gt(director._threat_weight(), DistrictResponseDirector.LOW_THREAT_WEIGHT)
 	director.advance(0.1)
+	assert_eq(director.phase_index, 3)
+	assert_true(city.weapon_shop_assembler.session.active)
+	_close_shop_if_active()
+	director.advance(0.1)
 	assert_eq(director.phase_index, 4)
 	assert_eq(city.encounter_runtime.active_count(), 0)
 	director.advance(0.1)
@@ -210,7 +219,24 @@ func _elite_trace(p_seed: int) -> Array[Dictionary]:
 	var guard: int = 0
 	while not director.completed and guard < 600:
 		director.advance(1.0)
+		_close_shop_if_active()
 		city.encounter_runtime.release_all()
 		guard += 1
 	assert_true(director.completed)
 	return director.elite_assignments.duplicate(true)
+
+
+func _close_shop_if_active() -> void:
+	if city.weapon_shop_assembler.session.active:
+		city.weapon_shop_assembler.session.close_shop()
+	if (
+		city.urban_siege.pause_coordinator.is_paused()
+		and not city.urban_siege.directives.is_active()
+	):
+		var choices: Array[DirectiveProfile] = DistrictMissionCatalog.choices_for(
+			&"BUSINESS",
+			city.urban_siege.run_seed,
+			city.urban_siege.cycle_count
+		)
+		if not choices.is_empty():
+			city.urban_siege.directives.select(choices[0])

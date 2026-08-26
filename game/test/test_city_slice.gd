@@ -26,7 +26,8 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	assert_eq(city.get_node("ParallaxCity").get_child_count(), 4)
 	assert_null(city.get_node_or_null(^"Street"))
 	assert_not_null(city.building)
-	assert_eq(city.building.get_child_count(), 6)
+	assert_eq(city.building.get_child_count(), 7)
+	assert_eq(city.project_choir_runtime.facade_reveal.slot_count(), 6)
 	for row: int in range(StructuralBuilding2D.ROWS):
 		for column: int in range(StructuralBuilding2D.COLUMNS):
 			assert_not_null(city.building.get_cell(column, row))

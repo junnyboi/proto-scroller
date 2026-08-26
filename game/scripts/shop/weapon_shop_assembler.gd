@@ -1,24 +1,25 @@
 class_name WeaponShopAssembler
 extends Node
 
+signal royal_shop_closed
+
 var session: WeaponShopSession
 var effects: WeaponShopUpgradeRuntime
 var overlay: WeaponShopOverlay
-var banner: DistrictTransitionBanner
 var music_duck: MusicDuckController
 var upgrade_session: UpgradeSession
+var siege: UrbanSiegeRuntime
+var impact_feedback_pool: ImpactFeedbackPool
 
 
 func setup(city: Node) -> PackedStringArray:
 	name = "WeaponShopAssembler"
 	var robot: GiantRobotController = city.get("robot") as GiantRobotController
-	var siege: UrbanSiegeRuntime = city.get("urban_siege") as UrbanSiegeRuntime
+	siege = city.get("urban_siege") as UrbanSiegeRuntime
 	var rampage: RampageSession = city.get("rampage_session") as RampageSession
-	var upgrades: PlayerUpgradeAssembler = (
-		city.get("upgrade_assembler") as PlayerUpgradeAssembler
-	)
-	banner = city.get("district_transition_banner") as DistrictTransitionBanner
+	var upgrades: PlayerUpgradeAssembler = city.get("upgrade_assembler") as PlayerUpgradeAssembler
 	music_duck = city.get("music_duck_controller") as MusicDuckController
+	impact_feedback_pool = city.get("impact_feedback_pool") as ImpactFeedbackPool
 	upgrade_session = upgrades.session
 	effects = WeaponShopUpgradeRuntime.new()
 	effects.name = "WeaponShopUpgradeRuntime"
@@ -45,20 +46,27 @@ func setup(city: Node) -> PackedStringArray:
 	session.purchase_rejected.connect(_on_purchase_rejected)
 	session.shop_closed.connect(_on_shop_closed)
 	overlay.purchase_requested.connect(session.purchase)
+	overlay.preview_requested.connect(_on_preview_requested)
 	overlay.continue_requested.connect(session.close_shop)
+	siege.act_completed.connect(_on_act_completed)
 	siege.pause_coordinator.pause_changed.connect(_on_pause_changed)
 	return errors
 
 
-func queue_transition(
-	previous_district_id: StringName,
-	district: CityDistrictProfile,
-	logical_chunk: int
-) -> bool:
-	return (
-		session != null
-		and session.queue_transition(previous_district_id, district, logical_chunk)
-	)
+func queue_royal_completion() -> bool:
+	return session != null and session.queue_royal_completion(siege.cycle_count)
+
+
+func _on_act_completed(
+	act_index: int,
+	_act_id: StringName,
+	_display_name: String
+) -> void:
+	if act_index < 0 or act_index > 3:
+		return
+	siege.director.hold_act_advance()
+	if not session.queue_act_completion(act_index, siege.cycle_count):
+		siege.director.resume_act_advance()
 
 
 func _on_shop_opened(
@@ -78,6 +86,13 @@ func _on_purchase_completed(product: WeaponShopProduct, remaining_score: int) ->
 	overlay.set_score(remaining_score)
 	overlay.update_status(product.product_id, &"sold")
 	overlay.show_feedback("shop.purchase_complete")
+	overlay.play_transaction_success(product)
+	impact_feedback_pool.play_cue(
+		AudioCueRegistry.Cue.SHOP_REPAIR
+		if product.is_repair()
+		else AudioCueRegistry.Cue.SHOP_PURCHASE,
+		Vector2.ZERO
+	)
 	_refresh_statuses()
 
 
@@ -86,11 +101,18 @@ func _on_purchase_rejected(product: WeaponShopProduct, reason: StringName) -> vo
 	overlay.show_feedback("shop.rejected.%s" % String(reason))
 
 
-func _on_shop_closed(district: CityDistrictProfile, logical_chunk: int) -> void:
+func _on_shop_closed(
+	_district: CityDistrictProfile,
+	_act_index: int,
+	terminal: bool
+) -> void:
 	overlay.hide_shop()
 	music_duck.set_ducked(false)
 	upgrade_session.set_presentation_blocked(false)
-	banner.present(district, logical_chunk)
+	if terminal:
+		royal_shop_closed.emit()
+	else:
+		siege.director.resume_act_advance()
 
 
 func _on_pause_changed(paused: bool) -> void:
@@ -100,7 +122,18 @@ func _on_pause_changed(paused: bool) -> void:
 func _refresh_statuses() -> void:
 	for card: WeaponShopCard in overlay.cards:
 		if card.product != null:
-			overlay.update_status(
-				card.product.product_id,
-				session.product_status(card.product)
+				overlay.update_status(
+					card.product.product_id,
+					session.product_status(card.product)
+				)
+
+
+func _on_preview_requested(product_id: StringName) -> void:
+	for product: WeaponShopProduct in session.active_products:
+		if product.product_id == product_id:
+			overlay.set_preview(
+				product,
+				effects.preview_for(product),
+				session.product_status(product)
 			)
+			return

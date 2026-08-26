@@ -6,6 +6,7 @@ const MINIMUM_TEXT_HEIGHT: float = 32.0
 const REPORT_PATH: String = "res://artifacts/title_screen/report.json"
 const SHOT_PATH: String = "res://artifacts/title_screen/title-screen.png"
 const BRIEFING_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-briefing.png"
+const CODEX_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-codex.png"
 const SETTINGS_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-settings.png"
 const LANGUAGE_PREFERENCE_PATH: String = "user://title-scenario-language.cfg"
 const AUDIO_PREFERENCE_PATH: String = "user://title-scenario-audio.cfg"
@@ -49,6 +50,15 @@ func _run() -> void:
 		return
 
 	var screen: TitleScreen = scene_resource.instantiate() as TitleScreen
+	screen.configure_campaign({
+		"dossiers": PackedStringArray([
+			"dossier_business_mercy_exchange_annex",
+			"dossier_business_helix_clearinghouse_spine",
+			"dossier_business_orison_custody_vault",
+		]),
+		"dossier_count": 3,
+		"continuity_generation": 2,
+	})
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	screen.audio_preference_path = AUDIO_PREFERENCE_PATH
 	screen.input_preference_path = INPUT_PREFERENCE_PATH
@@ -117,6 +127,27 @@ func _run() -> void:
 			briefing_save_error == OK,
 			"error=%s size=%s" % [briefing_save_error, briefing_image.get_size()]
 		)
+		screen.campaign_panel.codex_button.pressed.emit()
+		await RenderingServer.frame_post_draw
+		var codex_image: Image = root.get_texture().get_image()
+		var codex_save_error: Error = codex_image.save_png(
+			ProjectSettings.globalize_path(CODEX_SHOT_PATH)
+		)
+		_check(
+			"codex_shot_saved",
+			codex_save_error == OK,
+			"error=%s size=%s" % [codex_save_error, codex_image.get_size()]
+		)
+		_check(
+			"codex_progress_visible",
+			screen.dossier_codex.visible
+			and screen.dossier_codex.progress_label.text.contains("3 / 25"),
+			"visible=%s progress=%s" % [
+				screen.dossier_codex.visible,
+				screen.dossier_codex.progress_label.text,
+			]
+		)
+		screen.dossier_codex.close(false)
 		screen.close_briefing()
 		screen.open_settings()
 		(screen.get_node("%MasterVolumeSlider") as HSlider).value = 82.0

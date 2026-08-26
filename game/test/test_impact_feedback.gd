@@ -370,6 +370,8 @@ func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 		AudioCueRegistry.OVERDRIVE_ACTIVATION_SFX as AudioStreamWAV
 	)
 	var combo_stream: AudioStreamWAV = AudioCueRegistry.COMBO_BREAK_SFX as AudioStreamWAV
+	var purchase_stream: AudioStreamWAV = AudioCueRegistry.SHOP_PURCHASE_SFX as AudioStreamWAV
+	var repair_stream: AudioStreamWAV = AudioCueRegistry.SHOP_REPAIR_SFX as AudioStreamWAV
 	assert_eq(
 		int(AudioCueRegistry.profile(AudioCueRegistry.Cue.OVERDRIVE_ACTIVATION).priority),
 		AudioVoicePriority.SIGNATURE
@@ -380,12 +382,21 @@ func test_rampage_cues_are_48k_pcm16_and_share_the_eight_voice_pool() -> void:
 	)
 	assert_eq(overdrive_stream.mix_rate, 48000)
 	assert_eq(combo_stream.mix_rate, 48000)
+	assert_eq(purchase_stream.mix_rate, 48000)
+	assert_eq(repair_stream.mix_rate, 48000)
 	assert_eq(overdrive_stream.format, AudioStreamWAV.FORMAT_16_BITS)
 	assert_eq(combo_stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_eq(purchase_stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_eq(repair_stream.format, AudioStreamWAV.FORMAT_16_BITS)
 	assert_false(overdrive_stream.stereo)
 	assert_false(combo_stream.stereo)
+	assert_false(purchase_stream.stereo)
+	assert_false(repair_stream.stereo)
 	assert_between(overdrive_stream.get_length(), 0.65, 1.0)
 	assert_between(combo_stream.get_length(), 0.18, 0.35)
+	assert_between(purchase_stream.get_length(), 1.30, 1.40)
+	assert_between(repair_stream.get_length(), 1.75, 1.85)
+	assert_ne(purchase_stream.data, repair_stream.data)
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame

@@ -53,6 +53,87 @@ func apply_product(product: WeaponShopProduct) -> bool:
 	return true
 
 
+func preview_for(product: WeaponShopProduct) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	if product == null or robot == null:
+		return rows
+	match product.effect_key:
+		&"repair":
+			rows.append(_repair_preview(product.repair_ratio))
+		&"aegis":
+			rows.append(_repair_preview(product.repair_ratio))
+			rows.append(_percent_preview(
+				"shop.stat.damage_taken",
+				incoming_damage_multiplier,
+				incoming_damage_multiplier * (1.0 - product.effect_value),
+				true
+			))
+		&"all_damage":
+			rows.append(_percent_preview(
+				"shop.stat.all_damage",
+				all_damage_multiplier,
+				all_damage_multiplier * (1.0 + product.effect_value)
+			))
+		&"weapon_damage":
+			rows.append(_percent_preview(
+				"shop.stat.weapon_damage",
+				weapon_damage_multiplier,
+				weapon_damage_multiplier * (1.0 + product.effect_value)
+			))
+		&"ballistic_damage":
+			rows.append(_percent_preview(
+				"shop.stat.ballistic_damage",
+				ballistic_damage_multiplier,
+				ballistic_damage_multiplier * (1.0 + product.effect_value)
+			))
+		&"structural_damage":
+			rows.append(_percent_preview(
+				"shop.stat.structural_damage",
+				structural_damage_multiplier,
+				structural_damage_multiplier * (1.0 + product.effect_value)
+			))
+		&"elite_damage":
+			rows.append(_percent_preview(
+				"shop.stat.elite_damage",
+				elite_damage_multiplier,
+				elite_damage_multiplier * (1.0 + product.effect_value)
+			))
+		&"debris_damage":
+			rows.append({
+				"label_key": "shop.stat.debris_damage",
+				"before": AerialDebrisLauncher.IMPACT_DAMAGE + debris_bonus_damage,
+				"after": (
+					AerialDebrisLauncher.IMPACT_DAMAGE
+					+ debris_bonus_damage
+					+ AerialDebrisLauncher.IMPACT_DAMAGE * product.effect_value
+				),
+				"unit": &"damage",
+				"lower_is_better": false,
+			})
+		&"melee_radius":
+			rows.append(_percent_preview(
+				"shop.stat.melee_area",
+				melee_radius_multiplier,
+				melee_radius_multiplier * (1.0 + product.effect_value)
+			))
+		&"weapon_cooldown":
+			rows.append(_percent_preview(
+				"shop.stat.weapon_cooldown",
+				weapon_cooldown_multiplier,
+				weapon_cooldown_multiplier * (1.0 - product.effect_value),
+				true
+			))
+		&"critical_chance":
+			rows.append({
+				"label_key": "shop.stat.critical_chance",
+				"before": critical_chance,
+				"after": clampf(critical_chance + product.effect_value, 0.0, 0.8),
+				"unit": &"chance",
+				"lower_is_better": false,
+			})
+	return rows
+
+
 func decorate_attack(spec: AttackSpec) -> AttackSpec:
 	if spec == null:
 		return null
@@ -98,3 +179,29 @@ func _repair(ratio: float) -> float:
 	robot.current_health = minf(robot.max_health, robot.current_health + robot.max_health * ratio)
 	robot.health_changed.emit(robot.current_health, robot.max_health)
 	return robot.current_health - previous
+
+
+func _repair_preview(ratio: float) -> Dictionary:
+	return {
+		"label_key": "shop.stat.integrity",
+		"before": robot.current_health,
+		"after": minf(robot.max_health, robot.current_health + robot.max_health * ratio),
+		"maximum": robot.max_health,
+		"unit": &"integrity",
+		"lower_is_better": false,
+	}
+
+
+func _percent_preview(
+	label_key: String,
+	before: float,
+	after: float,
+	lower_is_better: bool = false
+) -> Dictionary:
+	return {
+		"label_key": label_key,
+		"before": before,
+		"after": after,
+		"unit": &"percent",
+		"lower_is_better": lower_is_better,
+	}

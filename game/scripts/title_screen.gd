@@ -21,6 +21,12 @@ const LANDSCAPE_BRIEFING_ART_ZH_CN: Texture2D = preload(
 const PORTRAIT_BRIEFING_ART_ZH_CN: Texture2D = preload(
 	"res://art/ui/title_screen/command_deck_briefing_portrait_zh_cn.jpg"
 )
+const CAMPAIGN_PANEL_SCRIPT: Script = preload(
+	"res://scripts/ui/campaign_progress_panel.gd"
+)
+const DOSSIER_CODEX_SCRIPT: Script = preload(
+	"res://scripts/ui/dossier_codex_overlay.gd"
+)
 
 var initialized: bool = false
 var briefing_open: bool = false
@@ -28,6 +34,9 @@ var settings_open: bool = false
 var locale_preference_path: String = L10n.PREFERENCE_PATH
 var audio_preference_path: String = AudioVolumeSettings.PREFERENCE_PATH
 var input_preference_path: String = InputBindingSettings.PREFERENCE_PATH
+var campaign_snapshot: Dictionary = {}
+var campaign_panel: CampaignProgressPanel
+var dossier_codex: DossierCodexOverlay
 var _capture_action: StringName = &""
 var _capture_gamepad: bool = false
 
@@ -90,11 +99,16 @@ var _capture_gamepad: bool = false
 @onready var system_value: Label = %SystemValue
 
 
+func configure_campaign(snapshot: Dictionary) -> void:
+	campaign_snapshot = snapshot.duplicate(true)
+
+
 func _ready() -> void:
 	_set_web_title_backdrop_active(true)
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	briefing_toggle.pressed.connect(toggle_briefing)
 	briefing_backdrop.pressed.connect(close_briefing)
+	_build_campaign_archive()
 	settings_button.pressed.connect(open_settings)
 	settings_backdrop.pressed.connect(close_settings)
 	settings_close_button.pressed.connect(close_settings)
@@ -188,6 +202,11 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if dossier_codex != null and dossier_codex.visible:
+		if event.is_action_pressed(&"ui_cancel"):
+			dossier_codex.close()
+			get_viewport().set_input_as_handled()
+		return
 	if settings_open and event.is_action_pressed(&"ui_cancel"):
 		close_settings()
 		get_viewport().set_input_as_handled()
@@ -238,6 +257,8 @@ func open_briefing() -> bool:
 func close_briefing(restore_focus: bool = true) -> bool:
 	if not briefing_open:
 		return false
+	if dossier_codex != null and dossier_codex.visible:
+		dossier_codex.close(false)
 	briefing_open = false
 	briefing_layer.visible = false
 	briefing_toggle.text = L10n.t("title.briefing_available")
@@ -281,6 +302,7 @@ func select_language(locale: String) -> bool:
 	_apply_localized_text()
 	L10n.apply_locale_font(self)
 	L10n.apply_cjk_font(chinese_button)
+	_refresh_campaign_archive()
 	_apply_responsive_layout()
 	return true
 
@@ -292,6 +314,7 @@ func select_automatic_language() -> bool:
 	_apply_localized_text()
 	L10n.apply_locale_font(self)
 	L10n.apply_cjk_font(chinese_button)
+	_refresh_campaign_archive()
 	_apply_responsive_layout()
 	return true
 
@@ -440,6 +463,30 @@ func is_portrait_layout() -> bool:
 	return viewport_size.y > viewport_size.x
 
 
+func _build_campaign_archive() -> void:
+	campaign_panel = CAMPAIGN_PANEL_SCRIPT.new() as CampaignProgressPanel
+	campaign_panel.name = "CampaignProgressPanel"
+	campaign_panel.setup(campaign_snapshot)
+	campaign_panel.codex_requested.connect(_open_dossier_codex)
+	briefing_layer.add_child(campaign_panel)
+	dossier_codex = DOSSIER_CODEX_SCRIPT.new() as DossierCodexOverlay
+	add_child(dossier_codex)
+
+
+func _open_dossier_codex() -> void:
+	if initialized or dossier_codex == null:
+		return
+	dossier_codex.open(campaign_snapshot, campaign_panel.codex_button)
+	L10n.apply_locale_font(dossier_codex)
+
+
+func _refresh_campaign_archive() -> void:
+	if campaign_panel != null:
+		campaign_panel.setup(campaign_snapshot)
+	if dossier_codex != null and dossier_codex.visible:
+		dossier_codex.refresh_locale()
+
+
 func _apply_localized_text() -> void:
 	(%TitleLabel as Label).text = L10n.t("title.command_heading")
 	instruction_label.text = L10n.t(
@@ -488,6 +535,7 @@ func _apply_localized_text() -> void:
 	($SemanticContract/ObjectiveOne as Label).text = L10n.t("title.objective_one")
 	($SemanticContract/ObjectiveTwo as Label).text = L10n.t("title.objective_two")
 	($SemanticContract/ObjectiveThree as Label).text = L10n.t("title.objective_three")
+	_refresh_campaign_archive()
 
 
 func _refresh_control_copy() -> void:
@@ -505,6 +553,11 @@ func _apply_responsive_layout() -> void:
 		_apply_portrait_layout()
 	else:
 		_apply_landscape_layout()
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if campaign_panel != null:
+		campaign_panel.apply_responsive_layout(viewport_size)
+	if dossier_codex != null:
+		dossier_codex.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout() -> void:

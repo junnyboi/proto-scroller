@@ -51,6 +51,8 @@ func test_continue_preserves_city_health_score_and_directive_without_node_growth
 	var score: int = city.score
 	var directive: DirectiveProfile = city.urban_siege.directives.selected_profile
 	city.run_lifecycle._on_district_completed()
+	assert_true(city.weapon_shop_assembler.session.active)
+	city.weapon_shop_assembler.session.close_shop()
 	assert_true(city.gameplay_hud.continue_button.visible)
 	city.run_lifecycle._on_continue_pressed()
 	assert_eq(city.urban_siege.cycle_count, 2)
@@ -66,6 +68,8 @@ func test_second_cycle_offers_extract_only_and_freezes_cycle_count() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.urban_siege.cycle_count = 2
 	city.run_lifecycle._on_district_completed()
+	assert_true(city.weapon_shop_assembler.session.active)
+	city.weapon_shop_assembler.session.close_shop()
 	assert_true(city.gameplay_hud.extract_button.visible)
 	assert_false(city.gameplay_hud.continue_button.visible)
 	city.run_lifecycle._on_extract_pressed()
