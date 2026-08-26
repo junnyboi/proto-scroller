@@ -47,6 +47,18 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 	assert_eq(configured_count, CityDistrictCatalog.BUILDING_VARIANT_COUNT)
 
 
+func test_stream_runtime_applies_variants_outside_assertions() -> void:
+	var source: String = FileAccess.get_file_as_string(
+		"res://scripts/world/streamed_destructible_runtime.gd"
+	)
+	assert_false(source.contains("assert(building.apply_variant"))
+	assert_true(
+		source.contains(
+			"var variant_applied: bool = building.apply_variant(blueprint.building_variant)"
+		)
+	)
+
+
 func test_streaming_reuses_six_buildings_across_all_district_boundaries() -> void:
 	var city: CitySlice = await _spawn_city()
 	var building_ids: PackedInt64Array = PackedInt64Array()
