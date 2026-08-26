@@ -112,7 +112,8 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 	assert_eq((screen.get_node("%TitleLabel") as Label).text, "PROTOS")
 	assert_eq(
 		(screen.get_node("%InstructionLabel") as Label).text,
-		"敌军已控制城市。\n全面报复。"
+		"方尖碑杀死了你爱的一切。\n"
+		+ "圣咏计划保存了他们的意识。决定谁能活下去。"
 	)
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
 	assert_true(controls.contains("移动 A/D"))

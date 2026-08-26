@@ -11,6 +11,11 @@ const RECLAMATION_ANCHOR_CAPACITY: int = 3
 const PYLON_PRESENTATION_CAPACITY: int = 5
 const PROJECTION_SLOT_CAPACITY: int = 4
 const WRECK_RECEIVER_CAPACITY: int = 2
+const CHOIR_PYLON_TEXTURE: Texture2D = preload("res://art/finale/choir-pylon.png")
+const CHOIR_PYLON_OFFSETS: Array[Vector2] = [
+	Vector2(-360.0, -160.0), Vector2(-180.0, -245.0), Vector2(0.0, -280.0),
+	Vector2(180.0, -245.0), Vector2(360.0, -160.0),
+]
 
 var rig: Node2D
 var controller: Node
@@ -160,6 +165,21 @@ func pylon_count() -> int:
 	return pylon_presentations.size()
 
 
+func present_royal_pylons(center: Vector2) -> void:
+	rig.visible = true
+	for index: int in range(pylon_presentations.size()):
+		var pylon: Node2D = pylon_presentations[index]
+		pylon.global_position = center + CHOIR_PYLON_OFFSETS[index]
+		pylon.visible = true
+
+
+func set_royal_pylon_integrity(remaining: int) -> void:
+	var clamped_remaining: int = clampi(remaining, 0, pylon_presentations.size())
+	for index: int in range(pylon_presentations.size()):
+		var pylon: Node2D = pylon_presentations[index]
+		pylon.visible = index < clamped_remaining
+
+
 func projection_count() -> int:
 	return projection_slots.size()
 
@@ -206,6 +226,11 @@ func _prewarm() -> void:
 	add_child(arena_adapter)
 	for index: int in range(PYLON_PRESENTATION_CAPACITY):
 		var pylon: Node2D = _make_record("PylonPresentation%02d" % index, rig)
+		var sprite: Sprite2D = Sprite2D.new()
+		sprite.texture = CHOIR_PYLON_TEXTURE
+		sprite.scale = Vector2(0.34, 0.34)
+		sprite.modulate = Color(0.72, 1.0, 0.95, 0.96)
+		pylon.add_child(sprite)
 		pylon_presentations.append(pylon)
 	for index: int in range(PROJECTION_SLOT_CAPACITY):
 		var projection: Node2D = _make_record("ProjectionSlot%02d" % index, rig)

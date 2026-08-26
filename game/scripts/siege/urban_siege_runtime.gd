@@ -7,6 +7,8 @@ signal beat_changed(act_index: int, beat_index: int, beat_id: StringName)
 signal recovery_started(duration: float)
 signal milestone_reached(milestone: StringName)
 signal district_completed
+signal finale_choice_requested(snapshot: FinaleEligibilitySnapshot)
+signal finale_resolved(outcome: int, snapshot: FinaleEligibilitySnapshot)
 
 const DIRECTOR_SCRIPT: Script = preload("res://scripts/siege/district_response_director.gd")
 const CATALYST_RUNTIME_SCRIPT: Script = preload(
@@ -55,6 +57,10 @@ var cycle_count: int = 1
 var run_active: bool = false
 var selected_recipe: DistrictRecipe
 var selected_contract: RunContract
+var finale_pending: bool = false
+var finale_snapshot: FinaleEligibilitySnapshot
+var finale_arc_completed: bool = false
+var finale_boss_completed: bool = false
 var _directive_pause_token: int = 0
 var _terminal_pause_token: int = 0
 var _offered_district_keys: Dictionary[StringName, bool] = {}
@@ -113,6 +119,7 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 	boss_campaign = BossCampaignDirector.new()
 	boss_campaign.name = "BossCampaignDirector"
 	boss_campaign.setup(self)
+	boss_campaign.boss_completed.connect(_on_campaign_boss_completed)
 	add_child(boss_campaign)
 	pause_coordinator = RunPauseCoordinator.new()
 	pause_coordinator.name = "RunPauseCoordinator"
@@ -134,6 +141,10 @@ func start_run(p_seed: int = 0) -> void:
 	cycle_count = 1
 	_offered_district_keys.clear()
 	_pending_district_offer = &""
+	finale_pending = false
+	finale_snapshot = null
+	finale_arc_completed = false
+	finale_boss_completed = false
 	directives.reset_run_state()
 	if boss_campaign != null:
 		boss_campaign.reset_run()
@@ -162,6 +173,12 @@ func continue_cycle() -> bool:
 	hazards.release_all()
 	trait_runtime.reset_all()
 	boss_session.reset_state()
+	finale_pending = false
+	finale_snapshot = null
+	finale_arc_completed = false
+	finale_boss_completed = false
+	if boss_campaign != null:
+		boss_campaign.reset_run()
 	_prepare_cycle()
 	return true
 
@@ -170,6 +187,30 @@ func release_terminal_choice() -> void:
 	if _terminal_pause_token != 0:
 		pause_coordinator.release(_terminal_pause_token)
 		_terminal_pause_token = 0
+
+
+func present_finale_choice() -> bool:
+	if not finale_pending or finale_snapshot == null:
+		return false
+	prepare_terminal_choice()
+	finale_choice_requested.emit(finale_snapshot)
+	return true
+
+
+func resolve_finale(requested_outcome: int) -> int:
+	if not finale_pending or finale_snapshot == null:
+		return -1
+	if requested_outcome != BossOutcome.PURGE and requested_outcome != BossOutcome.DISENTANGLE:
+		return -1
+	var outcome: int = requested_outcome
+	if requested_outcome == BossOutcome.DISENTANGLE and not finale_snapshot.disentangle_eligible:
+		outcome = BossOutcome.ASCENSION_FAILURE
+	finale_pending = false
+	var progress: CampaignProgressStore = dependencies.city.project_choir_runtime.campaign_progress
+	if progress != null:
+		progress.mark_ending_seen(BossOutcome.id_for(outcome))
+	finale_resolved.emit(outcome, finale_snapshot)
+	return outcome
 
 
 func contract_succeeded() -> bool:
@@ -322,12 +363,31 @@ func _withdraw_directive_presentation() -> void:
 
 
 func _on_arc_completed() -> void:
-	boss_session.start()
+	finale_arc_completed = true
+	_try_complete_finale_gate()
 
 
 func _on_boss_completed(_elapsed_seconds: float) -> void:
 	if boss_campaign != null and boss_campaign.owns_combat():
 		return
+	if boss_session.active_definition != null:
+		finale_boss_completed = boss_session.active_definition.boss_id == &"CHOIR_PRIME"
+	_try_complete_finale_gate()
+
+
+func _on_campaign_boss_completed(definition: BossEncounterDefinition) -> void:
+	if definition != null and definition.boss_id == &"CHOIR_PRIME":
+		finale_boss_completed = true
+		_try_complete_finale_gate()
+
+
+func _try_complete_finale_gate() -> void:
+	if finale_pending or not finale_arc_completed or not finale_boss_completed:
+		return
+	finale_snapshot = FinaleEligibilitySnapshot.from_store(
+		dependencies.city.project_choir_runtime.campaign_progress
+	)
+	finale_pending = true
 	district_completed.emit()
 
 

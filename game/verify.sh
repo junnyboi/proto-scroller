@@ -24,6 +24,7 @@ mkdir -p \
 	  artifacts/visible_facade_cycle \
 	  artifacts/project_choir_wp1 \
 	  artifacts/project_choir_enemies \
+	  artifacts/project_choir_finale \
 	  artifacts/enemy_variety \
 	  artifacts/street_volatility \
 	  artifacts/directives \
@@ -55,7 +56,7 @@ grep -Fq 'config/features=PackedStringArray("4.7", "GL Compatibility")' project.
 	grep -Fq 'window/size/viewport_height=720' project.godot
 	grep -Fq 'window/per_pixel_transparency/allowed=true' project.godot
 	grep -Fq 'window/stretch/mode="canvas_items"' project.godot
-grep -Fq 'window/stretch/aspect="keep"' project.godot
+	grep -Fq 'window/stretch/aspect="keep"' project.godot
 grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
 grep -Fq 'variant/extensions_support=false' export_presets.cfg
 grep -Fq 'variant/thread_support=false' export_presets.cfg
@@ -216,7 +217,21 @@ printf '%s\n' '[L4] Project CHOIR dossier/reveal headless scenario'
 run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
   -s selftest/project_choir_visual_scenario.gd
 jq -e '.done == true and .result == "PASS" and .shot == ""' \
-  artifacts/project_choir_wp1/report.json >/dev/null
+	  artifacts/project_choir_wp1/report.json >/dev/null
+
+printf '%s\n' '[L4] Project CHOIR finale headless scenario'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+	-s selftest/project_choir_finale_scenario.gd
+jq -e '
+	.done == true
+	and .result == "PASS"
+	and .boss_id == "CHOIR_PRIME"
+	and .pylon_count == 5
+	and .eligible.disentangle_eligible == true
+	and .boss_shot == ""
+	and .choice_shot == ""
+	and .ending_shot == ""
+' artifacts/project_choir_finale/report-landscape.json >/dev/null
 
 SHOT_HASH=""
 if [[ "$MODE" == "full" ]]; then
@@ -450,6 +465,31 @@ if [[ "$MODE" == "full" ]]; then
 	  test -s artifacts/project_choir_enemies/hybrid-gallery-portrait.png
 	  grep -Fq '720 x 1280' \
 	    <<< "$(file artifacts/project_choir_enemies/hybrid-gallery-portrait.png)"
+
+	  printf '%s\n' '[L5] Project CHOIR finale landscape'
+	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+	    --resolution 1280x720 -s selftest/project_choir_finale_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and .pylon_count == 5' \
+	    artifacts/project_choir_finale/report-landscape.json >/dev/null
+	  test "$(find artifacts/project_choir_finale -maxdepth 1 -type f \
+	    -name '*-landscape.png' -size +0c | wc -l)" -eq 3
+	  while IFS= read -r finale_shot; do
+	    grep -Fq '1280 x 720' <<< "$(file "$finale_shot")"
+	  done < <(find artifacts/project_choir_finale -maxdepth 1 -type f \
+	    -name '*-landscape.png' | LC_ALL=C sort)
+
+	  printf '%s\n' '[L5] Project CHOIR finale portrait'
+	  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+	    --audio-driver Dummy --path . --resolution 720x1280 \
+	    -s selftest/project_choir_finale_scenario.gd
+	  jq -e '.done == true and .result == "PASS" and .pylon_count == 5' \
+	    artifacts/project_choir_finale/report-portrait.json >/dev/null
+	  test "$(find artifacts/project_choir_finale -maxdepth 1 -type f \
+	    -name '*-portrait.png' -size +0c | wc -l)" -eq 3
+	  while IFS= read -r finale_shot; do
+	    grep -Fq '720 x 1280' <<< "$(file "$finale_shot")"
+	  done < <(find artifacts/project_choir_finale -maxdepth 1 -type f \
+	    -name '*-portrait.png' | LC_ALL=C sort)
 
   printf '%s\n' '[L5] windowed street-volatility render scenario'
   run_engine xvfb-run -a "$GODOT" --path . --resolution 1280x720 \

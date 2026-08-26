@@ -63,7 +63,8 @@ func test_launch_scene_contract() -> void:
 	assert_eq(title_label.text, "PROTOS")
 	assert_eq(
 		(screen.get_node("%InstructionLabel") as Label).text,
-		"An evil organisation killed everyone you love...\nit's payback time!"
+		"Obelisk killed everyone you loved.\n"
+		+ "PROJECT CHOIR kept their minds. Decide what survives."
 	)
 	assert_null(screen.get_node_or_null("HintLabel"))
 	assert_eq(english_button.text, "EN")
@@ -125,13 +126,17 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 	assert_true(field_note.contains("Bindings can be changed"))
 	assert_true(field_note.contains("AUTO SAVE"))
 	assert_true(
-		(screen.get_node("SemanticContract/ObjectiveOne") as Label).text.contains("earn EXP")
+		(screen.get_node("SemanticContract/ObjectiveOne") as Label).text.contains(
+			"recover dossiers"
+		)
 	)
 	assert_true(
-		(screen.get_node("SemanticContract/ObjectiveThree") as Label).text.contains("1 of 2 upgrades")
+		(screen.get_node("SemanticContract/ObjectiveThree") as Label).text.contains(
+			"Continuity Cradle"
+		)
 	)
-	assert_true(enemy_intel.contains("Soldiers + tanks"))
-	assert_true(enemy_intel.contains("Helicopters + rockets"))
+	assert_true(enemy_intel.contains("Armor + aircraft"))
+	assert_true(enemy_intel.contains("Reclaimed + carriers"))
 	assert_true(run_rule.contains("reset when you Retry"))
 	assert_true(screen.open_briefing())
 	assert_true((screen.get_node("%BriefingLayer") as Control).visible)
@@ -270,6 +275,7 @@ func test_campaign_archive_renders_injected_progress_and_focus_safe_codex() -> v
 		]),
 		"dossier_count": 1,
 		"continuity_generation": 3,
+		"seen_endings": PackedStringArray(["PURGE", "DISENTANGLE"]),
 	})
 	archive_screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	archive_screen.audio_preference_path = AUDIO_PREFERENCE_PATH
@@ -279,6 +285,8 @@ func test_campaign_archive_renders_injected_progress_and_focus_safe_codex() -> v
 	assert_true(archive_screen.open_briefing())
 	assert_true(archive_screen.campaign_panel.progress_label.text.contains("1 / 25"))
 	assert_true(archive_screen.campaign_panel.continuity_label.text.contains("3"))
+	assert_true(archive_screen.campaign_panel.endings_label.text.contains("ASH PROTOCOL"))
+	assert_true(archive_screen.campaign_panel.endings_label.text.contains("SEVERANCE"))
 	archive_screen.campaign_panel.codex_button.pressed.emit()
 	assert_true(archive_screen.dossier_codex.visible)
 	assert_true(

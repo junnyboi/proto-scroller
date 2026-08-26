@@ -11,6 +11,7 @@ var panel: ColorRect
 var heading_label: Label
 var progress_label: Label
 var continuity_label: Label
+var endings_label: Label
 var codex_button: Button
 var _snapshot: Dictionary = {}
 
@@ -37,25 +38,28 @@ func refresh_locale() -> void:
 	continuity_label.text = L10n.t("narrative.campaign.continuity", {
 		"generation": int(_snapshot.get("continuity_generation", 0)),
 	})
+	endings_label.text = _ending_archive_text()
 	codex_button.text = L10n.t("narrative.campaign.open_codex")
 
 
 func apply_responsive_layout(viewport_size: Vector2) -> void:
 	if viewport_size.y > viewport_size.x:
 		position = Vector2(28.0, 790.0)
-		size = Vector2(viewport_size.x - 56.0, 310.0)
+		size = Vector2(viewport_size.x - 56.0, 340.0)
 	else:
 		position = Vector2(viewport_size.x - 482.0, 310.0)
-		size = Vector2(430.0, 290.0)
+		size = Vector2(430.0, 320.0)
 	panel.size = size
 	heading_label.position = Vector2(22.0, 18.0)
 	heading_label.size = Vector2(size.x - 44.0, 60.0)
 	progress_label.position = Vector2(22.0, 82.0)
 	progress_label.size = Vector2(size.x - 44.0, 34.0)
 	continuity_label.position = Vector2(22.0, 120.0)
-	continuity_label.size = Vector2(size.x - 44.0, 70.0)
-	codex_button.position = Vector2(22.0, size.y - 78.0)
-	codex_button.size = Vector2(size.x - 44.0, 56.0)
+	continuity_label.size = Vector2(size.x - 44.0, 54.0)
+	endings_label.position = Vector2(22.0, 178.0)
+	endings_label.size = Vector2(size.x - 44.0, 54.0)
+	codex_button.position = Vector2(22.0, size.y - 66.0)
+	codex_button.size = Vector2(size.x - 44.0, 44.0)
 
 
 func _build() -> void:
@@ -77,7 +81,27 @@ func _build() -> void:
 	continuity_label.add_theme_font_size_override(&"font_size", 18)
 	continuity_label.modulate = MUTED_COLOR
 	add_child(continuity_label)
+	endings_label = Label.new()
+	endings_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	endings_label.add_theme_font_size_override(&"font_size", 16)
+	endings_label.modulate = ACCENT_COLOR
+	add_child(endings_label)
 	codex_button = Button.new()
 	codex_button.focus_mode = Control.FOCUS_ALL
 	codex_button.pressed.connect(codex_requested.emit)
 	add_child(codex_button)
+
+
+func _ending_archive_text() -> String:
+	var seen_endings: PackedStringArray = _snapshot.get(
+		"seen_endings",
+		PackedStringArray()
+	) as PackedStringArray
+	if seen_endings.is_empty():
+		return L10n.t("narrative.campaign.endings_locked")
+	var ending_names: PackedStringArray = PackedStringArray()
+	for ending_id: String in seen_endings:
+		ending_names.append(L10n.t("finale.ending.%s.archive" % ending_id.to_lower()))
+	return L10n.t("narrative.campaign.endings", {
+		"endings": " · ".join(ending_names),
+	})

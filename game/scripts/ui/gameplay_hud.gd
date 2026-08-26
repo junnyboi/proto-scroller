@@ -6,6 +6,8 @@ signal retry_pressed
 signal title_pressed
 signal extract_pressed
 signal continue_pressed
+signal purge_pressed
+signal disentangle_pressed
 
 const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
@@ -46,6 +48,8 @@ var retry_button: Button
 var title_button: Button
 var extract_button: Button
 var continue_button: Button
+var purge_button: Button
+var disentangle_button: Button
 var rare_labels: Array[Label] = []
 var status_panel: ColorRect
 var momentum_panel: ColorRect
@@ -259,14 +263,21 @@ func set_directive_bank(points: int) -> void:
 	directive_card.set_bank(points)
 
 
-func set_boss_status(state: StringName, current: float = 0.0, maximum: float = 1.0) -> void:
+func set_boss_status(
+	state: StringName,
+	current: float = 0.0,
+	maximum: float = 1.0,
+	boss_id: StringName = &""
+) -> void:
 	if state == &"IDLE" or state == &"COMPLETE":
 		hide_boss_status()
 		return
 	boss_label.visible = true
 	var ratio: int = roundi(clampf(current / maxf(maximum, 1.0), 0.0, 1.0) * 100.0)
-	boss_label.text = L10n.t("hud.command_status", {
-		"state": L10n.t("boss.state.%s" % String(state).to_lower()),
+	var state_key: String = "boss.state.%s" % String(state).to_lower()
+	var key: String = "hud.choir_prime_status" if boss_id == &"CHOIR_PRIME" else "hud.command_status"
+	boss_label.text = L10n.t(key, {
+		"state": L10n.t(state_key),
 		"ratio": "%03d" % ratio,
 	})
 
@@ -345,6 +356,10 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 			overlay_summary.text = L10n.t(summary_key, tokens)
 		else:
 			overlay_summary.text = L10n.t("hud.chassis_signal_lost")
+		if completed and summary.ending_id != &"NONE":
+			var ending_key: String = String(summary.ending_id).to_lower()
+			overlay_title.text = L10n.t("finale.ending.%s.title" % ending_key)
+			overlay_summary.text = L10n.t("finale.ending.%s.body" % ending_key)
 	overlay_summary.text += "\n" + L10n.t("narrative.summary.progress", {
 		"dossiers": _campaign_dossier_count,
 		"total": CityDistrictCatalog.BUILDING_VARIANT_COUNT,
@@ -364,6 +379,45 @@ func show_cycle_choice(cycle: int, can_continue: bool) -> void:
 	)
 	retry_button.visible = false
 	title_button.visible = false
+	extract_button.visible = true
+	continue_button.visible = can_continue
+	continue_button.text = L10n.t("hud.new_game_plus")
+	new_game_plus_badge.visible = can_continue
+	_apply_responsive_layout()
+	game_over_overlay.visible = true
+	if can_continue:
+		continue_button.grab_focus()
+	else:
+		extract_button.grab_focus()
+
+
+func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
+	overlay_title.text = L10n.t("finale.choice.title")
+	overlay_summary.text = L10n.t("finale.choice.summary", snapshot.as_dictionary())
+	retry_button.visible = false
+	extract_button.visible = false
+	continue_button.visible = false
+	purge_button.visible = true
+	disentangle_button.visible = true
+	game_over_overlay.visible = true
+	disentangle_button.grab_focus()
+
+
+func _show_finale_result(outcome: int, cycle: int, can_continue: bool) -> void:
+	var ending_key: String = String(BossOutcome.id_for(outcome)).to_lower()
+	overlay_title.text = L10n.t("finale.ending.%s.title" % ending_key)
+	overlay_summary.text = (
+		L10n.t("finale.ending.%s.body" % ending_key)
+		+ "\n\n"
+		+ L10n.t(
+			"hud.new_game_plus_summary" if can_continue else "hud.cycle_complete",
+			{"cycle": cycle, "score": "%08d" % maxi(_displayed_score(), 0)}
+		)
+	)
+	retry_button.visible = false
+	title_button.visible = false
+	purge_button.visible = false
+	disentangle_button.visible = false
 	extract_button.visible = true
 	continue_button.visible = can_continue
 	continue_button.text = L10n.t("hud.new_game_plus")
@@ -622,6 +676,8 @@ func _build_game_over_overlay() -> void:
 	overlay_summary.text = L10n.t("hud.chassis_signal_lost")
 	overlay_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	overlay_summary.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	overlay_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	overlay_summary.clip_text = true
 	overlay_summary.add_theme_font_size_override(&"font_size", 20)
 	overlay_summary.modulate = MUTED_COLOR
 	game_over_overlay.add_child(overlay_summary)
@@ -661,6 +717,24 @@ func _build_game_over_overlay() -> void:
 	continue_button.pressed.connect(continue_pressed.emit)
 	continue_button.visible = false
 	game_over_overlay.add_child(continue_button)
+	purge_button = Button.new()
+	purge_button.name = "PurgeButton"
+	purge_button.position = Vector2(445.0, 430.0)
+	purge_button.size = Vector2(185.0, 78.0)
+	purge_button.text = L10n.t("finale.choice.purge")
+	purge_button.add_theme_font_size_override(&"font_size", 23)
+	purge_button.pressed.connect(purge_pressed.emit)
+	purge_button.visible = false
+	game_over_overlay.add_child(purge_button)
+	disentangle_button = Button.new()
+	disentangle_button.name = "DisentangleButton"
+	disentangle_button.position = Vector2(650.0, 430.0)
+	disentangle_button.size = Vector2(185.0, 78.0)
+	disentangle_button.text = L10n.t("finale.choice.disentangle")
+	disentangle_button.add_theme_font_size_override(&"font_size", 21)
+	disentangle_button.pressed.connect(disentangle_pressed.emit)
+	disentangle_button.visible = false
+	game_over_overlay.add_child(disentangle_button)
 
 
 func _is_portrait_layout() -> bool:
@@ -830,24 +904,30 @@ func _apply_experience_fill() -> void:
 
 
 func _apply_landscape_terminal_layout() -> void:
-	terminal_panel.position = Vector2(365.0, 188.0)
-	terminal_panel.size = Vector2(550.0, 340.0)
-	new_game_plus_badge.position = Vector2(385.0, 218.0)
+	terminal_panel.position = Vector2(315.0, 188.0)
+	terminal_panel.size = Vector2(650.0, 340.0)
+	new_game_plus_badge.position = Vector2(335.0, 218.0)
 	new_game_plus_badge.size = Vector2(72.0, 72.0)
 	overlay_title.position = (
-		Vector2(465.0, 218.0) if new_game_plus_badge.visible else Vector2(405.0, 218.0)
+		Vector2(425.0, 218.0) if new_game_plus_badge.visible else Vector2(345.0, 218.0)
 	)
 	overlay_title.size = (
-		Vector2(410.0, 72.0) if new_game_plus_badge.visible else Vector2(470.0, 72.0)
+		Vector2(480.0, 72.0) if new_game_plus_badge.visible else Vector2(590.0, 72.0)
 	)
-	overlay_summary.position = Vector2(405.0, 296.0)
-	overlay_summary.size = Vector2(470.0, 128.0)
-	retry_button.position = Vector2(405.0, 430.0)
-	retry_button.size = Vector2(225.0, 78.0)
-	title_button.position = Vector2(650.0, 430.0)
-	title_button.size = Vector2(225.0, 78.0)
-	extract_button.position = Vector2(445.0, 430.0)
-	continue_button.position = Vector2(650.0, 430.0)
+	overlay_summary.position = Vector2(345.0, 296.0)
+	overlay_summary.size = Vector2(590.0, 128.0)
+	retry_button.position = Vector2(365.0, 430.0)
+	retry_button.size = Vector2(260.0, 78.0)
+	title_button.position = Vector2(655.0, 430.0)
+	title_button.size = Vector2(260.0, 78.0)
+	extract_button.position = Vector2(365.0, 430.0)
+	extract_button.size = Vector2(260.0, 78.0)
+	continue_button.position = Vector2(655.0, 430.0)
+	continue_button.size = Vector2(260.0, 78.0)
+	purge_button.position = Vector2(365.0, 430.0)
+	purge_button.size = Vector2(260.0, 78.0)
+	disentangle_button.position = Vector2(655.0, 430.0)
+	disentangle_button.size = Vector2(260.0, 78.0)
 
 
 func _apply_portrait_terminal_layout(viewport_size: Vector2) -> void:
@@ -875,6 +955,10 @@ func _apply_portrait_terminal_layout(viewport_size: Vector2) -> void:
 	extract_button.size = Vector2(258.0, 88.0)
 	continue_button.position = Vector2(viewport_size.x - 340.0, 720.0)
 	continue_button.size = Vector2(258.0, 88.0)
+	purge_button.position = Vector2(82.0, 720.0)
+	purge_button.size = Vector2(258.0, 88.0)
+	disentangle_button.position = Vector2(viewport_size.x - 340.0, 720.0)
+	disentangle_button.size = Vector2(258.0, 88.0)
 
 
 func _hide_terminal_choices() -> void:
@@ -882,6 +966,8 @@ func _hide_terminal_choices() -> void:
 	title_button.visible = true
 	extract_button.visible = false
 	continue_button.visible = false
+	purge_button.visible = false
+	disentangle_button.visible = false
 	new_game_plus_badge.visible = false
 	_apply_responsive_layout()
 

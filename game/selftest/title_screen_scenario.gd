@@ -58,6 +58,7 @@ func _run() -> void:
 		]),
 		"dossier_count": 3,
 		"continuity_generation": 2,
+		"seen_endings": PackedStringArray(["PURGE", "DISENTANGLE"]),
 	})
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	screen.audio_preference_path = AUDIO_PREFERENCE_PATH
@@ -83,8 +84,8 @@ func _run() -> void:
 		"text=%s" % [button.text]
 	)
 	_check(
-		"payback_line_break",
-		(screen.get_node("%InstructionLabel") as Label).text.contains("...\n"),
+		"choir_moral_hook",
+		(screen.get_node("%InstructionLabel") as Label).text.contains("\nPROJECT CHOIR"),
 		"text=%s" % [(screen.get_node("%InstructionLabel") as Label).text]
 	)
 	_check("input_hint_removed", screen.get_node_or_null("HintLabel") == null, "removed=true")

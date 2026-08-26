@@ -58,6 +58,9 @@ var run_seed: int:
 var cycle_count: int:
 	get:
 		return _cycle_count
+var ending_id: StringName:
+	get:
+		return _ending_id
 
 var _score: int
 var _peak_combo: int
@@ -78,6 +81,7 @@ var _boss_result: StringName
 var _contract_result: StringName
 var _run_seed: int
 var _cycle_count: int
+var _ending_id: StringName
 
 
 func _init(
@@ -108,3 +112,4 @@ func _init(
 	_contract_result = metrics.get("contract_result", &"NONE") as StringName
 	_run_seed = int(metrics.get("run_seed", 0))
 	_cycle_count = int(metrics.get("cycle_count", 1))
+	_ending_id = metrics.get("ending_id", &"NONE") as StringName

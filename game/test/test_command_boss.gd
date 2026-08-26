@@ -159,15 +159,27 @@ func test_district_signal_waits_until_boss_wreck_finisher() -> void:
 	watch_signals(city.urban_siege)
 	city.urban_siege._on_arc_completed()
 	assert_signal_not_emitted(city.urban_siege, "district_completed")
+	assert_true(session.start_definition(BossCampaignCatalog.definition(&"CHOIR_PRIME")))
 	var boss: TankEnemy = session.boss
+	for index: int in range(5):
+		boss.receive_damage(DamageEvent.new(
+			1200 + index,
+			city.robot,
+			110.0,
+			&"jab_cross",
+			Vector2.ZERO,
+			Vector2.RIGHT,
+			0.0,
+			0,
+			0,
+			DamageEvent.FLAG_FULL_CHARGE
+		))
 	boss.receive_damage(DamageEvent.new(
-		1200, city.robot, CommandBossSession.ARMOR, &"jab_cross"
-	))
-	boss.receive_damage(DamageEvent.new(
-		1201, city.robot, CommandBossSession.HEALTH, &"impact"
+		1210, city.robot, session.active_definition.health, &"impact"
 	))
 	assert_signal_not_emitted(city.urban_siege, "district_completed")
 	session.boss_wreck.receive_damage(DamageEvent.new(
-		1202, city.robot, 999.0, &"ground_smash"
+		1211, city.robot, 999.0, &"ground_smash"
 	))
 	assert_signal_emitted(city.urban_siege, "district_completed")
+	assert_true(city.urban_siege.finale_pending)

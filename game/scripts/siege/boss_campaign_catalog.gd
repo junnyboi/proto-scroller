@@ -267,8 +267,11 @@ static func _ensure_catalog() -> void:
 			[&"FIVEFOLD_TESTIMONY", &"SIBLING_PROCESS", &"THE_LAST_CONSENT"],
 			PackedInt32Array(EXPECTED_OUTCOMES),
 			PackedVector2Array([Vector2(-128.0, 0.0), Vector2(128.0, 0.0)])
-		),
-	]
+			),
+		]
+	var finale: BossEncounterDefinition = _definitions.back()
+	finale.armor = 550.0
+	finale.armor_fixed_step = 110.0
 	_definitions_by_id.clear()
 	_definitions_by_trigger.clear()
 	for definition_value: BossEncounterDefinition in _definitions:

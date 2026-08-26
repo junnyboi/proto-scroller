@@ -16,6 +16,14 @@ const ARMOR: float = 330.0
 const HEALTH: float = 320.0
 const SCREEN_DURATION: float = 4.0
 const TARGET_DURATION: float = 60.0
+const CHOIR_PRIME_TEXTURE: Texture2D = preload("res://art/finale/choir-prime-core.png")
+const CHOIR_GAUNTLET: Array[StringName] = [
+	&"reclaimed_breacher",
+	&"graft_runner",
+	&"choir_siren",
+	&"ossuary_crawler",
+	&"seraph_carrier",
+]
 
 var dependencies: UrbanSiegeDependencies
 var state: StringName = STATE_IDLE
@@ -76,6 +84,8 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 			active_definition.armor_policy,
 			active_definition.armor_fixed_step
 		)
+	if _is_choir_prime():
+		_present_choir_prime()
 	if not boss.boss_armor_changed.is_connected(_on_boss_armor_changed):
 		boss.boss_armor_changed.connect(_on_boss_armor_changed)
 	if not boss.boss_armor_broken.is_connected(_on_boss_armor_broken):
@@ -105,7 +115,9 @@ func advance(delta: float) -> void:
 
 func stop() -> void:
 	_next_generation()
-	if boss != null and boss.active:
+	if _is_choir_prime():
+		dependencies.encounter_runtime.release_all()
+	elif boss != null and boss.active:
 		dependencies.encounter_runtime.release(boss)
 	if boss_wreck != null:
 		boss_wreck.finisher_requires_ground_smash = false
@@ -151,12 +163,36 @@ func _on_boss_health_changed(current: float, maximum: float) -> void:
 
 
 func _on_boss_armor_changed(current: float, maximum: float) -> void:
+	if _is_choir_prime():
+		var remaining: int = ceili(
+			clampf(current / maxf(maximum, 1.0), 0.0, 1.0)
+			* BossUtilityPool.PYLON_PRESENTATION_CAPACITY
+		)
+		utility_pool.set_royal_pylon_integrity(remaining)
 	armor_changed.emit(current, maximum)
 
 
 func _on_boss_armor_broken() -> void:
 	_next_generation()
 	_set_state(STATE_EXPOSED)
+
+
+func _present_choir_prime() -> void:
+	if boss.visual != null:
+		boss.visual.texture = CHOIR_PRIME_TEXTURE
+		boss.visual.scale = Vector2(0.42, 0.42)
+		boss.visual.position = Vector2(0.0, -88.0)
+	utility_pool.present_royal_pylons(boss.global_position)
+	for index: int in range(CHOIR_GAUNTLET.size()):
+		var horizontal: float = -440.0 + float(index) * 220.0
+		dependencies.encounter_runtime.acquire(
+			CHOIR_GAUNTLET[index],
+			boss.global_position + Vector2(horizontal, -30.0)
+		)
+
+
+func _is_choir_prime() -> bool:
+	return active_definition != null and active_definition.boss_id == &"CHOIR_PRIME"
 
 
 func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> void:

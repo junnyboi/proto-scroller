@@ -4,6 +4,7 @@ extends Node
 signal run_finished(completed: bool, summary: RunSummarySnapshot)
 
 var city: CitySlice
+var _pending_ending_id: StringName = &"NONE"
 
 
 func setup(p_city: CitySlice) -> void:
@@ -35,6 +36,10 @@ func setup(p_city: CitySlice) -> void:
 		city.gameplay_hud.continue_pressed.connect(_on_continue_pressed)
 		city.urban_siege.boss_session.state_changed.connect(_on_boss_state_changed)
 		city.urban_siege.boss_session.armor_changed.connect(_on_boss_armor_changed)
+		city.urban_siege.finale_choice_requested.connect(_on_finale_choice_requested)
+		city.urban_siege.finale_resolved.connect(_on_finale_resolved)
+		city.gameplay_hud.purge_pressed.connect(_on_purge_pressed)
+		city.gameplay_hud.disentangle_pressed.connect(_on_disentangle_pressed)
 	else:
 		city.encounter_director.district_completed.connect(_on_district_completed)
 	_on_momentum_changed(
@@ -155,8 +160,13 @@ func _on_boss_state_changed(state: StringName) -> void:
 		return
 	var boss: CommandBossSession = city.urban_siege.boss_session
 	var armor: float = boss.boss.boss_armor if boss.boss != null else 0.0
-	city.gameplay_hud.set_boss_status(state, armor, CommandBossSession.ARMOR)
-	city.gameplay_hud.set_objective("objective.command_unit", {
+	var boss_id: StringName = boss.active_definition.boss_id if boss.active_definition != null else &""
+	var maximum: float = boss.boss.boss_max_armor if boss.boss != null else CommandBossSession.ARMOR
+	city.gameplay_hud.set_boss_status(state, armor, maximum, boss_id)
+	var objective_key: String = (
+		"objective.choir_prime" if boss_id == &"CHOIR_PRIME" else "objective.command_unit"
+	)
+	city.gameplay_hud.set_objective(objective_key, {
 		"state": L10n.t("boss.state.%s" % String(state).to_lower()),
 	})
 
@@ -164,7 +174,9 @@ func _on_boss_state_changed(state: StringName) -> void:
 func _on_boss_armor_changed(current: float, maximum: float) -> void:
 	if city.urban_siege.boss_campaign.owns_combat():
 		return
-	city.gameplay_hud.set_boss_status(city.urban_siege.boss_session.state, current, maximum)
+	var boss: CommandBossSession = city.urban_siege.boss_session
+	var boss_id: StringName = boss.active_definition.boss_id if boss.active_definition != null else &""
+	city.gameplay_hud.set_boss_status(boss.state, current, maximum, boss_id)
 
 
 func _on_directive_progress(
@@ -198,6 +210,8 @@ func _on_district_completed() -> void:
 
 
 func _on_royal_shop_closed() -> void:
+	if city.urban_siege.present_finale_choice():
+		return
 	city.urban_siege.prepare_terminal_choice()
 	city.gameplay_hud.show_cycle_choice(
 		city.urban_siege.cycle_count,
@@ -207,7 +221,7 @@ func _on_royal_shop_closed() -> void:
 
 func _on_extract_pressed() -> void:
 	city.urban_siege.release_terminal_choice()
-	_finish_run(true)
+	_finish_run(true, _pending_ending_id)
 
 
 func _on_continue_pressed() -> void:
@@ -215,6 +229,7 @@ func _on_continue_pressed() -> void:
 		return
 	city.prepare_new_game_plus_world()
 	if city.urban_siege.continue_cycle():
+		_pending_ending_id = &"NONE"
 		city.upgrade_assembler.session.continue_cycle()
 		city.gameplay_hud.hide_terminal_overlay()
 		var recipe_key: String = (
@@ -226,7 +241,28 @@ func _on_continue_pressed() -> void:
 		})
 
 
-func _finish_run(completed: bool) -> void:
+func _on_finale_choice_requested(snapshot: FinaleEligibilitySnapshot) -> void:
+	city.gameplay_hud._show_finale_choice(snapshot)
+
+
+func _on_purge_pressed() -> void:
+	city.urban_siege.resolve_finale(BossOutcome.PURGE)
+
+
+func _on_disentangle_pressed() -> void:
+	city.urban_siege.resolve_finale(BossOutcome.DISENTANGLE)
+
+
+func _on_finale_resolved(outcome: int, _snapshot: FinaleEligibilitySnapshot) -> void:
+	_pending_ending_id = BossOutcome.id_for(outcome)
+	city.gameplay_hud._show_finale_result(
+		outcome,
+		city.urban_siege.cycle_count,
+		city.urban_siege.cycle_count < 2
+	)
+
+
+func _finish_run(completed: bool, ending_id: StringName = &"NONE") -> void:
 	if city.game_over_active:
 		return
 	city.game_over_active = true
@@ -248,6 +284,7 @@ func _finish_run(completed: bool) -> void:
 		)
 		run_metrics.run_seed = city.urban_siege.run_seed
 		run_metrics.cycle_count = city.urban_siege.cycle_count
+		run_metrics.ending_id = ending_id
 		city.urban_siege.stop_run()
 	else:
 		city.encounter_director.stop()

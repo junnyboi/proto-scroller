@@ -1,6 +1,14 @@
 class_name ProjectChoirRuntime
 extends Node
 
+const DISTRICT_EVIDENCE: Dictionary[StringName, StringName] = {
+	&"BUSINESS": &"LEDGER",
+	&"RESIDENTIAL": &"NURSERY",
+	&"ENTERTAINMENT": &"STAGE",
+	&"MILITARY": &"ARSENAL",
+	&"ROYAL": &"CROWN",
+}
+
 var campaign_progress: CampaignProgressStore
 var director: NarrativeDirector
 var facade_reveal: FacadeRevealRuntime
@@ -60,11 +68,21 @@ func _on_building_cell_destroyed(
 	_event: DamageEvent
 ) -> void:
 	director.handle_building_cell_destroyed(building, column, row)
+	_award_completed_district_evidence(building.current_variant_id())
 	_try_release_containment(building, column, row)
 
 
 func containment_release_count() -> int:
 	return _released_containment.size()
+
+
+func _award_completed_district_evidence(variant_id: StringName) -> void:
+	var definition: DossierDefinition = DossierCatalog.definition_for_variant(variant_id)
+	if definition == null or not DISTRICT_EVIDENCE.has(definition.district_id):
+		return
+	if campaign_progress.district_dossier_count(definition.district_id) < 5:
+		return
+	campaign_progress.preserve_evidence(DISTRICT_EVIDENCE[definition.district_id])
 
 
 func _try_release_containment(
