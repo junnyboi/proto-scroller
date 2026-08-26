@@ -77,6 +77,7 @@ func _run_charged_input() -> bool:
 		"progress": city.contextual_attacks.charge_progress(),
 		"multiplier": city.contextual_attacks.charge_damage_multiplier(),
 		"frame": sprite.frame,
+		"particles": presenter.charge_particles_emitting(),
 	})
 	if not await _wait_until(func() -> bool: return not city.contextual_attacks.is_charging()):
 		_fail("browser smash key-up did not release charge")

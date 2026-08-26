@@ -559,21 +559,23 @@ function assertPhaseContract(phases) {
   const postUpgradeSfx = phases[7];
   const east = phases[8];
   const west = phases[9];
-  if (
-    chargeStarted.details.frame !== 0 ||
-    chargeStarted.details.particles !== true ||
-    !String(chargeStarted.details.animation).startsWith("attack_")
-  ) {
-    throw new Error(
-      `charge did not freeze first frame with particles: ${JSON.stringify(chargeStarted.details)}`
-    );
-  }
-  if (
-    chargeProgress.details.progress < 0.35 ||
-    chargeProgress.details.multiplier <= 1.0 ||
-    chargeProgress.details.multiplier > 2.0 ||
-    chargeProgress.details.frame !== 0
-  ) {
+	if (
+	  chargeStarted.details.frame !== 0 ||
+	  chargeStarted.details.particles !== false ||
+	  !String(chargeStarted.details.animation).startsWith("attack_")
+	) {
+	  throw new Error(
+		`charge did not freeze first frame before particles armed: ${JSON.stringify(chargeStarted.details)}`
+	  );
+	}
+	if (
+	  chargeProgress.details.duration < 0.6 ||
+	  chargeProgress.details.progress < 0.35 ||
+	  chargeProgress.details.multiplier <= 1.0 ||
+	  chargeProgress.details.multiplier > 2.0 ||
+	  chargeProgress.details.frame !== 0 ||
+	  chargeProgress.details.particles !== true
+	) {
     throw new Error(
       `charge progress contract failed: ${JSON.stringify(chargeProgress.details)}`
     );
