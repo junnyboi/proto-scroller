@@ -1,0 +1,372 @@
+class_name BossCampaignCatalog
+extends RefCounted
+
+const DEFINITION_COUNT: int = 5
+const CANONICAL_TRIGGERS: Array[int] = [7, 15, 23, 31, 39]
+const CANONICAL_EVIDENCE: Array[StringName] = [
+	&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
+]
+const EXPECTED_OUTCOMES: Array[int] = [
+	BossOutcome.PURGE,
+	BossOutcome.DISENTANGLE,
+	BossOutcome.ASCENSION_FAILURE,
+]
+
+static var _definitions: Array[BossEncounterDefinition] = []
+static var _definitions_by_id: Dictionary[StringName, BossEncounterDefinition] = {}
+static var _definitions_by_trigger: Dictionary[int, BossEncounterDefinition] = {}
+
+
+static func definitions() -> Array[BossEncounterDefinition]:
+	_ensure_catalog()
+	return _definitions.duplicate()
+
+
+static func definition(boss_id: StringName) -> BossEncounterDefinition:
+	_ensure_catalog()
+	return _definitions_by_id.get(boss_id) as BossEncounterDefinition
+
+
+static func definition_for_trigger(trigger_chunk: int) -> BossEncounterDefinition:
+	_ensure_catalog()
+	return _definitions_by_trigger.get(trigger_chunk) as BossEncounterDefinition
+
+
+static func validation_errors(
+	definitions_to_validate: Array[BossEncounterDefinition] = []
+) -> PackedStringArray:
+	_ensure_catalog()
+	var definitions_value: Array[BossEncounterDefinition] = (
+		_definitions if definitions_to_validate.is_empty() else definitions_to_validate
+	)
+	var errors: PackedStringArray = PackedStringArray()
+	if definitions_value.size() != DEFINITION_COUNT:
+		errors.append(
+		"boss_definition_count=%d expected=%d"
+		% [definitions_value.size(), DEFINITION_COUNT]
+		)
+	var boss_ids: Dictionary[StringName, bool] = {}
+	var triggers: Dictionary[int, bool] = {}
+	var dossiers: Dictionary[StringName, bool] = {}
+	var evidence_flags: Dictionary[StringName, bool] = {}
+	for definition_value: BossEncounterDefinition in definitions_value:
+		if definition_value == null:
+			errors.append("null boss definition")
+			continue
+		for error: String in definition_value.validation_errors():
+			errors.append("%s: %s" % [definition_value.boss_id, error])
+		if boss_ids.has(definition_value.boss_id):
+			errors.append("duplicate boss_id %s" % definition_value.boss_id)
+		boss_ids[definition_value.boss_id] = true
+		if triggers.has(definition_value.trigger_chunk):
+			errors.append("duplicate trigger_chunk %d" % definition_value.trigger_chunk)
+		triggers[definition_value.trigger_chunk] = true
+		if dossiers.has(definition_value.capstone_dossier_id):
+			errors.append("duplicate capstone dossier %s" % definition_value.capstone_dossier_id)
+		dossiers[definition_value.capstone_dossier_id] = true
+		if evidence_flags.has(definition_value.evidence_flag_id):
+			errors.append("duplicate evidence flag %s" % definition_value.evidence_flag_id)
+		evidence_flags[definition_value.evidence_flag_id] = true
+		_validate_district_and_arena(definition_value, errors)
+		_validate_requirements(definition_value, errors)
+	_validate_canonical_order(definitions_value, errors)
+	return errors
+
+
+static func _validate_district_and_arena(
+	definition_value: BossEncounterDefinition,
+	errors: PackedStringArray
+) -> void:
+	var district: CityDistrictProfile
+	for candidate: CityDistrictProfile in CityDistrictCatalog.districts():
+		if candidate.district_id == definition_value.district_id:
+			district = candidate
+			break
+	if district == null:
+		errors.append("unknown district_id %s" % definition_value.district_id)
+		return
+	if not district.contains_logical_chunk(definition_value.trigger_chunk):
+		errors.append("trigger outside district for %s" % definition_value.boss_id)
+	var arena_offset: int = (
+		definition_value.arena_logical_chunk - definition_value.trigger_chunk
+	)
+	if (
+		arena_offset < -CityWorldStream.BEHIND_CHUNKS
+		or arena_offset > CityWorldStream.AHEAD_CHUNKS
+	):
+		errors.append("nonresident arena reference for %s" % definition_value.boss_id)
+	var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_by_id(
+		definition_value.arena_landmark_variant_id
+	)
+	if variant == null or district.variant_by_id(variant.variant_id) == null:
+		errors.append("unknown arena landmark for %s" % definition_value.boss_id)
+
+
+static func _validate_requirements(
+	definition_value: BossEncounterDefinition,
+	errors: PackedStringArray
+) -> void:
+	var capacities: Dictionary[StringName, int] = BossUtilityPool.utility_capacities()
+	for key_value: Variant in definition_value.utility_requirements:
+		var key: StringName = StringName(key_value)
+		var demand: int = int(definition_value.utility_requirements[key_value])
+		var capacity: int = int(capacities.get(key, 0))
+		if capacity == 0 or demand > capacity:
+			errors.append(
+				"utility demand %s=%d cap=%d for %s"
+				% [key, demand, capacity, definition_value.boss_id]
+			)
+	var support_capacities: Dictionary[StringName, int] = {
+		&"procedural_infantry": RuntimeBudget.PROCEDURAL_INFANTRY,
+		&"procedural_light": RuntimeBudget.PROCEDURAL_LIGHT,
+		&"procedural_heavy": RuntimeBudget.PROCEDURAL_HEAVY,
+		&"procedural_air": RuntimeBudget.PROCEDURAL_AIR,
+		&"procedural_siege": RuntimeBudget.PROCEDURAL_SIEGE,
+	}
+	for key_value: Variant in definition_value.support_reservations:
+		var key: StringName = StringName(key_value)
+		var demand: int = int(definition_value.support_reservations[key_value])
+		var capacity: int = int(support_capacities.get(key, 0))
+		if capacity == 0 or demand > capacity:
+			errors.append(
+				"support demand %s=%d cap=%d for %s"
+				% [key, demand, capacity, definition_value.boss_id]
+			)
+
+
+static func _validate_canonical_order(
+	definitions_value: Array[BossEncounterDefinition],
+	errors: PackedStringArray
+) -> void:
+	if definitions_value.size() != DEFINITION_COUNT:
+		return
+	for index: int in range(DEFINITION_COUNT):
+		var definition_value: BossEncounterDefinition = definitions_value[index]
+		if definition_value == null:
+			continue
+		if definition_value.trigger_chunk != CANONICAL_TRIGGERS[index]:
+			errors.append("unexpected trigger at boss index %d" % index)
+		if definition_value.evidence_flag_id != CANONICAL_EVIDENCE[index]:
+			errors.append("unexpected evidence flag at boss index %d" % index)
+	var finale: BossEncounterDefinition = definitions_value.back()
+	if finale != null and Array(finale.outcomes) != EXPECTED_OUTCOMES:
+		errors.append("royal outcome policy does not contain all three canonical outcomes")
+
+
+static func _ensure_catalog() -> void:
+	if not _definitions.is_empty():
+		return
+	_definitions = [
+		_make_definition(
+			&"SETTLEMENT_ENGINE_S04",
+			&"BUSINESS",
+			7,
+			8,
+			"boss.settlement_engine_s04.name",
+			"SETTLEMENT ENGINE S-04 — The Fiduciary Saint",
+			&"business_crown_reserve_treasury",
+			&"B05_EASTBOUND_CONSIDERATION",
+			&"LEDGER",
+			&"SETTLEMENT_ENGINE",
+			{
+				&"markers": 3,
+				&"lane_damage_areas": 2,
+				&"line_areas": 1,
+				&"collapse_listeners": 1,
+				&"wreck_receivers": 1,
+			},
+			{&"procedural_infantry": 2},
+			[&"SETTLEMENT_SWEEP", &"FORECLOSURE_STAMP", &"AUDIT_BEAM"]
+		),
+		_make_definition(
+			&"SAMARITAN_15",
+			&"RESIDENTIAL",
+			15,
+			16,
+			"boss.samaritan_15.name",
+			"SAMARITAN-15 — The Last Evacuation",
+			&"residential_nightglass_mutual_clinic",
+			&"ASHWATER_INTAKE_MANIFEST",
+			&"NURSERY",
+			&"SAMARITAN",
+			{
+				&"markers": 3,
+				&"lane_damage_areas": 3,
+				&"collapse_listeners": 1,
+				&"pod_visuals": 4,
+				&"wreck_receivers": 1,
+			},
+			{&"procedural_siege": 1, &"procedural_light": 1},
+			[&"FALSE_EVACUATION", &"RED_TAG_REQUISITION", &"BLACKOUT_HARVEST"]
+		),
+		_make_definition(
+			&"MIMESIS_04",
+			&"ENTERTAINMENT",
+			23,
+			24,
+			"boss.mimesis_04.name",
+			"MIMESIS-04 — The Afterimage Conductor",
+			&"entertainment_house_of_static",
+			&"AUDIENCE_OF_ONE_0417_CONTINUITY",
+			&"STAGE",
+			&"MIMESIS",
+			{
+				&"markers": 8,
+				&"lane_damage_areas": 2,
+				&"line_areas": 2,
+				&"wreck_receivers": 1,
+			},
+			{&"procedural_air": 1},
+			[&"DEAD_AIR_SWEEP", &"ARMED_AFTERIMAGE", &"ENCORE_IMPACT"]
+		),
+		_make_definition(
+			&"CANTOR_31_PALE_ENGINE",
+			&"MILITARY",
+			31,
+			32,
+			"boss.cantor_31.name",
+			"CANTOR-31 / PALE ENGINE — The Export Surgeon",
+			&"military_prefect_war_keep",
+			&"EXPORT_LITANY_31",
+			&"ARSENAL",
+			&"CANTOR_PALE_ENGINE",
+			{
+				&"markers": 3,
+				&"lane_damage_areas": 3,
+				&"line_areas": 2,
+				&"collapse_listeners": 2,
+				&"reclamation_anchors": 3,
+				&"wreck_receivers": 1,
+			},
+			{&"procedural_light": 1},
+			[&"CALIBRATION_THEATRE", &"ASSEMBLY_RUN", &"PALE_RECLAMATION"]
+		),
+		_make_definition(
+			&"CHOIR_PRIME",
+			&"ROYAL",
+			39,
+			-1,
+			"boss.choir_prime.name",
+			"CHOIR Prime — The Last Sovereign",
+			&"royal_palace_last_sovereign",
+			&"CROWN_05_CONSENT_EXCISION_ORDER",
+			&"CROWN",
+			&"CHOIR_PRIME",
+			{
+				&"markers": 8,
+				&"lane_damage_areas": 3,
+				&"line_areas": 2,
+				&"collapse_listeners": 2,
+				&"pod_visuals": 4,
+				&"reclamation_anchors": 3,
+				&"pylon_presentations": 5,
+				&"projection_slots": 4,
+				&"wreck_receivers": 2,
+			},
+			{},
+			[&"FIVEFOLD_TESTIMONY", &"SIBLING_PROCESS", &"THE_LAST_CONSENT"],
+			PackedInt32Array(EXPECTED_OUTCOMES),
+			PackedVector2Array([Vector2(-128.0, 0.0), Vector2(128.0, 0.0)])
+		),
+	]
+	_definitions_by_id.clear()
+	_definitions_by_trigger.clear()
+	for definition_value: BossEncounterDefinition in _definitions:
+		_definitions_by_id[definition_value.boss_id] = definition_value
+		_definitions_by_trigger[definition_value.trigger_chunk] = definition_value
+
+
+static func _make_definition(
+	boss_id: StringName,
+	district_id: StringName,
+	trigger_chunk: int,
+	unlock_chunk: int,
+	display_name_key: String,
+	display_name: String,
+	arena_variant_id: StringName,
+	capstone_dossier_id: StringName,
+	evidence_flag_id: StringName,
+	preset_id: StringName,
+	utility_requirements: Dictionary,
+	support_reservations: Dictionary,
+	phase_ids: Array[StringName],
+	outcomes: PackedInt32Array = PackedInt32Array([BossOutcome.PURGE]),
+	receiver_offsets: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
+) -> BossEncounterDefinition:
+	var definition_value: BossEncounterDefinition = BossEncounterDefinition.new()
+	definition_value.boss_id = boss_id
+	definition_value.district_id = district_id
+	definition_value.trigger_chunk = trigger_chunk
+	definition_value.unlock_chunk = unlock_chunk
+	definition_value.display_name_key = display_name_key
+	definition_value.display_name = display_name
+	definition_value.arena_landmark_variant_id = arena_variant_id
+	definition_value.arena_logical_chunk = trigger_chunk
+	definition_value.arena_building_slot = posmod(trigger_chunk, CityWorldStream.CHUNK_CAPACITY)
+	definition_value.arena_cell_indices = PackedInt32Array([0, 1, 2, 3, 4, 5])
+	definition_value.wreck_receiver_offsets = receiver_offsets
+	definition_value.armor = 330.0
+	definition_value.health = 320.0
+	definition_value.screen_seconds = 4.0
+	definition_value.phase_thresholds = PackedFloat32Array([0.66, 0.33])
+	definition_value.armor_damage_type = &"jab_cross"
+	definition_value.armor_policy = EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP
+	definition_value.armor_fixed_step = 110.0
+	definition_value.direct_damage_route = true
+	definition_value.exposed_damage_types = PackedStringArray([
+		"jab_cross", "ground_smash", "bullet", "shell", "rocket", "impact",
+	])
+	definition_value.phases = _make_phases(phase_ids, support_reservations)
+	definition_value.rig_preset = preset_id
+	definition_value.behavior_preset = preset_id
+	definition_value.support_reservations = support_reservations
+	definition_value.utility_requirements = utility_requirements
+	definition_value.structural_hooks = PackedStringArray(["BOUND_FACADE"])
+	definition_value.structural_fallback_policy = &"SAME_ANCHOR_DIRECT_DAMAGE"
+	definition_value.capstone_dossier_id = capstone_dossier_id
+	definition_value.evidence_flag_id = evidence_flag_id
+	definition_value.evidence_recovery_eligible = evidence_flag_id != &"CROWN"
+	definition_value.evidence_recovery_rule = (
+		&"ELITE_DROP" if evidence_flag_id != &"CROWN" else &"MANDATORY_PYLON_TRANSACTION"
+	)
+	definition_value.narrative_event_keys = PackedStringArray([
+		"boss.%s.armor_break" % String(boss_id).to_lower(),
+		"boss.%s.wreck" % String(boss_id).to_lower(),
+	])
+	definition_value.voice_caption_keys = {
+		&"echo": "boss.%s.echo" % String(boss_id).to_lower(),
+		&"veyr": "boss.%s.veyr" % String(boss_id).to_lower(),
+	}
+	definition_value.wreck_mode = &"FRESH_GROUND_SMASH"
+	definition_value.outcome_policy = (
+		&"ROYAL_THREE_OUTCOME" if boss_id == &"CHOIR_PRIME" else &"STANDARD_PURGE"
+	)
+	definition_value.outcomes = outcomes
+	definition_value.portrait_socket_overrides = {
+		&"presentation_scale": Vector2(0.82, 1.0),
+	}
+	return definition_value
+
+
+static func _make_phases(
+	phase_ids: Array[StringName],
+	support_reservations: Dictionary
+) -> Array[BossPhaseDefinition]:
+	var phases: Array[BossPhaseDefinition] = []
+	var thresholds: PackedFloat32Array = PackedFloat32Array([1.0, 0.66, 0.33])
+	for index: int in range(phase_ids.size()):
+		var phase: BossPhaseDefinition = BossPhaseDefinition.new()
+		phase.phase_id = phase_ids[index]
+		phase.health_threshold = thresholds[index]
+		phase.attack_choices = PackedStringArray([String(phase_ids[index]).to_lower()])
+		phase.telegraph_profile = &"BOSS_STANDARD"
+		phase.recovery_duration = 0.75
+		phase.reservation_requirements = (
+			support_reservations.duplicate() if index == 1 else {}
+		)
+		phase.cancel_policy = &"CANCEL_ON_GENERATION_CHANGE"
+		phase.safe_gap_required = true
+		phase.minimum_safe_gap = 192.0
+		phase.structural_accelerants = {&"BOUND_FACADE": 80.0}
+		phases.append(phase)
+	return phases

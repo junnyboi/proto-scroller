@@ -126,6 +126,9 @@ func _make_event(
 		else spec.actor_damage
 	)
 	var direction: Vector2 = Vector2(float(spec.facing), -0.08).normalized()
+	var effect_flags: int = spec.effect_flags
+	if spec.is_fully_charged():
+		effect_flags |= DamageEvent.FLAG_FULL_CHARGE
 	return DamageEvent.new(
 		spec.attack_id,
 		robot,
@@ -136,7 +139,7 @@ func _make_event(
 		spec.impulse_per_mass,
 		spec.attack_id,
 		0,
-		spec.effect_flags,
+		effect_flags,
 		spec.kinetic_debris_bonus
 	)
 
