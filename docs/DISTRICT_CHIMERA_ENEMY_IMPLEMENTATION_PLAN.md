@@ -58,7 +58,7 @@ A fresh Godot 4.7.2 Web export after source integration is the only authoritativ
 | WP1 — Catalog and identity | Completed | 26/20/46 catalog contract, overlays, canonical helpers, concrete textures | Catalog cardinality and profile validity tests | Commit and push catalog layer |
 | WP2 — Deterministic encounter integration | Completed | Hybrid-then-variant resolver, Business support, director trace and final-beat accounting | Resolver determinism, immutability, family/threat safety | Commit and push resolver/director layer |
 | WP3 — Runtime and narrative integration | Completed | Concrete/base identity, reset hardening, narrative canonicalization, containment selection | Shell reuse, support values, narrative/containment focused tests | Commit and push runtime layer |
-| WP4 — Gallery and focused regression | Pending | Exactly-20 district gallery/selftest, targeted tests, plan completion record | Touched-script parse and focused GUT/selftests only | Commit and push final source |
+| WP4 — Gallery and focused regression | Completed | Exactly-20 district gallery/selftest, targeted tests, plan completion record | Touched-script parse and focused GUT/selftests only | Commit and push final source |
 | WP5 — Web export and deployment | Pending | Fresh Web export, immutable WASM/PCK remap, WebDev checkpoint, public deploy | Direct artifact existence/size and lightweight HTTP/runtime smoke | Checkpoint and deploy existing WebDev project |
 
 ## 5. WP0 — Proposal and Asset Production
@@ -97,9 +97,9 @@ WP3 teaches `ProceduralEnemy` and narrative systems about canonical and concrete
 
 WP4 adds a separate exactly-twenty district gallery rather than expanding the existing twenty-six-archetype variety lane. The gallery groups four variants per district and reports concrete ID, canonical base, family, texture, bounds, and facing. It runs headlessly and can render landscape and portrait layouts when a lightweight visual check is useful.
 
-**Primary files:** add `game/selftest/district_enemy_variant_gallery_scenario.gd` and its scene; keep `game/selftest/enemy_variety_scenario.gd` as the twenty-six-base contract.
+**Primary files:** add the directly executable `game/selftest/district_enemy_variant_gallery_scenario.gd` and its Godot UID; keep `game/selftest/enemy_variety_scenario.gd` unchanged as the twenty-six-base contract.
 
-**Focused checks:** Godot import, `gdlint` for touched scripts, touched-script parse/check, individual GUT files for catalog/resolver/director/narrative/remains/budget, the unchanged enemy variety selftest, and the new twenty-variant gallery. No repository-wide verification gate is run.
+**Focused checks:** Godot import, `gdlint` for touched scripts, touched-script parse/check, selected GUT cases for catalog/resolver/director/narrative/remains/budget, and the new twenty-variant gallery in headless landscape and portrait layouts. The unchanged enemy-variety scenario remains the twenty-six-base contract but is not expanded or rerun as a release gate. No repository-wide verification gate is run.
 
 ## 10. WP5 — Web Export and Existing WebDev Synchronization
 
@@ -134,5 +134,5 @@ This section will be updated after each work package with commit IDs, focused ch
 | WP1 | Completed | `124990d992f619b47f092aae22983a5e6021a28f` | Focused catalog filters: 3/3 tests and 632 assertions passed; Godot 4.7.2 imported all 20 textures without catalog or spawn-entry parse errors | Base behavior-signature uniqueness remains scoped to the original 26; overlays intentionally reuse those behaviors. The inherited isolated Reclaimed Breacher TTK expectation remains outside WP1 and was not altered. |
 | WP2 | Completed | `5dd1e5446a86ee57a90ce7b80614c987a80e0581` | Five staged resolver/director tests passed, including all five district allowlists, 40-seed roster coverage, Business variant injection without legacy hybrids, deep-copy determinism, family/threat preservation, and reservation-before-pending tracing | The focused CHOIR file passed 7/8 tests; its only failure was the pre-existing Reclaimed Breacher frontal-brace mismatch, scheduled for correction in WP3 where pooled actor identity is updated. |
 | WP3 | Completed | `3ff2afeaeacc58c39a62dc52aa256941ec782d56` | 13 focused tests and 287 assertions passed: complete CHOIR runtime file, exact repair/mark values, canonical first-contact dedupe, deterministic concrete containment, old→variant→old reset, and all 12 airborne flattened profiles | Reclaimed Breacher frontal bracing was corrected while leaving Covenant Warden's shield presentation-only. Glassback Double canonicalizes to Ossuary Crawler for the existing bounded containment and narrative contract. |
-| WP4 | Pending | — | — | — |
+| WP4 | Completed | WP4 source commit recorded after integration | Final selected GUT regression: 10/10 tests and 817 assertions passed. The direct gallery passed 64/64 checks in both 1280×720 and 720×1280 headless layouts, with exactly 20 cards and four per district. | Headless mode intentionally skipped image capture; no Xvfb or screenshot certification was run under the release-gate override. `enemy_variety_scenario.gd` remains unchanged at 26 base archetypes. |
 | WP5 | Pending | — | — | — |
