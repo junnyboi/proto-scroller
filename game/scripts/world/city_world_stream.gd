@@ -23,6 +23,7 @@ signal district_clear_progress(
 )
 signal district_exit_unlocked(district_id: StringName, next_district_id: StringName)
 signal rear_frontier_changed(logical_x: float, runtime_x: float)
+signal rear_barrier_contact
 
 const CHUNK_WIDTH: float = CityStreetChunk.CHUNK_WIDTH
 const CHUNK_CAPACITY: int = 6
@@ -37,6 +38,7 @@ const BARRIER_HEIGHT: float = 1200.0
 const ROBOT_BARRIER_CLEARANCE: float = 72.0
 const FRONTIER_CULL_STEP: float = 64.0
 const CHUNK_CONTENT_OVERHANG: float = 384.0
+const REAR_CONTACT_TOLERANCE: float = 12.0
 const CHUNK_SCRIPT: Script = preload("res://scripts/world/city_street_chunk.gd")
 
 var robot: GiantRobotController
@@ -60,6 +62,7 @@ var _district_exit_collision: CollisionShape2D
 var _cleared_variants_by_district: Dictionary[StringName, Dictionary] = {}
 var _last_frontier_signal_logical_x: float = 0.0
 var _resident_lease_owner: Object
+var _rear_barrier_contact_active: bool = false
 
 
 func setup(p_robot: GiantRobotController, p_run_seed: int = 0) -> void:
@@ -301,6 +304,7 @@ func reset_stream(p_run_seed: int = 0) -> void:
 	)
 	_cleared_variants_by_district.clear()
 	_last_frontier_signal_logical_x = rear_frontier_logical_x
+	_rear_barrier_contact_active = false
 	transition_count = 0
 	run_configured.emit(run_seed)
 	_refresh_window()
@@ -442,9 +446,12 @@ func _enforce_progression_barriers() -> void:
 	if robot == null:
 		return
 	var minimum_runtime_x: float = rear_frontier_runtime_x() + ROBOT_BARRIER_CLEARANCE
+	var clamped_by_rear_barrier: bool = false
 	if robot.global_position.x < minimum_runtime_x:
 		robot.global_position.x = minimum_runtime_x
 		robot.velocity.x = maxf(robot.velocity.x, 0.0)
+		clamped_by_rear_barrier = true
+	_update_rear_barrier_contact(minimum_runtime_x, clamped_by_rear_barrier)
 	if unlocked_district_index >= CityDistrictCatalog.DISTRICT_COUNT - 1:
 		return
 	var gate_runtime_x: float = district_exit_barrier.position.x
@@ -452,6 +459,27 @@ func _enforce_progression_barriers() -> void:
 	if robot.global_position.x > maximum_runtime_x:
 		robot.global_position.x = maximum_runtime_x
 		robot.velocity.x = minf(robot.velocity.x, 0.0)
+
+
+func _update_rear_barrier_contact(
+	minimum_runtime_x: float,
+	clamped_by_rear_barrier: bool
+) -> void:
+	var pressing_left: bool = (
+		Input.get_axis(&"move_left", &"move_right") < -0.05
+		or robot.virtual_move_axis < -0.05
+		or robot.velocity.x < -1.0
+	)
+	var touching_rear_barrier: bool = (
+		clamped_by_rear_barrier
+		or (
+			robot.global_position.x <= minimum_runtime_x + REAR_CONTACT_TOLERANCE
+			and pressing_left
+		)
+	)
+	if touching_rear_barrier and not _rear_barrier_contact_active:
+		rear_barrier_contact.emit()
+	_rear_barrier_contact_active = touching_rear_barrier
 
 
 func _update_landmark_root() -> void:

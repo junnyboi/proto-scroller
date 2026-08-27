@@ -22,14 +22,35 @@ func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> vo
 		- CityWorldStream.LEFT_RETENTION_DISTANCE,
 		EPSILON
 	)
+	var rear_contacts: Array[int] = [0]
+	city.world_stream.rear_barrier_contact.connect(func() -> void:
+		rear_contacts[0] += 1
+	)
 	var attempted_left_x: float = city.world_stream.rear_frontier_runtime_x() - 900.0
 	city.robot.global_position.x = attempted_left_x
 	city.world_stream.advance_stream()
+	assert_eq(rear_contacts[0], 1)
+	assert_true(city.gameplay_hud.rear_barrier_warning.visible)
 	assert_gte(
 		city.robot.global_position.x,
 		city.world_stream.rear_frontier_runtime_x()
 		+ CityWorldStream.ROBOT_BARRIER_CLEARANCE
 	)
+	city.robot.global_position.x = attempted_left_x
+	city.world_stream.advance_stream()
+	assert_eq(rear_contacts[0], 1)
+	city.robot.global_position.x += 100.0
+	city.world_stream.advance_stream()
+	city.robot.global_position.x = (
+		city.world_stream.rear_frontier_runtime_x()
+		+ CityWorldStream.ROBOT_BARRIER_CLEARANCE
+	)
+	Input.action_press(&"move_left")
+	city.world_stream.advance_stream()
+	Input.action_release(&"move_left")
+	assert_eq(rear_contacts[0], 2)
+	city.gameplay_hud._process(GameplayHud.REAR_BARRIER_WARNING_DURATION + 0.01)
+	assert_false(city.gameplay_hud.rear_barrier_warning.visible)
 	for chunk: CityStreetChunk in city.world_stream.chunks:
 		if (
 			float(chunk.logical_index + 1) * CityWorldStream.CHUNK_WIDTH
