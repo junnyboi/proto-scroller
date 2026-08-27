@@ -279,7 +279,7 @@ func report_building_cleared(building: StructuralBuilding2D) -> bool:
 			previous_district.district_id,
 			next_district.district_id
 		)
-		_update_progression_barriers()
+	_update_progression_barriers()
 	return true
 
 

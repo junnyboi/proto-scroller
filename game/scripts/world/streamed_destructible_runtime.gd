@@ -377,6 +377,8 @@ func _emit_building_cell(
 	building: StructuralBuilding2D
 ) -> void:
 	building_cell_destroyed.emit(building, column, row, event)
+	if row == StructuralBuilding2D.ROWS - 1 and building.ground_passage_open():
+		world_stream.report_building_cleared(building)
 
 
 func _emit_chain_started(
