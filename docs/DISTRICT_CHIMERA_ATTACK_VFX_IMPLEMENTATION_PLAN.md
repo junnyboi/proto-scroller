@@ -4,7 +4,7 @@
 **Engine:** Godot 4.7.2  
 **Feature:** Unique projectile, impact/explosion, and attack VFX for twenty district CHOIR variants  
 **Author:** Manus AI  
-**Status:** In implementation  
+**Status:** Implemented and checkpointed
 **Canonical design:** [District Chimera Projectile and Attack VFX Proposal](DISTRICT_CHIMERA_ATTACK_VFX_PROPOSAL.md)
 
 ## 1. Objective
@@ -78,7 +78,7 @@ The existing four machine-gun impact slots and their behavior remain unchanged. 
 | WP1 — Catalog and ranged delivery | Completed | Exact twenty-entry VFX catalog, nine custom projectile keys, explicit impact identity, eight bounded hostile impacts | Catalog/schema tests, projectile radius/speed/damage parity, pool counts and reset | Commit and push ranged layer |
 | WP2 — Actor support/melee presentation | Completed | Twenty anticipation cues plus eleven actor-only payload/completion paths | Zero projectile reservations for 11, support/melee parity, cancel/release/reuse cleanup | Commit and push actor layer |
 | WP3 — Focused integration and plan closure | Completed | Focused district VFX suite, gallery/report extension, provenance, final completion record | 30 selected GUT tests, parse, direct asset and node-count assertions | Commit and push final source |
-| WP4 — Fresh export and WebDev synchronization | Pending | Godot 4.7.2 Web export, immutable WASM/PCK remap, existing WebDev checkpoint and publish | HTML/JS/WASM/PCK existence, exact sizes/routes, PCK ≤16 MiB, public shell route | Checkpoint and deploy existing project |
+| WP4 — Fresh export and WebDev synchronization | Completed | Godot 4.7.2 Web export, immutable WASM/PCK remap, existing WebDev checkpoint | HTML/JS/WASM/PCK existence, exact sizes/routes, PCK ≤16 MiB, checkpoint record | Checkpoint existing project |
 
 ## 7. WP0 — Proposal and Art
 
@@ -140,4 +140,4 @@ A package is complete only after focused evidence is recorded, the plan is updat
 | WP1 | Completed | `5e43a83d7c204355f40a6da248824f11f7145a0a` | 10/10 focused tests and 736 assertions passed: 20-spec/60-region catalog, nine unique ranged skins and impacts, direct procedural firing, bounded impact cursor, four legacy projectile tests, and runtime-budget snapshot | Projectile pool remains 32 with 16/4/4/8 partitions. Added eight collisionless cosmetic impact slots inside the existing pool; they cannot deny or alter projectile delivery. Repaired a concurrent indentation defect in the firing-pulse telegraph merge that blocked Godot parsing. |
 | WP2 | Completed | `80f9098a65db9a7ed6d630af3798e52b18826f1f` | 25/25 focused tests and 1,150 assertions passed: all twenty fixed-sprite anticipations, exact 9/11 delivery split, eleven zero-projectile completions, repair/scan/choir-ring parity, old→variant→old cleanup, seven legacy emission tests, and ten Project CHOIR runtime tests | Five prewarmed presentation sprites per procedural shell remain fixed. No attack node, projectile, timer, tween, collision, status, or hazard was added for actor-only deliveries. |
 | WP3 | Completed | `d82ead7ff5e690f44dd4ff9f3f348601ddb87bc7` | 30/30 final focused tests and 1,348 assertions passed after the final shared-main fetch. Godot import/parse and `gdlint` passed. Landscape and portrait headless gallery reports each passed 86 checks with 20 variants, five groups of four, and the exact 9 projectile / 11 actor split. | Full release-gate validation was intentionally skipped under the active project override. The gallery remains exactly twenty cards and now records VFX identity, delivery, projectile/impact keys, and all three atlas regions. |
-| WP4 | Pending | — | — | — |
+| WP4 | Completed | Source `2f9970940714dfae09be507bdce8222b6bda816a`; WebDev checkpoint `3aca8f37` | Fresh Godot 4.7.2 HTML, JavaScript, WASM, and PCK were nonempty. WASM `/manus-storage/game_67f05015.wasm` is 39,514,754 bytes with SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`; PCK `/manus-storage/game_e291f0af.pck` is 16,773,552 bytes with SHA-256 `bf2d91f67d70e2f2ec8524b0600516f4b74f7e4058ab987f3bf40e6eda2dbc91`. | Reused the existing fullstack WebDev project and preserved its fullscreen iframe, title scheduler, audio-worklet routing, After-Action Dossier, and leaderboard bridge. The checkpoint is the publish handoff because no separate publish tool is available in this session. Broad WebDev and browser certification remained skipped under the active override. |
