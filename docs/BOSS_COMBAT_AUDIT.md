@@ -1,7 +1,9 @@
 # Proto Scroller Boss Combat Audit
 
-**Audit date:** 2026-08-27  
-**Engine target:** Godot 4.7.2-stable  
+**Audit date:** 2026-08-27
+
+**Engine target:** Godot 4.7.2-stable
+
 **Scope:** Settlement Engine S-04, SAMARITAN-15, MIMESIS-04, CANTOR-31 / Pale Engine, and CHOIR Prime
 
 ## Executive assessment
