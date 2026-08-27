@@ -38,9 +38,13 @@ func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
 	current_health = max_health
 	armed = true
 	spent = false
+	is_broken = false
+	is_fully_destroyed = false
 	visible = true
+	visual.visible = true
 	collision_layer = 1 << 7
 	collision_mask = (1 << 0) | (1 << 1)
+	collision_shape.set_deferred("disabled", false)
 	freeze = true
 	_catalyst_seen_attacks.clear()
 	visual.texture = intact_texture
@@ -52,9 +56,13 @@ func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
 func reset_catalyst() -> void:
 	armed = false
 	spent = false
+	is_broken = false
+	is_fully_destroyed = false
 	visible = false
+	visual.visible = false
 	collision_layer = 0
 	collision_mask = 0
+	collision_shape.set_deferred("disabled", true)
 	current_health = 0.0
 	last_event = null
 	_catalyst_seen_attacks.clear()
@@ -63,12 +71,17 @@ func reset_catalyst() -> void:
 
 
 func receive_damage(event: DamageEvent) -> bool:
-	if not armed or spent or event == null or event.amount <= 0.0:
+	if not armed or is_fully_destroyed or event == null or event.amount <= 0.0:
 		return false
 	if event.attack_id != 0 and _catalyst_seen_attacks.has(event.attack_id):
 		return false
 	if event.attack_id != 0:
 		_catalyst_seen_attacks[event.attack_id] = true
+	if spent:
+		_fully_destroy_prop(event)
+		armed = false
+		queue_redraw()
+		return true
 	current_health = maxf(current_health - event.amount, 0.0)
 	last_event = event
 	if current_health <= 0.0:
@@ -81,6 +94,7 @@ func trigger(event: DamageEvent) -> bool:
 	if not armed or spent or event == null:
 		return false
 	spent = true
+	is_broken = true
 	visual.texture = destroyed_texture
 	_fit_visual(destroyed_display_size)
 	trigger_count += 1
