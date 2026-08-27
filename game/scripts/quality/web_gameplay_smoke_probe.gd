@@ -199,8 +199,8 @@ func _run_kill_combo() -> bool:
 			_fail("exported runtime rejected deterministic kill combo event")
 			return false
 	var awarded: int = city.score - score_before
-	if city.rampage_session.current_multiplier() != 3 or awarded != 600:
-		_fail("exported runtime kill multiplier did not award 1x + 2x + 3x score")
+	if city.rampage_session.current_multiplier() != 2 or awarded != 200:
+		_fail("exported runtime did not normalize three physical kills to 200 score at x2")
 		return false
 	_publish(&"kill_combo_ok", {
 		"awarded": awarded,

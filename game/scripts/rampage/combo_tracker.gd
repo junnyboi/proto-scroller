@@ -4,14 +4,15 @@ extends Node
 signal combo_changed(multiplier: int, grace_remaining: float)
 signal combo_broken
 
-const GRACE_SECONDS: float = 3.0
-const MAX_MULTIPLIER: int = 5
+const GRACE_SECONDS: float = RampageRewardTuning.COMBO_GRACE_SECONDS
+const MAX_MULTIPLIER: int = RampageRewardTuning.MAX_MULTIPLIER
 
 var current_multiplier: int = 1
 var grace_remaining: float = 0.0
 var peak_multiplier: int = 1
 var best_chain_count: int = 0
 var current_chain_count: int = 0
+var current_progress_units: int = 0
 
 
 func register_event(event: GameplayEvent) -> bool:
@@ -22,7 +23,10 @@ func register_event(event: GameplayEvent) -> bool:
 	):
 		return false
 	current_chain_count += 1
-	current_multiplier = mini(current_chain_count, MAX_MULTIPLIER)
+	current_progress_units += maxi(event.combo_progress_units, 0)
+	current_multiplier = RampageRewardTuning.multiplier_for_progress_units(
+		current_progress_units
+	)
 	grace_remaining = GRACE_SECONDS
 	peak_multiplier = maxi(peak_multiplier, current_multiplier)
 	best_chain_count = maxi(best_chain_count, current_chain_count)
@@ -55,10 +59,12 @@ func reset_run() -> void:
 	peak_multiplier = 1
 	best_chain_count = 0
 	current_chain_count = 0
+	current_progress_units = 0
 
 
 func _break_combo() -> void:
 	current_multiplier = 1
 	current_chain_count = 0
+	current_progress_units = 0
 	combo_changed.emit(current_multiplier, grace_remaining)
 	combo_broken.emit()

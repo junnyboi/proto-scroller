@@ -1,7 +1,7 @@
 extends GutTest
 
 
-func test_pending_premium_banks_after_one_second() -> void:
+func test_pending_premium_banks_after_density_scaled_delay() -> void:
 	var score: RunScore = RunScore.new()
 	add_child_autofree(score)
 	var event: GameplayEvent = GameplayEvent.new(
@@ -11,7 +11,7 @@ func test_pending_premium_banks_after_one_second() -> void:
 	assert_eq(score.safe_score, 100)
 	assert_eq(score.pending_bank.value, 300)
 	assert_eq(score.score, 400)
-	assert_eq(score.advance(0.99), 0)
+	assert_eq(score.advance(PendingScoreBank.BANK_DELAY - 0.01), 0)
 	assert_eq(score.advance(0.01), 300)
 	assert_eq(score.safe_score, 400)
 	assert_eq(score.pending_bank.value, 0)

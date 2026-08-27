@@ -35,8 +35,10 @@ var attack_id: int = 0
 var kind: Kind = Kind.DAMAGE_APPLIED
 var action_tag: StringName = &""
 var base_points: int = 0
+var score_points: int = -1
 var momentum_delta: float = 0.0
 var qualifies_for_combo: bool = false
+var combo_progress_units: int = RampageRewardTuning.COMBO_PROGRESS_UNITS_PER_TIER
 var world_position: Vector2 = Vector2.ZERO
 var material_id: StringName = &""
 var source_id: int = 0
@@ -76,3 +78,7 @@ func _init(
 	source_id = p_source_id
 	target_id = p_target_id
 	cause = p_cause
+
+
+func rampage_score_points() -> int:
+	return base_points if score_points < 0 else score_points
