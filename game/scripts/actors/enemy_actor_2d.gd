@@ -29,6 +29,12 @@ enum BossDamageResult {
 
 const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
 const SURVIVING_MELEE_KNOCKBACK_MULTIPLIER: float = 5.0
+const TELEGRAPH_REFERENCE_SPAN: float = 96.0
+const TELEGRAPH_MINIMUM_THICKNESS_SCALE: float = 0.85
+const TELEGRAPH_MAXIMUM_THICKNESS_SCALE: float = 2.40
+const TELEGRAPH_REFERENCE_DAMAGE: float = 16.0
+const TELEGRAPH_MINIMUM_COLOR_INTENSITY: float = 0.72
+const TELEGRAPH_MAXIMUM_COLOR_INTENSITY: float = 1.55
 
 @export var max_health: float = 60.0
 
@@ -473,6 +479,7 @@ func begin_telegraph(
 	duration: float,
 	origin: Vector2,
 	target_point: Vector2,
+	damage_output: float = 0.0,
 	presentation_variant: StringName = &"",
 	visual_key: StringName = &"",
 	style_data: Dictionary = {}
@@ -493,6 +500,7 @@ func begin_telegraph(
 		attack_telegraph_origin(),
 		target_point,
 		adjusted_duration,
+		damage_output,
 		presentation_variant,
 		visual_key,
 		style_data
@@ -513,6 +521,34 @@ func attack_telegraph_origin() -> Vector2:
 	if visual != null:
 		return visual.global_position
 	return global_position
+
+
+func attack_telegraph_thickness_scale() -> float:
+	var rendered_span: float = TELEGRAPH_REFERENCE_SPAN
+	var body_collision: CollisionShape2D = get_node_or_null(
+		^"CollisionShape2D"
+	) as CollisionShape2D
+	if body_collision != null and body_collision.shape is RectangleShape2D:
+		var rectangle: RectangleShape2D = body_collision.shape as RectangleShape2D
+		var scaled_size: Vector2 = rectangle.size * body_collision.global_scale.abs()
+		rendered_span = maxf(scaled_size.x, scaled_size.y)
+	elif visual != null and visual.texture != null:
+		var visual_size: Vector2 = visual.texture.get_size() * visual.global_scale.abs()
+		rendered_span = maxf(visual_size.x, visual_size.y)
+	return clampf(
+		sqrt(rendered_span / TELEGRAPH_REFERENCE_SPAN),
+		TELEGRAPH_MINIMUM_THICKNESS_SCALE,
+		TELEGRAPH_MAXIMUM_THICKNESS_SCALE
+	)
+
+
+func attack_telegraph_color_intensity(damage_output: float) -> float:
+	var effective_damage: float = _scale_outgoing_damage(damage_output)
+	return clampf(
+		sqrt(effective_damage / TELEGRAPH_REFERENCE_DAMAGE),
+		TELEGRAPH_MINIMUM_COLOR_INTENSITY,
+		TELEGRAPH_MAXIMUM_COLOR_INTENSITY
+	)
 
 
 func advance_telegraph(delta: float) -> bool:

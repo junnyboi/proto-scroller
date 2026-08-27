@@ -1,13 +1,5 @@
 extends GutTest
 
-const AIRBORNE_ARCHETYPES: Array[StringName] = [
-	&"needle",
-	&"hound",
-	&"kestrel",
-	&"shrike",
-	&"hive",
-]
-
 
 func test_every_airborne_archetype_spawns_as_a_physical_crash() -> void:
 	var root: Node2D = Node2D.new()
@@ -19,8 +11,10 @@ func test_every_airborne_archetype_spawns_as_a_physical_crash() -> void:
 	root.add_child(factory)
 	await get_tree().process_frame
 
-	for index: int in range(AIRBORNE_ARCHETYPES.size()):
-		var archetype_id: StringName = AIRBORNE_ARCHETYPES[index]
+	var airborne_archetypes: Array[StringName] = _airborne_archetypes()
+	assert_eq(airborne_archetypes.size(), 12)
+	for index: int in range(airborne_archetypes.size()):
+		var archetype_id: StringName = airborne_archetypes[index]
 		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
 		assert_true(bool(profile.get("airborne", false)), String(archetype_id))
 		var enemy: ProceduralEnemy = _airborne_enemy(archetype_id, profile)
@@ -144,6 +138,14 @@ func _airborne_enemy(archetype_id: StringName, profile: Dictionary) -> Procedura
 	enemy.add_child(visual)
 	enemy.configure_archetype(archetype_id, profile)
 	return enemy
+
+
+func _airborne_archetypes() -> Array[StringName]:
+	var result: Array[StringName] = []
+	for archetype_id: StringName in EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS:
+		if EnemyArchetypeCatalog.is_airborne(archetype_id):
+			result.append(archetype_id)
+	return result
 
 
 func _activate_crashing_wreck(

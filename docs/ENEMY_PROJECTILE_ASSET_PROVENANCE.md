@@ -2,6 +2,8 @@
 
 This ledger covers the **27 implementation items** in the authored enemy projectile and emission initiative: **26 new or replacement GPT Image 2 runtime assets** and **one reuse-only CHOIR composition integration**. Generation masters are archived outside the repository; only fixed-size runtime derivatives are packaged.
 
+The final merged census covers **55 hostile identities**: three base actors, 26 canonical procedural archetypes, 20 district variants, one legacy command boss, and five authored campaign bosses. District variants inherit the authored emission family of their canonical base archetype, so every current identity is covered without duplicating projectile ownership or changing fixed pool capacities.
+
 > Plan signature: `0bc99def3d945b9af693941ccdcc813163858d15604a74d9e785d80d88b5ef81`. Service request IDs and seeds were not exposed. `prompt_sha256` hashes the normalized production brief recorded in the machine-readable manifest; the complete service prompts remain in the task transcript.
 
 | ID | Family | Runtime source | Runtime px | Display px | SHA-256 | Status |
@@ -38,7 +40,7 @@ This ledger covers the **27 implementation items** in the authored enemy project
 
 All generation used a temporary `#00FF00` background. Runtime derivatives were rebuilt with a deterministic color-distance key, alpha threshold, transparent-RGB clearing, aspect-preserving crop, and one Lanczos downsample into fixed transparent canvases. The repair pulse received a stricter alpha floor after a warm-light QA composite exposed a faint rectangular matte. Dark and warm-light contact sheets confirmed transparent edges and silhouette separation before integration.
 
-Godot imports use lossless texture compression, disabled mipmaps, `fix_alpha_border=true`, and no premultiplied alpha. Collision, range, damage, timing, target masks, projectile capacity, safe-lane geometry, and boss area geometry remain code-owned. New focused tests cover all four projectile skins, support/non-projectile reservation semantics, truthful carrier counts, Nemesis no-shell fallthrough, boss presentation roles, ECHO collision isolation, prewarmed utility resets, and CHOIR pylon reuse.
+Godot imports use lossless texture compression, disabled mipmaps, `fix_alpha_border=true`, and no premultiplied alpha. Collision, range, damage, timing, target masks, projectile capacity, safe-lane geometry, and boss area geometry remain code-owned. New focused tests cover all four projectile skins, all 46 spawnable procedural identities, support/non-projectile reservation semantics, truthful carrier counts, Nemesis no-shell fallthrough, boss presentation roles, ECHO collision isolation, prewarmed utility resets, and CHOIR pylon reuse.
 
 ## Atlas manifests
 

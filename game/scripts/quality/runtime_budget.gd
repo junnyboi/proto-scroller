@@ -113,6 +113,7 @@ const NARRATIVE_DIRECTORS: int = 1
 const TRANSMISSION_TOASTS: int = 1
 const FACADE_REVEAL_SLOTS: int = CityWorldStream.CHUNK_CAPACITY
 const REAR_BARRIER_WARNING_OVERLAYS: int = 1
+const REAR_BARRIER_WARNING_VOICES: int = 1
 const MAX_WEB_PCK_BYTES: int = 16 * 1024 * 1024
 
 
@@ -177,6 +178,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			"facade_reveal_slots": city.project_choir_runtime.facade_reveal.slot_count(),
 			"rear_barrier_warning_overlays": (
 				1 if city.gameplay_hud.rear_barrier_warning != null else 0
+			),
+			"rear_barrier_warning_voices": (
+				1 if city.gameplay_hud.rear_barrier_warning_audio != null else 0
 			),
 			"streamed_buildings": city.streamed_destructibles.active_building_count(),
 		"streamed_props": city.streamed_destructibles.active_prop_count(),
@@ -339,6 +343,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		data,
 		"rear_barrier_warning_overlays",
 		REAR_BARRIER_WARNING_OVERLAYS
+	)
+	_check_equal(
+		errors,
+		data,
+		"rear_barrier_warning_voices",
+		REAR_BARRIER_WARNING_VOICES
 	)
 	_check_equal(errors, data, "streamed_buildings", STREAMED_BUILDINGS)
 	_check_equal(errors, data, "streamed_props", STREAMED_PROPS)

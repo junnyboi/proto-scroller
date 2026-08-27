@@ -1,14 +1,14 @@
 # Enemy Projectile and Emission Asset Implementation Plan
 
 **Document status:** Planned  
-**Scope baseline:** exhaustive discovery of 35 enemy/boss roster entries, 16 mechanical/presentation families, and 27 proposed shipping asset files  
+**Scope baseline:** exhaustive discovery of 55 enemy/boss roster entries, 16 mechanical/presentation families, and 27 implementation items
 **Target runtime:** Godot, GL Compatibility, non-threaded Web export  
 **Package gate:** `game.pck <= 16,777,216` bytes  
 **Primary rule:** visual assets are presentation only. Existing code-owned collision, targeting, timing, damage, reservation, pooling, spawn accounting, save/restore, and world-origin rebasing remain authoritative.
 
 ## 1. Executive summary
 
-The hostile-emission audit is complete. It covers the three base enemies, every one of the 26 `EnemyArchetypeCatalog.PROCEDURAL_IDS`, the definition-less legacy command-boss `TankEnemy`, and all five authored campaign bosses: **35 roster entries with no unmapped enemy**. The implementation will replace procedural circles, generic support cues, generic striped rectangles, and empty `Node2D` records with a coherent cream–charcoal–cyan industrial asset language while retaining amber as the anticipation/commitment channel and red as the armed-damage channel.
+The hostile-emission audit is complete. It covers the three base enemies, every one of the 26 `EnemyArchetypeCatalog.PROCEDURAL_IDS`, all 20 district chimera IDs added concurrently, the definition-less legacy command-boss `TankEnemy`, and all five authored campaign bosses: **55 roster entries with no unmapped enemy**. District variants deliberately inherit their canonical base archetype’s emission family, preventing cosmetic duplication from fragmenting the fixed projectile and telegraph contracts. The implementation replaces procedural circles, generic support cues, generic striped rectangles, and empty `Node2D` records with a coherent cream–charcoal–cyan industrial asset language while retaining amber as the anticipation/commitment channel and red as the armed-damage channel.
 
 The work is organized by **mechanical delivery family**, not by narrative attack name. Lobber and Basilisk remain straight shells rather than receiving false ballistic art; Kestrel remains a direct rocket rather than a falling bomb; Cinder receives no flame cone; Longbow and Pale Engine receive no rail/spinal beam; rockets do not gain homing, explosions, or splash. Likewise, support, melee, carrier, history-mine, and boss-utility art remains non-colliding unless an existing code-owned `BossAttackArea2D` rectangle is already armed.
 
@@ -20,7 +20,7 @@ Delivery is staged so the lowest-risk pooled projectile replacements land first,
 
 | Measure | Count | Meaning |
 |---|---:|---|
-| Enemy/boss roster entries | 35 | Every discovered base, procedural, legacy-command, and authored campaign boss entry |
+| Enemy/boss roster entries | 55 | Every discovered base, procedural, district-variant, legacy-command, and authored campaign boss entry |
 | Delivery/presentation families | 16 | Families listed in the discovery and represented by a design record |
 | Proposed shipping asset files | 27 | Individual runtime PNG/WebP files; atlases count as one file, multi-file families count per file |
 | Current discovery failures | 0 | The supplied `Failures` array is empty |
@@ -486,7 +486,7 @@ For reused A27 composition textures, provenance points to the existing archetype
 
 ### Discovery failures
 
-**None.** The supplied failures list is empty, all 35 roster entries are mapped, and all 16 family design records were successfully produced.
+**None.** The supplied failures list is empty, all 55 roster entries are mapped, and all 16 family design records were successfully produced.
 
 ### Explicit coverage exclusions
 
@@ -543,8 +543,8 @@ All entries are initially **Planned**. An item may move to Accepted only after s
 
 ### Execution result
 
-Agent 6 generated **26 GPT Image 2 runtime assets** for the 16 audited visual families and completed the reuse-only A27 integration. Runtime sources total approximately **2.6 MiB**. The compatible Godot 4.7.2 Web export produced a **13,474,952-byte PCK**, below the 16,777,216-byte cap with **3,302,264 bytes** of remaining headroom. Three focused suites passed with **14 tests and 319 assertions**. Full release-gate certification was intentionally skipped under the project-level release-gate override; direct import, focused regression, fresh export, source integration, and WebDev synchronization remain the delivery path.
+Agent 6 generated **26 GPT Image 2 runtime assets** for the 16 audited visual families and completed the reuse-only A27 integration. Runtime sources total approximately **2.6 MiB**. Before the concurrent district-variant merge, the compatible Godot 4.7.2 Web export produced a 13,474,952-byte PCK; the exact merged package is remeasured during final synchronization. The initiative’s three focused suites passed with **15 tests and 417 assertions**. The semantic merge additionally passed the upstream telegraph suite with **8 tests and 212 assertions**, proving damage-scaled warnings and authored variants coexist. Full release-gate certification was intentionally skipped under the project-level release-gate override; direct import, focused regression, fresh export, source integration, and WebDev synchronization remain the delivery path.
 
 ## 17. Definition of done
 
-The initiative is complete when all 27 ledger entries are Accepted; all 35 roster entries are covered by the audited family map; the centralized projectile catalog is the only authored projectile mapping; every support and boss visual remains mechanically subordinate; the project-approved focused regression passes; the Web package remains below 16 MiB; the provenance manifest is complete; and every authored family retains a procedural or generic rollback path without changing gameplay signatures. Full certification-only gates remain outside this task under the explicit project override.
+The initiative is complete when all 27 ledger entries are Accepted; all 55 roster entries are covered by the audited family map; the centralized projectile catalog is the only authored projectile mapping; every support and boss visual remains mechanically subordinate; the project-approved focused regression passes; the Web package remains below 16 MiB; the provenance manifest is complete; and every authored family retains a procedural or generic rollback path without changing gameplay signatures. Full certification-only gates remain outside this task under the explicit project override.

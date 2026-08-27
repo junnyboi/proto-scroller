@@ -1,4 +1,4 @@
-# gdlint: disable=max-public-methods
+# gdlint: disable=max-file-lines,max-public-methods
 class_name GameplayHud
 extends CanvasLayer
 
@@ -12,8 +12,11 @@ signal disentangle_pressed
 const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
 const MUTED_COLOR: Color = Color("b7c4cb")
-const COMBO_GRACE_SECONDS: float = 3.0
+const COMBO_GRACE_SECONDS: float = RampageRewardTuning.COMBO_GRACE_SECONDS
 const REAR_BARRIER_WARNING_DURATION: float = 0.72
+const REAR_BARRIER_WARNING_VOICE: AudioStream = preload(
+	"res://audio/voice/rear_barrier_warning.wav"
+)
 const REAR_BARRIER_VIGNETTE_SHADER: String = """
 shader_type canvas_item;
 render_mode unshaded;
@@ -44,6 +47,7 @@ var score_label: Label
 var pending_score_label: Label
 var combo_label: Label
 var combo_ring: ComboDecayRing
+var combo_herald: ComboHerald
 var momentum_fill: ColorRect
 var momentum_label: Label
 var experience_label: Label
@@ -75,6 +79,8 @@ var score_panel: ColorRect
 var score_caption: Label
 var terminal_panel: ColorRect
 var rear_barrier_warning: ColorRect
+var rear_barrier_warning_audio: AudioStreamPlayer
+var rear_barrier_warning_play_count: int = 0
 var _robot: GiantRobotController
 var _contextual_attacks: ContextualAttackController
 var _pulse_age: float = 0.0
@@ -111,6 +117,7 @@ func _ready() -> void:
 	_build_directive_choice_overlay()
 	_build_upgrade_ui()
 	_build_boss_status()
+	_build_combo_herald()
 	_build_transmission_toast()
 	_build_first_run_tutorial()
 	_build_game_over_overlay()
@@ -140,6 +147,9 @@ func show_rear_barrier_warning() -> void:
 	_rear_barrier_warning_remaining = REAR_BARRIER_WARNING_DURATION
 	rear_barrier_warning.visible = true
 	_set_rear_barrier_warning_intensity(1.0)
+	rear_barrier_warning_play_count += 1
+	rear_barrier_warning_audio.stop()
+	rear_barrier_warning_audio.play()
 
 
 func set_health(current: float, maximum: float) -> void:
@@ -197,6 +207,15 @@ func set_combo(multiplier: int, grace_remaining: float) -> void:
 		combo_ring.set_ratio(
 			grace_remaining / COMBO_GRACE_SECONDS if multiplier > 1 else 0.0
 		)
+
+
+func show_combo_milestone(tier: int) -> bool:
+	return combo_herald != null and combo_herald.present(tier)
+
+
+func dismiss_combo_herald() -> void:
+	if combo_herald != null:
+		combo_herald.dismiss()
 
 
 func set_momentum(value: float, band: int) -> void:
@@ -373,6 +392,7 @@ func show_directive_result(
 
 
 func show_game_over(summary: RunSummarySnapshot = null) -> void:
+	dismiss_combo_herald()
 	_hide_terminal_choices()
 	set_status("hud.city_response_lost")
 	set_objective("hud.chassis_signal_terminated")
@@ -380,6 +400,7 @@ func show_game_over(summary: RunSummarySnapshot = null) -> void:
 
 
 func show_district_complete(summary: RunSummarySnapshot) -> void:
+	dismiss_combo_herald()
 	_hide_terminal_choices()
 	set_status("hud.district_response_broken")
 	set_objective("hud.extraction_open")
@@ -424,6 +445,7 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 
 
 func show_cycle_choice(cycle: int, can_continue: bool) -> void:
+	dismiss_combo_herald()
 	overlay_title.text = L10n.t(
 		"hud.new_game_plus_ready" if can_continue else "hud.district_secured"
 	)
@@ -446,6 +468,7 @@ func show_cycle_choice(cycle: int, can_continue: bool) -> void:
 
 
 func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
+	dismiss_combo_herald()
 	overlay_title.text = L10n.t("finale.choice.title")
 	overlay_summary.text = L10n.t(
 		"finale.choice.summary" if snapshot.disentangle_eligible else "finale.choice.summary_ineligible",
@@ -465,10 +488,14 @@ func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
 		Color.WHITE if snapshot.disentangle_eligible else Color(1.0, 0.54, 0.42, 1.0)
 	)
 	game_over_overlay.visible = true
-	purge_button.grab_focus() if not snapshot.disentangle_eligible else disentangle_button.grab_focus()
+	if snapshot.disentangle_eligible:
+		disentangle_button.grab_focus()
+	else:
+		purge_button.grab_focus()
 
 
 func _show_finale_result(outcome: int, cycle: int, can_continue: bool) -> void:
+	dismiss_combo_herald()
 	var ending_key: String = String(BossOutcome.id_for(outcome)).to_lower()
 	overlay_title.text = L10n.t("finale.ending.%s.title" % ending_key)
 	overlay_summary.text = (
@@ -496,6 +523,7 @@ func _show_finale_result(outcome: int, cycle: int, can_continue: bool) -> void:
 
 
 func hide_terminal_overlay() -> void:
+	dismiss_combo_herald()
 	game_over_overlay.visible = false
 	_hide_terminal_choices()
 
@@ -527,6 +555,13 @@ func _build_rear_barrier_warning() -> void:
 	rear_barrier_warning.material = shader_material
 	rear_barrier_warning.visible = false
 	add_child(rear_barrier_warning)
+	rear_barrier_warning_audio = AudioStreamPlayer.new()
+	rear_barrier_warning_audio.name = "RearBarrierWarningVoice"
+	rear_barrier_warning_audio.stream = REAR_BARRIER_WARNING_VOICE
+	rear_barrier_warning_audio.bus = &"Voice"
+	rear_barrier_warning_audio.volume_db = -4.0
+	rear_barrier_warning_audio.max_polyphony = 1
+	add_child(rear_barrier_warning_audio)
 
 
 func _update_rear_barrier_warning(delta: float) -> void:
@@ -620,6 +655,11 @@ func _build_momentum_panel() -> void:
 	momentum_fill.size = Vector2(0.0, 8.0)
 	momentum_fill.color = Color("5dc9c2")
 	add_child(momentum_fill)
+
+
+func _build_combo_herald() -> void:
+	combo_herald = ComboHerald.new()
+	add_child(combo_herald)
 
 
 func _build_experience_bar() -> void:
@@ -863,6 +903,8 @@ func _apply_responsive_layout() -> void:
 		directive_card.apply_responsive_layout(viewport_size)
 	if transmission_toast != null:
 		transmission_toast.apply_responsive_layout(viewport_size)
+	if combo_herald != null:
+		combo_herald.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout() -> void:

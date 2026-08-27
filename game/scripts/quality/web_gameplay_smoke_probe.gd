@@ -199,13 +199,28 @@ func _run_kill_combo() -> bool:
 			_fail("exported runtime rejected deterministic kill combo event")
 			return false
 	var awarded: int = city.score - score_before
-	if city.rampage_session.current_multiplier() != 3 or awarded != 600:
-		_fail("exported runtime kill multiplier did not award 1x + 2x + 3x score")
+	if city.rampage_session.current_multiplier() != 2 or awarded != 200:
+		_fail("exported runtime did not normalize three physical kills to 200 score at x2")
+		return false
+	var herald: ComboHerald = city.gameplay_hud.combo_herald
+	if (
+		herald.last_tier != 2
+		or herald.title_label.text != "DOUBLE KILL"
+		or herald.presentation_count != 1
+		or herald.audio_play_count != 1
+		or not herald.is_presenting()
+	):
+		_fail("exported runtime did not present the Double Kill combat herald")
 		return false
 	_publish(&"kill_combo_ok", {
 		"awarded": awarded,
 		"multiplier": city.rampage_session.current_multiplier(),
 		"label": city.gameplay_hud.combo_label.text,
+		"herald_tier": herald.last_tier,
+		"herald_title": herald.title_label.text,
+		"herald_presentations": herald.presentation_count,
+		"herald_audio_plays": herald.audio_play_count,
+		"herald_voice_bus": String(herald.voice_player.bus),
 	})
 	var pending_before: int = city.rampage_session.run_score.pending_bank.value
 	if not robot.receive_damage(DamageEvent.new(
@@ -220,6 +235,8 @@ func _run_kill_combo() -> bool:
 		city.rampage_session.current_multiplier() != 1
 		or city.rampage_session.combo_tracker.current_chain_count != 0
 		or city.rampage_session.run_score.pending_bank.value != pending_before
+		or herald.is_presenting()
+		or herald.voice_player.playing
 	):
 		_fail("accepted light damage did not break only the kill combo")
 		return false

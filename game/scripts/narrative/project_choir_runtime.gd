@@ -140,16 +140,44 @@ func _try_release_containment(
 		or _released_containment.has(definition.building_variant_id)
 	):
 		return
+	var release_key: StringName = definition.building_variant_id
 	var spawn_position: Vector2 = building.global_position + Vector2(0.0, 50.0)
+	var release_id: StringName = _containment_variant_id(release_key, column, row)
+	if release_id.is_empty():
+		return
 	var released: int = 0
 	for copy_index: int in range(EnemySpawnTuning.QUANTITY_MULTIPLIER):
 		var crawler: EnemyActor2D = _city.encounter_runtime.acquire(
-			&"ossuary_crawler",
+			release_id,
 			spawn_position + EnemySpawnTuning.offset_for_copy(copy_index, 90.0)
 		)
 		released += 1 if crawler != null else 0
 	if released > 0:
-		_released_containment[definition.building_variant_id] = true
+		_released_containment[release_key] = true
+
+
+func _containment_variant_id(
+	building_variant_id: StringName,
+	column: int,
+	row: int
+) -> StringName:
+	var eligible: Array[StringName] = []
+	for candidate: StringName in EnemyArchetypeCatalog.variants_for_district(
+		&"ENTERTAINMENT"
+	):
+		if (
+			EnemyArchetypeCatalog.family_for(candidate) == &"light"
+			and EnemyArchetypeCatalog.canonical_id(candidate) == &"ossuary_crawler"
+		):
+			eligible.append(candidate)
+	if eligible.is_empty():
+		return &""
+	var seed_value: int = column * 97 + row * 53
+	if _city != null and _city.world_stream != null:
+		seed_value += _city.world_stream.run_seed
+	for character_index: int in range(String(building_variant_id).length()):
+		seed_value += String(building_variant_id).unicode_at(character_index) * 7
+	return eligible[posmod(seed_value, eligible.size())]
 
 
 func _on_run_finished(completed: bool, _summary: RunSummarySnapshot) -> void:

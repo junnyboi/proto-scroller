@@ -164,13 +164,32 @@ func test_tank_warning_fires_exact_snapshot_from_reserved_slot() -> void:
 	) as TankEnemy
 	var origin: Vector2 = Vector2(1320.0, 500.0)
 	var target: Vector2 = Vector2(900.0, 570.0)
-	assert_true(tank.begin_telegraph(&"shell", 0.75, origin, target))
+	var damage_output: float = (
+		tank.shell_damage * tank.projectile_damage_multiplier * tank.aura_damage_multiplier
+	)
+	assert_true(tank.begin_telegraph(&"shell", 0.75, origin, target, damage_output))
 	assert_eq(city.projectile_root.reservation_count(&"shell"), 1)
 	assert_eq(city.telegraph_presenter.active_count(), 1)
 	var warning: Dictionary = city.telegraph_presenter.snapshot(tank._telegraph_id)
 	assert_eq(warning.origin, tank.visual.global_position)
 	assert_ne(warning.origin, origin)
 	assert_eq(tank.telegraph_origin(), origin)
+	assert_almost_eq(
+		float(warning.thickness_scale),
+		tank.attack_telegraph_thickness_scale(),
+		0.001
+	)
+	assert_gt(float(warning.thickness_scale), 2.0)
+	assert_almost_eq(
+		float(warning.color_intensity),
+		tank.attack_telegraph_color_intensity(damage_output),
+		0.001
+	)
+	assert_gt(float(warning.color_intensity), 1.0)
+	var base_intensity: float = tank.attack_telegraph_color_intensity(damage_output)
+	tank.cycle_attack_multiplier = 2.0
+	assert_gt(tank.attack_telegraph_color_intensity(damage_output), base_intensity)
+	tank.cycle_attack_multiplier = 1.0
 	assert_false(tank.advance_telegraph(0.74))
 	assert_true(tank.advance_telegraph(0.01))
 	tank._fire_snapshot()

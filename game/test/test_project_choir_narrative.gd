@@ -117,7 +117,7 @@ func test_city_narrative_collects_once_reveals_and_survives_one_finish() -> void
 	assert_true(city.gameplay_hud.overlay_summary.text.contains("GENERATION 1"))
 
 
-func test_entertainment_containment_breach_releases_two_bounded_crawlers() -> void:
+func test_entertainment_containment_breach_releases_two_bounded_crawler_variants() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -130,6 +130,13 @@ func test_entertainment_containment_breach_releases_two_bounded_crawlers() -> vo
 	var variant: StructuralBuildingVariant = district.building_variants[0]
 	assert_true(city.building.apply_variant(variant))
 	var definition: DossierDefinition = DossierCatalog.definition_for_variant(variant.variant_id)
+	var release_id: StringName = city.project_choir_runtime._containment_variant_id(
+		variant.variant_id,
+		definition.trigger_column,
+		definition.trigger_row
+	)
+	assert_true(EnemyArchetypeCatalog.is_district_variant(release_id))
+	assert_eq(EnemyArchetypeCatalog.canonical_id(release_id), &"ossuary_crawler")
 	city.project_choir_runtime._on_building_cell_destroyed(
 		city.building,
 		definition.trigger_column,
@@ -137,7 +144,7 @@ func test_entertainment_containment_breach_releases_two_bounded_crawlers() -> vo
 		null
 	)
 	assert_eq(
-		city.encounter_runtime.active_count(&"ossuary_crawler"),
+		city.encounter_runtime.active_count(release_id),
 		EnemySpawnTuning.QUANTITY_MULTIPLIER
 	)
 	assert_eq(city.project_choir_runtime.containment_release_count(), 1)
@@ -148,7 +155,7 @@ func test_entertainment_containment_breach_releases_two_bounded_crawlers() -> vo
 		null
 	)
 	assert_eq(
-		city.encounter_runtime.active_count(&"ossuary_crawler"),
+		city.encounter_runtime.active_count(release_id),
 		EnemySpawnTuning.QUANTITY_MULTIPLIER
 	)
 	assert_eq(city.project_choir_runtime.containment_release_count(), 1)

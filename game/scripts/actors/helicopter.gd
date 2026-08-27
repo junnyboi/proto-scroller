@@ -80,7 +80,14 @@ func _physics_process(delta: float) -> void:
 
 func _begin_rocket() -> void:
 	var origin: Vector2 = global_position + Vector2(float(facing) * 62.0, 18.0)
-	if begin_telegraph(&"rocket", anticipation_duration, origin, target.global_position):
+	var damage_output: float = rocket_damage * projectile_damage_multiplier * aura_damage_multiplier
+	if begin_telegraph(
+		&"rocket",
+		anticipation_duration,
+		origin,
+		target.global_position,
+		damage_output
+	):
 		state = State.ANTICIPATE
 	else:
 		_cooldown = 0.25

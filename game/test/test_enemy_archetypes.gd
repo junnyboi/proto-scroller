@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
@@ -86,6 +87,67 @@ func test_catalog_contains_twenty_six_valid_visual_and_gameplay_profiles() -> vo
 		assert_false(signatures.has(signature), signature)
 		signatures[signature] = true
 	assert_eq(signatures.size(), 26)
+
+
+func test_catalog_adds_exactly_twenty_district_variants_without_replacing_bases() -> void:
+	assert_eq(EnemyArchetypeCatalog.PROCEDURAL_IDS.size(), 26)
+	assert_eq(EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS.size(), 20)
+	assert_eq(EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS.size(), 46)
+	assert_eq(EnemyArchetypeCatalog.validation_errors(), PackedStringArray())
+	var seen: Dictionary[StringName, bool] = {}
+	for archetype_id: StringName in EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS:
+		assert_false(seen.has(archetype_id), archetype_id)
+		seen[archetype_id] = true
+		assert_true(EnemyArchetypeCatalog.has(archetype_id), archetype_id)
+		assert_true(EnemyArchetypeCatalog.is_valid_kind(archetype_id), archetype_id)
+	assert_eq(seen.size(), 46)
+	for district_id: StringName in [
+		&"BUSINESS", &"RESIDENTIAL", &"ENTERTAINMENT", &"MILITARY", &"ROYAL",
+	]:
+		var variants: Array[StringName] = EnemyArchetypeCatalog.variants_for_district(
+			district_id
+		)
+		assert_eq(variants.size(), 4, district_id)
+		for archetype_id: StringName in variants:
+			assert_eq(EnemyArchetypeCatalog.district_for_variant(archetype_id), district_id)
+
+
+func test_district_variant_profiles_flatten_valid_base_contracts_and_compact_art() -> void:
+	for archetype_id: StringName in EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS:
+		var canonical_id: StringName = EnemyArchetypeCatalog.canonical_id(archetype_id)
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var canonical_profile: Dictionary = EnemyArchetypeCatalog.profile(canonical_id)
+		assert_true(EnemyArchetypeCatalog.PROCEDURAL_IDS.has(canonical_id), archetype_id)
+		assert_eq(StringName(profile.base_archetype_id), canonical_id, archetype_id)
+		assert_eq(StringName(profile.concrete_archetype_id), archetype_id, archetype_id)
+		assert_eq(StringName(profile.family), StringName(canonical_profile.family), archetype_id)
+		assert_eq(
+			EnemyArchetypeCatalog.reservation_key(archetype_id),
+			EnemyArchetypeCatalog.reservation_key(canonical_id),
+			archetype_id
+		)
+		assert_eq(
+			EnemyArchetypeCatalog.spawn_multiplier(archetype_id),
+			EnemyArchetypeCatalog.spawn_multiplier(canonical_id),
+			archetype_id
+		)
+		assert_eq(
+			EnemyArchetypeCatalog.is_ground_vehicle(archetype_id),
+			EnemyArchetypeCatalog.is_ground_vehicle(canonical_id),
+			archetype_id
+		)
+		assert_eq(
+			EnemyArchetypeCatalog.is_airborne(archetype_id),
+			EnemyArchetypeCatalog.is_airborne(canonical_id),
+			archetype_id
+		)
+		assert_gt(float(profile.health), 0.0, archetype_id)
+		assert_between(int(profile.threat), 1, 5, archetype_id)
+		assert_gt(int(profile.district_weight), 0, archetype_id)
+		var texture: Texture2D = load(String(profile.texture)) as Texture2D
+		assert_not_null(texture, archetype_id)
+		assert_lte(texture.get_width(), 448, archetype_id)
+		assert_lte(texture.get_height(), 448, archetype_id)
 
 
 func test_all_ground_vehicles_render_and_collide_at_exactly_double_size() -> void:
@@ -205,6 +267,54 @@ func test_family_pool_reconfigures_one_shell_without_post_warm_creation() -> voi
 	assert_eq(hive.archetype_id, &"hive")
 	assert_ne(hive.visual.texture, needle_texture)
 	assert_almost_eq(hive.max_health, 400.0, 0.01)
+	assert_eq(runtime.post_warm_creation_count, 0)
+
+
+func test_family_shell_resets_cleanly_across_base_variant_base_cycle() -> void:
+	var baseline: ProceduralEnemy = runtime.acquire(
+		&"basilisk", Vector2(1200.0, 545.0)
+	) as ProceduralEnemy
+	var shell_identity: int = baseline.get_instance_id()
+	runtime.release(baseline)
+	var variant: ProceduralEnemy = runtime.acquire(
+		&"regency_conservator", Vector2(1200.0, 545.0)
+	) as ProceduralEnemy
+	assert_eq(variant.get_instance_id(), shell_identity)
+	assert_eq(variant.archetype_id, &"regency_conservator")
+	assert_eq(variant.base_archetype_id, &"basilisk")
+	assert_eq(variant.get_meta(&"enemy_canonical_archetype"), &"basilisk")
+	variant._cooldown = 0.0
+	variant._state_time = 3.0
+	variant._animation_phase = 2.0
+	variant._attack_kick = 1.0
+	variant._spawned_children = 3
+	variant._attack_sequence = 7
+	variant.visual.position += Vector2(18.0, 9.0)
+	variant.visual.rotation = 0.4
+	variant.visual.modulate = Color.CYAN
+	assert_true(variant._reserve_extra_projectiles(1))
+	runtime.release(variant)
+	assert_eq(city.projectile_root.reservation_count(), 0)
+	var replay: ProceduralEnemy = runtime.acquire(
+		&"basilisk", Vector2(1200.0, 545.0)
+	) as ProceduralEnemy
+	assert_eq(replay.get_instance_id(), shell_identity)
+	var snapshot: Dictionary = replay.reset_debug_snapshot()
+	assert_eq(snapshot.archetype_id, &"basilisk")
+	assert_eq(snapshot.base_archetype_id, &"basilisk")
+	assert_eq(int(snapshot.state), ProceduralEnemy.State.APPROACH)
+	assert_almost_eq(float(snapshot.cooldown), 0.35, 0.001)
+	assert_almost_eq(float(snapshot.state_time), 0.0, 0.001)
+	assert_almost_eq(float(snapshot.animation_phase), 0.0, 0.001)
+	assert_almost_eq(float(snapshot.attack_kick), 0.0, 0.001)
+	assert_eq(int(snapshot.spawned_children), 0)
+	assert_eq(int(snapshot.attack_sequence), 0)
+	assert_eq(int(snapshot.extra_projectile_reservations), 0)
+	assert_false(bool(snapshot.is_telegraphing))
+	assert_eq(snapshot.visual_position, replay._visual_rest_position)
+	assert_eq(snapshot.visual_scale, replay._visual_rest_scale)
+	assert_almost_eq(float(snapshot.visual_rotation), 0.0, 0.001)
+	assert_eq(snapshot.visual_modulate, Color.WHITE)
 	assert_eq(runtime.post_warm_creation_count, 0)
 
 

@@ -264,7 +264,10 @@ func record_chassis_loss() -> int:
 func handle_enemy_acquired(enemy: EnemyActor2D) -> void:
 	if not enemy is ProceduralEnemy:
 		return
-	var hybrid_id: StringName = (enemy as ProceduralEnemy).archetype_id
+	var procedural: ProceduralEnemy = enemy as ProceduralEnemy
+	var hybrid_id: StringName = procedural.base_archetype_id
+	if hybrid_id.is_empty():
+		hybrid_id = EnemyArchetypeCatalog.canonical_id(procedural.archetype_id)
 	if not hybrid_id in HYBRID_IDS:
 		return
 	_queue_transmission(

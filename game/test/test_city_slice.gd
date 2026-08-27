@@ -364,9 +364,9 @@ func test_enemy_defeat_adds_score_once() -> void:
 	await get_tree().process_frame
 	var fatal_event: DamageEvent = DamageEvent.new(7001, city.robot, 999.0)
 	assert_true(city.soldier.receive_damage(fatal_event))
-	assert_eq(city.score, 500)
+	assert_eq(city.score, 250)
 	assert_false(city.soldier.receive_damage(fatal_event))
-	assert_eq(city.score, 500)
+	assert_eq(city.score, 250)
 	_record_test_execution()
 
 
@@ -425,7 +425,7 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 	)
 	assert_true(city.tank.receive_damage(tank_event))
 	await get_tree().process_frame
-	assert_eq(city.score, 1500)
+	assert_eq(city.score, 750)
 	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.momentum_value(), 16.0)
 	assert_false(city.tank.visual.visible)
@@ -454,7 +454,7 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 		if city.tank_wreck.is_scrapped():
 			break
 	assert_true(city.tank_wreck.is_scrapped())
-	assert_eq(city.score, 1900)
+	assert_eq(city.score, 1150)
 	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.momentum_value(), 16.0)
 	assert_eq(city.enemy_scrap_pool.active_count(), 8)
@@ -476,7 +476,7 @@ func test_defeated_machinery_becomes_wreck_then_stomp_scrap() -> void:
 	)
 	assert_true(city.helicopter.receive_damage(helicopter_event))
 	await get_tree().process_frame
-	assert_eq(city.score, 3100)
+	assert_eq(city.score, 1750)
 	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.momentum_value(), 16.0)
 	assert_not_null(city.helicopter_wreck)

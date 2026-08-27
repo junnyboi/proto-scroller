@@ -80,6 +80,16 @@ for boss_art in \
 	art/bosses/choir-prime.webp; do
 	test -s "$boss_art"
 done
+for herald_tier in \
+	double_kill \
+	triple_kill \
+	overkill \
+	unstoppable \
+	annihilation \
+	extinction_event; do
+	test -s "art/ui/combo_herald/${herald_tier}.png"
+	test -s "audio/voice/combo/${herald_tier}.wav"
+done
 CITY_SLICE_LINES="$(wc -l < scripts/gameplay/city_slice.gd)"
 test "$CITY_SLICE_LINES" -le 650
 printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
@@ -100,9 +110,15 @@ for cue in \
 	  audio/sfx/robot/photon_full_hit.wav \
 	  audio/voice/air_target_acquired.wav \
 	  audio/voice/target_lost.wav \
-	  audio/voice/target_destroyed.wav \
-	  audio/voice/fully_charged.wav \
-	  audio/sfx/debris/debris_enemy_thud.wav; do
+		  audio/voice/target_destroyed.wav \
+		  audio/voice/fully_charged.wav \
+		  audio/voice/combo/double_kill.wav \
+		  audio/voice/combo/triple_kill.wav \
+		  audio/voice/combo/overkill.wav \
+		  audio/voice/combo/unstoppable.wav \
+		  audio/voice/combo/annihilation.wav \
+		  audio/voice/combo/extinction_event.wav \
+		  audio/sfx/debris/debris_enemy_thud.wav; do
   test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$cue")" = 48000
 		test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 "$cue")" = pcm_s16le
 done

@@ -142,6 +142,39 @@ func test_rainmaker_and_leviathan_use_salvo_visual_key_on_every_rocket() -> void
 		runtime.release(enemy)
 
 
+func test_every_current_enemy_identity_resolves_to_authored_emission_family() -> void:
+	var authored_presentation_styles: Array[StringName] = [
+		&"scan", &"repair", &"jammer_pulse", &"shield_pulse",
+		&"deploy", &"drone_launch", &"shock_brace", &"marked_leap",
+		&"choir_ring", &"drop_lunge", &"incubation_drop", &"lance_thrust",
+	]
+	assert_eq(EnemyArchetypeCatalog.PROCEDURAL_IDS.size(), 26)
+	assert_eq(EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS.size(), 20)
+	assert_eq(EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS.size(), 46)
+	for archetype_id: StringName in EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		assert_false(profile.is_empty(), archetype_id)
+		var attack_style: StringName = StringName(profile.get("attack_style", &""))
+		var projectile_kind: StringName = StringName(profile.get("projectile_kind", &""))
+		if attack_style in authored_presentation_styles:
+			assert_true(attack_style in authored_presentation_styles, archetype_id)
+		else:
+			assert_false(
+				ProjectileVisualCatalog.default_key(projectile_kind).is_empty(),
+				archetype_id
+			)
+	var base_actor_projectiles: Dictionary[StringName, StringName] = {
+		&"soldier": &"bullet",
+		&"tank": &"shell",
+		&"helicopter": &"rocket",
+	}
+	for actor_id: StringName in base_actor_projectiles:
+		assert_false(
+			ProjectileVisualCatalog.default_key(base_actor_projectiles[actor_id]).is_empty(),
+			actor_id
+		)
+
+
 func _visible_presentation_count(enemy: ProceduralEnemy) -> int:
 	var count: int = 0
 	for sprite: Sprite2D in enemy._presentation_sprites:

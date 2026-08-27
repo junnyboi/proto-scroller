@@ -74,7 +74,12 @@ func test_spatial_resolver_is_deterministic_and_never_mutates_authored_entries()
 			expected_eligible[index]
 		)
 		if districts[index] == &"BUSINESS":
-			assert_eq(first, base)
+			assert_ne(first, base)
+			for resolved_kind: StringName in _kinds(first):
+				assert_false(
+					resolved_kind in HybridEncounterResolver.eligible_hybrids(&"ROYAL"),
+					resolved_kind
+				)
 		else:
 			assert_gt(HybridEncounterResolver.substitutions(base, first).size(), 0)
 	assert_eq(_kinds(base), original)
@@ -89,13 +94,70 @@ func test_authored_campaign_exposes_each_districts_complete_hybrid_roster() -> v
 			var act: DistrictAct = DISTRICT.acts[act_index]
 			for beat_index: int in range(act.beats.size()):
 				var base: DistrictBeat = act.beats[beat_index]
-				var resolved: DistrictBeat = HybridEncounterResolver.resolve_beat(
+				var resolution: Dictionary = HybridEncounterResolver.resolve_with_trace(
 					base, district_id, act_index, beat_index, 913
 				)
-				for change: Dictionary in HybridEncounterResolver.substitutions(base, resolved):
-					seen[StringName(change.after)] = true
+				for change: Dictionary in resolution.substitutions:
+					if bool(change.hybrid_applied):
+						seen[StringName(change.hybrid_after)] = true
 		for hybrid_id: StringName in HybridEncounterResolver.eligible_hybrids(district_id):
 			assert_true(seen.has(hybrid_id), "%s/%s" % [district_id, hybrid_id])
+
+
+func test_authored_campaign_exposes_each_districts_complete_variant_roster() -> void:
+	for district_id: StringName in [
+		&"BUSINESS", &"RESIDENTIAL", &"ENTERTAINMENT", &"MILITARY", &"ROYAL",
+	]:
+		var seen: Dictionary[StringName, bool] = {}
+		for run_seed: int in range(900, 940):
+			for act_index: int in range(DISTRICT.acts.size()):
+				var act: DistrictAct = DISTRICT.acts[act_index]
+				for beat_index: int in range(act.beats.size()):
+					var resolution: Dictionary = HybridEncounterResolver.resolve_with_trace(
+						act.beats[beat_index], district_id, act_index, beat_index, run_seed
+					)
+					for change: Dictionary in resolution.substitutions:
+						if bool(change.variant_applied):
+							seen[StringName(change.after)] = true
+		for variant_id: StringName in EnemyArchetypeCatalog.variants_for_district(
+			district_id
+		):
+			assert_true(seen.has(variant_id), "%s/%s" % [district_id, variant_id])
+
+
+func test_final_variant_resolution_preserves_family_threat_and_staged_trace() -> void:
+	var base: DistrictBeat = _family_beat()
+	for district_id: StringName in [
+		&"BUSINESS", &"RESIDENTIAL", &"ENTERTAINMENT", &"MILITARY", &"ROYAL",
+	]:
+		var resolution: Dictionary = HybridEncounterResolver.resolve_with_trace(
+			base, district_id, 3, 2, 2026
+		)
+		var resolved: DistrictBeat = resolution.beat as DistrictBeat
+		assert_ne(resolved, base)
+		assert_eq(resolved.spawns.size(), base.spawns.size(), district_id)
+		var total_threat: int = 0
+		for entry_index: int in range(resolved.spawns.size()):
+			var before: StringName = StringName(base.spawns[entry_index].kind)
+			var after: StringName = StringName(resolved.spawns[entry_index].kind)
+			assert_eq(
+				EnemyArchetypeCatalog.family_for(after),
+				EnemyArchetypeCatalog.family_for(before),
+				district_id
+			)
+			total_threat += (
+				EnemyArchetypeCatalog.threat_cost(after)
+				* EnemyArchetypeCatalog.spawn_multiplier(after)
+			)
+		assert_lte(total_threat, base.maximum_threat, district_id)
+		for change: Dictionary in resolution.substitutions:
+			assert_true(bool(change.hybrid_applied) or bool(change.variant_applied))
+			if bool(change.variant_applied):
+				assert_true(EnemyArchetypeCatalog.is_district_variant(change.after))
+				assert_eq(
+					EnemyArchetypeCatalog.district_for_variant(change.after),
+					district_id
+				)
 
 
 func test_breacher_frontal_brace_and_pale_armor_are_independent() -> void:
@@ -172,6 +234,50 @@ func test_hybrid_first_contact_transmission_fires_once_per_run() -> void:
 	) as ProceduralEnemy
 	runtime.release(second)
 	assert_eq(transmission_ids.count(&"hybrid_reclaimed_breacher_contact"), 1)
+
+
+func test_variant_support_reuses_exact_repair_and_mark_values() -> void:
+	var repair_target: ProceduralEnemy = runtime.acquire(
+		&"jackal", Vector2(1080.0, 554.0)
+	) as ProceduralEnemy
+	repair_target.current_health = repair_target.max_health - 40.0
+	var shepherd: ProceduralEnemy = runtime.acquire(
+		&"intake_shepherd", Vector2(1040.0, 541.0)
+	) as ProceduralEnemy
+	shepherd._repair_nearest_ally()
+	assert_almost_eq(
+		repair_target.current_health,
+		repair_target.max_health - 18.0,
+		0.01
+	)
+	runtime.release_all()
+	var testament: ProceduralEnemy = runtime.acquire(
+		&"testament_kite", Vector2(1100.0, 175.0)
+	) as ProceduralEnemy
+	assert_true(testament._complete_support_attack())
+	assert_almost_eq(runtime.target_mark_remaining, ProceduralEnemy.MARK_DURATION, 0.01)
+	runtime.release_all()
+	var lantern: ProceduralEnemy = runtime.acquire(
+		&"recall_lantern", Vector2(1100.0, 210.0)
+	) as ProceduralEnemy
+	assert_true(lantern._complete_support_attack())
+	assert_almost_eq(runtime.target_mark_remaining, ProceduralEnemy.MARK_DURATION + 1.0, 0.01)
+
+
+func test_concrete_variant_canonicalizes_first_contact_without_duplicate_event() -> void:
+	city.project_choir_runtime.director.transmission_requested.connect(
+		_capture_transmission
+	)
+	var double: ProceduralEnemy = runtime.acquire(
+		&"glassback_double", Vector2(1100.0, 554.0)
+	) as ProceduralEnemy
+	assert_eq(double.base_archetype_id, &"ossuary_crawler")
+	runtime.release(double)
+	var crawler: ProceduralEnemy = runtime.acquire(
+		&"ossuary_crawler", Vector2(1100.0, 552.0)
+	) as ProceduralEnemy
+	runtime.release(crawler)
+	assert_eq(transmission_ids.count(&"hybrid_ossuary_crawler_contact"), 1)
 
 
 func _capture_transmission(

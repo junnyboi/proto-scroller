@@ -12,6 +12,7 @@ func setup(p_city: CitySlice) -> void:
 	city.rampage_session.momentum_meter.momentum_changed.connect(_on_momentum_changed)
 	city.rampage_session.rare_event_tracker.tags_changed.connect(_on_rare_tags_changed)
 	city.rampage_session.combo_tracker.combo_broken.connect(_on_combo_broken)
+	city.rampage_session.combo_tracker.milestone_reached.connect(_on_combo_milestone)
 	city.overdrive_session.activated.connect(_on_overdrive_activated)
 	city.overdrive_session.time_changed.connect(_on_overdrive_time_changed)
 	city.overdrive_session.ended.connect(_on_overdrive_ended)
@@ -106,10 +107,15 @@ func _on_rare_tags_changed(tags: PackedStringArray) -> void:
 
 
 func _on_combo_broken() -> void:
+	city.gameplay_hud.dismiss_combo_herald()
 	city.impact_feedback_pool.play_cue(
 		AudioCueRegistry.Cue.COMBO_BREAK,
 		city.robot.global_position
 	)
+
+
+func _on_combo_milestone(tier: int, _chain_count: int, _multiplier: int) -> void:
+	city.gameplay_hud.show_combo_milestone(tier)
 
 
 func _on_encounter_phase_changed(index: int, display_name: String) -> void:

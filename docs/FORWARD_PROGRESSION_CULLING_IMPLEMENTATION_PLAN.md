@@ -18,7 +18,7 @@ The implementation must preserve the six-slot streamed world, floating-origin st
 | Forward progress | `CityWorldStream` records the maximum logical X reached during the run; moving left never reduces it. |
 | Rear frontier | The minimum traversable logical X is `furthest_progress_x - 500.0`. |
 | Physical enforcement | A pooled, invisible `StaticBody2D` follows the rear frontier. A defensive clamp repairs teleports or external displacement behind it. |
-| Contact feedback | First contact with the rear wall emits one debounced event and pulses a left-weighted red vignette; held contact does not restart the effect every frame. |
+| Contact feedback | First contact with the rear wall emits one debounced event, pulses a left-weighted red vignette, and synchronously plays a subtle carrier-derived warning plus “We can't go back now!”; held contact does not restart either channel every frame. |
 | Culling | A resident chunk is culled only after its right edge is at or behind the rear frontier. Culling hides the chunk, disables processing, and removes collision layers without deleting pooled nodes. |
 | Spawn safety | `resident_bounds()` clamps its lower bound to the rear frontier so enemies and hazards cannot spawn in discarded space. |
 | District size | Business, Residential, Entertainment, Military, and Royal each expose five unique facade chunks before the next geography can be entered. |
@@ -84,7 +84,7 @@ Commit and push the final integrated tree to shared `main`, create a fresh Godot
 |---|---|
 | Movement | Furthest progress is monotonic; rear frontier remains exactly 500 px behind it. |
 | Collision | Walking or dodging left cannot cross the invisible rear wall. |
-| Feedback | Rear-wall contact produces one responsive red vignette pulse with a sharp attack, smooth decay, and no input interception. |
+| Feedback | Rear-wall contact produces one responsive red vignette pulse and one non-spatial `Voice`-bus warning cue from the same debounced event, with no input interception. |
 | Culling | Chunks fully behind the frontier are hidden, nonprocessing, and noncolliding; recycled chunks restore correctly. |
 | Streaming | Exactly six chunk nodes and six building slots remain allocated. |
 | Spawning | Resident lower bound never enters culled territory. |
@@ -108,11 +108,12 @@ The highest risk is disabling pooled collisions without restoring mutation-sensi
 | 3 — Clear-driven unlocks | Complete | `fca74d1` | Sequential eastbound gate advances across five unique facades; district and boss caps now align at five-chunk intervals. |
 | 4 — Contract updates | Complete | `fca74d1` | Streaming, district, boss, narrative, persistence, localization, and scenario contracts updated without executing release-gate suites per project override. |
 | 5 — Source/WebDev delivery | Complete | `fca74d1` / WebDev `c0da9c13` | Shared `main` updated non-force; fresh Godot 4.7.2 Web export synchronized to immutable WASM/PCK payloads and saved in the existing host checkpoint. |
-| 6 — Rear-wall warning feedback | In progress | Pending | Debounced contact signal, prewarmed shader vignette, HUD wiring, and runtime-budget contract implemented; source and WebDev delivery pending. |
+| 6 — Rear-wall warning feedback | Complete | `5b16bd9` / WebDev `82a6869a` | Debounced contact signal, prewarmed input-transparent shader vignette, HUD wiring, runtime-budget contract, fresh Godot 4.7.2 export, and existing-host synchronization delivered. |
+| 7 — Rear-wall warning audio | Complete | `66b4b21` / WebDev `4f2100a8` | GPT Image 2 anchor, generated video-carrier bed, exact `Gacrux` line, mastered 48 kHz mono cue, synchronous debounced HUD playback, fresh Godot 4.7.2 export, and combined concurrent-host checkpoint delivered. |
 
 ## Delivered Runtime
 
-The final gameplay revision is `fca74d1`. WebDev checkpoint `c0da9c13` maps `/manus-storage/game_8d935fb5.wasm` (39,514,754 bytes) and `/manus-storage/game_b0b43373.pck` (11,473,084 bytes). Full release-gate certification was intentionally not executed under the project-level user override.
+The delivered warning-audio gameplay revision is `66b4b21`. WebDev checkpoint `4f2100a8` maps `/manus-storage/game_9bfa26ef.wasm` (39,514,754 bytes) and `/manus-storage/game_2576cd11.pck` (13,780,932 bytes). The checkpoint semantically preserves the concurrent two-stage transformer and size-aware enemy-telegraph releases. Full release-gate certification was intentionally not executed under the project-level user override; generated-audio integrity and the exact spoken transcript were confirmed.
 
 ## References
 

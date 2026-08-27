@@ -117,6 +117,7 @@ func enemy_defeated(
 	robot: GiantRobotController
 ) -> bool:
 	var is_soldier: bool = enemy is SoldierEnemy
+	var named_boss: bool = enemy.boss_mode
 	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		StringName(
 			"enemy:%d:%d" % [enemy.get_instance_id(), enemy.activation_generation]
@@ -128,6 +129,13 @@ func enemy_defeated(
 		_enemy_momentum_delta(enemy),
 		true,
 		enemy.global_position
+	)
+	gameplay_event.score_points = RampageRewardTuning.enemy_score_points(
+		points,
+		named_boss
+	)
+	gameplay_event.combo_progress_units = (
+		RampageRewardTuning.enemy_combo_progress_units(named_boss)
 	)
 	return _publish_damage(gameplay_event, event, enemy, robot)
 

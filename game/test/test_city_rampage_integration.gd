@@ -50,7 +50,7 @@ func test_motion_gain_and_heavy_hostile_hit_loss_reach_live_session() -> void:
 	_record_test_execution()
 
 
-func test_consecutive_enemy_kills_multiply_score_until_any_player_damage() -> void:
+func test_physical_enemy_copies_normalize_score_and_combo_until_player_damage() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -62,10 +62,18 @@ func test_consecutive_enemy_kills_multiply_score_until_any_player_damage() -> vo
 			100,
 			city.robot
 		))
-	assert_eq(city.score, 600)
-	assert_eq(city.rampage_session.current_multiplier(), 3)
-	assert_eq(city.gameplay_hud.combo_label.text, "x3 KILL COMBO")
+	assert_eq(city.score, 200)
+	assert_eq(city.rampage_session.current_multiplier(), 2)
+	assert_eq(city.gameplay_hud.combo_label.text, "x2 KILL COMBO")
 	assert_true(city.gameplay_hud.combo_label.visible)
+	var herald: ComboHerald = city.gameplay_hud.combo_herald
+	assert_eq(herald.last_tier, 2)
+	assert_eq(herald.last_title_key, "hud.combo_herald.double")
+	assert_eq(herald.title_label.text, "DOUBLE KILL")
+	assert_eq(herald.presentation_count, 1)
+	assert_eq(herald.audio_play_count, 1)
+	assert_eq(herald.voice_player.bus, GameAudioBus.VOICE)
+	assert_true(herald.is_presenting())
 	assert_true(city.robot.receive_damage(DamageEvent.new(
 		7100,
 		city.soldier,
@@ -75,7 +83,32 @@ func test_consecutive_enemy_kills_multiply_score_until_any_player_damage() -> vo
 	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.combo_tracker.current_chain_count, 0)
 	assert_false(city.gameplay_hud.combo_label.visible)
+	assert_false(herald.is_presenting())
+	assert_false(herald.voice_player.playing)
+	assert_null(herald.voice_player.stream)
 	assert_eq(city.rampage_session.heavy_hit_count, 0)
+	_record_test_execution()
+
+
+func test_density_scaled_combo_ring_coexists_with_rear_barrier_vignette() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.gameplay_hud.set_combo(2, ComboTracker.GRACE_SECONDS)
+	assert_almost_eq(city.gameplay_hud.combo_ring.ratio, 1.0, 0.0001)
+	city.gameplay_hud.show_rear_barrier_warning()
+	assert_true(city.gameplay_hud.rear_barrier_warning.visible)
+	var warning_material: ShaderMaterial = (
+		city.gameplay_hud.rear_barrier_warning.material as ShaderMaterial
+	)
+	assert_almost_eq(
+		float(warning_material.get_shader_parameter(&"intensity")),
+		1.0,
+		0.0001
+	)
+	city.gameplay_hud._process(GameplayHud.REAR_BARRIER_WARNING_DURATION + 0.01)
+	assert_false(city.gameplay_hud.rear_barrier_warning.visible)
+	assert_almost_eq(city.gameplay_hud.combo_ring.ratio, 1.0, 0.0001)
 	_record_test_execution()
 
 
@@ -94,7 +127,7 @@ func test_approved_event_values_and_surge_acceleration_reach_live_scene() -> voi
 		320.0
 	)
 	assert_true(city.soldier.receive_damage(soldier_event))
-	assert_eq(city.score, 500)
+	assert_eq(city.score, 250)
 	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.momentum_value(), 8.0)
 	var cell: Destructible2D = city.building.get_cell(0, 1)

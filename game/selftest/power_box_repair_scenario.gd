@@ -100,6 +100,51 @@ func _run() -> void:
 		_check("shot_saved", error == OK, "error=%s" % error)
 		_check("shot_geometry", image.get_size() == expected_size, "size=%s" % image.get_size())
 		shot_status = "PASS" if error == OK else "FAIL"
+	var finishing_event: DamageEvent = DamageEvent.new(
+		7002,
+		city.robot,
+		1.0,
+		&"ground_smash",
+		transformer.global_position,
+		Vector2.RIGHT,
+		520.0
+	)
+	var score_before_finish: int = city.rampage_session.current_score()
+	var debris_before_finish: int = city.debris_pool.active_count()
+	_check(
+		"second_hit_starts_electrical_discharge",
+		transformer.receive_damage(finishing_event),
+		"discharging=%s" % transformer.discharging
+	)
+	_check(
+		"spent_shell_holds_during_discharge",
+		transformer.discharging and transformer.visual.visible,
+		"visible=%s" % transformer.visual.visible
+	)
+	await create_timer(Catalyst2D.OBLITERATION_DELAY_SECONDS + 0.02).timeout
+	_check(
+		"spent_shell_is_removed",
+		transformer.is_fully_destroyed and not transformer.visual.visible,
+		"visible=%s layer=%d" % [transformer.visual.visible, transformer.collision_layer]
+	)
+	_check(
+		"heavy_scrap_burst_uses_six_pooled_pieces",
+		city.debris_pool.active_count() - debris_before_finish
+		== CatalystRuntime.POWER_BOX_SCRAP_PIECES,
+		"pieces=%d" % catalysts.power_box_scrap_piece_count
+	)
+	_check(
+		"second_hit_awards_small_score_bonus",
+		catalysts.power_box_finish_score_count == CatalystRuntime.POWER_BOX_FINISH_POINTS
+		and city.rampage_session.current_score() - score_before_finish
+		>= CatalystRuntime.POWER_BOX_FINISH_POINTS,
+		"awarded=%d" % catalysts.power_box_finish_score_count
+	)
+	_check(
+		"repair_pickup_survives_second_hit",
+		catalysts.active_repair_pickup_count() == 1,
+		"active=%d" % catalysts.active_repair_pickup_count()
+	)
 	_check(
 		"pickup_collects",
 		pickup.try_collect(city.robot),

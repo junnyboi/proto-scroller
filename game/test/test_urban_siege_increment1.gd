@@ -88,10 +88,56 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	assert_true(transformer.spent)
 	assert_eq(transformer.trigger_count, 1)
 	assert_false(transformer.receive_damage(event))
+	var self_pulse: DamageEvent = DamageEvent.new(
+		904,
+		transformer,
+		120.0,
+		&"catalyst_pulse",
+		transformer.global_position,
+		Vector2.UP,
+		720.0
+	)
+	assert_false(transformer.receive_damage(self_pulse))
+	assert_false(transformer.discharging)
 	assert_eq(catalysts.active_repair_pickup_count(), 1)
 	var pickup: ChassisRepairPickup2D = catalysts.repair_pickups[0]
 	assert_true(pickup.active)
 	assert_eq(pickup.global_position, transformer.global_position + Vector2(0.0, -96.0))
+	var score_before_finish: int = city.rampage_session.current_score()
+	var debris_before_finish: int = city.debris_pool.active_count()
+	var finishing_event: DamageEvent = DamageEvent.new(
+		903,
+		city.robot,
+		1.0,
+		&"ground_smash",
+		transformer.global_position,
+		Vector2.RIGHT,
+		400.0
+	)
+	assert_true(transformer.receive_damage(finishing_event))
+	assert_true(transformer.discharging)
+	assert_false(transformer.is_fully_destroyed)
+	assert_true(transformer.visual.visible)
+	assert_eq(transformer.discharge_count, 1)
+	await get_tree().create_timer(Catalyst2D.OBLITERATION_DELAY_SECONDS + 0.02).timeout
+	assert_true(transformer.is_fully_destroyed)
+	assert_false(transformer.armed)
+	assert_false(transformer.visual.visible)
+	assert_eq(transformer.collision_layer, 0)
+	assert_eq(transformer.trigger_count, 1)
+	assert_eq(catalysts.power_box_scrap_burst_count, 1)
+	assert_eq(catalysts.power_box_scrap_piece_count, CatalystRuntime.POWER_BOX_SCRAP_PIECES)
+	assert_eq(
+		city.debris_pool.active_count(),
+		debris_before_finish + CatalystRuntime.POWER_BOX_SCRAP_PIECES
+	)
+	assert_eq(catalysts.power_box_finish_score_count, CatalystRuntime.POWER_BOX_FINISH_POINTS)
+	assert_eq(
+		city.rampage_session.current_score() - score_before_finish,
+		CatalystRuntime.POWER_BOX_FINISH_POINTS
+	)
+	assert_eq(city.rampage_session.current_multiplier(), 1)
+	assert_eq(catalysts.active_repair_pickup_count(), 1)
 	city.robot.current_health = city.robot.max_health - 100.0
 	assert_true(pickup.try_collect(city.robot))
 	assert_almost_eq(city.robot.current_health, city.robot.max_health - 60.0, 0.001)

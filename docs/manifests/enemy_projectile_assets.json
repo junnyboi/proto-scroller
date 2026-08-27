@@ -1377,5 +1377,8 @@
   "web_pck_bytes": 13474952,
   "web_pck_cap_bytes": 16777216,
   "web_pck_headroom_bytes": 3302264,
-  "verification_policy": "project release-gate override: direct import + 14 focused tests / 319 assertions + fresh compatible Web export"
+  "hostile_identity_count": 55,
+  "canonical_procedural_count": 26,
+  "district_variant_count": 20,
+  "verification_policy": "project release-gate override: direct import + 15 initiative tests / 417 assertions + 8 merged telegraph tests / 212 assertions + fresh compatible Web export"
 }

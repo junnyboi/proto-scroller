@@ -36,6 +36,7 @@ var progression_peak_tier: int = 0
 var progression_copy_peak: int = 0
 var progression_degradation_count: int = 0
 var hybrid_substitution_trace: Array[Dictionary] = []
+var district_variant_substitution_trace: Array[Dictionary] = []
 var hazard_runtime: HazardRuntime
 var hazard_pressure: HazardPressureController
 var run_experience: RunExperience
@@ -110,6 +111,7 @@ func start() -> void:
 	progression_degradation_count = 0
 	progression_peak_threat = 0
 	hybrid_substitution_trace.clear()
+	district_variant_substitution_trace.clear()
 	peak_hazard_pending = 0
 	_act_completion_emitted = false
 	_act_advance_blocked = false
@@ -327,18 +329,31 @@ func _try_start_next_beat() -> void:
 		if runtime.world_stream != null
 		else &"BUSINESS"
 	)
-	var next_beat: DistrictBeat = HybridEncounterResolver.resolve_beat(
+	var resolution: Dictionary = HybridEncounterResolver.resolve_with_trace(
 		authored_beat,
 		spatial_district_id,
 		phase_index,
 		beat_index + 1,
 		_elite_seed
 	)
-	for change: Dictionary in HybridEncounterResolver.substitutions(authored_beat, next_beat):
-		change["district_id"] = spatial_district_id
-		change["act_index"] = phase_index
-		change["beat_index"] = beat_index + 1
-		hybrid_substitution_trace.append(change)
+	var next_beat: DistrictBeat = resolution.get("beat") as DistrictBeat
+	for staged_change: Dictionary in resolution.get("substitutions", []):
+		var context: Dictionary = {
+			"district_id": spatial_district_id,
+			"act_index": phase_index,
+			"beat_index": beat_index + 1,
+			"entry_index": int(staged_change.entry_index),
+		}
+		if bool(staged_change.hybrid_applied):
+			var hybrid_change: Dictionary = context.duplicate(true)
+			hybrid_change["before"] = StringName(staged_change.before)
+			hybrid_change["after"] = StringName(staged_change.hybrid_after)
+			hybrid_substitution_trace.append(hybrid_change)
+		if bool(staged_change.variant_applied):
+			var variant_change: Dictionary = context.duplicate(true)
+			variant_change["before"] = StringName(staged_change.hybrid_after)
+			variant_change["after"] = StringName(staged_change.after)
+			district_variant_substitution_trace.append(variant_change)
 	current_pressure_profile = _effective_pressure_profile()
 	var authored_threat_floor: int = _authored_threat(authored_beat)
 	var resolved_threat: int = _authored_threat(next_beat)

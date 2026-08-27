@@ -14,9 +14,9 @@ var score: int:
 
 
 func apply_event(event: GameplayEvent, active_multiplier: int) -> int:
-	if event == null or event.base_points <= 0 or score >= MAX_SCORE:
+	if event == null or event.rampage_score_points() <= 0 or score >= MAX_SCORE:
 		return 0
-	var base_points: int = mini(event.base_points, MAX_SCORE - score)
+	var base_points: int = mini(event.rampage_score_points(), MAX_SCORE - score)
 	var multiplier: int = clampi(active_multiplier, 1, 5) if event.qualifies_for_combo else 1
 	var premium: int = mini(base_points * (multiplier - 1), MAX_SCORE - score - base_points)
 	safe_score += base_points

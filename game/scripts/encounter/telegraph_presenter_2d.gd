@@ -39,6 +39,7 @@ func reserve(
 	origin: Vector2,
 	target: Vector2,
 	duration: float,
+	damage_output: float = 0.0,
 	presentation_variant: StringName = &"",
 	visual_key: StringName = &"",
 	style_data: Dictionary = {}
@@ -55,6 +56,8 @@ func reserve(
 		"kind": kind,
 		"origin": origin,
 		"target": target,
+		"thickness_scale": p_owner.attack_telegraph_thickness_scale(),
+		"color_intensity": p_owner.attack_telegraph_color_intensity(damage_output),
 		"duration": maxf(duration, 0.01),
 		"remaining": maxf(duration, 0.01),
 		"presentation_variant": presentation_variant,
@@ -112,12 +115,24 @@ func _draw() -> void:
 		var progress: float = 1.0 - float(record.remaining) / float(record.duration)
 		var origin: Vector2 = to_local(record.origin)
 		var target: Vector2 = to_local(record.target)
-		var base_color: Color = Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56)
 		var kind: StringName = record.kind
+		var thickness_scale: float = float(record.thickness_scale)
+		var color_intensity: float = float(record.color_intensity)
+		var base_color: Color = _threat_color(
+			Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56),
+			color_intensity
+		)
 		var presentation_variant: StringName = StringName(
 			record.get("presentation_variant", &"")
 		)
-		if _draw_support_variant(presentation_variant, origin, target, progress):
+		if _draw_support_variant(
+			presentation_variant,
+			origin,
+			target,
+			progress,
+			thickness_scale,
+			color_intensity
+		):
 			continue
 		if kind == &"shell" or kind == &"rocket":
 			var badge_size: Vector2 = Vector2.ONE * (38.0 + progress * 10.0)
@@ -125,20 +140,77 @@ func _draw() -> void:
 				TELEGRAPH_BADGE,
 				Rect2(target - badge_size * 0.5, badge_size),
 				false,
-				Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38)
+				_threat_color(
+					Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38),
+					color_intensity
+				)
 			)
 		if kind == &"shell":
-			draw_line(origin, target, base_color, 8.0, true)
-			draw_line(origin, target, Color(1.0, 0.82, 0.42, 0.86), 2.0, true)
-			draw_circle(target, 26.0 + progress * 10.0, Color(1.0, 0.28, 0.10, 0.20))
-			draw_arc(target, 31.0, 0.0, TAU * progress, 32, base_color, 4.0, true)
+			draw_line(origin, target, base_color, 8.0 * thickness_scale, true)
+			draw_line(
+				origin,
+				target,
+				_threat_color(Color(1.0, 0.82, 0.42, 0.86), color_intensity),
+				2.0 * thickness_scale,
+				true
+			)
+			draw_circle(
+				target,
+				26.0 + progress * 10.0,
+				_threat_color(Color(1.0, 0.28, 0.10, 0.20), color_intensity)
+			)
+			draw_arc(
+				target,
+				31.0,
+				0.0,
+				TAU * progress,
+				32,
+				base_color,
+				4.0 * thickness_scale,
+				true
+			)
 		elif kind == &"rocket":
-			draw_dashed_line(origin, target, base_color, 3.0, 12.0, true)
-			draw_arc(target, 42.0, 0.0, TAU * progress, 36, base_color, 5.0, true)
-			draw_line(target + Vector2(-18.0, 0.0), target + Vector2(18.0, 0.0), base_color, 3.0)
-			draw_line(target + Vector2(0.0, -18.0), target + Vector2(0.0, 18.0), base_color, 3.0)
+			draw_dashed_line(
+				origin,
+				target,
+				base_color,
+				3.0 * thickness_scale,
+				12.0,
+				true
+			)
+			draw_arc(
+				target,
+				42.0,
+				0.0,
+				TAU * progress,
+				36,
+				base_color,
+				5.0 * thickness_scale,
+				true
+			)
+			draw_line(
+				target + Vector2(-18.0, 0.0),
+				target + Vector2(18.0, 0.0),
+				base_color,
+				3.0 * thickness_scale
+			)
+			draw_line(
+				target + Vector2(0.0, -18.0),
+				target + Vector2(0.0, 18.0),
+				base_color,
+				3.0 * thickness_scale
+			)
 		else:
-			draw_line(origin, target, Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45), 2.0, true)
+			draw_line(
+				origin,
+				target,
+				_threat_color(
+					Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45),
+					color_intensity
+				),
+				2.0 * thickness_scale,
+				true
+			)
 			draw_circle(origin, 5.0 + progress * 4.0, base_color)
 
 
@@ -146,19 +218,33 @@ func _draw_support_variant(
 	variant: StringName,
 	origin: Vector2,
 	target: Vector2,
-	progress: float
+	progress: float,
+	thickness_scale: float,
+	color_intensity: float
 ) -> bool:
 	if variant in [&"scan", &"choir_ring"]:
 		var start_size: float = 46.0 if variant == &"scan" else 92.0
 		var end_size: float = 66.0 if variant == &"scan" else 132.0
 		var mark_size: Vector2 = Vector2.ONE * lerpf(start_size, end_size, progress)
-		draw_line(origin, target, Color(1.0, 0.72, 0.34, 0.34 + progress * 0.42), 2.0, true)
+		draw_line(
+			origin,
+			target,
+			_threat_color(
+				Color(1.0, 0.72, 0.34, 0.34 + progress * 0.42),
+				color_intensity
+			),
+			2.0 * thickness_scale,
+			true
+		)
 		draw_set_transform(target, 0.0, Vector2.ONE)
 		draw_texture_rect(
 			TARGET_MARK_SUPPORT,
 			Rect2(-mark_size * 0.5, mark_size),
 			false,
-			Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48)
+			_threat_color(
+				Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48),
+				color_intensity
+			)
 		)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return true
@@ -175,7 +261,28 @@ func _draw_support_variant(
 			pulse_texture,
 			Rect2(origin - pulse_size * 0.5, pulse_size),
 			false,
-			Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55)
+			_threat_color(
+				Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55),
+				color_intensity
+			)
 		)
 		return true
 	return false
+
+
+func _threat_color(base_color: Color, intensity: float) -> Color:
+	var normalized: float = clampf(
+		inverse_lerp(
+			EnemyActor2D.TELEGRAPH_MINIMUM_COLOR_INTENSITY,
+			EnemyActor2D.TELEGRAPH_MAXIMUM_COLOR_INTENSITY,
+			intensity
+		),
+		0.0,
+		1.0
+	)
+	return Color(
+		clampf(base_color.r * intensity, 0.0, 1.0),
+		clampf(base_color.g * intensity, 0.0, 1.0),
+		clampf(base_color.b * intensity, 0.0, 1.0),
+		clampf(base_color.a * lerpf(0.78, 1.15, normalized), 0.0, 1.0)
+	)

@@ -39,6 +39,96 @@ func test_consecutive_kills_apply_the_growing_multiplier_immediately() -> void:
 	_record_test_execution()
 
 
+func test_combo_herald_milestones_emit_once_across_capped_progression() -> void:
+	var combo: ComboTracker = ComboTracker.new()
+	add_child_autofree(combo)
+	var tiers: Array[int] = []
+	var chains: Array[int] = []
+	var multipliers: Array[int] = []
+	combo.milestone_reached.connect(
+		func(tier: int, chain_count: int, multiplier: int) -> void:
+			tiers.append(tier)
+			chains.append(chain_count)
+			multipliers.append(multiplier)
+	)
+	for index: int in range(12):
+		assert_true(combo.register_event(_kill(StringName("herald_%d" % index), 0)))
+	assert_eq(tiers, [2, 3, 4, 5, 7, 10])
+	assert_eq(chains, [2, 3, 4, 5, 7, 10])
+	assert_eq(multipliers, [2, 3, 4, 5, 5, 5])
+	assert_eq(tiers.count(10), 1)
+	_record_test_execution()
+
+
+func test_combo_herald_catalog_preloads_every_generated_tier() -> void:
+	assert_eq(ComboHeraldCatalog.milestone_counts(), [2, 3, 4, 5, 7, 10])
+	for tier: int in ComboHeraldCatalog.milestone_counts():
+		var profile: Dictionary = ComboHeraldCatalog.profile_for(tier)
+		assert_false(profile.is_empty())
+		assert_true(profile[&"texture"] is Texture2D)
+		assert_true(profile[&"voice"] is AudioStream)
+		assert_true(String(profile[&"title_key"]).begins_with("hud.combo_herald."))
+		assert_gt(float(profile[&"intensity"]), 0.0)
+	assert_true(ComboHeraldCatalog.profile_for(6).is_empty())
+	_record_test_execution()
+
+
+func test_doubled_regular_enemy_pairs_preserve_authored_score_and_combo_curve() -> void:
+	var session: RampageSession = _session()
+	var adapter: RampageEventAdapter = RampageEventAdapter.new(session)
+	var robot: GiantRobotController = GiantRobotController.new()
+	var enemy: EnemyActor2D = EnemyActor2D.new()
+	add_child_autofree(robot)
+	add_child_autofree(enemy)
+	var expected_scores: Array[int] = [100, 300, 600, 1000]
+	for authored_slot: int in range(expected_scores.size()):
+		for copy_index: int in range(EnemySpawnTuning.QUANTITY_MULTIPLIER):
+			enemy.activation_generation += 1
+			assert_true(adapter.enemy_defeated(
+				enemy,
+				DamageEvent.new(
+					10_000 + enemy.activation_generation,
+					robot,
+					999.0,
+					&"density_test"
+				),
+				100,
+				robot
+			))
+		assert_eq(session.current_score(), expected_scores[authored_slot])
+		assert_eq(session.current_multiplier(), authored_slot + 1)
+	assert_eq(session.run_score.safe_score, 400)
+	assert_eq(session.run_score.pending_bank.value, 600)
+	assert_eq(session.run_experience.total_experience, 800)
+	assert_eq(session.combo_tracker.current_chain_count, 8)
+	assert_eq(session.combo_tracker.current_progress_units, 8)
+	_record_test_execution()
+
+
+func test_singular_named_boss_keeps_full_score_and_one_authored_combo_step() -> void:
+	var session: RampageSession = _session()
+	var adapter: RampageEventAdapter = RampageEventAdapter.new(session)
+	var robot: GiantRobotController = GiantRobotController.new()
+	var boss: EnemyActor2D = EnemyActor2D.new()
+	boss.boss_mode = true
+	add_child_autofree(robot)
+	add_child_autofree(boss)
+	assert_true(adapter.enemy_defeated(
+		boss,
+		DamageEvent.new(20_001, robot, 999.0, &"boss_density_test"),
+		1000,
+		robot
+	))
+	assert_eq(session.current_score(), 1000)
+	assert_eq(session.run_experience.total_experience, 1000)
+	assert_eq(
+		session.combo_tracker.current_progress_units,
+		RampageRewardTuning.COMBO_PROGRESS_UNITS_PER_TIER
+	)
+	assert_eq(session.current_multiplier(), 1)
+	_record_test_execution()
+
+
 func test_nonkill_score_ignores_active_kill_multiplier() -> void:
 	var session: RampageSession = _session()
 	session.publish(_kill(&"kill_1", 10))
@@ -52,11 +142,17 @@ func test_nonkill_score_ignores_active_kill_multiplier() -> void:
 	_record_test_execution()
 
 
-func test_combo_grace_breaks_at_exactly_three_seconds() -> void:
+func test_combo_grace_scales_to_exactly_half_the_authored_window() -> void:
 	var combo: ComboTracker = ComboTracker.new()
 	add_child_autofree(combo)
 	assert_true(combo.register_event(_kill(&"kill_1", 0)))
-	combo.advance(2.999)
+	assert_almost_eq(
+		combo.grace_remaining,
+		RampageRewardTuning.BASE_COMBO_GRACE_SECONDS
+		* EnemySpawnTuning.INTERVAL_SCALE,
+		0.0001
+	)
+	combo.advance(ComboTracker.GRACE_SECONDS - 0.001)
 	assert_eq(combo.current_chain_count, 1)
 	assert_gt(combo.grace_remaining, 0.0)
 	combo.advance(0.001)
