@@ -2,22 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ptjuhice5me2"
-path="res://.godot/imported/choir-prime.webp-3715400a37fc4667c556d081610a4614.ctex"
+uid="uid://bjrv2j64p66k3"
+path="res://.godot/imported/choir-prime-atlas.webp-06fda13f628c0996fd57ae6cba927415.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/bosses/choir-prime.webp"
-dest_files=["res://.godot/imported/choir-prime.webp-3715400a37fc4667c556d081610a4614.ctex"]
+source_file="res://art/bosses/animated/choir-prime-atlas.webp"
+dest_files=["res://.godot/imported/choir-prime-atlas.webp-06fda13f628c0996fd57ae6cba927415.ctex"]
 
 [params]
 
 compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.62
+compress/lossy_quality=0.2
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

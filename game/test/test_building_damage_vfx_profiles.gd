@@ -3,38 +3,83 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
-func test_severe_damage_enables_fixed_fire_and_electrical_arc_renderer() -> void:
+func test_damaged_sections_choose_one_accent_and_terminal_damage_culls_it() -> void:
 	var city: CitySlice = await _spawn_city()
-	var cell: Destructible2D = city.building.get_cell(0, 0)
-	var pattern: BuildingDamagePattern2D = cell.get_node(^"DamagedVisual") as BuildingDamagePattern2D
-	var severe_fx: BuildingSevereDamageFx2D = pattern.get_node(
+	var fire_cell: Destructible2D
+	var fire_pattern: BuildingDamagePattern2D
+	var damaged_cells: Array[Destructible2D] = []
+	var attack_id: int = 910_001
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			var cell: Destructible2D = city.building.get_cell(column, row)
+			var pattern: BuildingDamagePattern2D = cell.get_node(
+				^"DamagedVisual"
+			) as BuildingDamagePattern2D
+			var baseline_children: int = pattern.get_child_count()
+			assert_true(cell.receive_damage(_event(
+				attack_id,
+				cell,
+				cell.max_health * 0.70,
+				&"jab_cross",
+				Vector2.RIGHT
+			)))
+			attack_id += 1
+			assert_eq(pattern.damage_detail_count(), 1)
+			assert_eq(pattern.get_child_count(), baseline_children)
+			var mask: int = pattern.damage_detail_mask()
+			assert_true(mask in [
+				BuildingDamagePattern2D.CABLE_DETAIL_BIT,
+				BuildingDamagePattern2D.PIPE_DETAIL_BIT,
+				BuildingDamagePattern2D.FIRE_DETAIL_BIT,
+			])
+			damaged_cells.append(cell)
+			if mask == BuildingDamagePattern2D.FIRE_DETAIL_BIT:
+				fire_cell = cell
+				fire_pattern = pattern
+	assert_not_null(fire_cell)
+	assert_not_null(fire_pattern)
+	var severe_fx: BuildingSevereDamageFx2D = fire_pattern.get_node(
 		^"SevereDamageFx"
 	) as BuildingSevereDamageFx2D
-	assert_not_null(severe_fx)
-	assert_false(severe_fx.is_active())
-	var baseline_children: int = pattern.get_child_count()
-	assert_true(cell.receive_damage(_event(
-		910_001,
-		cell,
-		cell.max_health * 0.70,
-		&"jab_cross",
-		Vector2.RIGHT
-	)))
 	assert_true(severe_fx.is_active())
 	assert_gt(severe_fx.fire_intensity, 0.0)
-	assert_gt(severe_fx.arc_intensity, 0.0)
-	assert_eq(pattern.get_child_count(), baseline_children)
-	assert_true(cell.receive_damage(_event(
-		910_002,
-		cell,
-		cell.max_health,
-		&"missile",
-		Vector2.LEFT
-	)))
-	assert_true(cell.is_destroyed())
-	assert_true(severe_fx.is_active())
-	assert_almost_eq(severe_fx.fire_intensity, 1.0, 0.0001)
-	assert_eq(pattern.get_child_count(), baseline_children)
+	assert_almost_eq(severe_fx.arc_intensity, 0.0, 0.0001)
+	assert_not_null(severe_fx.fire_sprite)
+	assert_true(severe_fx.fire_sprite.is_playing())
+	assert_eq(
+		severe_fx.fire_sprite.sprite_frames.get_frame_count(&"burn"),
+		BuildingSevereDamageFx2D.FIRE_FRAME_COUNT
+	)
+	for cell: Destructible2D in damaged_cells:
+		var pattern: BuildingDamagePattern2D = cell.get_node(
+			^"DamagedVisual"
+		) as BuildingDamagePattern2D
+		var cable: BuildingDamageAttachment2D = pattern.get_node(
+			^"DanglingCables"
+		) as BuildingDamageAttachment2D
+		var pipe: BuildingDamageAttachment2D = pattern.get_node(
+			^"BrokenWaterPipe"
+		) as BuildingDamageAttachment2D
+		assert_true(cell.receive_damage(_event(
+			attack_id,
+			cell,
+			cell.current_health + 1.0,
+			&"missile",
+			Vector2.LEFT
+		)))
+		attack_id += 1
+		assert_true(cell.is_destroyed())
+		assert_eq(pattern.damage_detail_count(), 0)
+		assert_eq(pattern.damage_detail_mask(), 0)
+		assert_eq(pattern.active_damage_effect_count(), 0)
+		assert_false(cable.visible)
+		assert_false(pipe.visible)
+		assert_false(cable.particles.emitting)
+		assert_false(pipe.particles.emitting)
+	assert_false(severe_fx.is_active())
+	assert_false(severe_fx.fire_sprite.is_playing())
+	assert_eq(fire_pattern.damage_detail_count(), 0)
+	assert_eq(fire_pattern.damage_detail_mask(), 0)
 
 
 func test_attack_families_select_distinct_persistent_cavity_profiles() -> void:

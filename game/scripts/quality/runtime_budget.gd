@@ -40,7 +40,7 @@ const RARE_TAG_ROWS: int = 3
 const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
 const ACTIVE_CATALYSTS: int = 2
-const REPAIR_PICKUP_SLOTS: int = CATALYST_SLOTS
+const REPAIR_PICKUP_SLOTS: int = CatalystRuntime.REPAIR_PICKUP_CAPACITY
 const ACTOR_RESERVATIONS: int = 18
 const PENDING_BEAT_RECORDS: int = 48
 const CATALYST_QUERY_RESULTS: int = 12
@@ -52,6 +52,23 @@ const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS + PROCEDURAL_ENEMIES
 const TRAIT_RUNTIMES: int = 1
 const BOSS_SESSIONS: int = 1
 const BOSS_RIGS: int = 1
+const BOSS_ARENA_BARRIERS: int = 1
+const BOSS_DEFEAT_SPECTACLES: int = 1
+const BOSS_DEFEAT_VISUAL_SLOTS: int = (
+	BossDefeatSpectacle2D.EXPLOSION_SLOT_CAPACITY
+	+ BossDefeatSpectacle2D.FIREWORK_SLOT_CAPACITY
+)
+const BOSS_DEFEAT_PARTICLE_EMITTERS: int = (
+	BossDefeatSpectacle2D.EXPLOSION_EMITTER_CAPACITY
+	+ BossDefeatSpectacle2D.FIREWORK_EMITTER_CAPACITY
+)
+const BOSS_DEFEAT_PARTICLE_CAPACITY: int = (
+	BossDefeatSpectacle2D.EXPLOSION_EMITTER_CAPACITY
+	* BossDefeatSpectacle2D.EXPLOSION_PARTICLES_PER_EMITTER
+	+ BossDefeatSpectacle2D.FIREWORK_EMITTER_CAPACITY
+	* BossDefeatSpectacle2D.FIREWORK_PARTICLES_PER_EMITTER
+)
+const BOSS_DEFEAT_AUDIO_PLAYERS: int = 1
 const BOSS_CONTROLLERS: int = 1
 const BOSS_ARENA_ADAPTERS: int = 1
 const BOSS_PYLON_PRESENTATIONS: int = BossUtilityPool.PYLON_PRESENTATION_CAPACITY
@@ -63,6 +80,7 @@ const BOSS_COLLAPSE_LISTENERS: int = BossUtilityPool.COLLAPSE_LISTENER_CAPACITY
 const BOSS_POD_VISUALS: int = BossUtilityPool.POD_VISUAL_CAPACITY
 const BOSS_RECLAMATION_ANCHORS: int = BossUtilityPool.RECLAMATION_ANCHOR_CAPACITY
 const BOSS_WRECK_RECEIVERS: int = BossUtilityPool.WRECK_RECEIVER_CAPACITY
+const BOSS_RUBBLE_PRESENTATIONS: int = 1
 const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
 const DISTRICT_RECIPES: int = 3
 const RUN_CONTRACTS: int = 3
@@ -114,6 +132,9 @@ const FLOATING_ORIGIN_RUNTIMES: int = 1
 const WEATHER_RUNTIMES: int = 1
 const WEATHER_SURFACES: int = 1
 const WEATHER_PARTICLE_CAPACITY: int = DistrictWeatherSurface.PARTICLE_CAPACITY
+const SKY_LIFE_RUNTIMES: int = 1
+const SKY_LIFE_BANDS: int = 2
+const SKY_LIFE_SPRITES: int = 3
 const NARRATIVE_DIRECTORS: int = 1
 const TRANSMISSION_TOASTS: int = 1
 const FACADE_REVEAL_SLOTS: int = CityWorldStream.CHUNK_CAPACITY
@@ -185,6 +206,10 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			"weather_surfaces": _weather_surface_count(city),
 			"weather_particle_capacity": WEATHER_PARTICLE_CAPACITY,
 			"weather_post_warm_creations": _weather_post_warm_creations(city),
+			"sky_life_runtimes": _sky_life_runtime_count(city),
+			"sky_life_bands": _sky_life_band_count(city),
+			"sky_life_sprites": _sky_life_sprite_count(city),
+			"sky_life_post_warm_creations": _sky_life_post_warm_creations(city),
 			"narrative_directors": 1 if city.project_choir_runtime.director != null else 0,
 			"transmission_toasts": 1 if city.gameplay_hud.transmission_toast != null else 0,
 			"facade_reveal_slots": city.project_choir_runtime.facade_reveal.slot_count(),
@@ -230,7 +255,23 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"trait_runtimes": 1 if city.urban_siege.trait_runtime != null else 0,
 		"boss_sessions": 1 if city.urban_siege.boss_session != null else 0,
 		"boss_rigs": _boss_utility_count(city, &"rig"),
+		"boss_arena_barriers": _boss_arena_barrier_count(city),
+		"boss_defeat_spectacles": _boss_utility_count(city, &"defeat_spectacle"),
+		"boss_defeat_visual_slots": _boss_utility_count(city, &"defeat_visual_slots"),
+		"boss_defeat_particle_emitters": _boss_utility_count(
+			city,
+			&"defeat_particle_emitters"
+		),
+		"boss_defeat_particle_capacity": _boss_utility_count(
+			city,
+			&"defeat_particle_capacity"
+		),
+		"boss_defeat_audio_players": _boss_utility_count(
+			city,
+			&"defeat_audio_players"
+		),
 		"boss_controllers": _boss_utility_count(city, &"controller"),
+		"boss_rubble_presentations": _boss_utility_count(city, &"boss_rubble"),
 		"boss_arena_adapters": _boss_utility_count(city, &"arena_adapter"),
 		"boss_pylon_presentations": _boss_utility_count(city, &"pylons"),
 		"boss_projection_slots": _boss_utility_count(city, &"projections"),
@@ -363,6 +404,10 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		WEATHER_PARTICLE_CAPACITY
 	)
 	_check_equal(errors, data, "weather_post_warm_creations", 0)
+	_check_equal(errors, data, "sky_life_runtimes", SKY_LIFE_RUNTIMES)
+	_check_equal(errors, data, "sky_life_bands", SKY_LIFE_BANDS)
+	_check_equal(errors, data, "sky_life_sprites", SKY_LIFE_SPRITES)
+	_check_equal(errors, data, "sky_life_post_warm_creations", 0)
 	_check_equal(errors, data, "narrative_directors", NARRATIVE_DIRECTORS)
 	_check_equal(errors, data, "transmission_toasts", TRANSMISSION_TOASTS)
 	_check_equal(errors, data, "facade_reveal_slots", FACADE_REVEAL_SLOTS)
@@ -394,6 +439,27 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "trait_runtimes", TRAIT_RUNTIMES)
 	_check_equal(errors, data, "boss_sessions", BOSS_SESSIONS)
 	_check_equal(errors, data, "boss_rigs", BOSS_RIGS)
+	_check_equal(errors, data, "boss_arena_barriers", BOSS_ARENA_BARRIERS)
+	_check_equal(errors, data, "boss_defeat_spectacles", BOSS_DEFEAT_SPECTACLES)
+	_check_equal(errors, data, "boss_defeat_visual_slots", BOSS_DEFEAT_VISUAL_SLOTS)
+	_check_equal(
+		errors,
+		data,
+		"boss_defeat_particle_emitters",
+		BOSS_DEFEAT_PARTICLE_EMITTERS
+	)
+	_check_equal(
+		errors,
+		data,
+		"boss_defeat_particle_capacity",
+		BOSS_DEFEAT_PARTICLE_CAPACITY
+	)
+	_check_equal(
+		errors,
+		data,
+		"boss_defeat_audio_players",
+		BOSS_DEFEAT_AUDIO_PLAYERS
+	)
 	_check_equal(errors, data, "boss_controllers", BOSS_CONTROLLERS)
 	_check_equal(errors, data, "boss_arena_adapters", BOSS_ARENA_ADAPTERS)
 	_check_equal(errors, data, "boss_pylon_presentations", BOSS_PYLON_PRESENTATIONS)
@@ -405,6 +471,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "boss_pod_visuals", BOSS_POD_VISUALS)
 	_check_equal(errors, data, "boss_reclamation_anchors", BOSS_RECLAMATION_ANCHORS)
 	_check_equal(errors, data, "boss_wreck_receivers", BOSS_WRECK_RECEIVERS)
+	_check_equal(
+		errors,
+		data,
+		"boss_rubble_presentations",
+		BOSS_RUBBLE_PRESENTATIONS
+	)
 	_check_equal(errors, data, "boss_post_warm_creations", 0)
 	_check_equal(errors, data, "boss_reservations", 0)
 	_check_equal(errors, data, "district_recipes", DISTRICT_RECIPES)
@@ -546,6 +618,32 @@ static func _weather_post_warm_creations(city: CitySlice) -> int:
 	return weather.post_warm_creation_count if weather != null else 0
 
 
+static func _sky_life_runtime(city: CitySlice) -> DistrictSkyLifeRuntime:
+	var parallax: DistrictParallaxRuntime = city.get_node_or_null(
+		^"ParallaxCity"
+	) as DistrictParallaxRuntime
+	return parallax.sky_life_runtime() if parallax != null else null
+
+
+static func _sky_life_runtime_count(city: CitySlice) -> int:
+	return 1 if _sky_life_runtime(city) != null else 0
+
+
+static func _sky_life_band_count(city: CitySlice) -> int:
+	var life: DistrictSkyLifeRuntime = _sky_life_runtime(city)
+	return life.band_count() if life != null else 0
+
+
+static func _sky_life_sprite_count(city: CitySlice) -> int:
+	var life: DistrictSkyLifeRuntime = _sky_life_runtime(city)
+	return life.sprite_count() if life != null else 0
+
+
+static func _sky_life_post_warm_creations(city: CitySlice) -> int:
+	var life: DistrictSkyLifeRuntime = _sky_life_runtime(city)
+	return life.post_warm_creation_count if life != null else 0
+
+
 static func _count_nodes(root: Node) -> int:
 	var count: int = 1
 	for child: Node in root.get_children():
@@ -659,6 +757,16 @@ static func _boss_utility_count(city: CitySlice, kind: StringName) -> int:
 	match kind:
 		&"rig":
 			return pool.rig_count()
+		&"defeat_spectacle":
+			return pool.defeat_spectacle_count()
+		&"defeat_visual_slots":
+			return pool.defeat_visual_slot_count()
+		&"defeat_particle_emitters":
+			return pool.defeat_particle_emitter_count()
+		&"defeat_particle_capacity":
+			return pool.defeat_particle_capacity()
+		&"defeat_audio_players":
+			return pool.defeat_audio_player_count()
 		&"controller":
 			return pool.controller_count()
 		&"arena_adapter":
@@ -681,8 +789,16 @@ static func _boss_utility_count(city: CitySlice, kind: StringName) -> int:
 			return pool.reclamation_anchor_count()
 		&"wreck_receivers":
 			return pool.wreck_receiver_count()
+		&"boss_rubble":
+			return pool.boss_rubble_count()
 		&"post_warm_creations":
 			return pool.post_warm_creation_count
 		&"reservations":
 			return pool.reservation_count()
 	return 0
+
+
+static func _boss_arena_barrier_count(city: CitySlice) -> int:
+	if city.urban_siege == null or city.urban_siege.boss_campaign == null:
+		return 0
+	return 1 if city.urban_siege.boss_campaign.arena_barrier != null else 0

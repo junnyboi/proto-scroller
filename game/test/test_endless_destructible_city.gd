@@ -161,12 +161,17 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 		pipe.particles.amount,
 		BuildingDamageAttachment2D.MAX_WATER_PARTICLES
 	)
-	var initial_rotation: float = cable.rotation
-	for _step: int in range(8):
-		cable._process(0.1)
-	assert_ne(cable.rotation, initial_rotation)
-	assert_ne(pattern.cable_sway_offset(), 0.0)
-	assert_lte(absf(pattern.cable_sway_offset()), 0.26)
+	assert_eq(pattern.damage_detail_count(), 1)
+	assert_ne(cable.visible, pipe.visible)
+	if cable.visible:
+		var initial_rotation: float = cable.rotation
+		for _step: int in range(8):
+			cable._process(0.1)
+		assert_ne(cable.rotation, initial_rotation)
+		assert_ne(pattern.cable_sway_offset(), 0.0)
+		assert_lte(absf(pattern.cable_sway_offset()), 0.26)
+	else:
+		assert_false(cable.is_processing())
 	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_102)))
 	assert_true(cell.is_destroyed())
 	assert_true(pattern.visible)
@@ -176,8 +181,10 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 	assert_gt(_hollow_extents(pattern).y, damaged_extents.y)
 	assert_eq(pattern.contour().size(), BuildingDamagePattern2D.CONTOUR_POINTS)
 	assert_gt(pattern.crack_count(), 0)
-	assert_eq(pattern.damage_detail_count(), 2)
-	assert_true(cable.is_processing())
+	assert_eq(pattern.damage_detail_count(), 0)
+	assert_eq(pattern.damage_detail_mask(), 0)
+	assert_false(cable.is_processing())
+	assert_false(pipe.visible)
 	assert_almost_eq(
 		pattern.cavity_darken_strength(),
 		BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH,
@@ -215,12 +222,12 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 	cell.restore_stream_state(captured)
 	assert_eq(pattern.pattern_signature(), signature)
 	assert_true(pattern.is_destroyed_stage())
-	assert_eq(pattern.damage_detail_count(), 2)
+	assert_eq(pattern.damage_detail_count(), 0)
 	cell.restore_stream_state({"destroyed": true, "health": 0.0})
 	assert_true(cell.is_destroyed())
 	assert_true(pattern.visible)
 	assert_gt(pattern.pattern_signature().length(), 0)
-	assert_eq(pattern.damage_detail_count(), 2)
+	assert_eq(pattern.damage_detail_count(), 0)
 	_record_test_execution()
 
 
@@ -274,7 +281,8 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_gt(0.5 - terminal_extents.x, 0.09)
 	assert_gt(BuildingDamagePattern2D.HOLLOW_CENTER_Y - terminal_extents.y, 0.09)
 	assert_gte(BuildingDamagePattern2D.HOLLOW_CENTER_Y + terminal_extents.y, 0.94)
-	assert_eq(pattern.damage_detail_count(), 2)
+	assert_eq(pattern.damage_detail_count(), 0)
+	assert_eq(pattern.damage_detail_mask(), 0)
 	assert_gte(pattern.crack_count(), BuildingDamagePattern2D.BASE_CRACK_COUNT + 3)
 	var shader_code: String = pattern.cavity_material().shader.code
 	assert_true(shader_code.contains("texture(TEXTURE, UV)"))
@@ -309,7 +317,7 @@ func test_run_reset_clears_sparse_mutations_without_reallocating() -> void:
 
 func test_district_readiness_scales_enemy_and_hazard_pressure_inside_caps() -> void:
 	var city: CitySlice = await _spawn_city()
-	await _move_to_logical_chunk(city, 15)
+	await _move_to_logical_chunk(city, 36)
 	assert_eq(city.world_stream.progression_tier(), 3)
 	assert_eq(city.world_stream.current_district_id, &"MILITARY")
 	var director: DistrictResponseDirector = city.urban_siege.director
@@ -408,13 +416,23 @@ func _unlock_districts_through(stream: CityWorldStream, logical_index: int) -> v
 			stream.unlocked_district_index
 		]
 		stream.current_district_id = district.district_id
-		for variant: StructuralBuildingVariant in district.building_variants:
+		for encounter_index: int in range(
+			CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+		):
+			var encounter_chunk: int = district.start_chunk + encounter_index
+			var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+				stream.run_seed,
+				encounter_chunk
+			)
 			var building_value: StructuralBuilding2D = StructuralBuilding2D.new()
 			building_value.set_meta(&"district_id", district.district_id)
 			building_value.set_meta(&"district_index", district.district_index)
 			building_value.set_meta(&"building_variant_id", variant.variant_id)
+			building_value.set_meta(&"logical_chunk", encounter_chunk)
 			stream.report_building_cleared(building_value)
 			building_value.free()
+		assert_true(stream.begin_post_boss_corridor(district.district_index))
+		assert_true(stream.complete_district_handoff(district.district_index))
 
 
 func _fatal_event(

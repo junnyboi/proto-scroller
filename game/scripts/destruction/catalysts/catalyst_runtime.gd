@@ -8,6 +8,7 @@ signal repair_pickup_collected(repaired_health: float)
 signal power_box_obliterated(catalyst: Catalyst2D, awarded_score: int)
 
 const SLOT_COUNT: int = 2
+const REPAIR_PICKUP_CAPACITY: int = SLOT_COUNT + 3
 const POWER_BOX_SCRAP_PIECES: int = 6
 const POWER_BOX_FINISH_POINTS: int = 150
 const POWER_BOX_SCRAP_IMPULSE: float = 980.0
@@ -50,6 +51,7 @@ func _ready() -> void:
 		add_child(catalyst)
 		catalyst.reset_catalyst()
 		slots.append(catalyst)
+	for index: int in range(REPAIR_PICKUP_CAPACITY):
 		var pickup: ChassisRepairPickup2D = REPAIR_PICKUP_SCRIPT.new()
 		pickup.name = "ChassisRepairPickupSlot%d" % index
 		pickup.z_index = 40
@@ -99,22 +101,21 @@ func repair_pickup_count() -> int:
 func _on_catalyst_triggered(catalyst: Catalyst2D, event: DamageEvent) -> void:
 	catalyst_triggered.emit(catalyst, event)
 	if catalyst.profile != null and catalyst.profile.catalyst_id == &"TRANSFORMER":
-		_spawn_repair_pickup(catalyst.global_position + Vector2(0.0, -96.0))
+		spawn_repair_pickup(catalyst.global_position + Vector2(0.0, -96.0))
 	_resolve_after_delay(catalyst, event)
 
 
-func _spawn_repair_pickup(world_position: Vector2) -> void:
+func spawn_repair_pickup(world_position: Vector2) -> ChassisRepairPickup2D:
 	var selected: ChassisRepairPickup2D
 	for pickup: ChassisRepairPickup2D in repair_pickups:
 		if not pickup.active:
 			selected = pickup
 			break
-	if selected == null and not repair_pickups.is_empty():
-		selected = repair_pickups[0]
 	if selected == null:
-		return
+		return null
 	selected.activate(world_position)
 	repair_pickup_spawned.emit(selected)
+	return selected
 
 
 func _on_repair_pickup_collected(

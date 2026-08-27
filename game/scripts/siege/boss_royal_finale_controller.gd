@@ -293,6 +293,30 @@ func complete_severance_window() -> bool:
 	return true
 
 
+func complete_severance_immediately() -> bool:
+	if (
+		not active()
+		or not wreck_active
+		or finale_snapshot == null
+		or not finale_snapshot.disentangle_eligible
+	):
+		return false
+	severance_active = false
+	severance_completed = SEVERANCE_WINDOW_COUNT
+	severance_window_remaining = 0.0
+	_hide_pressure()
+	attack_stage = &"IDLE"
+	active_mechanic = &""
+	active_echo = &""
+	utility_pool.hide_royal_echo_presentations()
+	severance_changed.emit(
+		severance_completed,
+		SEVERANCE_WINDOW_COUNT,
+		severance_loop_count
+	)
+	return true
+
+
 func cancel_pressure() -> void:
 	severance_active = false
 	_hide_pressure()

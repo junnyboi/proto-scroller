@@ -1,15 +1,17 @@
 # Project CHOIR Runtime Boss Art
 
-These five transparent WebP assets were generated with **GPT Image 2** on 2026-08-26 from the approved plates in `docs/concepts/district-bosses/`. They are runtime presentation sprites, not concept art, and follow the side-view painterly industrial style of Proto Scroller.
+The five canonical bosses now render from video-derived transparent WebP atlases in `animated/`. The pipeline began with the approved character plates in `docs/concepts/district-bosses/` and the original GPT Image 2 static runtime sprites, generated fresh hot-pink keyframes with **GPT Image 2**, created locked-camera audio-disabled motion carriers with **Veo 3.1**, and extracted normalized frames through Manus `video-to-sprites`.
 
-| Boss | Runtime asset | Source concept |
+| Boss | Runtime atlas | Source concept |
 |---|---|---|
-| SETTLEMENT ENGINE S-04 | `settlement-engine-s04.webp` | `docs/concepts/district-bosses/01-business-settlement-engine-s04.jpg` |
-| SAMARITAN-15 | `samaritan-15.webp` | `docs/concepts/district-bosses/02-residential-samaritan15.jpg` |
-| MIMESIS-04 | `mimesis-04.webp` | `docs/concepts/district-bosses/03-entertainment-mimesis04.jpg` |
-| CANTOR-31 / PALE ENGINE | `cantor-31.webp` | `docs/concepts/district-bosses/04-military-cantor31-pale-engine.jpg` |
-| CHOIR Prime | `choir-prime.webp` | `docs/concepts/district-bosses/05-royal-choir-prime.jpg` |
+| SETTLEMENT ENGINE S-04 | `animated/settlement-engine-s04-atlas.webp` | `docs/concepts/district-bosses/01-business-settlement-engine-s04.jpg` |
+| SAMARITAN-15 | `animated/samaritan-15-atlas.webp` | `docs/concepts/district-bosses/02-residential-samaritan15.jpg` |
+| MIMESIS-04 | `animated/mimesis-04-atlas.webp` | `docs/concepts/district-bosses/03-entertainment-mimesis04.jpg` |
+| CANTOR-31 / PALE ENGINE | `animated/cantor-31-atlas.webp` | `docs/concepts/district-bosses/04-military-cantor31-pale-engine.jpg` |
+| CHOIR Prime | `animated/choir-prime-atlas.webp` | `docs/concepts/district-bosses/05-royal-choir-prime.jpg` |
 
-The generated 2304×1536 masters remain outside the source repository under `/home/ubuntu/generated-raw/proto-scroller-bosses/images/`. Runtime files are deterministically alpha-cleaned, trimmed, fitted to a shared 512×384 transparent canvas, and encoded as quality-84 WebP. No boss art is procedurally drawn at runtime.
+Every atlas contains four eight-frame rows: east moving, west moving, east attacking, and west attacking. S-04 and CHOIR Prime use independently generated directional carriers to preserve world-semantic archive and named-pylon placement. SAMARITAN, MIMESIS, and CANTOR derive west by mirroring the complete rendered east frame. Runtime art is compact lossy WebP with exact alpha; lossless atlases, individual frames, anchors, and carrier MP4s remain outside source at `/home/ubuntu/proto-scroller-art-masters/boss-sprites/`.
 
-The art is intended for one reusable `BossRig2D`; mechanical weak points, pylons, markers, hurt regions, and telegraphs remain prewarmed Godot nodes rather than baked image labels. This preserves accessibility, collision accuracy, portrait/landscape parity, and fixed allocation.
+The superseded static sprites were removed from the Web PCK after the animated atlases became canonical. Their exact archived copies remain outside the repository at `/home/ubuntu/proto-scroller-art-masters/boss-sprites/static-runtime-archive/`.
+
+The animated art reuses one prewarmed `BossRig2D`; mechanical weak points, sockets, pylons, markers, hurt regions, telegraphs, attack areas, and wreck receivers remain separate Godot nodes rather than baked image labels. Animation changes presentation only and cannot alter damage timing, collision geometry, evidence, pooling, retries, or campaign progression. Defeat presentation reuses the two GPT Image 2 textures in `defeat_fx/` across 22 timed sprites and 14 particle emitters. Exact animation provenance is recorded in [`animated/ANIMATION_ASSET_MANIFEST.md`](animated/ANIMATION_ASSET_MANIFEST.md), while the defeat sound carrier is documented in [`../../audio/sfx/boss/PROVENANCE.md`](../../audio/sfx/boss/PROVENANCE.md).

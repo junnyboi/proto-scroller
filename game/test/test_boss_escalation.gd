@@ -238,7 +238,7 @@ func test_stage_and_arsenal_transactions_are_idempotent_with_export_data() -> vo
 		Array(store.snapshot().boss_results.CANTOR_31_PALE_ENGINE.export_destinations),
 		BossEscalationController.EXPORT_DESTINATIONS
 	)
-	assert_eq(int(store.snapshot().route_unlock_chunk), 28)
+	assert_eq(int(store.snapshot().route_unlock_chunk), 48)
 	assert_eq(store.pending_reward_grants().count("boss:MIMESIS_04:reward"), 1)
 	assert_eq(store.pending_reward_grants().count("boss:CANTOR_31_PALE_ENGINE:reward"), 1)
 

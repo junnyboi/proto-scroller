@@ -73,11 +73,11 @@ python3 ../scripts/verify-title-loop-seam.py \
 	../client/public/title-video/title-loop-portrait.mp4 \
 	| tee artifacts/title-loop-seam.json
 for boss_art in \
-	art/bosses/settlement-engine-s04.webp \
-	art/bosses/samaritan-15.webp \
-	art/bosses/mimesis-04.webp \
-	art/bosses/cantor-31.webp \
-	art/bosses/choir-prime.webp; do
+	art/bosses/animated/settlement-engine-s04-atlas.webp \
+	art/bosses/animated/samaritan-15-atlas.webp \
+	art/bosses/animated/mimesis-04-atlas.webp \
+	art/bosses/animated/cantor-31-atlas.webp \
+	art/bosses/animated/choir-prime-atlas.webp; do
 	test -s "$boss_art"
 done
 for herald_tier in \

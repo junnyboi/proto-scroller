@@ -2,22 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cxh5qv1kg4jg"
-path="res://.godot/imported/cantor-31.webp-aec30e03617b8fc5694acab658cac057.ctex"
+uid="uid://cxbb4f7phm1nm"
+path="res://.godot/imported/courier_shuttle.webp-91107e0b1363759c6c48cd168ba360f2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/bosses/cantor-31.webp"
-dest_files=["res://.godot/imported/cantor-31.webp-aec30e03617b8fc5694acab658cac057.ctex"]
+source_file="res://art/city/parallax/living/courier_shuttle.webp"
+dest_files=["res://.godot/imported/courier_shuttle.webp-91107e0b1363759c6c48cd168ba360f2.ctex"]
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
-compress/lossy_quality=0.62
+compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

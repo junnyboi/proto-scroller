@@ -8,21 +8,21 @@
 
 Proto Scroller’s endless city becomes a directed campaign through five visually and mechanically distinct spatial districts: **Business**, **Residential**, **Entertainment / Nightlife**, **Military**, and **Royal / Noble**. Each district owns five deterministic destructible-building archetypes, producing a roster of **25 buildings** while preserving the game’s current six-cell hollowing model, staged cracks, exposed interiors, leaking pipes, dangling electrical cables, nonblocking rubble, material-specific debris, support transfer, and chain-collapse behavior.[1] [2]
 
-The district model is deliberately separate from the existing siege `DistrictDefinition`, whose six acts represent combat cadence rather than geography.[3] Each spatial district now occupies five forward logical chunks—one for every authored facade—and its exit remains blocked until all five unique buildings are cleared. The existing encounter arc remains intact.
+The district model is deliberately separate from the existing siege `DistrictDefinition`, whose six acts represent combat cadence rather than geography.[3] Each spatial district now presents ten forward facade encounters—two deterministic, independently shuffled passes through its five authored facade types—before two road-only transition chunks. Boss readiness requires all ten encounters, while the unique catalog remains exactly twenty-five building types. The existing encounter arc remains intact.
 
 ## Campaign Progression
 
 | District | Forward chunks | Combat purpose | Visual identity |
 |---|---:|---|---|
-| **The Ledger Spine — Business** | 0–4 | Teaches material reading, selective support failure, and safe chain reactions | Disciplined corporate verticality, cyan finance glass, oxidized service trunks |
-| **Ashwater Commons — Residential** | 5–9 | Adds lived-in cover geometry and domestic utility hazards | Prefab housing, cisterns, laundry gantries, warm windows, municipal teal |
-| **The Afterglow Strip — Entertainment / Nightlife** | 10–14 | Escalates environmental crossfire and delayed utility reactions | Failing neon, theaters, hotels, arenas, show-control machinery |
-| **The Iron Corridor — Military** | 15–19 | Introduces steel-heavy targets and hardened logistics architecture | Blast shells, armories, repair gantries, command relays, field olive armor |
-| **The Crownward — Royal / Noble** | 20+ | Culminating monumental destruction and elite combined-arms arenas | Palace-bunkers, tribunals, ceremonial brass, gargantuan stepped silhouettes |
+| **The Ledger Spine — Business** | 0–11 | Teaches material reading, selective support failure, and safe chain reactions | Disciplined corporate verticality, cyan finance glass, oxidized service trunks |
+| **Ashwater Commons — Residential** | 12–23 | Adds lived-in cover geometry and domestic utility hazards | Prefab housing, cisterns, laundry gantries, warm windows, municipal teal |
+| **The Afterglow Strip — Entertainment / Nightlife** | 24–35 | Escalates environmental crossfire and delayed utility reactions | Failing neon, theaters, hotels, arenas, show-control machinery |
+| **The Iron Corridor — Military** | 36–47 | Introduces steel-heavy targets and hardened logistics architecture | Blast shells, armories, repair gantries, command relays, field olive armor |
+| **The Crownward — Royal / Noble** | 48+ | Culminating monumental destruction and elite combined-arms arenas | Palace-bunkers, tribunals, ceremonial brass, gargantuan stepped silhouettes |
 
 ## Shared Destruction Language
 
-Every building retains a **3×2 logical structural grid** so the player can read targets at speed. Each damaged cell progressively erodes its own authored sprite from the center outward: a small initial void grows through a stable jagged boundary while all surviving facade pixels darken with cumulative damage. Terminal failure removes most of the center and lower middle, leaving dark irregular side rails and a top lintel around the opening, final cracks, broken plumbing, dangling cables, and a shallow nonblocking rubble bed. Transparent source pixels remain transparent, and no destroyed cross-section sprite replaces the building. Lower-cell failure transfers damage upward; complete floors start staggered collapse; loss of all authored steel supports triggers the faster steel-support chain.[1]
+Every building retains a **3×2 logical structural grid** so the player can read targets at speed. Each damaged cell progressively erodes its own authored sprite from the center outward: a small initial void grows through a stable jagged boundary while all surviving facade pixels darken with cumulative damage. A damaged section owns exactly one deterministic accent—video-derived interior fire, one broken pipe, or one dangling cable—plus its cracks. Terminal failure removes most of the center and lower middle, leaves dark irregular side rails and a top lintel around the opening, and culls every fire/wire/pipe accent before placing a shallow nonblocking rubble bed. Transparent source pixels remain transparent, and no destroyed cross-section sprite replaces the building. Lower-cell failure transfers damage upward; complete floors start staggered collapse; loss of all authored steel supports triggers the faster steel-support chain.[1]
 
 Variation is delivered through GPT Image 2 facade art, silhouette, display dimensions, six-cell material layout, district palette, deterministic crack seed, and a named destruction signature. The live runtime continues to use only six pooled building instances—one per resident chunk—so 25 catalog entries do not multiply the active node or physics budget.[4] [5]
 
@@ -98,7 +98,7 @@ A ceremonial capital quarter engineered to make imperial power appear permanent.
 
 ## Runtime Asset Strategy
 
-Each of the 25 buildings receives a standalone GPT Image 2 transparent facade sprite. One per-cell shader operates directly on that facade, preserving pristine alpha at zero damage and expanding a seed-stable jagged alpha void as normalized damage rises. Cracks, cables, pipes, and hollow cutouts therefore remain runtime-generated and deterministic rather than requiring 75 bespoke stage images. The shared shallow-rubble atlas remains material-tinted; it never replaces the failed facade section.
+Each of the 25 buildings receives a standalone GPT Image 2 transparent facade sprite. One per-cell shader operates directly on that facade, preserving pristine alpha at zero damage and expanding a seed-stable jagged alpha void as normalized damage rises. Cracks, accent choice, and hollow cutouts remain runtime-generated and deterministic rather than requiring 75 bespoke stage images. The fire choice uses one shared 24-frame transparent WebP atlas generated through video-to-sprites; cables and pipes retain their compact generated sprites. The shared shallow-rubble atlas remains material-tinted and never replaces the failed facade section.
 
 Sprites are imported without mipmaps and resized to a compact gameplay resolution. The package gate increases from 8 MiB to **16 MiB**, with the implementation required to report actual HTML, JavaScript, WASM, and PCK sizes and preserve the non-threaded Web export contract.[6]
 

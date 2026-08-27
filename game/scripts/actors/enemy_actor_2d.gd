@@ -19,6 +19,7 @@ signal boss_armor_broken()
 enum ArmorPolicy {
 	LEGACY_AMOUNT_BASED,
 	FULL_CHARGE_FIXED_STEP,
+	ALL_DAMAGE,
 }
 
 enum BossDamageResult {
@@ -218,7 +219,10 @@ func _is_ground_vehicle() -> bool:
 func _receive_boss_armor_damage(event: DamageEvent) -> BossDamageResult:
 	if not boss_mode or boss_armor <= 0.0:
 		return BossDamageResult.CONTINUE
-	if event.damage_type != &"jab_cross":
+	if (
+		boss_armor_policy != ArmorPolicy.ALL_DAMAGE
+		and event.damage_type != &"jab_cross"
+	):
 		return BossDamageResult.REJECTED
 	var armor_damage: float = event.amount
 	if boss_armor_policy == ArmorPolicy.FULL_CHARGE_FIXED_STEP:

@@ -3,10 +3,14 @@ extends RefCounted
 
 const DISTRICT_COUNT: int = 5
 const VARIANTS_PER_DISTRICT: int = 5
+const FACADE_PASSES_PER_DISTRICT: int = 2
+const FACADE_ENCOUNTERS_PER_DISTRICT: int = (
+	VARIANTS_PER_DISTRICT * FACADE_PASSES_PER_DISTRICT
+)
 const BUILDING_VARIANT_COUNT: int = DISTRICT_COUNT * VARIANTS_PER_DISTRICT
 const TRANSITION_CORRIDOR_CHUNKS: int = 2
 const CHUNKS_PER_DISTRICT: int = (
-	VARIANTS_PER_DISTRICT + TRANSITION_CORRIDOR_CHUNKS
+	FACADE_ENCOUNTERS_PER_DISTRICT + TRANSITION_CORRIDOR_CHUNKS
 )
 
 const SHARED_RUBBLE: Texture2D = preload(
@@ -135,7 +139,8 @@ static func local_chunk_index(logical_index: int) -> int:
 
 
 static func chunk_hosts_facade(logical_index: int) -> bool:
-	return local_chunk_index(logical_index) < VARIANTS_PER_DISTRICT
+	var local_index: int = local_chunk_index(logical_index)
+	return local_index >= 0 and local_index < FACADE_ENCOUNTERS_PER_DISTRICT
 
 
 static func variant_for_chunk(
@@ -144,31 +149,72 @@ static func variant_for_chunk(
 ) -> StructuralBuildingVariant:
 	var district: CityDistrictProfile = district_for_chunk(logical_index)
 	var local_index: int = logical_index - district.start_chunk
-	var order: PackedInt32Array = _variant_order(run_seed, district)
-	var roster_offset: int = 0
-	if run_seed != 0:
-		roster_offset = posmod(
-			hash("%d:%s:facade_offset" % [run_seed, district.district_id]),
-			district.variant_count()
-		)
+	var facade_pass: int = maxi(local_index, 0) / VARIANTS_PER_DISTRICT
+	var order: PackedInt32Array = _variant_order(run_seed, district, facade_pass)
+	var roster_offset: int = _variant_offset(run_seed, district, facade_pass)
+	if facade_pass > 0 and _pass_sequences_match(
+		run_seed,
+		district,
+		facade_pass - 1,
+		facade_pass
+	):
+		roster_offset = posmod(roster_offset + 1, district.variant_count())
 	var roster_index: int = posmod(
-		local_index + roster_offset,
+		local_index % VARIANTS_PER_DISTRICT + roster_offset,
 		district.variant_count()
 	)
 	var variant_index: int = order[roster_index]
 	return district.building_variants[variant_index]
 
 
+static func _variant_offset(
+	run_seed: int,
+	district: CityDistrictProfile,
+	facade_pass: int
+) -> int:
+	if run_seed == 0:
+		return 0
+	return posmod(
+		hash(
+			"%d:%s:facade_offset:%d"
+			% [run_seed, district.district_id, facade_pass]
+		),
+		district.variant_count()
+	)
+
+
+static func _pass_sequences_match(
+	run_seed: int,
+	district: CityDistrictProfile,
+	first_pass: int,
+	second_pass: int
+) -> bool:
+	var first_order: PackedInt32Array = _variant_order(run_seed, district, first_pass)
+	var second_order: PackedInt32Array = _variant_order(run_seed, district, second_pass)
+	var first_offset: int = _variant_offset(run_seed, district, first_pass)
+	var second_offset: int = _variant_offset(run_seed, district, second_pass)
+	for index: int in range(district.variant_count()):
+		if (
+			first_order[posmod(index + first_offset, district.variant_count())]
+			!= second_order[posmod(index + second_offset, district.variant_count())]
+		):
+			return false
+	return true
+
+
 static func _variant_order(
 	run_seed: int,
-	district: CityDistrictProfile
+	district: CityDistrictProfile,
+	facade_pass: int = 0
 ) -> PackedInt32Array:
 	var order: PackedInt32Array = PackedInt32Array()
 	for variant_index: int in range(district.variant_count()):
 		order.append(variant_index)
 	var first_mutable_index: int = 1 if district.district_index == 0 else 0
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = hash("%d:%s:facade_order" % [run_seed, district.district_id])
+	rng.seed = hash(
+		"%d:%s:facade_order:%d" % [run_seed, district.district_id, facade_pass]
+	)
 	for cursor: int in range(order.size() - 1, first_mutable_index, -1):
 		var swap_index: int = rng.randi_range(first_mutable_index, cursor)
 		var held_index: int = order[cursor]

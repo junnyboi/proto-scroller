@@ -118,7 +118,8 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						String(variant.variant_id)
 					)
 					assert_gt(pattern.crack_count(), 0, String(variant.variant_id))
-					assert_eq(pattern.damage_detail_count(), 2, String(variant.variant_id))
+					assert_eq(pattern.damage_detail_count(), 0, String(variant.variant_id))
+					assert_eq(pattern.damage_detail_mask(), 0, String(variant.variant_id))
 					assert_almost_eq(
 						pattern.cavity_darken_strength(),
 						BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH,
@@ -313,11 +314,19 @@ func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
 
 func _unlock_current_district(stream: CityWorldStream) -> void:
 	var district: CityDistrictProfile = stream.current_district()
-	for variant: StructuralBuildingVariant in district.building_variants:
+	for encounter_index: int in range(
+		CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+	):
+		var logical_chunk: int = district.start_chunk + encounter_index
+		var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+			stream.run_seed,
+			logical_chunk
+		)
 		var building: StructuralBuilding2D = StructuralBuilding2D.new()
 		building.set_meta(&"district_id", district.district_id)
 		building.set_meta(&"district_index", district.district_index)
 		building.set_meta(&"building_variant_id", variant.variant_id)
+		building.set_meta(&"logical_chunk", logical_chunk)
 		stream.report_building_cleared(building)
 		building.free()
 	stream.begin_post_boss_corridor(district.district_index)

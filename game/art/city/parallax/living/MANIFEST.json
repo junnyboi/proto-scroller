@@ -1,0 +1,42 @@
+{
+  "generator": "GPT Image 2",
+  "purpose": "fixed-allocation moving cloud and distant air-traffic parallax",
+  "entries": [
+    {
+      "id": "cloud_bank",
+      "generator": "GPT Image 2",
+      "source": "docs/concepts/living-skies/district-cloud-bank.png",
+      "source_dimensions": "2688x1152",
+      "source_sha256": "468250af7c6b87b5258151993ddaf471609a0513e4f166a6d09a0405e8c32476",
+      "runtime": "game/art/city/parallax/living/cloud_bank.webp",
+      "runtime_dimensions": "1024x265",
+      "runtime_bytes": 58008,
+      "runtime_sha256": "8a638e64ceebaef13252c887bb6306371e6648be80311446fed41f60375f8df2",
+      "processing": "existing-alpha key decontamination (green); alpha-aware crop; Lanczos resize; 0.35 px alpha soften; WebP quality 78"
+    },
+    {
+      "id": "courier_shuttle",
+      "generator": "GPT Image 2",
+      "source": "docs/concepts/living-skies/distant-courier-shuttle.png",
+      "source_dimensions": "2304x1536",
+      "source_sha256": "0c71f37fc6d6e60585e629286f5e986fd6585250318a48e4b2a2c4d18210733f",
+      "runtime": "game/art/city/parallax/living/courier_shuttle.webp",
+      "runtime_dimensions": "256x125",
+      "runtime_bytes": 8130,
+      "runtime_sha256": "0c58b53e98e86555d7c482f914e69095f9ed1d6e0b1f8c9d711b5b7cd5121c4b",
+      "processing": "existing-alpha key decontamination (magenta); alpha-aware crop; Lanczos resize; 0.35 px alpha soften; WebP quality 82"
+    },
+    {
+      "id": "state_carrier",
+      "generator": "GPT Image 2",
+      "source": "docs/concepts/living-skies/distant-state-carrier.png",
+      "source_dimensions": "2304x1536",
+      "source_sha256": "17e012053da3cdb132f2a86296219406c07c05ec7a530f4c56161ec71094e695",
+      "runtime": "game/art/city/parallax/living/state_carrier.webp",
+      "runtime_dimensions": "384x154",
+      "runtime_bytes": 14306,
+      "runtime_sha256": "17ab4a11ee61e2d090d78523389bd1db35d7e0c092235a44abe3ffc8c53d4396",
+      "processing": "existing-alpha key decontamination (magenta); alpha-aware crop; Lanczos resize; 0.35 px alpha soften; WebP quality 82"
+    }
+  ]
+}

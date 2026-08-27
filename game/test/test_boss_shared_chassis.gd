@@ -29,11 +29,52 @@ func test_campaign_host_is_hidden_stationary_authority_and_rig_forwards_damage()
 	assert_eq(rig.active_part_count, 2)
 	assert_eq(rig.active_hurt_region_count, BossRig2D.HURT_REGION_CAPACITY)
 	var armor_before: float = host.boss_armor
-	assert_true(rig.receive_damage(_charged_event(3001, 3001)))
-	assert_almost_eq(host.boss_armor, armor_before - 110.0, 0.001)
+	assert_true(rig.receive_damage(DamageEvent.new(
+		3001, city.robot, 40.0, &"bullet"
+	)))
+	assert_almost_eq(host.boss_armor, armor_before - 40.0, 0.001)
+	assert_eq(rig.damage_flash_count, 1)
+	assert_eq(rig._presentation_root.modulate, Color(4.0, 4.0, 4.0, 1.0))
+	await get_tree().create_timer(0.15).timeout
+	assert_eq(rig._presentation_root.modulate, Color.WHITE)
 	host.velocity = Vector2(800.0, 200.0)
 	await get_tree().physics_frame
 	assert_eq(host.velocity, Vector2(800.0, 200.0))
+
+
+func test_body_defeat_launches_full_pooled_explosion_and_firework_barrage() -> void:
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[0]
+	var spectacle: BossDefeatSpectacle2D = session.utility_pool.defeat_spectacle
+	var baseline_nodes: int = get_tree().get_node_count()
+	assert_eq(spectacle.visual_slot_count(), 22)
+	assert_eq(spectacle.particle_emitter_count(), 14)
+	assert_eq(spectacle.particle_capacity(), 548)
+	assert_eq(spectacle.audio_player_count(), 1)
+	assert_true(session.start_definition(definition))
+	var host: TankEnemy = session.boss
+	assert_true(host.receive_damage(DamageEvent.new(
+		30_101, city.robot, definition.armor, &"bullet"
+	)))
+	assert_true(host.receive_damage(DamageEvent.new(
+		30_102, city.robot, definition.health, &"impact"
+	)))
+	assert_true(spectacle.active)
+	assert_eq(spectacle.activation_count, 1)
+	assert_eq(spectacle.audio_play_count, 1)
+	assert_eq(spectacle.audio_player.bus, GameAudioBus.SFX)
+	assert_eq(spectacle.audio_player.global_position, spectacle.global_position)
+	assert_gt(city.camera_rig.impact_velocity.length(), 0.0)
+	assert_gte(spectacle.explosion_trigger_count, 1)
+	assert_true(spectacle.explosion_emitters.any(
+		func(particles: GPUParticles2D) -> bool: return particles.emitting
+	))
+	spectacle.advance(2.05)
+	assert_eq(spectacle.explosion_trigger_count, 12)
+	assert_eq(spectacle.firework_trigger_count, 10)
+	assert_eq(spectacle.post_warm_creation_count, 0)
+	assert_eq(get_tree().get_node_count(), baseline_nodes)
+	spectacle.advance(1.0)
+	assert_false(spectacle.active)
 
 
 func test_every_rig_preset_reuses_parts_sockets_and_hurt_regions_in_place() -> void:
@@ -186,11 +227,12 @@ func test_campaign_hazards_do_not_advance_or_arm_during_screen() -> void:
 	assert_eq(slice.attack_stage, &"ACTIVE")
 
 
-func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_root() -> void:
+func test_wreck_rejects_fatal_chain_and_ranged_damage_then_accepts_fresh_melee() -> void:
 	assert_true(session.start_definition(BossCampaignCatalog.definitions()[0]))
 	var host: TankEnemy = session.boss
-	for index: int in range(3):
-		assert_true(host.receive_damage(_charged_event(3100 + index, 3100 + index)))
+	assert_true(host.receive_damage(DamageEvent.new(
+		3100, city.robot, session.active_definition.armor, &"rocket"
+	)))
 	var fatal: DamageEvent = DamageEvent.new(
 		3200,
 		city.robot,
@@ -204,14 +246,15 @@ func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_ro
 	assert_true(host.receive_damage(fatal))
 	var wreck: EnemyWreck2D = session.boss_wreck
 	assert_not_null(wreck)
-	assert_true(wreck.finisher_requires_ground_smash)
+	assert_false(wreck.finisher_requires_ground_smash)
+	assert_eq(wreck.finisher_damage_types, PackedStringArray(["jab_cross", "ground_smash"]))
 	assert_false(wreck.receive_damage(DamageEvent.new(
 		3200, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 4000
 	)))
 	assert_false(wreck.receive_damage(DamageEvent.new(
 		3201, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 3199
 	)))
-	for kind: StringName in [&"jab_cross", &"bullet", &"shell", &"rocket", &"impact"]:
+	for kind: StringName in [&"bullet", &"shell", &"rocket", &"impact"]:
 		assert_false(wreck.receive_damage(DamageEvent.new(
 			3300 + kind.hash() % 100,
 			city.robot,
@@ -223,7 +266,7 @@ func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_ro
 			4300 + kind.hash() % 100
 		)))
 	assert_true(wreck.receive_damage(DamageEvent.new(
-		3400, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 4400
+		3400, city.robot, 1.0, &"jab_cross", Vector2.ZERO, Vector2.RIGHT, 0.0, 4400
 	)))
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 

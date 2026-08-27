@@ -77,25 +77,30 @@ func test_blueprints_are_seeded_by_run_and_logical_chunk_not_pool_slot() -> void
 	_record_test_execution()
 
 
-func test_five_unique_buildings_arm_boss_then_unlock_after_clear_corridor() -> void:
+func test_ten_shuffled_buildings_arm_boss_then_unlock_after_clear_corridor() -> void:
 	var city: CitySlice = await _spawn_city()
 	var stream: CityWorldStream = city.world_stream
 	var business: CityDistrictProfile = CityDistrictCatalog.districts()[0]
 	assert_eq(stream.unlocked_district_index, 0)
 	assert_false(stream.district_exit_is_unlocked(0))
-	for index: int in range(business.building_variants.size()):
-		var variant: StructuralBuildingVariant = business.building_variants[index]
+	for index: int in range(CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT):
+		var logical_chunk: int = business.start_chunk + index
+		var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+			city.world_stream.run_seed,
+			logical_chunk
+		)
 		var building: StructuralBuilding2D = StructuralBuilding2D.new()
 		building.set_meta(&"district_id", business.district_id)
 		building.set_meta(&"district_index", business.district_index)
 		building.set_meta(&"building_variant_id", variant.variant_id)
+		building.set_meta(&"logical_chunk", logical_chunk)
 		assert_true(stream.report_building_cleared(building))
 		assert_false(stream.report_building_cleared(building))
 		building.free()
 		assert_eq(stream.district_clear_count(business.district_id), index + 1)
 		var expected_gate_offset: int = (
 			CityDistrictCatalog.CHUNKS_PER_DISTRICT
-			if index == business.building_variants.size() - 1
+			if index == CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT - 1
 			else index + 2
 		)
 		assert_almost_eq(
@@ -112,14 +117,14 @@ func test_five_unique_buildings_arm_boss_then_unlock_after_clear_corridor() -> v
 		EPSILON
 	)
 	assert_true(stream.begin_post_boss_corridor(0))
-	assert_false(stream.should_present_chunk_content(5))
-	assert_false(stream.should_present_chunk_content(6))
-	assert_true(stream.should_present_chunk_content(7))
+	assert_false(stream.should_present_chunk_content(10))
+	assert_false(stream.should_present_chunk_content(11))
+	assert_true(stream.should_present_chunk_content(12))
 	assert_true(stream.post_boss_corridor_is_clear(0))
 	assert_true(stream.complete_district_handoff(0))
 	assert_true(stream.district_exit_is_unlocked(0))
 	assert_eq(stream.unlocked_district_index, 1)
-	assert_true(stream.should_present_chunk_content(7))
+	assert_true(stream.should_present_chunk_content(12))
 	assert_almost_eq(
 		stream.district_exit_barrier.position.x,
 		float(CityDistrictCatalog.CHUNKS_PER_DISTRICT + 1)
@@ -135,19 +140,27 @@ func test_out_of_order_district_clears_are_recorded_without_route_blocking() -> 
 	var districts: Array[CityDistrictProfile] = CityDistrictCatalog.districts()
 	for district_index: int in [1, 0]:
 		var district: CityDistrictProfile = districts[district_index]
-		for variant: StructuralBuildingVariant in district.building_variants:
+		for encounter_index: int in range(
+			CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+		):
+			var logical_chunk: int = district.start_chunk + encounter_index
+			var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+				city.world_stream.run_seed,
+				logical_chunk
+			)
 			var building: StructuralBuilding2D = StructuralBuilding2D.new()
 			building.set_meta(&"district_id", district.district_id)
 			building.set_meta(&"district_index", district.district_index)
 			building.set_meta(&"building_variant_id", variant.variant_id)
+			building.set_meta(&"logical_chunk", logical_chunk)
 			assert_true(stream.report_building_cleared(building))
 			building.free()
 		if district_index == 1:
 			assert_eq(stream.unlocked_district_index, 0)
 	assert_eq(stream.unlocked_district_index, 0)
-	assert_eq(stream.district_clear_count(&"RESIDENTIAL"), 5)
-	_move_to_logical_chunk(city, 15)
-	assert_eq(stream.current_logical_chunk, 15)
+	assert_eq(stream.district_clear_count(&"RESIDENTIAL"), 10)
+	_move_to_logical_chunk(city, 27)
+	assert_eq(stream.current_logical_chunk, 27)
 	assert_eq(stream.current_district_id, &"ENTERTAINMENT")
 	_record_test_execution()
 
@@ -311,11 +324,19 @@ func _unlock_districts_through(stream: CityWorldStream, logical_index: int) -> v
 			stream.unlocked_district_index
 		]
 		stream.current_district_id = district.district_id
-		for variant: StructuralBuildingVariant in district.building_variants:
+		for encounter_index: int in range(
+			CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+		):
+			var encounter_chunk: int = district.start_chunk + encounter_index
+			var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+				stream.run_seed,
+				encounter_chunk
+			)
 			var building: StructuralBuilding2D = StructuralBuilding2D.new()
 			building.set_meta(&"district_id", district.district_id)
 			building.set_meta(&"district_index", district.district_index)
 			building.set_meta(&"building_variant_id", variant.variant_id)
+			building.set_meta(&"logical_chunk", encounter_chunk)
 			assert_true(stream.report_building_cleared(building))
 			building.free()
 		assert_true(stream.begin_post_boss_corridor(district.district_index))

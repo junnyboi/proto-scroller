@@ -7,27 +7,27 @@ func test_catalog_has_exact_canonical_roster_triggers_and_campaign_results() -> 
 	assert_eq(definitions.size(), BossCampaignCatalog.DEFINITION_COUNT)
 	var expected: Array[Array] = [
 		[
-			&"SETTLEMENT_ENGINE_S04", &"BUSINESS", 4, 7,
+			&"SETTLEMENT_ENGINE_S04", &"BUSINESS", 9, 12,
 			"SETTLEMENT ENGINE S-04 — The Fiduciary Saint",
 			&"B05_EASTBOUND_CONSIDERATION", &"LEDGER",
 		],
 		[
-			&"SAMARITAN_15", &"RESIDENTIAL", 11, 14,
+			&"SAMARITAN_15", &"RESIDENTIAL", 21, 24,
 			"SAMARITAN-15 — The Last Evacuation",
 			&"ASHWATER_INTAKE_MANIFEST", &"NURSERY",
 		],
 		[
-			&"MIMESIS_04", &"ENTERTAINMENT", 18, 21,
+			&"MIMESIS_04", &"ENTERTAINMENT", 33, 36,
 			"MIMESIS-04 — The Afterimage Conductor",
 			&"AUDIENCE_OF_ONE_0417_CONTINUITY", &"STAGE",
 		],
 		[
-			&"CANTOR_31_PALE_ENGINE", &"MILITARY", 25, 28,
+			&"CANTOR_31_PALE_ENGINE", &"MILITARY", 45, 48,
 			"CANTOR-31 / PALE ENGINE — The Export Surgeon",
 			&"EXPORT_LITANY_31", &"ARSENAL",
 		],
 		[
-			&"CHOIR_PRIME", &"ROYAL", 32, -1,
+			&"CHOIR_PRIME", &"ROYAL", 57, -1,
 			"CHOIR Prime — The Last Sovereign",
 			&"CROWN_05_CONSENT_EXCISION_ORDER", &"CROWN",
 		],
@@ -42,7 +42,14 @@ func test_catalog_has_exact_canonical_roster_triggers_and_campaign_results() -> 
 		assert_eq(definition.display_name, row[4])
 		assert_eq(definition.capstone_dossier_id, row[5])
 		assert_eq(definition.evidence_flag_id, row[6])
-		assert_eq(definition.armor_policy, EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP)
+		assert_eq(
+			definition.armor_policy,
+			(
+				EnemyActor2D.ArmorPolicy.ALL_DAMAGE
+				if index == 0
+				else EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP
+			)
+		)
 		assert_eq(definition.armor_fixed_step, 110.0)
 		assert_true(definition.direct_damage_route)
 		assert_eq(BossCampaignCatalog.definition(definition.boss_id), definition)

@@ -15,6 +15,7 @@ const CRACK_SHADOW: Color = Color(0.015, 0.012, 0.012, 0.78)
 const CRACK_HIGHLIGHT: Color = Color(0.34, 0.27, 0.22, 0.58)
 const CABLE_DETAIL_BIT: int = 1
 const PIPE_DETAIL_BIT: int = 2
+const FIRE_DETAIL_BIT: int = 4
 const CABLE_DISPLAY_SIZE: Vector2 = Vector2(46.0, 68.0)
 const PIPE_DISPLAY_SIZE: Vector2 = Vector2(31.5, 57.0)
 const CABLE_TEXTURE: Texture2D = preload(
@@ -207,8 +208,10 @@ func record_damage(event: DamageEvent, health_ratio: float) -> void:
 	_impact_direction = -1.0 if event.direction.x < 0.0 else 1.0
 	_set_hollow_progress(severity)
 	_generate(local_hit, severity, event_seed)
-	_emit_attachment_effects(event, severity)
-	set_destroyed_stage(health_ratio <= 0.0)
+	var terminal: bool = health_ratio <= 0.0
+	set_destroyed_stage(terminal)
+	if not terminal:
+		_emit_attachment_effects(event, severity)
 	visible = true
 	queue_redraw()
 
@@ -226,8 +229,7 @@ func set_destroyed_stage(value: bool) -> void:
 	_destroyed_stage = value
 	if value:
 		_set_hollow_progress(1.0)
-	if value and not _contour.is_empty():
-		_apply_detail_mask(CABLE_DETAIL_BIT | PIPE_DETAIL_BIT, _contour_center())
+		_apply_detail_mask(0, _contour_center())
 	_update_hollow_material()
 	_update_severe_fx()
 
@@ -260,6 +262,8 @@ func damage_detail_count() -> int:
 		total += 1
 	if _pipe_detail != null and _pipe_detail.visible:
 		total += 1
+	if _severe_fx != null and _severe_fx.is_active():
+		total += 1
 	return total
 
 
@@ -273,6 +277,8 @@ func damage_effect_activation_count() -> int:
 		total += _cable_detail.activation_count
 	if _pipe_detail != null:
 		total += _pipe_detail.activation_count
+	if _severe_fx != null:
+		total += _severe_fx.activation_count
 	return total
 
 
@@ -286,6 +292,8 @@ func active_damage_effect_count() -> int:
 		total += _cable_detail.active_effect_count()
 	if _pipe_detail != null:
 		total += _pipe_detail.active_effect_count()
+	if _severe_fx != null and _severe_fx.is_active():
+		total += 1
 	return total
 
 
@@ -294,10 +302,7 @@ func cable_sway_offset() -> float:
 
 
 func cull_damage_details() -> void:
-	if _cable_detail != null:
-		_cable_detail.set_attachment_visible(false)
-	if _pipe_detail != null:
-		_pipe_detail.set_attachment_visible(false)
+	_apply_detail_mask(0, _contour_center())
 
 
 func pattern_signature() -> String:
@@ -467,7 +472,11 @@ func _update_hollow_material() -> void:
 
 func _update_severe_fx() -> void:
 	if _severe_fx != null:
-		_severe_fx.set_damage_state(_hollow_progress, _destroyed_stage)
+		_severe_fx.set_damage_state(
+			_hollow_progress,
+			_destroyed_stage,
+			(_detail_mask & FIRE_DETAIL_BIT) != 0
+		)
 
 
 func _hollow_extents_for_progress(eased_progress: float) -> Vector2:
@@ -520,16 +529,19 @@ func _smooth_progress(value: float) -> float:
 func _detail_mask_for_severity(severity: float) -> int:
 	if severity < 0.28:
 		return 0
-	if severity >= 0.62:
-		return CABLE_DETAIL_BIT | PIPE_DETAIL_BIT
-	if _material_id == &"steel":
+	var accent_slot: int = posmod(_pattern_seed, 3)
+	if accent_slot == 0 and severity >= BuildingSevereDamageFx2D.SEVERE_THRESHOLD:
+		return FIRE_DETAIL_BIT
+	if accent_slot == 2 or _material_id == &"steel":
 		return PIPE_DETAIL_BIT
-	if _material_id == &"glass":
-		return CABLE_DETAIL_BIT
-	return CABLE_DETAIL_BIT if _pattern_seed % 2 == 0 else PIPE_DETAIL_BIT
+	return CABLE_DETAIL_BIT
 
 
 func _apply_detail_mask(mask: int, center: Vector2) -> void:
+	if _destroyed_stage:
+		mask = 0
+	elif mask != 0 and mask not in [CABLE_DETAIL_BIT, PIPE_DETAIL_BIT, FIRE_DETAIL_BIT]:
+		mask = _detail_mask_for_severity(_hollow_progress)
 	_detail_mask = mask
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = _pattern_seed * 32452843 + mask * 49979687
@@ -549,6 +561,7 @@ func _apply_detail_mask(mask: int, center: Vector2) -> void:
 		_cable_detail.set_attachment_visible((mask & CABLE_DETAIL_BIT) != 0)
 	if _pipe_detail != null:
 		_pipe_detail.set_attachment_visible((mask & PIPE_DETAIL_BIT) != 0)
+	_update_severe_fx()
 
 
 func _position_detail(
