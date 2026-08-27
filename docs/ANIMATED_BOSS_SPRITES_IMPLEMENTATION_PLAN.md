@@ -171,7 +171,7 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 | WP4 — Godot integration | Complete | `a89ab7b` | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
 | WP5 — Export and WebDev | Complete | Source `bb106f0`; checkpoint `f0eb7790` | Final Godot 4.7.2 Web export uploaded as fresh immutable WASM/PCK and synchronized into the existing fullscreen WebDev host. |
 | WP6 — Defeated pose, rubble, and repairs | Complete | Source `430f4d0`; checkpoint `e2eec3aa` | The full defeat spectacle hands off to a frozen, darkened final atlas frame; one fresh melee creates prewarmed rubble and releases two or three fixed 50-HP pickups from the expanded fixed pool. |
-| WP7 — 2× atlas regeneration | Implemented | Pending source/release revision | Seven fresh GPT Image 2 anchors, fourteen fresh audio-disabled Veo carriers, twenty full-resolution keyed sequences, five exact 2× runtime atlases, high-quality imports, catalog geometry validation, and representative visual inspection. |
+| WP7 — 2× atlas regeneration | Source complete | `bc9bdd2` | Seven fresh GPT Image 2 anchors, fourteen fresh audio-disabled Veo carriers, twenty full-resolution keyed sequences, five exact 2× runtime atlases, high-quality imports, catalog geometry validation, and representative visual inspection. |
 
 ## References
 
