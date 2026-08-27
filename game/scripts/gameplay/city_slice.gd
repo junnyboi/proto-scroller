@@ -328,7 +328,7 @@ func _refresh_primary_destructibles() -> void:
 	streetlamp = streamed_destructibles.primary_streetlamp()
 func _build_hud() -> void:
 	gameplay_hud = GAMEPLAY_HUD_SCRIPT.new() as GameplayHud
-	gameplay_hud.setup(robot, contextual_attacks)
+	gameplay_hud.setup(robot, contextual_attacks, combat_profile)
 	world_stream.district_clear_progress.connect(gameplay_hud.set_district_clear_progress)
 	world_stream.district_exit_unlocked.connect(gameplay_hud.set_district_exit_unlocked)
 	world_stream.rear_barrier_contact.connect(gameplay_hud.show_rear_barrier_warning)

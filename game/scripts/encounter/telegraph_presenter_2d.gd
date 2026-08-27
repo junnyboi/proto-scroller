@@ -256,16 +256,16 @@ func _draw_support_variant(
 			true
 		)
 		draw_set_transform(target, 0.0, Vector2.ONE)
-			draw_texture_rect(
-				TARGET_MARK_SUPPORT,
-				Rect2(-mark_size * 0.5, mark_size),
-				false,
-				_threat_color(
-					Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48),
-					color_intensity,
-					pulse_brightness
-				)
+		draw_texture_rect(
+			TARGET_MARK_SUPPORT,
+			Rect2(-mark_size * 0.5, mark_size),
+			false,
+			_threat_color(
+				Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48),
+				color_intensity,
+				pulse_brightness
 			)
+		)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return true
 	if variant == &"jammer_pulse" or variant == &"shield_pulse":
@@ -277,16 +277,16 @@ func _draw_support_variant(
 		)
 		var envelope: float = lerpf(0.72, 1.0, progress)
 		var pulse_size: Vector2 = display_size * envelope
-			draw_texture_rect(
-				pulse_texture,
-				Rect2(origin - pulse_size * 0.5, pulse_size),
-				false,
-				_threat_color(
-					Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55),
-					color_intensity,
-					pulse_brightness
-				)
+		draw_texture_rect(
+			pulse_texture,
+			Rect2(origin - pulse_size * 0.5, pulse_size),
+			false,
+			_threat_color(
+				Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55),
+				color_intensity,
+				pulse_brightness
 			)
+		)
 		return true
 	return false
 

@@ -3,6 +3,10 @@ extends Control
 
 signal retry_pressed
 signal title_pressed
+signal global_refresh_requested
+signal callsign_saved(callsign: String)
+
+enum Page { AFTER_ACTION, CAREER, GLOBAL }
 
 const CREST: Texture2D = preload("res://art/ui/match_debrief/dossier_crest.png")
 const BACKGROUND: Color = Color(0.012, 0.025, 0.034, 0.985)
@@ -13,13 +17,16 @@ const MUTED: Color = Color("a9bdc4")
 const AMBER: Color = Color("f1b36f")
 const RED: Color = Color("ff695c")
 const LANDSCAPE_SIZE: Vector2 = Vector2(1160.0, 636.0)
-const PORTRAIT_SIZE: Vector2 = Vector2(672.0, 1018.0)
+const PORTRAIT_SIZE: Vector2 = Vector2(672.0, 1120.0)
 const WEAPON_ROW_COUNT: int = 3
 const ENEMY_ROW_COUNT: int = 4
+const LOCAL_ROW_COUNT: int = 5
+const GLOBAL_ROW_COUNT: int = 10
 
 var content_root: Control
 var scrim: ColorRect
 var main_panel: ColorRect
+var tab_buttons: Array[Button] = []
 var combo_panel: ColorRect
 var career_panel: ColorRect
 var weapon_panel: ColorRect
@@ -44,7 +51,37 @@ var enemy_rows: Array[Label] = []
 var recommendation_label: Label
 var retry_button: Button
 var title_button: Button
+
+var career_profile_panel: ColorRect
+var callsign_header_label: Label
+var callsign_edit: LineEdit
+var callsign_save_button: Button
+var callsign_status_label: Label
+var chart_panel: ColorRect
+var chart_header_label: Label
+var chart_kills_button: Button
+var chart_share_button: Button
+var weapon_history_chart: CareerWeaponHistoryChart
+var local_board_panel: ColorRect
+var local_board_header_label: Label
+var local_board_rows: Array[Label] = []
+
+var global_panel: ColorRect
+var global_header_label: Label
+var global_status_label: Label
+var global_refresh_button: Button
+var personal_rank_label: Label
+var global_rows: Array[Label] = []
+
 var presented_summary: RunSummarySnapshot
+var profile_store: PlayerCombatProfileStore
+var current_page: Page = Page.AFTER_ACTION
+var global_state: StringName = &"native_local"
+var _global_entries: Array[Dictionary] = []
+var _personal_rank: Dictionary = {}
+var _after_action_controls: Array[Control] = []
+var _career_controls: Array[Control] = []
+var _global_controls: Array[Control] = []
 
 
 func _ready() -> void:
@@ -54,6 +91,12 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	_build_controls()
+
+
+func configure_profile(store: PlayerCombatProfileStore) -> void:
+	profile_store = store
+	if callsign_edit != null and store != null:
+		callsign_edit.text = store.callsign()
 
 
 func present(
@@ -98,10 +141,13 @@ func present(
 	_update_career(summary.career_snapshot)
 	_update_weapons(summary)
 	_update_enemies(summary)
+	_update_career_page(summary.career_snapshot)
+	_update_global_page()
 	recommendation_label.text = L10n.t("debrief.recommendation", {
 		"objective": L10n.t(summary.retry_objective),
 	})
 	visible = true
+	set_page(Page.AFTER_ACTION)
 	apply_responsive_layout(get_viewport_rect().size)
 	retry_button.grab_focus()
 
@@ -109,6 +155,41 @@ func present(
 func hide_panel() -> void:
 	presented_summary = null
 	visible = false
+
+
+func set_page(page: Page) -> void:
+	current_page = page
+	_set_controls_visible(_after_action_controls, page == Page.AFTER_ACTION)
+	_set_controls_visible(_career_controls, page == Page.CAREER)
+	_set_controls_visible(_global_controls, page == Page.GLOBAL)
+	for index: int in range(tab_buttons.size()):
+		tab_buttons[index].button_pressed = index == page
+	if page == Page.AFTER_ACTION and presented_summary != null:
+		personal_best_label.visible = (
+			presented_summary.new_combo_record or presented_summary.new_score_record
+		)
+		_update_weapons(presented_summary)
+		_update_enemies(presented_summary)
+	elif page == Page.CAREER and presented_summary != null:
+		_update_career_page(presented_summary.career_snapshot)
+	elif page == Page.GLOBAL:
+		_update_global_page()
+	apply_responsive_layout(get_viewport_rect().size)
+	if page == Page.GLOBAL:
+		global_refresh_requested.emit()
+
+
+func set_global_state(
+	state: StringName,
+	entries: Array[Dictionary] = [],
+	personal_rank: Dictionary = {}
+) -> void:
+	global_state = state
+	_global_entries.clear()
+	for entry: Dictionary in entries:
+		_global_entries.append(entry.duplicate(true))
+	_personal_rank = personal_rank.duplicate(true)
+	_update_global_page()
 
 
 func apply_responsive_layout(viewport_size: Vector2) -> void:
@@ -123,17 +204,25 @@ func apply_responsive_layout(viewport_size: Vector2) -> void:
 func debug_snapshot() -> Dictionary:
 	return {
 		"visible": visible,
+		"page": Page.keys()[current_page],
 		"result": result_label.text if result_label != null else "",
 		"combo": combo_value_label.text if combo_value_label != null else "",
 		"personal_best": personal_best_label.visible if personal_best_label != null else false,
 		"weapon_rows": _visible_row_text(weapon_rows),
 		"enemy_rows": _visible_row_text(enemy_rows),
+		"local_rows": _visible_row_text(local_board_rows),
+		"global_rows": _visible_row_text(global_rows),
+		"global_state": String(global_state),
+		"callsign": callsign_edit.text if callsign_edit != null else "",
+		"chart": weapon_history_chart.debug_snapshot() if weapon_history_chart != null else {},
 		"panel_rect": Rect2(
 			content_root.position,
 			main_panel.size * content_root.scale
 		) if content_root != null and main_panel != null else Rect2(),
 		"retry_rect": _scaled_rect(retry_button),
 		"title_rect": _scaled_rect(title_button),
+		"callsign_rect": _scaled_rect(callsign_edit),
+		"refresh_rect": _scaled_rect(global_refresh_button),
 	}
 
 
@@ -148,6 +237,26 @@ func _build_controls() -> void:
 	content_root.name = "Content"
 	add_child(content_root)
 	main_panel = _panel("DossierBackground", BACKGROUND)
+	for index: int in range(3):
+		var key: String = [
+			"debrief.tab.after_action",
+			"debrief.tab.career",
+			"debrief.tab.global",
+		][index]
+		var tab: Button = _button("DebriefTab%d" % index, key)
+		tab.toggle_mode = true
+		tab.pressed.connect(set_page.bind(index as Page))
+		tab_buttons.append(tab)
+	_build_after_action_controls()
+	_build_career_controls()
+	_build_global_controls()
+	retry_button = _button("DebriefRetryButton", "hud.retry")
+	retry_button.pressed.connect(retry_pressed.emit)
+	title_button = _button("DebriefTitleButton", "hud.title_screen")
+	title_button.pressed.connect(title_pressed.emit)
+
+
+func _build_after_action_controls() -> void:
 	combo_panel = _panel("ComboCard", CARD)
 	career_panel = _panel("CareerCard", CARD_ALT)
 	weapon_panel = _panel("WeaponCard", CARD_ALT)
@@ -183,10 +292,75 @@ func _build_controls() -> void:
 		enemy_rows.append(row)
 	recommendation_label = _label("Recommendation", 14, MUTED)
 	recommendation_label.clip_text = true
-	retry_button = _button("DebriefRetryButton", "hud.retry")
-	retry_button.pressed.connect(retry_pressed.emit)
-	title_button = _button("DebriefTitleButton", "hud.title_screen")
-	title_button.pressed.connect(title_pressed.emit)
+	_after_action_controls.assign([
+		combo_panel, career_panel, weapon_panel, enemy_panel, result_label, grade_label,
+		score_label, run_meta_label, combo_header_label, combo_value_label,
+		combo_detail_label, personal_best_label, crest, career_header_label,
+		career_value_label, weapon_header_label, weapon_preferred_label,
+		enemy_header_label, enemy_total_label, recommendation_label,
+	])
+	_after_action_controls.append_array(weapon_rows)
+	_after_action_controls.append_array(enemy_rows)
+
+
+func _build_career_controls() -> void:
+	career_profile_panel = _panel("OperatorProfileCard", CARD)
+	callsign_header_label = _section_label("CallsignHeader", "debrief.callsign.header")
+	callsign_edit = LineEdit.new()
+	callsign_edit.name = "CallsignEdit"
+	callsign_edit.placeholder_text = L10n.t("debrief.callsign.placeholder")
+	callsign_edit.max_length = PlayerCombatProfileStore.MAX_CALLSIGN_LENGTH
+	callsign_edit.add_theme_font_size_override(&"font_size", 19)
+	content_root.add_child(callsign_edit)
+	callsign_save_button = _button("CallsignSaveButton", "debrief.callsign.save")
+	callsign_save_button.pressed.connect(_save_callsign)
+	callsign_edit.text_submitted.connect(func(_value: String) -> void: _save_callsign())
+	callsign_status_label = _label("CallsignStatus", 14, MUTED)
+	chart_panel = _panel("WeaponHistoryCard", CARD_ALT)
+	chart_header_label = _section_label("ChartHeader", "debrief.history.header")
+	chart_kills_button = _button("ChartKillsButton", "debrief.history.kills")
+	chart_kills_button.toggle_mode = true
+	chart_kills_button.button_pressed = true
+	chart_kills_button.pressed.connect(
+		_set_chart_mode.bind(CareerWeaponHistoryChart.DisplayMode.KILLS)
+	)
+	chart_share_button = _button("ChartShareButton", "debrief.history.share")
+	chart_share_button.toggle_mode = true
+	chart_share_button.pressed.connect(
+		_set_chart_mode.bind(CareerWeaponHistoryChart.DisplayMode.SHARE)
+	)
+	weapon_history_chart = CareerWeaponHistoryChart.new()
+	content_root.add_child(weapon_history_chart)
+	local_board_panel = _panel("LocalBoardCard", CARD)
+	local_board_header_label = _section_label("LocalBoardHeader", "debrief.local.header")
+	for index: int in range(LOCAL_ROW_COUNT):
+		var row: Label = _label("LocalBoardRow%d" % index, 14, MUTED)
+		row.clip_text = true
+		local_board_rows.append(row)
+	_career_controls.assign([
+		career_profile_panel, callsign_header_label, callsign_edit, callsign_save_button,
+		callsign_status_label, chart_panel, chart_header_label, chart_kills_button,
+		chart_share_button, weapon_history_chart, local_board_panel, local_board_header_label,
+	])
+	_career_controls.append_array(local_board_rows)
+
+
+func _build_global_controls() -> void:
+	global_panel = _panel("GlobalNetworkCard", CARD_ALT)
+	global_header_label = _section_label("GlobalHeader", "debrief.global.header")
+	global_status_label = _label("GlobalStatus", 16, MUTED)
+	global_refresh_button = _button("GlobalRefreshButton", "debrief.global.refresh")
+	global_refresh_button.pressed.connect(global_refresh_requested.emit)
+	personal_rank_label = _label("PersonalRank", 18, AMBER)
+	for index: int in range(GLOBAL_ROW_COUNT):
+		var row: Label = _label("GlobalRow%d" % index, 15, MUTED)
+		row.clip_text = true
+		global_rows.append(row)
+	_global_controls.assign([
+		global_panel, global_header_label, global_status_label, global_refresh_button,
+		personal_rank_label,
+	])
+	_global_controls.append_array(global_rows)
 
 
 func _panel(panel_name: String, color: Color) -> ColorRect:
@@ -226,9 +400,32 @@ func _button(button_name: String, key: String) -> Button:
 	button.name = button_name
 	button.text = L10n.t(key)
 	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_font_size_override(&"font_size", 22)
+	button.add_theme_font_size_override(&"font_size", 20)
 	content_root.add_child(button)
 	return button
+
+
+func _save_callsign() -> void:
+	if profile_store == null:
+		callsign_status_label.text = L10n.t("debrief.callsign.unavailable")
+		callsign_status_label.modulate = RED
+		return
+	var result: StringName = profile_store.set_callsign(callsign_edit.text)
+	if result != &"ok":
+		callsign_status_label.text = L10n.t("debrief.callsign.%s" % String(result))
+		callsign_status_label.modulate = RED
+		return
+	callsign_edit.text = profile_store.callsign()
+	callsign_status_label.text = L10n.t("debrief.callsign.saved")
+	callsign_status_label.modulate = CYAN
+	_update_career_page(profile_store.snapshot())
+	callsign_saved.emit(profile_store.callsign())
+
+
+func _set_chart_mode(mode: CareerWeaponHistoryChart.DisplayMode) -> void:
+	chart_kills_button.button_pressed = mode == CareerWeaponHistoryChart.DisplayMode.KILLS
+	chart_share_button.button_pressed = mode == CareerWeaponHistoryChart.DisplayMode.SHARE
+	weapon_history_chart.set_display_mode(mode)
 
 
 func _update_career(career: Dictionary) -> void:
@@ -242,6 +439,58 @@ func _update_career(career: Dictionary) -> void:
 		"runs": int(career.get("total_runs", 0)),
 		"victories": int(career.get("victories", 0)),
 	})
+
+
+func _update_career_page(career: Dictionary) -> void:
+	var history: Array[Dictionary] = []
+	var local_rows: Array[Dictionary] = []
+	if profile_store != null:
+		callsign_edit.text = profile_store.callsign()
+		history = profile_store.chart_history()
+		local_rows = profile_store.local_leaderboard(LOCAL_ROW_COUNT)
+	else:
+		callsign_edit.text = String(career.get("callsign", ""))
+		var raw_history: Array = career.get("run_history", []) as Array
+		for entry: Variant in raw_history:
+			if entry is Dictionary:
+				history.append((entry as Dictionary).duplicate(true))
+		local_rows = _rank_history_locally(history, LOCAL_ROW_COUNT)
+	weapon_history_chart.set_history(history)
+	for index: int in range(local_board_rows.size()):
+		var row: Label = local_board_rows[index]
+		row.visible = index < local_rows.size()
+		row.text = _ranking_row(local_rows[index], true) if row.visible else ""
+	if local_rows.is_empty():
+		local_board_rows[0].visible = true
+		local_board_rows[0].text = L10n.t("debrief.local.empty")
+
+
+func _update_global_page() -> void:
+	if global_status_label == null:
+		return
+	global_status_label.text = L10n.t("debrief.global.state.%s" % String(global_state))
+	global_status_label.modulate = RED if global_state == &"local_fallback" else MUTED
+	var display_entries: Array[Dictionary] = _global_entries
+	if display_entries.is_empty() and profile_store != null:
+		display_entries = profile_store.local_leaderboard(GLOBAL_ROW_COUNT)
+	for index: int in range(global_rows.size()):
+		var row: Label = global_rows[index]
+		row.visible = index < display_entries.size()
+		row.text = _ranking_row(display_entries[index]) if row.visible else ""
+	if display_entries.is_empty():
+		global_rows[0].visible = true
+		global_rows[0].text = L10n.t("debrief.global.empty")
+	personal_rank_label.text = (
+		L10n.t("debrief.global.personal_rank", {
+			"rank": int(_personal_rank.get("rank", 0)),
+			"callsign": String(_personal_rank.get(
+				"callsign",
+				profile_store.callsign() if profile_store != null else ""
+			)),
+		})
+		if not _personal_rank.is_empty()
+		else L10n.t("debrief.global.unranked")
+	)
 
 
 func _update_weapons(summary: RunSummarySnapshot) -> void:
@@ -311,6 +560,38 @@ func _combo_title(tier: int) -> String:
 	return L10n.t(String(profile.get(&"title_key", "debrief.combo.single")))
 
 
+func _ranking_row(entry: Dictionary, compact: bool = false) -> String:
+	return L10n.t(
+		"debrief.ranking_row_compact" if compact else "debrief.ranking_row",
+		{
+		"rank": int(entry.get("rank", 0)),
+		"callsign": String(entry.get("callsign", "UNKNOWN")),
+		"tier": int(entry.get("highest_combo_tier", 0)),
+		"score": "%08d" % int(entry.get("best_score", entry.get("score", 0))),
+		"weapon": _weapon_name(StringName(entry.get("preferred_weapon", "UNKNOWN"))),
+		}
+	)
+
+
+func _rank_history_locally(history: Array[Dictionary], limit: int) -> Array[Dictionary]:
+	var ranked: Array[Dictionary] = []
+	for entry: Dictionary in history:
+		ranked.append(entry.duplicate(true))
+	ranked.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		var first_tier: int = int(first.get("highest_combo_tier", 0))
+		var second_tier: int = int(second.get("highest_combo_tier", 0))
+		if first_tier != second_tier:
+			return first_tier > second_tier
+		return int(first.get("score", 0)) > int(second.get("score", 0))
+	)
+	if ranked.size() > limit:
+		ranked.resize(limit)
+	for index: int in range(ranked.size()):
+		ranked[index]["rank"] = index + 1
+		ranked[index]["callsign"] = callsign_edit.text
+	return ranked
+
+
 func _weapon_name(weapon_id: StringName) -> String:
 	var key: String = "debrief.weapon.%s" % String(weapon_id).to_lower()
 	var translated: String = L10n.t(key)
@@ -340,131 +621,237 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	_place_content(viewport_size, LANDSCAPE_SIZE, 40.0)
 	main_panel.position = Vector2.ZERO
 	main_panel.size = LANDSCAPE_SIZE
-	result_label.position = Vector2(30.0, 14.0)
-	result_label.size = Vector2(590.0, 56.0)
-	result_label.add_theme_font_size_override(&"font_size", 42)
-	grade_label.position = Vector2(655.0, 12.0)
-	grade_label.size = Vector2(180.0, 60.0)
-	grade_label.add_theme_font_size_override(&"font_size", 34)
-	score_label.position = Vector2(845.0, 12.0)
-	score_label.size = Vector2(285.0, 60.0)
-	score_label.add_theme_font_size_override(&"font_size", 34)
-	run_meta_label.position = Vector2(30.0, 70.0)
-	run_meta_label.size = Vector2(1100.0, 28.0)
-	run_meta_label.add_theme_font_size_override(&"font_size", 16)
-	combo_panel.position = Vector2(20.0, 106.0)
-	combo_panel.size = Vector2(535.0, 224.0)
-	crest.position = Vector2(36.0, 146.0)
-	crest.size = Vector2(152.0, 152.0)
-	combo_header_label.position = Vector2(206.0, 118.0)
-	combo_header_label.size = Vector2(325.0, 26.0)
-	combo_value_label.position = Vector2(206.0, 148.0)
-	combo_value_label.size = Vector2(315.0, 84.0)
-	combo_value_label.add_theme_font_size_override(&"font_size", 27)
-	combo_detail_label.position = Vector2(206.0, 234.0)
-	combo_detail_label.size = Vector2(315.0, 28.0)
-	personal_best_label.position = Vector2(206.0, 270.0)
-	personal_best_label.size = Vector2(315.0, 35.0)
-	career_panel.position = Vector2(20.0, 340.0)
-	career_panel.size = Vector2(535.0, 176.0)
-	career_header_label.position = Vector2(40.0, 350.0)
-	career_header_label.size = Vector2(495.0, 30.0)
-	career_value_label.position = Vector2(40.0, 384.0)
+	_layout_tabs(20.0, 10.0, 1120.0, 42.0)
+	result_label.position = Vector2(30.0, 58.0)
+	result_label.size = Vector2(590.0, 44.0)
+	result_label.add_theme_font_size_override(&"font_size", 34)
+	grade_label.position = Vector2(655.0, 56.0)
+	grade_label.size = Vector2(180.0, 48.0)
+	grade_label.add_theme_font_size_override(&"font_size", 28)
+	score_label.position = Vector2(845.0, 56.0)
+	score_label.size = Vector2(285.0, 48.0)
+	score_label.add_theme_font_size_override(&"font_size", 28)
+	run_meta_label.position = Vector2(30.0, 100.0)
+	run_meta_label.size = Vector2(1100.0, 24.0)
+	combo_panel.position = Vector2(20.0, 130.0)
+	combo_panel.size = Vector2(535.0, 190.0)
+	crest.position = Vector2(36.0, 153.0)
+	crest.size = Vector2(140.0, 140.0)
+	combo_header_label.position = Vector2(194.0, 140.0)
+	combo_header_label.size = Vector2(335.0, 24.0)
+	combo_value_label.position = Vector2(194.0, 166.0)
+	combo_value_label.size = Vector2(325.0, 74.0)
+	combo_value_label.add_theme_font_size_override(&"font_size", 25)
+	combo_detail_label.position = Vector2(194.0, 242.0)
+	combo_detail_label.size = Vector2(325.0, 26.0)
+	personal_best_label.position = Vector2(194.0, 272.0)
+	personal_best_label.size = Vector2(325.0, 30.0)
+	career_panel.position = Vector2(20.0, 330.0)
+	career_panel.size = Vector2(535.0, 174.0)
+	career_header_label.position = Vector2(40.0, 340.0)
+	career_header_label.size = Vector2(495.0, 28.0)
+	career_value_label.position = Vector2(40.0, 372.0)
 	career_value_label.size = Vector2(495.0, 116.0)
-	career_value_label.add_theme_font_size_override(&"font_size", 17)
-	weapon_panel.position = Vector2(565.0, 106.0)
-	weapon_panel.size = Vector2(575.0, 190.0)
-	weapon_header_label.position = Vector2(585.0, 116.0)
-	weapon_header_label.size = Vector2(535.0, 26.0)
-	weapon_preferred_label.position = Vector2(585.0, 144.0)
-	weapon_preferred_label.size = Vector2(535.0, 30.0)
+	weapon_panel.position = Vector2(565.0, 130.0)
+	weapon_panel.size = Vector2(575.0, 180.0)
+	weapon_header_label.position = Vector2(585.0, 140.0)
+	weapon_header_label.size = Vector2(535.0, 24.0)
+	weapon_preferred_label.position = Vector2(585.0, 167.0)
+	weapon_preferred_label.size = Vector2(535.0, 28.0)
 	for index: int in range(weapon_rows.size()):
-		weapon_rows[index].position = Vector2(585.0, 177.0 + float(index) * 33.0)
-		weapon_rows[index].size = Vector2(535.0, 30.0)
-		weapon_rows[index].add_theme_font_size_override(&"font_size", 16)
-	enemy_panel.position = Vector2(565.0, 306.0)
-	enemy_panel.size = Vector2(575.0, 210.0)
-	enemy_header_label.position = Vector2(585.0, 316.0)
-	enemy_header_label.size = Vector2(310.0, 26.0)
-	enemy_total_label.position = Vector2(895.0, 316.0)
-	enemy_total_label.size = Vector2(225.0, 26.0)
+		weapon_rows[index].position = Vector2(585.0, 199.0 + float(index) * 31.0)
+		weapon_rows[index].size = Vector2(535.0, 28.0)
+	enemy_panel.position = Vector2(565.0, 320.0)
+	enemy_panel.size = Vector2(575.0, 184.0)
+	enemy_header_label.position = Vector2(585.0, 330.0)
+	enemy_header_label.size = Vector2(310.0, 24.0)
+	enemy_total_label.position = Vector2(895.0, 330.0)
+	enemy_total_label.size = Vector2(225.0, 24.0)
 	enemy_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	for index: int in range(enemy_rows.size()):
-		enemy_rows[index].position = Vector2(585.0, 348.0 + float(index) * 37.0)
-		enemy_rows[index].size = Vector2(535.0, 32.0)
-		enemy_rows[index].add_theme_font_size_override(&"font_size", 16)
-	recommendation_label.position = Vector2(30.0, 520.0)
-	recommendation_label.size = Vector2(1100.0, 28.0)
-	retry_button.position = Vector2(190.0, 558.0)
+		enemy_rows[index].position = Vector2(585.0, 358.0 + float(index) * 34.0)
+		enemy_rows[index].size = Vector2(535.0, 30.0)
+	_layout_career_landscape()
+	_layout_global_landscape()
+	recommendation_label.position = Vector2(30.0, 508.0)
+	recommendation_label.size = Vector2(1100.0, 24.0)
+	retry_button.position = Vector2(190.0, 548.0)
 	retry_button.size = Vector2(350.0, 60.0)
-	title_button.position = Vector2(620.0, 558.0)
+	title_button.position = Vector2(620.0, 548.0)
 	title_button.size = Vector2(350.0, 60.0)
+
+
+func _layout_career_landscape() -> void:
+	career_profile_panel.position = Vector2(20.0, 64.0)
+	career_profile_panel.size = Vector2(330.0, 186.0)
+	callsign_header_label.position = Vector2(38.0, 76.0)
+	callsign_header_label.size = Vector2(294.0, 26.0)
+	callsign_edit.position = Vector2(38.0, 110.0)
+	callsign_edit.size = Vector2(294.0, 44.0)
+	callsign_save_button.position = Vector2(38.0, 162.0)
+	callsign_save_button.size = Vector2(142.0, 48.0)
+	callsign_status_label.position = Vector2(188.0, 162.0)
+	callsign_status_label.size = Vector2(144.0, 48.0)
+	local_board_panel.position = Vector2(20.0, 260.0)
+	local_board_panel.size = Vector2(330.0, 272.0)
+	local_board_header_label.position = Vector2(38.0, 270.0)
+	local_board_header_label.size = Vector2(294.0, 26.0)
+	for index: int in range(local_board_rows.size()):
+		local_board_rows[index].position = Vector2(38.0, 302.0 + float(index) * 43.0)
+		local_board_rows[index].size = Vector2(294.0, 38.0)
+		local_board_rows[index].add_theme_font_size_override(&"font_size", 12)
+	chart_panel.position = Vector2(360.0, 64.0)
+	chart_panel.size = Vector2(780.0, 468.0)
+	chart_header_label.position = Vector2(378.0, 74.0)
+	chart_header_label.size = Vector2(380.0, 26.0)
+	chart_kills_button.position = Vector2(900.0, 72.0)
+	chart_kills_button.size = Vector2(104.0, 36.0)
+	chart_share_button.position = Vector2(1012.0, 72.0)
+	chart_share_button.size = Vector2(104.0, 36.0)
+	weapon_history_chart.position = Vector2(378.0, 116.0)
+	weapon_history_chart.size = Vector2(744.0, 398.0)
+
+
+func _layout_global_landscape() -> void:
+	global_panel.position = Vector2(20.0, 64.0)
+	global_panel.size = Vector2(1120.0, 468.0)
+	global_header_label.position = Vector2(40.0, 76.0)
+	global_header_label.size = Vector2(400.0, 28.0)
+	global_status_label.position = Vector2(450.0, 76.0)
+	global_status_label.size = Vector2(390.0, 28.0)
+	global_refresh_button.position = Vector2(930.0, 72.0)
+	global_refresh_button.size = Vector2(190.0, 42.0)
+	personal_rank_label.position = Vector2(40.0, 112.0)
+	personal_rank_label.size = Vector2(1080.0, 32.0)
+	for index: int in range(global_rows.size()):
+		global_rows[index].position = Vector2(40.0, 150.0 + float(index) * 35.0)
+		global_rows[index].size = Vector2(1080.0, 31.0)
+		global_rows[index].add_theme_font_size_override(&"font_size", 14)
 
 
 func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	_place_content(viewport_size, PORTRAIT_SIZE, 24.0)
 	main_panel.position = Vector2.ZERO
 	main_panel.size = PORTRAIT_SIZE
-	result_label.position = Vector2(20.0, 12.0)
-	result_label.size = Vector2(632.0, 48.0)
-	result_label.add_theme_font_size_override(&"font_size", 34)
-	grade_label.position = Vector2(20.0, 62.0)
-	grade_label.size = Vector2(190.0, 48.0)
+	_layout_tabs(16.0, 12.0, 640.0, 50.0)
+	result_label.position = Vector2(20.0, 70.0)
+	result_label.size = Vector2(632.0, 44.0)
+	result_label.add_theme_font_size_override(&"font_size", 32)
+	grade_label.position = Vector2(20.0, 116.0)
+	grade_label.size = Vector2(190.0, 42.0)
 	grade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	grade_label.add_theme_font_size_override(&"font_size", 28)
-	score_label.position = Vector2(220.0, 62.0)
-	score_label.size = Vector2(432.0, 48.0)
-	score_label.add_theme_font_size_override(&"font_size", 28)
-	run_meta_label.position = Vector2(20.0, 112.0)
-	run_meta_label.size = Vector2(632.0, 26.0)
-	run_meta_label.add_theme_font_size_override(&"font_size", 14)
-	combo_panel.position = Vector2(16.0, 146.0)
-	combo_panel.size = Vector2(640.0, 190.0)
-	crest.position = Vector2(30.0, 176.0)
-	crest.size = Vector2(132.0, 132.0)
-	combo_header_label.position = Vector2(182.0, 158.0)
-	combo_header_label.size = Vector2(450.0, 25.0)
-	combo_value_label.position = Vector2(182.0, 188.0)
-	combo_value_label.size = Vector2(450.0, 76.0)
-	combo_value_label.add_theme_font_size_override(&"font_size", 24)
-	combo_detail_label.position = Vector2(182.0, 263.0)
-	combo_detail_label.size = Vector2(450.0, 25.0)
-	personal_best_label.position = Vector2(182.0, 292.0)
-	personal_best_label.size = Vector2(450.0, 28.0)
-	weapon_panel.position = Vector2(16.0, 346.0)
-	weapon_panel.size = Vector2(640.0, 184.0)
-	weapon_header_label.position = Vector2(32.0, 356.0)
-	weapon_header_label.size = Vector2(608.0, 25.0)
-	weapon_preferred_label.position = Vector2(32.0, 383.0)
-	weapon_preferred_label.size = Vector2(608.0, 29.0)
+	grade_label.add_theme_font_size_override(&"font_size", 26)
+	score_label.position = Vector2(220.0, 116.0)
+	score_label.size = Vector2(432.0, 42.0)
+	score_label.add_theme_font_size_override(&"font_size", 26)
+	run_meta_label.position = Vector2(20.0, 160.0)
+	run_meta_label.size = Vector2(632.0, 24.0)
+	combo_panel.position = Vector2(16.0, 192.0)
+	combo_panel.size = Vector2(640.0, 180.0)
+	crest.position = Vector2(30.0, 220.0)
+	crest.size = Vector2(124.0, 124.0)
+	combo_header_label.position = Vector2(174.0, 204.0)
+	combo_header_label.size = Vector2(458.0, 24.0)
+	combo_value_label.position = Vector2(174.0, 232.0)
+	combo_value_label.size = Vector2(458.0, 70.0)
+	combo_value_label.add_theme_font_size_override(&"font_size", 23)
+	combo_detail_label.position = Vector2(174.0, 304.0)
+	combo_detail_label.size = Vector2(458.0, 24.0)
+	personal_best_label.position = Vector2(174.0, 332.0)
+	personal_best_label.size = Vector2(458.0, 28.0)
+	weapon_panel.position = Vector2(16.0, 382.0)
+	weapon_panel.size = Vector2(640.0, 174.0)
+	weapon_header_label.position = Vector2(32.0, 392.0)
+	weapon_header_label.size = Vector2(608.0, 24.0)
+	weapon_preferred_label.position = Vector2(32.0, 420.0)
+	weapon_preferred_label.size = Vector2(608.0, 28.0)
 	for index: int in range(weapon_rows.size()):
-		weapon_rows[index].position = Vector2(32.0, 414.0 + float(index) * 33.0)
-		weapon_rows[index].size = Vector2(608.0, 30.0)
-		weapon_rows[index].add_theme_font_size_override(&"font_size", 15)
-	enemy_panel.position = Vector2(16.0, 540.0)
-	enemy_panel.size = Vector2(640.0, 210.0)
-	enemy_header_label.position = Vector2(32.0, 550.0)
-	enemy_header_label.size = Vector2(340.0, 25.0)
-	enemy_total_label.position = Vector2(372.0, 550.0)
-	enemy_total_label.size = Vector2(268.0, 25.0)
+		weapon_rows[index].position = Vector2(32.0, 450.0 + float(index) * 30.0)
+		weapon_rows[index].size = Vector2(608.0, 28.0)
+		weapon_rows[index].add_theme_font_size_override(&"font_size", 14)
+	enemy_panel.position = Vector2(16.0, 566.0)
+	enemy_panel.size = Vector2(640.0, 190.0)
+	enemy_header_label.position = Vector2(32.0, 576.0)
+	enemy_header_label.size = Vector2(340.0, 24.0)
+	enemy_total_label.position = Vector2(372.0, 576.0)
+	enemy_total_label.size = Vector2(268.0, 24.0)
 	enemy_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	for index: int in range(enemy_rows.size()):
-		enemy_rows[index].position = Vector2(32.0, 580.0 + float(index) * 39.0)
-		enemy_rows[index].size = Vector2(608.0, 34.0)
-		enemy_rows[index].add_theme_font_size_override(&"font_size", 15)
-	career_panel.position = Vector2(16.0, 760.0)
-	career_panel.size = Vector2(640.0, 142.0)
-	career_header_label.position = Vector2(32.0, 770.0)
-	career_header_label.size = Vector2(608.0, 25.0)
-	career_value_label.position = Vector2(32.0, 798.0)
-	career_value_label.size = Vector2(608.0, 90.0)
+		enemy_rows[index].position = Vector2(32.0, 606.0 + float(index) * 34.0)
+		enemy_rows[index].size = Vector2(608.0, 30.0)
+		enemy_rows[index].add_theme_font_size_override(&"font_size", 14)
+	career_panel.position = Vector2(16.0, 766.0)
+	career_panel.size = Vector2(640.0, 162.0)
+	career_header_label.position = Vector2(32.0, 776.0)
+	career_header_label.size = Vector2(608.0, 24.0)
+	career_value_label.position = Vector2(32.0, 804.0)
+	career_value_label.size = Vector2(608.0, 110.0)
 	career_value_label.add_theme_font_size_override(&"font_size", 15)
-	recommendation_label.position = Vector2(24.0, 906.0)
+	_layout_career_portrait()
+	_layout_global_portrait()
+	recommendation_label.position = Vector2(24.0, 938.0)
 	recommendation_label.size = Vector2(624.0, 28.0)
-	retry_button.position = Vector2(24.0, 944.0)
-	retry_button.size = Vector2(296.0, 58.0)
-	title_button.position = Vector2(352.0, 944.0)
-	title_button.size = Vector2(296.0, 58.0)
+	retry_button.position = Vector2(24.0, 1018.0)
+	retry_button.size = Vector2(296.0, 66.0)
+	title_button.position = Vector2(352.0, 1018.0)
+	title_button.size = Vector2(296.0, 66.0)
+
+
+func _layout_career_portrait() -> void:
+	career_profile_panel.position = Vector2(16.0, 72.0)
+	career_profile_panel.size = Vector2(640.0, 150.0)
+	callsign_header_label.position = Vector2(32.0, 82.0)
+	callsign_header_label.size = Vector2(608.0, 26.0)
+	callsign_edit.position = Vector2(32.0, 114.0)
+	callsign_edit.size = Vector2(392.0, 50.0)
+	callsign_save_button.position = Vector2(438.0, 114.0)
+	callsign_save_button.size = Vector2(202.0, 50.0)
+	callsign_status_label.position = Vector2(32.0, 170.0)
+	callsign_status_label.size = Vector2(608.0, 34.0)
+	chart_panel.position = Vector2(16.0, 232.0)
+	chart_panel.size = Vector2(640.0, 430.0)
+	chart_header_label.position = Vector2(32.0, 242.0)
+	chart_header_label.size = Vector2(340.0, 26.0)
+	chart_kills_button.position = Vector2(408.0, 238.0)
+	chart_kills_button.size = Vector2(108.0, 42.0)
+	chart_share_button.position = Vector2(524.0, 238.0)
+	chart_share_button.size = Vector2(116.0, 42.0)
+	weapon_history_chart.position = Vector2(32.0, 290.0)
+	weapon_history_chart.size = Vector2(608.0, 354.0)
+	local_board_panel.position = Vector2(16.0, 672.0)
+	local_board_panel.size = Vector2(640.0, 328.0)
+	local_board_header_label.position = Vector2(32.0, 682.0)
+	local_board_header_label.size = Vector2(608.0, 26.0)
+	for index: int in range(local_board_rows.size()):
+		local_board_rows[index].position = Vector2(32.0, 716.0 + float(index) * 54.0)
+		local_board_rows[index].size = Vector2(608.0, 48.0)
+		local_board_rows[index].add_theme_font_size_override(&"font_size", 13)
+
+
+func _layout_global_portrait() -> void:
+	global_panel.position = Vector2(16.0, 72.0)
+	global_panel.size = Vector2(640.0, 928.0)
+	global_header_label.position = Vector2(32.0, 84.0)
+	global_header_label.size = Vector2(360.0, 28.0)
+	global_status_label.position = Vector2(32.0, 118.0)
+	global_status_label.size = Vector2(380.0, 28.0)
+	global_refresh_button.position = Vector2(438.0, 92.0)
+	global_refresh_button.size = Vector2(202.0, 54.0)
+	personal_rank_label.position = Vector2(32.0, 156.0)
+	personal_rank_label.size = Vector2(608.0, 42.0)
+	for index: int in range(global_rows.size()):
+		global_rows[index].position = Vector2(32.0, 206.0 + float(index) * 72.0)
+		global_rows[index].size = Vector2(608.0, 64.0)
+		global_rows[index].add_theme_font_size_override(&"font_size", 14)
+
+
+func _layout_tabs(x: float, y: float, total_width: float, height: float) -> void:
+	var gap: float = 8.0
+	var tab_width: float = (total_width - gap * 2.0) / 3.0
+	for index: int in range(tab_buttons.size()):
+		tab_buttons[index].position = Vector2(x + float(index) * (tab_width + gap), y)
+		tab_buttons[index].size = Vector2(tab_width, height)
+		tab_buttons[index].add_theme_font_size_override(&"font_size", 16)
 
 
 func _place_content(viewport_size: Vector2, design_size: Vector2, margin: float) -> void:
@@ -479,6 +866,11 @@ func _place_content(viewport_size: Vector2, design_size: Vector2, margin: float)
 	content_root.scale = Vector2.ONE * scale_factor
 	content_root.size = design_size
 	content_root.position = (viewport_size - design_size * scale_factor) * 0.5
+
+
+func _set_controls_visible(controls: Array[Control], show: bool) -> void:
+	for control: Control in controls:
+		control.visible = show
 
 
 func _visible_row_text(rows: Array[Label]) -> PackedStringArray:
