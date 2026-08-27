@@ -324,6 +324,7 @@ func _on_spatial_district_changed(
 	logical_chunk: int
 ) -> void:
 	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_chunk)
+	CityWorldBuilder.transition_parallax(self, district.district_id)
 	district_transition_banner.present(district, logical_chunk)
 
 func _refresh_primary_destructibles() -> void:
