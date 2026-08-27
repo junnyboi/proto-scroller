@@ -293,16 +293,16 @@ The Conservator retains one pooled shell, its existing speed, 30 damage, nine-pi
 
 ## Runtime Art Package
 
-GPT Image 2 generated one standalone 2304×1536 master triptych for every enemy. Full-resolution masters remain under `docs/story-concepts/production-sources/choir-attack-vfx/`, and lightweight proposal plates remain under `docs/concepts/choir-attack-vfx/`. Deterministic processing extracts the three visual phases and packs them into three 960×768 WebP atlases, each arranged as a five-column by four-row grid matching `DISTRICT_VARIANT_IDS` order.
+GPT Image 2 generated one standalone 2304×1536 master triptych for every enemy. Full-resolution masters remain under `docs/story-concepts/production-sources/choir-attack-vfx/`, and lightweight proposal plates remain under `docs/concepts/choir-attack-vfx/`. Deterministic processing extracts the three visual phases and packs them into three 360×288 WebP atlases, each arranged as a five-column by four-row grid matching `DISTRICT_VARIANT_IDS` order.
 
 | Runtime atlas | Purpose | Source bytes |
 |---|---|---:|
-| `district-projectile-vfx.webp` | Nine physical projectile skins and eleven actor payload motifs | 88,382 |
-| `district-impact-vfx.webp` | Nine projectile impacts and eleven support/melee completions | 245,380 |
-| `district-attack-vfx.webp` | Twenty anticipation, muzzle, brace, scan, or channel cues | 144,400 |
-| **Total** | Sixty unique atlas regions | **478,162** |
+| `district-projectile-vfx.webp` | Nine physical projectile skins and eleven actor payload motifs | 21,998 |
+| `district-impact-vfx.webp` | Nine projectile impacts and eleven support/melee completions | 51,784 |
+| `district-attack-vfx.webp` | Twenty anticipation, muzzle, brace, scan, or channel cues | 34,342 |
+| **Total** | Sixty unique atlas regions | **108,124** |
 
-The current checked-in Web package leaves approximately 1.15 MiB below the 16 MiB cap. The atlas package deliberately targets less than 600 KiB of source art so the final export retains safety margin for scripts and import metadata. The fresh Godot 4.7.2 export remains authoritative.
+The first fresh export exposed that 960×768 imported atlases exceeded the 16 MiB PCK cap despite their compact source encoding. The final package therefore uses 72-pixel cells in 360×288 atlases, retaining all sixty designs while reducing imported texture area by approximately 86 percent. Only these three cosmetic atlases use Godot lossy import mode at quality 0.3; gameplay and enemy-body textures are untouched. The authoritative Godot 4.7.2 export measured 16,773,552 bytes, leaving 3,664 bytes below the hard cap.
 
 ## Production Acceptance Criteria
 

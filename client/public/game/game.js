@@ -288,7 +288,6 @@ const InternalConfig = function (initConfig) { // eslint-disable-line no-unused-
 		 * @type {string}
 		 */
 		executable: '',
-		audioWorkletBase: null,
 		/**
 		 * An alternative name for the game pck to load. The executable name is used otherwise.
 		 *
@@ -504,7 +503,6 @@ const InternalConfig = function (initConfig) { // eslint-disable-line no-unused-
 		// Godot config
 		this.canvas = parse('canvas', this.canvas);
 		this.executable = parse('executable', this.executable);
-		this.audioWorkletBase = parse('audioWorkletBase', this.audioWorkletBase);
 		this.mainPack = parse('mainPack', this.mainPack);
 		this.locale = parse('locale', this.locale);
 		this.canvasResizePolicy = parse('canvasResizePolicy', this.canvasResizePolicy);
@@ -530,7 +528,6 @@ const InternalConfig = function (initConfig) { // eslint-disable-line no-unused-
 	Config.prototype.getModuleConfig = function (loadPath, response) {
 		let r = response;
 		const gdext = this.gdextensionLibs;
-		const audioWorkletBase = this.audioWorkletBase || loadPath;
 		return {
 			'print': this.onPrint,
 			'printErr': this.onPrintError,
@@ -556,9 +553,9 @@ const InternalConfig = function (initConfig) { // eslint-disable-line no-unused-
 				if (!path.startsWith('godot.')) {
 					return path;
 				} else if (path.endsWith('.audio.worklet.js')) {
-					return `${audioWorkletBase}.audio.worklet.js`;
+					return `${loadPath}.audio.worklet.js`;
 				} else if (path.endsWith('.audio.position.worklet.js')) {
-					return `${audioWorkletBase}.audio.position.worklet.js`;
+					return `${loadPath}.audio.position.worklet.js`;
 				} else if (path.endsWith('.js')) {
 					return `${loadPath}.js`;
 				} else if (path in gdext) {

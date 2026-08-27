@@ -10,8 +10,8 @@ const IMPACT_ATLAS: Texture2D = preload(
 const ATTACK_ATLAS: Texture2D = preload(
 	"res://art/city/enemies/choir-attacks/district-attack-vfx.webp"
 )
-const ATLAS_SIZE: Vector2i = Vector2i(960, 768)
-const CELL_SIZE: Vector2i = Vector2i(192, 192)
+const ATLAS_SIZE: Vector2i = Vector2i(360, 288)
+const CELL_SIZE: Vector2i = Vector2i(72, 72)
 const COLUMNS: int = 5
 const HOSTILE_IMPACT_DURATION: float = 0.24
 

@@ -47,13 +47,13 @@ RANGED = {
 }
 
 PHASES = (
-    ("projectile", 0, (170, 120)),
-    ("impact", 1, (170, 170)),
-    ("attack", 2, (176, 170)),
+	("projectile", 0, (64, 45)),
+	("impact", 1, (64, 64)),
+	("attack", 2, (66, 64)),
 )
 ATLAS_COLUMNS = 5
 ATLAS_ROWS = 4
-ATLAS_CELL = 192
+ATLAS_CELL = 72
 
 
 def trim_alpha(image: Image.Image, padding: int = 10) -> Image.Image:

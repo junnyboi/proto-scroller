@@ -3,29 +3,29 @@
     "projectile": {
       "path": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
       "size": [
-        960,
-        768
+        360,
+        288
       ],
-      "bytes": 88382,
-      "sha256": "7bc207a4cea3835de7c6c73bf349a674a9410fb7fa819de4158ea3a3043a9f40"
+      "bytes": 21998,
+      "sha256": "8f8e5f796654c655b8bae2ea8b5bde4c26d783cbd35f165c18f4d82c816dfc0b"
     },
     "impact": {
       "path": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
       "size": [
-        960,
-        768
+        360,
+        288
       ],
-      "bytes": 245380,
-      "sha256": "c3c4d21c97f364722fa077ff1f2aef34b35b8da19fc19ffd83dea8f84dba61d8"
+      "bytes": 51784,
+      "sha256": "2539ce1bb246020668c12d623778ab8df981da77bdd574f20d2437441be2ba20"
     },
     "attack": {
       "path": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
       "size": [
-        960,
-        768
+        360,
+        288
       ],
-      "bytes": 144400,
-      "sha256": "9b739092fc3948aea7e4d81aca50cef97fe2c54332f665ddcee8ad33609df6c2"
+      "bytes": 34342,
+      "sha256": "dc32580b6ec320e3651886eada78be0f7318d7e8aa9353e5daffcf8440d0e450"
     }
   },
   "variants": [
@@ -41,12 +41,12 @@
           "region": [
             0,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            170,
-            97
+            64,
+            37
           ]
         },
         "impact": {
@@ -54,12 +54,12 @@
           "region": [
             0,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            115,
-            170
+            43,
+            64
           ]
         },
         "attack": {
@@ -67,12 +67,12 @@
           "region": [
             0,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            95,
-            170
+            36,
+            64
           ]
         }
       }
@@ -87,40 +87,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            192,
+            72,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            170,
-            75
+            64,
+            28
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            192,
+            72,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            102,
-            170
+            38,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            192,
+            72,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            100,
-            170
+            38,
+            64
           ]
         }
       }
@@ -135,40 +135,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            384,
+            144,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            64,
-            120
+            24,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            384,
+            144,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            124,
-            170
+            47,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            384,
+            144,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            91,
-            170
+            34,
+            64
           ]
         }
       }
@@ -183,40 +183,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            576,
+            216,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            63,
-            120
+            24,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            576,
+            216,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            93,
-            170
+            35,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            576,
+            216,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            92,
-            170
+            35,
+            64
           ]
         }
       }
@@ -231,40 +231,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            768,
+            288,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            60,
-            120
+            22,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            768,
+            288,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            69,
-            170
+            26,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            768,
+            288,
             0,
-            192,
-            192
+            72,
+            72
           ],
           "content_size": [
-            79,
-            170
+            30,
+            64
           ]
         }
       }
@@ -280,39 +280,39 @@
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
             0,
-            192,
-            192,
-            192
+            72,
+            72,
+            72
           ],
           "content_size": [
-            80,
-            120
+            30,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
             0,
-            192,
-            192,
-            192
+            72,
+            72,
+            72
           ],
           "content_size": [
-            152,
-            170
+            57,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
             0,
-            192,
-            192,
-            192
+            72,
+            72,
+            72
           ],
           "content_size": [
-            106,
-            170
+            40,
+            64
           ]
         }
       }
@@ -327,40 +327,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            192,
-            192,
-            192,
-            192
+            72,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            170,
-            83
+            64,
+            31
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            192,
-            192,
-            192,
-            192
+            72,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            100,
-            170
+            38,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            192,
-            192,
-            192,
-            192
+            72,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            86,
-            170
+            32,
+            64
           ]
         }
       }
@@ -375,40 +375,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            384,
-            192,
-            192,
-            192
+            144,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            61,
-            120
+            23,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            384,
-            192,
-            192,
-            192
+            144,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            90,
-            170
+            34,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            384,
-            192,
-            192,
-            192
+            144,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            84,
-            170
+            32,
+            64
           ]
         }
       }
@@ -423,40 +423,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            576,
-            192,
-            192,
-            192
+            216,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            64,
-            120
+            24,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            576,
-            192,
-            192,
-            192
+            216,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            127,
-            170
+            48,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            576,
-            192,
-            192,
-            192
+            216,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            100,
-            170
+            37,
+            64
           ]
         }
       }
@@ -471,40 +471,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            768,
-            192,
-            192,
-            192
+            288,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            170,
-            114
+            64,
+            43
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            768,
-            192,
-            192,
-            192
+            288,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            120,
-            170
+            45,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            768,
-            192,
-            192,
-            192
+            288,
+            72,
+            72,
+            72
           ],
           "content_size": [
-            108,
-            170
+            41,
+            64
           ]
         }
       }
@@ -520,39 +520,39 @@
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
             0,
-            384,
-            192,
-            192
+            144,
+            72,
+            72
           ],
           "content_size": [
-            62,
-            120
+            23,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
             0,
-            384,
-            192,
-            192
+            144,
+            72,
+            72
           ],
           "content_size": [
-            120,
-            170
+            45,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
             0,
-            384,
-            192,
-            192
+            144,
+            72,
+            72
           ],
           "content_size": [
-            90,
-            170
+            34,
+            64
           ]
         }
       }
@@ -567,40 +567,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            192,
-            384,
-            192,
-            192
+            72,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            170,
-            80
+            64,
+            30
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            192,
-            384,
-            192,
-            192
+            72,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            98,
-            170
+            37,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            192,
-            384,
-            192,
-            192
+            72,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            91,
-            170
+            34,
+            64
           ]
         }
       }
@@ -615,40 +615,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            384,
-            384,
-            192,
-            192
+            144,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            63,
-            120
+            24,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            384,
-            384,
-            192,
-            192
+            144,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            122,
-            170
+            46,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            384,
-            384,
-            192,
-            192
+            144,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            87,
-            170
+            33,
+            64
           ]
         }
       }
@@ -663,40 +663,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            576,
-            384,
-            192,
-            192
+            216,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            170,
-            93
+            64,
+            35
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            576,
-            384,
-            192,
-            192
+            216,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            91,
-            170
+            34,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            576,
-            384,
-            192,
-            192
+            216,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            92,
-            170
+            35,
+            64
           ]
         }
       }
@@ -711,40 +711,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            768,
-            384,
-            192,
-            192
+            288,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            170,
-            85
+            64,
+            32
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            768,
-            384,
-            192,
-            192
+            288,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            93,
-            170
+            35,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            768,
-            384,
-            192,
-            192
+            288,
+            144,
+            72,
+            72
           ],
           "content_size": [
-            91,
-            170
+            34,
+            64
           ]
         }
       }
@@ -760,39 +760,39 @@
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
             0,
-            576,
-            192,
-            192
+            216,
+            72,
+            72
           ],
           "content_size": [
-            170,
-            82
+            64,
+            31
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
             0,
-            576,
-            192,
-            192
+            216,
+            72,
+            72
           ],
           "content_size": [
-            85,
-            170
+            32,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
             0,
-            576,
-            192,
-            192
+            216,
+            72,
+            72
           ],
           "content_size": [
-            89,
-            170
+            34,
+            64
           ]
         }
       }
@@ -807,40 +807,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            192,
-            576,
-            192,
-            192
+            72,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            55,
-            120
+            21,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            192,
-            576,
-            192,
-            192
+            72,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            81,
-            170
+            30,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            192,
-            576,
-            192,
-            192
+            72,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            84,
-            170
+            32,
+            64
           ]
         }
       }
@@ -855,40 +855,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            384,
-            576,
-            192,
-            192
+            144,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            63,
-            120
+            24,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            384,
-            576,
-            192,
-            192
+            144,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            133,
-            170
+            50,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            384,
-            576,
-            192,
-            192
+            144,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            81,
-            170
+            31,
+            64
           ]
         }
       }
@@ -903,40 +903,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            576,
-            576,
-            192,
-            192
+            216,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            60,
-            120
+            22,
+            45
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            576,
-            576,
-            192,
-            192
+            216,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            80,
-            170
+            30,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            576,
-            576,
-            192,
-            192
+            216,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            84,
-            170
+            32,
+            64
           ]
         }
       }
@@ -951,40 +951,40 @@
         "projectile": {
           "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
           "region": [
-            768,
-            576,
-            192,
-            192
+            288,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            170,
-            81
+            64,
+            30
           ]
         },
         "impact": {
           "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
           "region": [
-            768,
-            576,
-            192,
-            192
+            288,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            88,
-            170
+            33,
+            64
           ]
         },
         "attack": {
           "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
           "region": [
-            768,
-            576,
-            192,
-            192
+            288,
+            216,
+            72,
+            72
           ],
           "content_size": [
-            77,
-            170
+            29,
+            64
           ]
         }
       }

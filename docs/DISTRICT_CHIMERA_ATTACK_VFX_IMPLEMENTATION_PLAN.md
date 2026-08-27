@@ -27,20 +27,22 @@ The project release-gate override remains active. Work packages use only focused
 
 GPT Image 2 generated twenty standalone 2304×1536 triptych masters. Each triptych contains a delivery payload, impact/completion, and anticipation/channel design. Masters remain outside the Godot runtime under `docs/story-concepts/production-sources/choir-attack-vfx/`. Proposal-ready images are stored under `docs/concepts/choir-attack-vfx/`.
 
-`scripts/process-choir-attack-vfx.py` deterministically slices every master into three equal source columns, trims alpha, preserves aspect ratio, rotates only vertically authored physical ranged payloads into canonical horizontal travel orientation, and packs the results into three 960×768 WebP atlases. Each atlas uses a five-column by four-row grid of 192-pixel cells in exact `DISTRICT_VARIANT_IDS` order.
+`scripts/process-choir-attack-vfx.py` deterministically slices every master into three equal source columns, trims alpha, preserves aspect ratio, rotates only vertically authored physical ranged payloads into canonical horizontal travel orientation, and packs the results into three 360×288 WebP atlases. Each atlas uses a five-column by four-row grid of 72-pixel cells in exact `DISTRICT_VARIANT_IDS` order.
 
 | Atlas | Runtime role | Planned source size |
 |---|---|---:|
-| `game/art/city/enemies/choir-attacks/district-projectile-vfx.webp` | Physical ranged projectile skins and actor-only payload motifs | 88,382 bytes |
-| `game/art/city/enemies/choir-attacks/district-impact-vfx.webp` | Projectile impacts and actor-only completion bursts | 245,380 bytes |
-| `game/art/city/enemies/choir-attacks/district-attack-vfx.webp` | Anticipation, muzzle, scan, brace, or channel cues | 144,400 bytes |
-| **Total** | Sixty unique atlas regions | **478,162 bytes** |
+| `game/art/city/enemies/choir-attacks/district-projectile-vfx.webp` | Physical ranged projectile skins and actor-only payload motifs | 21,998 bytes |
+| `game/art/city/enemies/choir-attacks/district-impact-vfx.webp` | Projectile impacts and actor-only completion bursts | 51,784 bytes |
+| `game/art/city/enemies/choir-attacks/district-attack-vfx.webp` | Anticipation, muzzle, scan, brace, or channel cues | 34,342 bytes |
+| **Total** | Sixty unique atlas regions | **108,124 bytes** |
+
+The first full Web export showed that Godot's initial lossless texture imports exceeded the hard PCK cap despite the compact WebP sources. The final import sidecars therefore use lossy mode at quality 0.3 only for these three cosmetic atlases. The final Godot 4.7.2 export measured 16,773,552 bytes, leaving 3,664 bytes below the 16 MiB cap; no enemy-body, gameplay, UI, or legacy projectile texture changed compression mode.
 
 ## 4. Data Contract
 
 A new `EnemyAttackVfxCatalog` owns all district-variant attack presentation data. The catalog keys must exactly equal `EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS`. Each entry records delivery class, atlas region, display size, local placement, flip policy, completion duration, projectile kind where relevant, and deterministic visual keys. It must not contain damage, speed, range, target, collision, attack interval, telegraph duration, health, threat, or spawn data.
 
-The catalog exposes `has()`, `spec()`, `phase_spec()`, `projectile_key()`, `impact_key()`, `projectile_spec_for_key()`, `impact_spec_for_key()`, `is_projectile_delivery()`, and `validation_errors()`. Validation requires exactly twenty entries, the exact 9/11 delivery split, three valid atlas regions per entry, unique projectile and impact keys for the ranged set, empty physical keys for actor-only entries, cell bounds inside 960×768, positive display sizes and durations, and projectile radius parity with the inherited damage kind.
+The catalog exposes `has()`, `spec()`, `phase_spec()`, `projectile_key()`, `impact_key()`, `projectile_spec_for_key()`, `impact_spec_for_key()`, `is_projectile_delivery()`, and `validation_errors()`. Validation requires exactly twenty entries, the exact 9/11 delivery split, three valid atlas regions per entry, unique projectile and impact keys for the ranged set, empty physical keys for actor-only entries, cell bounds inside 360×288, positive display sizes and durations, and projectile radius parity with the inherited damage kind.
 
 `EnemyArchetypeCatalog` adds only one presentation identity field, `attack_vfx_id`, to each of the twenty overlays. Flattened gameplay fields remain unchanged. Catalog validation proves that every variant's VFX ID resolves and that no base archetype receives a district VFX identity.
 
@@ -72,7 +74,7 @@ The existing four machine-gun impact slots and their behavior remain unchanged. 
 
 | Work package | Status | Deliverable | Focused evidence | Milestone |
 |---|---|---|---|---|
-| WP0 — Proposal and GPT Image 2 art | Completed | Canonical proposal, twenty embedded triptychs, masters, processor, three runtime atlases, provenance | 20 masters, 20 concepts, 3 atlases, 60 valid regions, visual pass, 478,162 source bytes | Commit and push documents/assets |
+| WP0 — Proposal and GPT Image 2 art | Completed | Canonical proposal, twenty embedded triptychs, masters, processor, three runtime atlases, provenance | 20 masters, 20 concepts, 3 atlases, 60 valid regions, visual pass, 108,124 source bytes after package correction | Commit and push documents/assets |
 | WP1 — Catalog and ranged delivery | Completed | Exact twenty-entry VFX catalog, nine custom projectile keys, explicit impact identity, eight bounded hostile impacts | Catalog/schema tests, projectile radius/speed/damage parity, pool counts and reset | Commit and push ranged layer |
 | WP2 — Actor support/melee presentation | Completed | Twenty anticipation cues plus eleven actor-only payload/completion paths | Zero projectile reservations for 11, support/melee parity, cancel/release/reuse cleanup | Commit and push actor layer |
 | WP3 — Focused integration and plan closure | Completed | Focused district VFX suite, gallery/report extension, provenance, final completion record | 30 selected GUT tests, parse, direct asset and node-count assertions | Commit and push final source |
@@ -84,7 +86,7 @@ WP0 records the approved design before gameplay modification. It produces the ca
 
 **Files:** `docs/DISTRICT_CHIMERA_ATTACK_VFX_PROPOSAL.md`, `docs/DISTRICT_CHIMERA_ATTACK_VFX_IMPLEMENTATION_PLAN.md`, `docs/concepts/choir-attack-vfx/*.png`, `docs/story-concepts/production-sources/choir-attack-vfx/*`, `scripts/process-choir-attack-vfx.py`, and `game/art/city/enemies/choir-attacks/*.webp`.
 
-**Exit criteria:** exactly twenty masters and twenty proposal plates; exactly three 960×768 runtime atlases; sixty nonempty 192×192 cells; no visible clipping or background contamination; combined runtime source art below 600 KiB; explicit GPT Image 2 provenance.
+**Exit criteria:** exactly twenty masters and twenty proposal plates; exactly three 360×288 runtime atlases; sixty nonempty 72×72 cells; no visible clipping or background contamination; combined runtime source art below 600 KiB; explicit GPT Image 2 provenance.
 
 ## 8. WP1 — Catalog and Ranged Delivery
 
@@ -134,7 +136,7 @@ A package is complete only after focused evidence is recorded, the plan is updat
 
 | Work package | Completion | Commit / checkpoint | Focused evidence | Notes |
 |---|---|---|---|---|
-| WP0 | Completed | `ab0c2ef14c995899e97fcf3d2adb83528169c8c8` | 20 GPT Image 2 masters, 20 embedded proposal plates, 3 atlases, 60/60 nonempty cells, 478,162 runtime source bytes | Visual contact sheet and packed atlases passed the lightweight inspection; no fatal clipping, text, gore, or opaque-background defect. |
+| WP0 | Completed | `ab0c2ef14c995899e97fcf3d2adb83528169c8c8` | 20 GPT Image 2 masters, 20 embedded proposal plates, 3 atlases, 60/60 nonempty cells, 108,124 final runtime source bytes | Visual contact sheet and packed atlases passed the lightweight inspection; no fatal clipping, text, gore, or opaque-background defect. Final export correction reduced cell area by approximately 86 percent without removing any design. |
 | WP1 | Completed | `5e43a83d7c204355f40a6da248824f11f7145a0a` | 10/10 focused tests and 736 assertions passed: 20-spec/60-region catalog, nine unique ranged skins and impacts, direct procedural firing, bounded impact cursor, four legacy projectile tests, and runtime-budget snapshot | Projectile pool remains 32 with 16/4/4/8 partitions. Added eight collisionless cosmetic impact slots inside the existing pool; they cannot deny or alter projectile delivery. Repaired a concurrent indentation defect in the firing-pulse telegraph merge that blocked Godot parsing. |
 | WP2 | Completed | `80f9098a65db9a7ed6d630af3798e52b18826f1f` | 25/25 focused tests and 1,150 assertions passed: all twenty fixed-sprite anticipations, exact 9/11 delivery split, eleven zero-projectile completions, repair/scan/choir-ring parity, old→variant→old cleanup, seven legacy emission tests, and ten Project CHOIR runtime tests | Five prewarmed presentation sprites per procedural shell remain fixed. No attack node, projectile, timer, tween, collision, status, or hazard was added for actor-only deliveries. |
 | WP3 | Completed | `d82ead7ff5e690f44dd4ff9f3f348601ddb87bc7` | 30/30 final focused tests and 1,348 assertions passed after the final shared-main fetch. Godot import/parse and `gdlint` passed. Landscape and portrait headless gallery reports each passed 86 checks with 20 variants, five groups of four, and the exact 9 projectile / 11 actor split. | Full release-gate validation was intentionally skipped under the active project override. The gallery remains exactly twenty cards and now records VFX identity, delivery, projectile/impact keys, and all three atlas regions. |
