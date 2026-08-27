@@ -35,23 +35,33 @@ func _run() -> void:
 	city.gameplay_hud.first_run_tutorial._finish_tutorial(true)
 	city.encounter_runtime.release_all()
 	city.encounter_director.process_mode = Node.PROCESS_MODE_DISABLED
-	var targets: Array[EnemyActor2D] = [city.soldier, city.tank, city.helicopter]
-	for index: int in range(targets.size()):
-		if not city.rampage_events.enemy_defeated(
-			targets[index],
-			DamageEvent.new(91_000 + index, city.robot, 999.0, &"visual_kill"),
+	for index: int in range(10):
+		if not city.rampage_session.publish(GameplayEvent.new(
+			StringName("visual_herald_%02d" % index),
+			91_000 + index,
+			GameplayEvent.Kind.ENEMY_DEFEATED,
+			GameplayEvent.ENEMY_KILL,
 			100,
-			city.robot
-		):
+			0.0,
+			true
+		)):
 			quit(1)
 			return
-	await process_frame
+	for _frame: int in range(9):
+		await process_frame
 	await RenderingServer.frame_post_draw
+	var herald: ComboHerald = city.gameplay_hud.combo_herald
 	if (
-		city.rampage_session.current_multiplier() != 2
-		or city.score != 200
-		or city.gameplay_hud.combo_label.text != "x2 KILL COMBO"
+		city.rampage_session.current_multiplier() != 5
+		or city.score != 4000
+		or city.gameplay_hud.combo_label.text != "x5 KILL COMBO"
 		or not city.gameplay_hud.combo_label.visible
+		or herald.last_tier != 10
+		or herald.title_label.text != "EXTINCTION EVENT"
+		or herald.presentation_count != 6
+		or herald.audio_play_count != 6
+		or herald.supersession_count != 5
+		or not herald.is_presenting()
 	):
 		quit(1)
 		return
@@ -69,6 +79,10 @@ func _run() -> void:
 		return
 	completed = true
 	print("[KILL-COMBO-VISUAL-DONE] shot=%s" % SHOT_PATH)
+	herald.dismiss()
+	city.queue_free()
+	await process_frame
+	await process_frame
 	quit(0)
 
 

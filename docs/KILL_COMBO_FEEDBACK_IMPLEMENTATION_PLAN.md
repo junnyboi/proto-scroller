@@ -8,13 +8,13 @@
 
 ## 1. Objective
 
-This work adds a **Combat Herald** presentation layer to the existing three-second kill-score combo system. Scoring, multiplier growth, decay, damage reset, and the compact HUD ring remain authoritative and unchanged. When a meaningful chain threshold is reached, the game will present a short, center-screen, non-blocking visual animation and an original arena-announcer voice line.
+This work adds a **Combat Herald** presentation layer to the density-normalized kill-score combo system. Scoring, weighted progress units, multiplier growth, the 1.5-second decay window, damage reset, and the compact HUD ring remain authoritative and unchanged. When a meaningful authored tier is reached, the game presents a short, center-screen, non-blocking visual animation and an original arena-announcer voice line.
 
 The system must be readable during dense combat, responsive in 1280×720 and 720×1280 layouts, safe under rapid milestone escalation, and bounded for Web. It must not pause gameplay, create combat-time nodes, mutate score math, or depend on the announcer audio finishing before the next milestone can replace it.
 
 ## 2. Existing Contract
 
-The current `ComboTracker` accepts only qualifying enemy defeats, increments `current_chain_count`, caps the score multiplier at `5×`, refreshes a three-second grace window, and resets on accepted player damage or expiry. `GameplayHud` renders the current multiplier and decay ring. `CityRunLifecycle` already owns combo-break audio. The Web smoke probe and focused scenarios verify the multiplier, score award, HUD label, and damage reset.
+The synchronized `ComboTracker` accepts only qualifying enemy defeats, increments the physical chain count, advances density-normalized progress units, caps the score multiplier at `5×`, refreshes a 1.5-second grace window, and resets on accepted player damage or expiry. Two physical regular-enemy kills equal one authored tier; singular named bosses contribute one complete authored step. `GameplayHud` renders the current multiplier and decay ring. `CityRunLifecycle` owns combo-break audio. The Web smoke probe and focused scenarios verify the normalized score award, multiplier, HUD label, and damage reset.
 
 The new system will extend this contract rather than replace it:
 
@@ -33,7 +33,7 @@ The new system will extend this contract rather than replace it:
 
 The herald is milestone-based rather than kill-spam-based. It announces the early multiplier steps, then rewards longer chains beyond the `5×` score cap.
 
-| Chain count | Localized title key | English callout | Visual identity | Audio treatment |
+| Authored tier | Localized title key | English callout | Visual identity | Audio treatment |
 |---:|---|---|---|---|
 | 2 | `hud.combo_herald.double` | **DOUBLE KILL** | Twin opposing blades and split cyan corona | Firm, clipped declaration |
 | 3 | `hud.combo_herald.triple` | **TRIPLE KILL** | Three-point reactor crest and triple pulse | Louder, rising authority |
@@ -42,7 +42,7 @@ The herald is milestone-based rather than kill-spam-based. It announces the earl
 | 7 | `hud.combo_herald.annihilation` | **ANNIHILATION** | Broken orbital cage and expanding gold fracture | Slow, ominous domination |
 | 10 | `hud.combo_herald.extinction` | **EXTINCTION EVENT** | Ten-rayed catastrophic reactor seal | Deep final-tier proclamation |
 
-Counts above ten keep the `EXTINCTION EVENT` state without replaying it on every kill. The chain remains numerically tracked for summaries.
+Progress beyond authored tier ten keeps the `EXTINCTION EVENT` state without replaying it on every kill. The physical chain remains numerically tracked for summaries.
 
 ### 3.2 Animation language
 
@@ -113,10 +113,10 @@ The runtime routes announcer clips through the existing **Voice** bus. A dedicat
 `ComboTracker` will add:
 
 ```gdscript
-signal milestone_reached(chain_count: int, multiplier: int)
+signal milestone_reached(tier: int, chain_count: int, multiplier: int)
 ```
 
-The signal fires only for chain counts `2`, `3`, `4`, `5`, `7`, and `10`. This keeps score math and `combo_changed` untouched while providing a semantic event for presentation and tests.
+The signal fires only when density-normalized progress crosses authored tiers `2`, `3`, `4`, `5`, `7`, and `10`. If one future event crosses multiple thresholds, only the highest crossed tier is emitted. This keeps score math and `combo_changed` untouched while providing a semantic event for presentation and tests.
 
 ### 6.2 Catalog
 
@@ -184,11 +184,13 @@ The CJK subset builder must be rerun after localization changes.
 | WP4 — Browser-ready source release | Update Web smoke telemetry and authoritative harness assertions; focused direct import/boot only under release-gate override | Focused GUT, direct import, bounded boot, asset/log scan; push source release |
 | WP5 — WebDev synchronization | Fresh Godot Web export from final pushed tree; upload/remap fresh WASM and PCK; update WebDev continuity files; checkpoint and publish | Required payload files and exact source revision recorded; no full release-gate ceremony unless explicitly requested |
 
+**Status:** WP0 and WP1 are complete and pushed. WP2 through WP4 are implemented in the current source candidate with focused tests and responsive visual evidence complete. WP5 remains pending until the final source commit is pushed and its fresh Web export is synchronized to the existing WebDev project.
+
 ## 9. Focused Test Matrix
 
 | Layer | Assertion |
 |---|---|
-| `ComboTracker` | Emits thresholds 2/3/4/5/7/10 exactly once per chain and never for 1/6/8/9/11 |
+| `ComboTracker` | Emits authored tiers 2/3/4/5/7/10 exactly once while preserving physical-kill progress normalization and the capped multiplier |
 | Catalog | Every threshold resolves a texture, voice, localization key, and accent |
 | Scoring | Existing `1× + 2× + 3×...` score math remains byte-for-byte behaviorally equivalent |
 | HUD | Third kill presents `TRIPLE KILL`, x3 compact label remains visible, and the visual is non-interactive |
@@ -198,6 +200,12 @@ The CJK subset builder must be rerun after localization changes.
 | Audio lifecycle | Voice player is non-spatial, uses Voice bus, starts once per milestone, and stops on reset/teardown |
 | Web export | HTML, JS, WASM, and PCK are regenerated from the final pushed tree and synchronized to the existing WebDev project |
 
-## 10. Completion Definition
+## 10. Implemented evidence
+
+The source candidate adds a preloaded `ComboHeraldCatalog`, a preallocated responsive `ComboHerald`, density-aware milestone emission, lifecycle dismissal, EN/zh-CN titles, Voice-bus playback, future Web-smoke telemetry, and updated release-harness asset requirements. Six visual sources and one carrier anchor were generated with GPT Image 2; six original announcer cues were extracted from image-conditioned carriers and speech-verified. Deterministic processing, models, hashes, and final durations are recorded in `docs/KILL_COMBO_ASSET_PROVENANCE.md`.
+
+Focused GUT checks passed **14/14 tests with 170 assertions** for rampage progression/catalog behavior and **6/6 tests with 52 assertions** for live city/HUD integration. The updated final-tier visual scenario passed at **1280×720** and **720×1280** with no script, resource-retention, or ObjectDB leak diagnostics. Screenshot inspection confirmed the Extinction Event insignia and localized title remain clear of top telemetry, narrative transmission, robot readability, and the portrait touch-control region.
+
+## 11. Completion Definition
 
 The feature is complete when the final pushed source visibly and audibly escalates qualifying kill chains through all six milestone tiers, preserves every existing score/reset contract, uses only GPT Image 2-derived visual assets, uses the mandated video-carrier workflow for announcer sound, remains responsive and bounded, updates this plan and provenance with actual output evidence, and is synchronized to the existing Proto Scroller WebDev checkpoint and public deployment.

@@ -1148,13 +1148,18 @@ function assertPhaseContract(phases) {
       `post-upgrade SFX audit failed: ${JSON.stringify(postUpgradeSfx.details)}`
     );
   }
-  if (
-    killCombo.details.awarded !== 600 ||
-    killCombo.details.multiplier !== 3 ||
-    killCombo.details.label !== "x3 KILL COMBO" ||
-    killComboReset.details.multiplier !== 1 ||
-    killComboReset.details.pending !== 300
-  ) {
+	if (
+		killCombo.details.awarded !== 200 ||
+		killCombo.details.multiplier !== 2 ||
+		killCombo.details.label !== "x2 KILL COMBO" ||
+		killCombo.details.herald_tier !== 2 ||
+		killCombo.details.herald_title !== "DOUBLE KILL" ||
+		killCombo.details.herald_presentations !== 1 ||
+		killCombo.details.herald_audio_plays !== 1 ||
+		killCombo.details.herald_voice_bus !== "Voice" ||
+		killComboReset.details.multiplier !== 1 ||
+		killComboReset.details.pending !== 200
+	) {
     throw new Error(
       `kill combo contract failed: ${JSON.stringify({ killCombo, killComboReset })}`
     );

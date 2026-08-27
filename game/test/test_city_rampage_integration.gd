@@ -66,6 +66,14 @@ func test_physical_enemy_copies_normalize_score_and_combo_until_player_damage() 
 	assert_eq(city.rampage_session.current_multiplier(), 2)
 	assert_eq(city.gameplay_hud.combo_label.text, "x2 KILL COMBO")
 	assert_true(city.gameplay_hud.combo_label.visible)
+	var herald: ComboHerald = city.gameplay_hud.combo_herald
+	assert_eq(herald.last_tier, 2)
+	assert_eq(herald.last_title_key, "hud.combo_herald.double")
+	assert_eq(herald.title_label.text, "DOUBLE KILL")
+	assert_eq(herald.presentation_count, 1)
+	assert_eq(herald.audio_play_count, 1)
+	assert_eq(herald.voice_player.bus, GameAudioBus.VOICE)
+	assert_true(herald.is_presenting())
 	assert_true(city.robot.receive_damage(DamageEvent.new(
 		7100,
 		city.soldier,
@@ -75,6 +83,9 @@ func test_physical_enemy_copies_normalize_score_and_combo_until_player_damage() 
 	assert_eq(city.rampage_session.current_multiplier(), 1)
 	assert_eq(city.rampage_session.combo_tracker.current_chain_count, 0)
 	assert_false(city.gameplay_hud.combo_label.visible)
+	assert_false(herald.is_presenting())
+	assert_false(herald.voice_player.playing)
+	assert_null(herald.voice_player.stream)
 	assert_eq(city.rampage_session.heavy_hit_count, 0)
 	_record_test_execution()
 

@@ -39,6 +39,40 @@ func test_consecutive_kills_apply_the_growing_multiplier_immediately() -> void:
 	_record_test_execution()
 
 
+func test_combo_herald_milestones_emit_once_across_capped_progression() -> void:
+	var combo: ComboTracker = ComboTracker.new()
+	add_child_autofree(combo)
+	var tiers: Array[int] = []
+	var chains: Array[int] = []
+	var multipliers: Array[int] = []
+	combo.milestone_reached.connect(
+		func(tier: int, chain_count: int, multiplier: int) -> void:
+			tiers.append(tier)
+			chains.append(chain_count)
+			multipliers.append(multiplier)
+	)
+	for index: int in range(12):
+		assert_true(combo.register_event(_kill(StringName("herald_%d" % index), 0)))
+	assert_eq(tiers, [2, 3, 4, 5, 7, 10])
+	assert_eq(chains, [2, 3, 4, 5, 7, 10])
+	assert_eq(multipliers, [2, 3, 4, 5, 5, 5])
+	assert_eq(tiers.count(10), 1)
+	_record_test_execution()
+
+
+func test_combo_herald_catalog_preloads_every_generated_tier() -> void:
+	assert_eq(ComboHeraldCatalog.milestone_counts(), [2, 3, 4, 5, 7, 10])
+	for tier: int in ComboHeraldCatalog.milestone_counts():
+		var profile: Dictionary = ComboHeraldCatalog.profile_for(tier)
+		assert_false(profile.is_empty())
+		assert_true(profile[&"texture"] is Texture2D)
+		assert_true(profile[&"voice"] is AudioStream)
+		assert_true(String(profile[&"title_key"]).begins_with("hud.combo_herald."))
+		assert_gt(float(profile[&"intensity"]), 0.0)
+	assert_true(ComboHeraldCatalog.profile_for(6).is_empty())
+	_record_test_execution()
+
+
 func test_doubled_regular_enemy_pairs_preserve_authored_score_and_combo_curve() -> void:
 	var session: RampageSession = _session()
 	var adapter: RampageEventAdapter = RampageEventAdapter.new(session)
