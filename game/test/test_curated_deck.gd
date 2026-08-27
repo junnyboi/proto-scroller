@@ -110,7 +110,7 @@ func test_new_game_plus_restarts_act_one_with_score_power_and_exact_double_enemi
 		_source: Node
 	) -> void: emitted_damage.append(damage))
 	soldier.request_projectile(Vector2.ZERO, Vector2.RIGHT, 800.0, 12.0, &"bullet")
-	assert_eq(emitted_damage, [24.0])
+	assert_eq(emitted_damage, [20.4])
 	soldier.configure_boss(CommandBossSession.ARMOR, CommandBossSession.HEALTH)
 	assert_almost_eq(soldier.max_health, CommandBossSession.HEALTH * 2.0, 0.001)
 	assert_eq(RuntimeBudget.snapshot(city).node_count, node_count)

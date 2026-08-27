@@ -23,7 +23,7 @@ var _cooldown: float = 1.25
 
 
 func _ready() -> void:
-	max_health = 170.0
+	max_health = 170.0 * EnemyArchetypeCatalog.GROUND_VEHICLE_HEALTH_MULTIPLIER
 	super._ready()
 
 

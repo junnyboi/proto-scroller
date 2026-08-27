@@ -524,7 +524,9 @@ func _spawn_boss_repair_pickups(origin: Vector2, requested_count: int) -> int:
 	for index: int in range(mini(requested_count, BOSS_REPAIR_DROP_OFFSETS.size())):
 		var pickup: ChassisRepairPickup2D = (
 			dependencies.city.urban_siege.catalysts.spawn_repair_pickup(
-				origin + BOSS_REPAIR_DROP_OFFSETS[index]
+				origin + BOSS_REPAIR_DROP_OFFSETS[index],
+				ChassisRepairPickup2D.REPAIR_AMOUNT
+				* RampageRewardTuning.NAMED_BOSS_REWARD_MULTIPLIER
 			)
 		)
 		if pickup != null:

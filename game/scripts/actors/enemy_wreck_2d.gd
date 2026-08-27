@@ -14,6 +14,8 @@ const REMAINS_GROUND_LAYER: int = 1 << 10
 const MIN_CRASH_IMPACT_SPEED: float = 220.0
 const MAX_CRASH_IMPACT_DAMAGE: float = 180.0
 const CRASH_IMPACT_DAMAGE_SCALE: float = 0.12
+const PLAYER_ATTACK_KNOCKBACK_SCALE: float = 1.10
+const NON_PLAYER_KNOCKBACK_SCALE: float = 0.32
 
 static var _next_crash_attack_id: int = 2_000_000
 
@@ -161,8 +163,15 @@ func receive_damage(event: DamageEvent) -> bool:
 	var direction: Vector2 = event.direction
 	if direction.is_zero_approx():
 		direction = Vector2.RIGHT
-	apply_central_impulse(direction * event.impulse_per_mass * mass * 0.32)
-	apply_torque_impulse(direction.x * event.impulse_per_mass * mass * 0.16)
+	var knockback_scale: float = (
+		PLAYER_ATTACK_KNOCKBACK_SCALE
+		if event.source is GiantRobotController
+		else NON_PLAYER_KNOCKBACK_SCALE
+	)
+	apply_central_impulse(direction * event.impulse_per_mass * mass * knockback_scale)
+	apply_torque_impulse(
+		direction.x * event.impulse_per_mass * mass * knockback_scale * 0.5
+	)
 	if current_scrap_health <= 0.0:
 		_turn_to_scrap(event)
 	return true

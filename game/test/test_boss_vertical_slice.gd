@@ -57,7 +57,10 @@ func test_business_uses_unblockable_shockwave_and_capped_recurring_soldiers() ->
 	assert_true(shockwave.try_damage_body(city.robot))
 	assert_almost_eq(
 		city.robot.current_health,
-		health_before - BossVerticalSliceController.BUSINESS_SHOCKWAVE_DAMAGE,
+		health_before - (
+			BossVerticalSliceController.BUSINESS_SHOCKWAVE_DAMAGE
+			* EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+		),
 		0.001
 	)
 	var first_wave: Array[EnemyActor2D] = slice.deploy_business_support()
