@@ -10,13 +10,20 @@ const INTACT_TEXTURE: Texture2D = preload(
 const SPENT_TEXTURE: Texture2D = preload(
 	"res://art/city/catalysts/transformer_spent.png"
 )
+const OBLITERATION_DELAY_SECONDS: float = 0.16
+const DISCHARGE_ARC_COUNT: int = 7
+const DISCHARGE_SEGMENT_COUNT: int = 4
 
 var profile: CatalystProfile
 var armed: bool = false
 var spent: bool = false
+var discharging: bool = false
 var trigger_count: int = 0
+var discharge_count: int = 0
 var last_event: DamageEvent
 var _catalyst_seen_attacks: Dictionary[int, bool] = {}
+var _discharge_elapsed: float = 0.0
+var _activation_generation: int = 0
 
 
 func _ready() -> void:
@@ -27,6 +34,14 @@ func _ready() -> void:
 	visual_ground_offset = 35.0
 	super._ready()
 	freeze = true
+	set_process(false)
+	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	if not discharging:
+		return
+	_discharge_elapsed = minf(_discharge_elapsed + delta, OBLITERATION_DELAY_SECONDS)
 	queue_redraw()
 
 
@@ -38,14 +53,18 @@ func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
 	current_health = max_health
 	armed = true
 	spent = false
+	discharging = false
 	is_broken = false
 	is_fully_destroyed = false
+	_discharge_elapsed = 0.0
+	_activation_generation += 1
 	visible = true
 	visual.visible = true
 	collision_layer = 1 << 7
 	collision_mask = (1 << 0) | (1 << 1)
 	collision_shape.set_deferred("disabled", false)
 	freeze = true
+	set_process(false)
 	_catalyst_seen_attacks.clear()
 	visual.texture = intact_texture
 	visual.modulate = Color("7de3d7") if profile.catalyst_id == &"GAS_MAIN" else Color.WHITE
@@ -56,13 +75,17 @@ func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
 func reset_catalyst() -> void:
 	armed = false
 	spent = false
+	discharging = false
 	is_broken = false
 	is_fully_destroyed = false
+	_discharge_elapsed = 0.0
+	_activation_generation += 1
 	visible = false
 	visual.visible = false
 	collision_layer = 0
 	collision_mask = 0
 	collision_shape.set_deferred("disabled", true)
+	set_process(false)
 	current_health = 0.0
 	last_event = null
 	_catalyst_seen_attacks.clear()
@@ -73,14 +96,14 @@ func reset_catalyst() -> void:
 func receive_damage(event: DamageEvent) -> bool:
 	if not armed or is_fully_destroyed or event == null or event.amount <= 0.0:
 		return false
+	if spent and event.source == self:
+		return false
 	if event.attack_id != 0 and _catalyst_seen_attacks.has(event.attack_id):
 		return false
 	if event.attack_id != 0:
 		_catalyst_seen_attacks[event.attack_id] = true
 	if spent:
-		_fully_destroy_prop(event)
-		armed = false
-		queue_redraw()
+		_start_obliteration(event)
 		return true
 	current_health = maxf(current_health - event.amount, 0.0)
 	last_event = event
@@ -109,6 +132,27 @@ func mark_resolved(affected_count: int) -> void:
 	queue_redraw()
 
 
+func _start_obliteration(event: DamageEvent) -> void:
+	armed = false
+	discharging = true
+	discharge_count += 1
+	_discharge_elapsed = 0.0
+	last_event = event
+	set_process(true)
+	queue_redraw()
+	_finish_obliteration_after_delay(event, _activation_generation)
+
+
+func _finish_obliteration_after_delay(event: DamageEvent, generation: int) -> void:
+	await get_tree().create_timer(OBLITERATION_DELAY_SECONDS).timeout
+	if generation != _activation_generation or not discharging or is_fully_destroyed:
+		return
+	discharging = false
+	set_process(false)
+	_fully_destroy_prop(event)
+	queue_redraw()
+
+
 func _draw() -> void:
 	if not visible:
 		return
@@ -118,3 +162,27 @@ func _draw() -> void:
 		var ratio: float = clampf(current_health / maxf(max_health, 1.0), 0.0, 1.0)
 		draw_rect(Rect2(-52.0, 37.0, 104.0, 5.0), Color("1a2227"), true)
 		draw_rect(Rect2(-52.0, 37.0, 104.0 * ratio, 5.0), coil_color, true)
+	if discharging:
+		_draw_discharge()
+
+
+func _draw_discharge() -> void:
+	var progress: float = clampf(_discharge_elapsed / OBLITERATION_DELAY_SECONDS, 0.0, 1.0)
+	var intensity: float = sin(progress * PI)
+	var center: Vector2 = Vector2(0.0, -28.0)
+	var glow: Color = Color("8cecff")
+	glow.a = 0.22 + intensity * 0.48
+	draw_circle(center, 38.0 + intensity * 18.0, glow)
+	for arc_index: int in range(DISCHARGE_ARC_COUNT):
+		var points: PackedVector2Array = PackedVector2Array([center])
+		var base_angle: float = (
+			TAU * float(arc_index) / float(DISCHARGE_ARC_COUNT)
+			+ float(discharge_count % 5) * 0.13
+		)
+		for segment: int in range(1, DISCHARGE_SEGMENT_COUNT + 1):
+			var weight: float = float(segment) / float(DISCHARGE_SEGMENT_COUNT)
+			var jitter: float = sin(float(arc_index * 11 + segment * 7)) * 0.16
+			points.append(center + Vector2.from_angle(base_angle + jitter) * 68.0 * weight)
+		var arc_color: Color = Color("d9fbff")
+		arc_color.a = 0.45 + intensity * 0.55
+		draw_polyline(points, arc_color, 2.0 + intensity * 2.0, true)
