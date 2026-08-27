@@ -21,16 +21,14 @@ if (source.includes('id="title-video-backdrop"')) {
   throw new Error("[TITLE-VIDEO-PATCH-ALREADY-APPLIED]");
 }
 
-replaceOnce(
-  "fullscreen canvas resize policy",
-  '"canvasResizePolicy":0',
-  '"canvasResizePolicy":2'
-);
+if (!source.includes('"canvasResizePolicy":2')) {
+  throw new Error("[TITLE-VIDEO-PATCH-MISSING] dynamic canvas resize policy");
+}
 
 replaceOnce(
   "title backdrop styles",
   "body {\n\tcolor: white;",
-  `body {\n\tcolor: white;\n}\n\n#title-poster-backdrop, #title-video-backdrop {\n\tposition: fixed;\n\tinset: 0;\n\twidth: 100%;\n\theight: 100%;\n\tborder: 0;\n\tobject-fit: cover;\n\topacity: 0;\n\tpointer-events: none;\n\ttransition: opacity 180ms ease-out;\n}\n\n#title-poster-backdrop {\n\tz-index: 0;\n}\n\n#title-poster-backdrop img {\n\tdisplay: block;\n\twidth: 100%;\n\theight: 100%;\n\tobject-fit: cover;\n}\n\n#title-video-backdrop {\n\tz-index: 1;\n}\n\nbody.title-backdrop-active #title-poster-backdrop,\nbody.title-backdrop-active #title-video-backdrop.is-ready {\n\topacity: 1;\n}\n\n#canvas {\n\tposition: relative;\n\tz-index: 2;\n}\n\n#status {\n\tz-index: 3;\n}\n\nbody {\n\tcolor: white;`
+  `body {\n\tcolor: white;\n}\n\nhtml, body {\n\tposition: fixed;\n\tinset: 0;\n\twidth: 100vw;\n\twidth: 100dvw;\n\theight: 100vh;\n\theight: 100dvh;\n\tmin-width: 0;\n\tmin-height: 0;\n\tmax-width: none;\n\tmax-height: none;\n\toverflow: hidden;\n}\n\n#title-poster-backdrop, #title-video-backdrop {\n\tposition: fixed;\n\tinset: 0;\n\twidth: 100%;\n\theight: 100%;\n\tborder: 0;\n\tobject-fit: cover;\n\topacity: 0;\n\tpointer-events: none;\n\ttransition: opacity 180ms ease-out;\n}\n\n#title-poster-backdrop {\n\tz-index: 0;\n}\n\n#title-poster-backdrop img {\n\tdisplay: block;\n\twidth: 100%;\n\theight: 100%;\n\tobject-fit: cover;\n}\n\n#title-video-backdrop {\n\tz-index: 1;\n}\n\nbody.title-backdrop-active #title-poster-backdrop,\nbody.title-backdrop-active #title-video-backdrop.is-ready {\n\topacity: 1;\n}\n\n#canvas {\n\tposition: fixed;\n\tinset: 0;\n\tz-index: 2;\n\twidth: 100vw;\n\twidth: 100dvw;\n\theight: 100vh;\n\theight: 100dvh;\n\tmin-width: 0;\n\tmin-height: 0;\n\tmax-width: none;\n\tmax-height: none;\n}\n\n#status {\n\tz-index: 3;\n}\n\nbody {\n\tcolor: white;`
 );
 
 replaceOnce(

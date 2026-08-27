@@ -911,7 +911,7 @@ func _apply_responsive_layout() -> void:
 	if viewport_size.y > viewport_size.x:
 		_apply_portrait_layout(viewport_size)
 	else:
-		_apply_landscape_layout()
+		_apply_landscape_layout(viewport_size)
 	if directive_choice_overlay != null:
 		directive_choice_overlay.apply_responsive_layout(viewport_size)
 	if upgrade_choice_overlay != null:
@@ -930,7 +930,9 @@ func _apply_responsive_layout() -> void:
 		match_debrief.apply_responsive_layout(viewport_size)
 
 
-func _apply_landscape_layout() -> void:
+func _apply_landscape_layout(viewport_size: Vector2) -> void:
+	var momentum_x: float = viewport_size.x * 0.5 - 250.0
+	var score_x: float = viewport_size.x - 292.0
 	status_panel.position = Vector2(24.0, 22.0)
 	status_panel.size = Vector2(420.0, 112.0)
 	status_label.position = Vector2(48.0, 34.0)
@@ -942,50 +944,54 @@ func _apply_landscape_layout() -> void:
 	objective_label.position = Vector2(48.0, 100.0)
 	objective_label.size = Vector2(380.0, 26.0)
 	objective_label.add_theme_font_size_override(&"font_size", 20)
-	momentum_panel.position = Vector2(466.0, 22.0)
+	momentum_panel.position = Vector2(momentum_x, 22.0)
 	momentum_panel.size = Vector2(500.0, 88.0)
-	momentum_label.position = Vector2(490.0, 30.0)
+	momentum_label.position = Vector2(momentum_x + 24.0, 30.0)
 	momentum_label.size = Vector2(260.0, 28.0)
 	momentum_label.add_theme_font_size_override(&"font_size", 18)
-	combo_label.position = Vector2(764.0, 28.0)
+	combo_label.position = Vector2(momentum_x + 298.0, 28.0)
 	combo_label.size = Vector2(176.0, 32.0)
 	combo_label.add_theme_font_size_override(&"font_size", 22)
 	combo_ring.custom_minimum_size = Vector2(38.0, 38.0)
-	combo_ring.position = Vector2(712.0, 24.0)
+	combo_ring.position = Vector2(momentum_x + 246.0, 24.0)
 	combo_ring.size = Vector2(38.0, 38.0)
-	momentum_track.position = Vector2(490.0, 66.0)
+	momentum_track.position = Vector2(momentum_x + 24.0, 66.0)
 	momentum_track.size = Vector2(452.0, 18.0)
-	momentum_fill.position = Vector2(496.0, 71.0)
+	momentum_fill.position = Vector2(momentum_x + 30.0, 71.0)
 	_momentum_fill_width = 392.0
-	experience_label.position = Vector2(490.0, 88.0)
+	experience_label.position = Vector2(momentum_x + 24.0, 88.0)
 	experience_label.size = Vector2(184.0, 20.0)
 	experience_label.add_theme_font_size_override(&"font_size", 14)
-	experience_track.position = Vector2(680.0, 92.0)
+	experience_track.position = Vector2(momentum_x + 214.0, 92.0)
 	experience_track.size = Vector2(262.0, 12.0)
-	experience_fill.position = Vector2(684.0, 95.0)
+	experience_fill.position = Vector2(momentum_x + 218.0, 95.0)
 	_experience_fill_width = 254.0
 	_apply_experience_fill()
-	score_panel.position = Vector2(988.0, 22.0)
+	score_panel.position = Vector2(score_x, 22.0)
 	score_panel.size = Vector2(268.0, 88.0)
-	_set_score_geometry(Vector2(1012.0, 30.0), Vector2(220.0, 28.0), true, false)
+	_set_score_geometry(
+		Vector2(score_x + 24.0, 30.0), Vector2(220.0, 28.0), true, false
+	)
 	score_caption.add_theme_font_size_override(&"font_size", 18)
 	score_label.add_theme_font_size_override(&"font_size", 30)
 	pending_score_label.add_theme_font_size_override(&"font_size", 14)
 	for index: int in range(rare_labels.size()):
-		rare_labels[index].position = Vector2(1012.0, 116.0 + float(index) * 23.0)
+		rare_labels[index].position = Vector2(
+			score_x + 24.0, 116.0 + float(index) * 23.0
+		)
 		rare_labels[index].size = Vector2(220.0, 22.0)
 		rare_labels[index].horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		rare_labels[index].add_theme_font_size_override(&"font_size", 16)
-	siege_progress.position = Vector2(466.0, 112.0)
+	siege_progress.position = Vector2(momentum_x, 112.0)
 	siege_progress.size = Vector2(500.0, 32.0)
 	siege_progress.set_compact(false)
 	siege_progress.apply_width(500.0)
-	directive_card.position = Vector2(808.0, 382.0)
-	boss_label.position = Vector2(400.0, 146.0)
+	directive_card.position = Vector2(viewport_size.x - 472.0, 382.0)
+	boss_label.position = Vector2(viewport_size.x * 0.5 - 330.0, 146.0)
 	boss_label.size = Vector2(660.0, 58.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boss_label.add_theme_font_size_override(&"font_size", 18)
-	_apply_landscape_terminal_layout()
+	_apply_landscape_terminal_layout(viewport_size)
 
 
 func _apply_portrait_layout(viewport_size: Vector2) -> void:
@@ -1073,30 +1079,33 @@ func _apply_experience_fill() -> void:
 		experience_fill.size.x = _experience_fill_width * _experience_ratio
 
 
-func _apply_landscape_terminal_layout() -> void:
-	terminal_panel.position = Vector2(315.0, 188.0)
+func _apply_landscape_terminal_layout(viewport_size: Vector2) -> void:
+	var offset_x: float = (viewport_size.x - 1280.0) * 0.5
+	terminal_panel.position = Vector2(315.0 + offset_x, 188.0)
 	terminal_panel.size = Vector2(650.0, 340.0)
-	new_game_plus_badge.position = Vector2(335.0, 218.0)
+	new_game_plus_badge.position = Vector2(335.0 + offset_x, 218.0)
 	new_game_plus_badge.size = Vector2(72.0, 72.0)
 	overlay_title.position = (
-		Vector2(425.0, 218.0) if new_game_plus_badge.visible else Vector2(345.0, 218.0)
+		Vector2(425.0 + offset_x, 218.0)
+		if new_game_plus_badge.visible
+		else Vector2(345.0 + offset_x, 218.0)
 	)
 	overlay_title.size = (
 		Vector2(480.0, 72.0) if new_game_plus_badge.visible else Vector2(590.0, 72.0)
 	)
-	overlay_summary.position = Vector2(345.0, 296.0)
+	overlay_summary.position = Vector2(345.0 + offset_x, 296.0)
 	overlay_summary.size = Vector2(590.0, 128.0)
-	retry_button.position = Vector2(365.0, 430.0)
+	retry_button.position = Vector2(365.0 + offset_x, 430.0)
 	retry_button.size = Vector2(260.0, 78.0)
-	title_button.position = Vector2(655.0, 430.0)
+	title_button.position = Vector2(655.0 + offset_x, 430.0)
 	title_button.size = Vector2(260.0, 78.0)
-	extract_button.position = Vector2(365.0, 430.0)
+	extract_button.position = Vector2(365.0 + offset_x, 430.0)
 	extract_button.size = Vector2(260.0, 78.0)
-	continue_button.position = Vector2(655.0, 430.0)
+	continue_button.position = Vector2(655.0 + offset_x, 430.0)
 	continue_button.size = Vector2(260.0, 78.0)
-	purge_button.position = Vector2(365.0, 430.0)
+	purge_button.position = Vector2(365.0 + offset_x, 430.0)
 	purge_button.size = Vector2(260.0, 78.0)
-	disentangle_button.position = Vector2(655.0, 430.0)
+	disentangle_button.position = Vector2(655.0 + offset_x, 430.0)
 	disentangle_button.size = Vector2(260.0, 78.0)
 
 
