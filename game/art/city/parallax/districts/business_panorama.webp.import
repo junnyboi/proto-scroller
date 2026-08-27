@@ -17,7 +17,7 @@ dest_files=["res://.godot/imported/business_panorama.webp-80f388eb4b3035f6b37aea
 
 compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.45
+compress/lossy_quality=0.4
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
