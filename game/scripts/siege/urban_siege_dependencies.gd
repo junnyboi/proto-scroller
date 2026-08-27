@@ -11,4 +11,5 @@ var rampage_session: RampageSession
 var gameplay_hud: GameplayHud
 var mobile_controls: MobileControls
 var debris_pool: DebrisPool
+var impact_feedback_pool: ImpactFeedbackPool
 var remains_factory: EnemyRemainsFactory
