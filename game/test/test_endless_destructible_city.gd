@@ -161,12 +161,17 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 		pipe.particles.amount,
 		BuildingDamageAttachment2D.MAX_WATER_PARTICLES
 	)
-	var initial_rotation: float = cable.rotation
-	for _step: int in range(8):
-		cable._process(0.1)
-	assert_ne(cable.rotation, initial_rotation)
-	assert_ne(pattern.cable_sway_offset(), 0.0)
-	assert_lte(absf(pattern.cable_sway_offset()), 0.26)
+	assert_eq(pattern.damage_detail_count(), 1)
+	assert_ne(cable.visible, pipe.visible)
+	if cable.visible:
+		var initial_rotation: float = cable.rotation
+		for _step: int in range(8):
+			cable._process(0.1)
+		assert_ne(cable.rotation, initial_rotation)
+		assert_ne(pattern.cable_sway_offset(), 0.0)
+		assert_lte(absf(pattern.cable_sway_offset()), 0.26)
+	else:
+		assert_false(cable.is_processing())
 	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_102)))
 	assert_true(cell.is_destroyed())
 	assert_true(pattern.visible)
@@ -176,8 +181,10 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 	assert_gt(_hollow_extents(pattern).y, damaged_extents.y)
 	assert_eq(pattern.contour().size(), BuildingDamagePattern2D.CONTOUR_POINTS)
 	assert_gt(pattern.crack_count(), 0)
-	assert_eq(pattern.damage_detail_count(), 2)
-	assert_true(cable.is_processing())
+	assert_eq(pattern.damage_detail_count(), 0)
+	assert_eq(pattern.damage_detail_mask(), 0)
+	assert_false(cable.is_processing())
+	assert_false(pipe.visible)
 	assert_almost_eq(
 		pattern.cavity_darken_strength(),
 		BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH,
@@ -215,12 +222,12 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 	cell.restore_stream_state(captured)
 	assert_eq(pattern.pattern_signature(), signature)
 	assert_true(pattern.is_destroyed_stage())
-	assert_eq(pattern.damage_detail_count(), 2)
+	assert_eq(pattern.damage_detail_count(), 0)
 	cell.restore_stream_state({"destroyed": true, "health": 0.0})
 	assert_true(cell.is_destroyed())
 	assert_true(pattern.visible)
 	assert_gt(pattern.pattern_signature().length(), 0)
-	assert_eq(pattern.damage_detail_count(), 2)
+	assert_eq(pattern.damage_detail_count(), 0)
 	_record_test_execution()
 
 
@@ -274,7 +281,8 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_gt(0.5 - terminal_extents.x, 0.09)
 	assert_gt(BuildingDamagePattern2D.HOLLOW_CENTER_Y - terminal_extents.y, 0.09)
 	assert_gte(BuildingDamagePattern2D.HOLLOW_CENTER_Y + terminal_extents.y, 0.94)
-	assert_eq(pattern.damage_detail_count(), 2)
+	assert_eq(pattern.damage_detail_count(), 0)
+	assert_eq(pattern.damage_detail_mask(), 0)
 	assert_gte(pattern.crack_count(), BuildingDamagePattern2D.BASE_CRACK_COUNT + 3)
 	var shader_code: String = pattern.cavity_material().shader.code
 	assert_true(shader_code.contains("texture(TEXTURE, UV)"))
