@@ -169,7 +169,7 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 | WP3 — Extraction and atlases | Complete | `a89ab7b` | Twenty eight-frame sequences packed into five 32-frame lossless masters and five compact runtime atlases; visual inspection recorded externally. |
 | WP4 — Godot integration | Complete | `a89ab7b` | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
 | WP5 — Export and WebDev | Complete | Source `bb106f0`; checkpoint `f0eb7790` | Final Godot 4.7.2 Web export uploaded as fresh immutable WASM/PCK and synchronized into the existing fullscreen WebDev host. |
-| WP6 — Defeated pose, rubble, and repairs | In progress | Current task | Freeze the authentic atlas corpse, accept one fresh melee, present persistent rubble, and release two or three fixed 50-HP pickups. |
+| WP6 — Defeated pose, rubble, and repairs | Complete | Source `430f4d0`; checkpoint `e2eec3aa` | The full defeat spectacle hands off to a frozen, darkened final atlas frame; one fresh melee creates prewarmed rubble and releases two or three fixed 50-HP pickups from the expanded fixed pool. |
 
 ## References
 
