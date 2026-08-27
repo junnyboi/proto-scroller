@@ -303,14 +303,6 @@ func suspend_for_boss() -> Dictionary:
 		"act_advance_blocked": _act_advance_blocked,
 	}
 	_boss_suspended = true
-	_pending_facade_reinforcements = 0
-	_beat_pending.clear()
-	_hazard_pending.clear()
-	if _beat_reservation_id != 0:
-		ledger.cancel(_beat_reservation_id)
-		_beat_reservation_id = 0
-	ledger.cancel_all()
-	runtime.set_attack_gate(false)
 	return _boss_resume_snapshot.duplicate(true)
 
 
@@ -354,6 +346,12 @@ func advance_after_district_handoff(completed_act_index: int) -> bool:
 	completed = false
 	_boss_suspended = false
 	_boss_resume_snapshot.clear()
+	_beat_pending.clear()
+	_hazard_pending.clear()
+	if _beat_reservation_id != 0:
+		ledger.cancel(_beat_reservation_id)
+		_beat_reservation_id = 0
+	ledger.cancel_all()
 	_pending_facade_reinforcements = 0
 	var completed_act: DistrictAct = district.acts[phase_index]
 	if not _act_completion_emitted:

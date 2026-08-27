@@ -26,15 +26,41 @@ func test_authored_gates_trigger_once_before_each_district_transition() -> void:
 		campaign._completed_ids[definition.boss_id] = true
 
 
-func test_gate_lease_uses_six_existing_chunks_without_summoning_a_landmark() -> void:
+func test_boss_drop_preserves_ambient_state_while_hiding_only_arena_facade() -> void:
 	var city: CitySlice = await _spawn_city()
-	var baseline_ids: PackedInt64Array = PackedInt64Array()
-	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
-		baseline_ids.append(building.get_instance_id())
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(9)
 	assert_false(definition.summon_uses_arena_landmark)
-	await _trigger(city, definition)
+	await _prepare_gate_window(city, definition)
+	city.encounter_runtime.release_all()
+	var preserved_enemies: Array[EnemyActor2D] = [
+		city.encounter_runtime.acquire(&"soldier", Vector2(980.0, 590.0)),
+		city.encounter_runtime.acquire(&"tank", Vector2(1180.0, 590.0)),
+		city.encounter_runtime.acquire(&"helicopter", Vector2(1380.0, 190.0)),
+	]
+	var enemy_state: Array[Dictionary] = []
+	for enemy: EnemyActor2D in preserved_enemies:
+		assert_not_null(enemy)
+		enemy_state.append({
+			"instance_id": enemy.get_instance_id(),
+			"position": enemy.global_position,
+			"health": enemy.current_health,
+			"attack_gate": enemy.attack_gate_enabled,
+		})
+	var building_state: Array[Dictionary] = []
+	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
+		building_state.append({
+			"instance_id": building.get_instance_id(),
+			"variant_id": building.current_variant_id(),
+			"stream_state": building.capture_stream_state(),
+			"visible": building.visible,
+			"suppressed": building.encounter_suppressed,
+		})
+	var building_creations: int = city.streamed_destructibles.post_warm_creation_count
+	var world_creations: int = city.world_stream.post_warm_creation_count
+	var ambient_count: int = city.encounter_runtime.active_count()
+	city.robot.global_position.x = _threshold_x(city, definition) + 1.0
+	campaign.advance()
 	assert_true(campaign.arena_lease.active)
 	assert_eq(campaign.arena_lease.resident_count(), CityWorldStream.CHUNK_CAPACITY)
 	assert_eq(city.world_stream.active_chunk_count(), CityWorldStream.CHUNK_CAPACITY)
@@ -52,10 +78,31 @@ func test_gate_lease_uses_six_existing_chunks_without_summoning_a_landmark() -> 
 				^"IntactBody/CollisionShape2D"
 			) as CollisionShape2D
 			assert_true(collision.disabled)
-	assert_eq(city.world_stream.post_warm_creation_count, 0)
-	assert_eq(city.streamed_destructibles.post_warm_creation_count, 0)
-	for index: int in range(baseline_ids.size()):
-		assert_eq(city.streamed_destructibles.buildings[index].get_instance_id(), baseline_ids[index])
+	assert_eq(city.encounter_runtime.active_count(), ambient_count + 1)
+	assert_eq(city.world_stream.post_warm_creation_count, world_creations)
+	assert_eq(city.streamed_destructibles.post_warm_creation_count, building_creations)
+	assert_null(city.urban_siege.boss_session.utility_pool.arena_adapter.building)
+	for index: int in range(preserved_enemies.size()):
+		var enemy: EnemyActor2D = preserved_enemies[index]
+		var baseline: Dictionary = enemy_state[index]
+		assert_true(enemy.active)
+		assert_false(enemy.dead)
+		assert_eq(enemy.get_instance_id(), int(baseline.instance_id))
+		assert_eq(enemy.global_position, baseline.position)
+		assert_almost_eq(enemy.current_health, float(baseline.health), 0.001)
+		assert_eq(enemy.attack_gate_enabled, bool(baseline.attack_gate))
+	for index: int in range(building_state.size()):
+		var building: StructuralBuilding2D = city.streamed_destructibles.buildings[index]
+		var baseline: Dictionary = building_state[index]
+		assert_eq(building.get_instance_id(), int(baseline.instance_id))
+		assert_eq(building.current_variant_id(), baseline.variant_id)
+		assert_eq(building.capture_stream_state(), baseline.stream_state)
+		if building == arena_building:
+			assert_false(building.visible)
+			assert_true(building.encounter_suppressed)
+		else:
+			assert_eq(building.visible, bool(baseline.visible))
+			assert_eq(building.encounter_suppressed, bool(baseline.suppressed))
 	campaign.stop()
 	assert_false(arena_building.encounter_suppressed)
 	assert_true(arena_building.visible)
@@ -76,17 +123,46 @@ func test_origin_rebase_keeps_gate_and_arena_anchors_aligned() -> void:
 	assert_eq(campaign.arena_barrier.global_position, barrier_before + offset)
 
 
+func test_reserved_boss_shell_never_evicts_three_live_ambient_tanks() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	var ambient_tanks: Array[EnemyActor2D] = []
+	for index: int in range(EncounterRuntime.COMMAND_TANK_SLOT):
+		var tank: EnemyActor2D = city.encounter_runtime.acquire(
+			&"tank", Vector2(900.0 + float(index) * 180.0, 590.0)
+		)
+		assert_not_null(tank)
+		ambient_tanks.append(tank)
+	assert_null(city.encounter_runtime.acquire(&"tank", Vector2(1500.0, 590.0)))
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(9)
+	await _trigger(city, definition)
+	assert_not_null(city.urban_siege.boss_session.boss)
+	assert_eq(city.encounter_runtime.active_count(&"tank"), RuntimeBudget.TANKS)
+	for tank: EnemyActor2D in ambient_tanks:
+		assert_true(tank.active)
+		assert_false(tank.dead)
+
+
 func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 	var city: CitySlice = await _spawn_city()
 	var siege: UrbanSiegeRuntime = city.urban_siege
 	var campaign: BossCampaignDirector = siege.boss_campaign
 	var director: DistrictResponseDirector = siege.director
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(9)
+	await _prepare_gate_window(city, definition)
 	director.stop()
 	city.encounter_runtime.release_all()
 	director.start()
 	director.advance(0.01)
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(9)
-	await _trigger(city, definition)
+	var pending_before: int = director.pending_count()
+	var hazards_pending_before: int = director.hazard_pending_count()
+	var reservations_before: int = director.ledger.pending_count()
+	var attack_gate_before: bool = city.encounter_runtime.attack_gate_enabled
+	var interval_before: Dictionary[int, float] = {}
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		if enemy.active and not enemy.dead:
+			interval_before[enemy.get_instance_id()] = enemy.external_attack_interval_multiplier
+	assert_true(campaign._begin_attempt(definition))
 	var frozen_elapsed: float = director.elapsed
 	var frozen_phase: int = director.phase_index
 	var frozen_beat: int = director.beat_index
@@ -95,16 +171,21 @@ func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 	assert_almost_eq(director.elapsed, frozen_elapsed, 0.0001)
 	assert_eq(director.phase_index, frozen_phase)
 	assert_eq(director.beat_index, frozen_beat)
-	assert_eq(director.pending_count(), 0)
-	assert_eq(director.hazard_pending_count(), 0)
-	assert_eq(director.ledger.pending_count(), 0)
+	assert_eq(director.pending_count(), pending_before)
+	assert_eq(director.hazard_pending_count(), hazards_pending_before)
+	assert_eq(director.ledger.pending_count(), reservations_before)
+	assert_eq(city.encounter_runtime.attack_gate_enabled, attack_gate_before)
 	assert_eq(siege.hazards.active_count(), 0)
 	assert_eq(siege.catalysts.active_count(), 0)
 	assert_false(siege.directives.is_active())
 	assert_eq(siege.trait_runtime.command_source, siege.boss_session.boss)
 	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
-		if enemy != siege.boss_session.boss:
-			assert_almost_eq(enemy.external_attack_interval_multiplier, 1.0, 0.0001)
+		if interval_before.has(enemy.get_instance_id()):
+			assert_almost_eq(
+				enemy.external_attack_interval_multiplier,
+				interval_before[enemy.get_instance_id()],
+				0.0001
+			)
 	assert_true(city.robot.can_request_attack())
 	assert_false(siege.is_simulation_paused())
 	assert_true(campaign.active_gate.blocker_collision.disabled)
@@ -198,6 +279,17 @@ func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 	assert_not_null(siege.boss_session.boss_wreck)
 	siege.boss_session.boss_wreck.receive_damage(
 		DamageEvent.new(81_003, city.robot, 999.0, &"ground_smash")
+	)
+	var rubble: Node2D = siege.boss_session.utility_pool.boss_rubble_record
+	var rubble_sprite: Sprite2D = rubble.get_child(0) as Sprite2D
+	assert_true(rubble.visible)
+	assert_almost_eq(rubble.global_position.y, CityStreetChunk.ROAD_DIVIDER_Y, 0.001)
+	assert_almost_eq(
+		rubble.global_position.y
+		+ rubble_sprite.position.y
+		+ BossUtilityPool.BOSS_RUBBLE_DISPLAY_SIZE.y * 0.5,
+		CityStreetChunk.ROAD_DIVIDER_Y,
+		0.001
 	)
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SALVAGE)
 	assert_true(director.is_suspended_for_boss())

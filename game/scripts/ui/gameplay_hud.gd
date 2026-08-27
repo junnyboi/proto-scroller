@@ -60,6 +60,7 @@ var upgrade_choice_overlay: UpgradeChoiceOverlay
 var weapon_status_strip: WeaponStatusStrip
 var first_run_tutorial: FirstRunCombatTutorial
 var transmission_toast: TransmissionToast
+var field_briefing: FieldBriefingPanel
 var boss_panel: ColorRect
 var boss_label: Label
 var boss_armor_track: ColorRect
@@ -133,6 +134,7 @@ func _ready() -> void:
 	_build_combo_herald()
 	_build_transmission_toast()
 	_build_first_run_tutorial()
+	_build_field_briefing()
 	_build_game_over_overlay()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_responsive_layout()
@@ -421,6 +423,7 @@ func show_directive_result(
 
 
 func show_game_over(summary: RunSummarySnapshot = null) -> void:
+	field_briefing.set_available(false)
 	dismiss_combo_herald()
 	_hide_terminal_choices()
 	set_status("hud.city_response_lost")
@@ -429,6 +432,7 @@ func show_game_over(summary: RunSummarySnapshot = null) -> void:
 
 
 func show_district_complete(summary: RunSummarySnapshot) -> void:
+	field_briefing.set_available(false)
 	dismiss_combo_herald()
 	_hide_terminal_choices()
 	set_status("hud.district_response_broken")
@@ -482,6 +486,7 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 
 
 func show_cycle_choice(cycle: int, can_continue: bool) -> void:
+	field_briefing.set_available(false)
 	dismiss_combo_herald()
 	match_debrief.hide_panel()
 	overlay_title.text = L10n.t(
@@ -506,6 +511,7 @@ func show_cycle_choice(cycle: int, can_continue: bool) -> void:
 
 
 func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
+	field_briefing.set_available(false)
 	dismiss_combo_herald()
 	match_debrief.hide_panel()
 	overlay_title.text = L10n.t("finale.choice.title")
@@ -534,6 +540,7 @@ func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
 
 
 func _show_finale_result(outcome: int, cycle: int, can_continue: bool) -> void:
+	field_briefing.set_available(false)
 	dismiss_combo_herald()
 	match_debrief.hide_panel()
 	var ending_key: String = String(BossOutcome.id_for(outcome)).to_lower()
@@ -567,6 +574,7 @@ func hide_terminal_overlay() -> void:
 	match_debrief.hide_panel()
 	game_over_overlay.visible = false
 	_hide_terminal_choices()
+	field_briefing.set_available(true)
 
 
 func _on_attack_mode_selected(mode: int, _attack_id: int) -> void:
@@ -603,6 +611,11 @@ func _build_rear_barrier_warning() -> void:
 	rear_barrier_warning_audio.volume_db = -4.0
 	rear_barrier_warning_audio.max_polyphony = 1
 	add_child(rear_barrier_warning_audio)
+
+
+func _build_field_briefing() -> void:
+	field_briefing = FieldBriefingPanel.new()
+	add_child(field_briefing)
 
 
 func _update_rear_barrier_warning(delta: float) -> void:
@@ -1002,6 +1015,8 @@ func _apply_responsive_layout() -> void:
 		boss_fight_herald.apply_responsive_layout(viewport_size)
 	if match_debrief != null:
 		match_debrief.apply_responsive_layout(viewport_size)
+	if field_briefing != null:
+		field_briefing.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout(viewport_size: Vector2) -> void:

@@ -17,7 +17,7 @@ func before_each() -> void:
 	await _trigger_gate()
 
 
-func test_retry_restores_pre_screen_structure_boss_rewards_reservations_and_gate() -> void:
+func test_retry_preserves_destroyed_structure_and_restores_run_state() -> void:
 	var entry_snapshot: BossAttemptSnapshot = campaign.attempt_snapshot
 	var entry_score: Dictionary = entry_snapshot.score_state.duplicate(true)
 	var entry_experience: Dictionary = entry_snapshot.experience_state.duplicate(true)
@@ -54,7 +54,7 @@ func test_retry_restores_pre_screen_structure_boss_rewards_reservations_and_gate
 	assert_almost_eq(city.urban_siege.boss_session.elapsed_seconds, 0.0, 0.0001)
 	assert_almost_eq(city.urban_siege.boss_session.boss.boss_armor, definition.armor, 0.0001)
 	assert_almost_eq(city.urban_siege.boss_session.boss.current_health, definition.health, 0.0001)
-	assert_false(arena_building.get_cell(0, 0).is_destroyed())
+	assert_true(arena_building.get_cell(0, 0).is_destroyed())
 	assert_eq(city.rampage_session.run_score.capture_attempt_state(), entry_score)
 	assert_eq(city.rampage_session.run_experience.capture_attempt_state(), entry_experience)
 	assert_eq(campaign.active_gate.capture_state(), entry_gate)

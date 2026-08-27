@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/title_screen.gd" id="1_script"]
 [ext_resource type="Theme" path="res://resources/title_theme.tres" id="2_theme"]
@@ -12,6 +12,22 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.254902, 0.705882, 0.658824, 0.45)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 22.0
+content_margin_top = 14.0
+content_margin_right = 22.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBriefingTips"]
+bg_color = Color(0.00392157, 0.0196078, 0.0313725, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.27451, 0.956863, 0.780392, 0.72)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -331,6 +347,24 @@ grow_vertical = 2
 focus_mode = 0
 mouse_default_cursor_shape = 2
 flat = true
+
+[node name="BriefingTipsPanel" type="PanelContainer" parent="BriefingLayer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 52.0
+offset_top = 474.0
+offset_right = 726.0
+offset_bottom = 628.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBriefingTips")
+
+[node name="BriefingTipsLabel" type="Label" parent="BriefingLayer/BriefingTipsPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_constants/line_spacing = 4
+text = ""
+vertical_alignment = 1
 
 [node name="SettingsLayer" type="Control" parent="."]
 unique_name_in_owner = true

@@ -169,7 +169,6 @@ func fail_attempt() -> bool:
 		return false
 	attempt_failed = true
 	siege.boss_session.stop()
-	interlock.clear_competing_combat()
 	return true
 
 
@@ -186,9 +185,6 @@ func retry_attempt() -> bool:
 		world_stream
 	):
 		return false
-	if not arena_lease.restore_structural_state(attempt_snapshot.structural_states):
-		return false
-	interlock.clear_competing_combat()
 	attempt_failed = false
 	var city: CitySlice = siege.dependencies.city
 	city.game_over_active = false

@@ -111,6 +111,8 @@ func test_vertical_slice_keys_exist_in_both_locales() -> void:
 		"boss.objective.business.connect", "boss.objective.business.finish",
 		"boss.objective.residential.connect", "boss.objective.residential.rescue",
 		"boss.archive.preserved", "boss.archive.lost", "boss.rescue.tally",
+		"boss.attack.assessment_levy", "boss.attack.double_entry_rupture",
+		"boss.attack.compound_default",
 		"boss.attack.settlement_sweep", "boss.attack.double_entry_barrage",
 		"boss.attack.foreclosure_stamp", "boss.attack.audit_beam",
 		"boss.attack.foundation_cascade", "boss.attack.triage_sweep",

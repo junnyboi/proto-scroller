@@ -2,7 +2,6 @@ class_name BossAttemptSnapshot
 extends RefCounted
 
 var valid: bool = false
-var structural_states: Array[Dictionary] = []
 var boss_state: Dictionary = {}
 var score_state: Dictionary = {}
 var experience_state: Dictionary = {}
@@ -30,9 +29,6 @@ func capture(
 		or robot == null
 		or world_stream == null
 	):
-		return false
-	structural_states = lease.capture_structural_state()
-	if structural_states.size() != CityWorldStream.CHUNK_CAPACITY:
 		return false
 	boss_state = session.capture_attempt_state()
 	score_state = rampage.run_score.capture_attempt_state()
@@ -67,8 +63,6 @@ func restore(
 	if not valid or lease == null or not lease.active:
 		return false
 	session.restore_attempt_state(boss_state)
-	if not lease.restore_structural_state(structural_states):
-		return false
 	rampage.run_score.restore_attempt_state(score_state)
 	rampage.run_experience.restore_attempt_state(experience_state)
 	rampage.event_hub.restore_attempt_state(event_history_state)
@@ -89,7 +83,6 @@ func restore(
 
 func clear() -> void:
 	valid = false
-	structural_states.clear()
 	boss_state.clear()
 	score_state.clear()
 	experience_state.clear()
