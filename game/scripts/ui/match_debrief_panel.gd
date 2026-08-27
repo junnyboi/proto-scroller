@@ -71,6 +71,10 @@ var global_panel: ColorRect
 var global_header_label: Label
 var global_status_label: Label
 var global_refresh_button: Button
+var global_callsign_header_label: Label
+var global_callsign_edit: LineEdit
+var global_callsign_save_button: Button
+var global_callsign_status_label: Label
 var personal_rank_label: Label
 var global_rows: Array[Label] = []
 
@@ -96,8 +100,8 @@ func _ready() -> void:
 
 func configure_profile(store: PlayerCombatProfileStore) -> void:
 	profile_store = store
-	if callsign_edit != null and store != null:
-		callsign_edit.text = store.callsign()
+	if store != null:
+		_sync_callsign_edits(store.callsign())
 
 
 func present(
@@ -174,6 +178,8 @@ func set_page(page: Page) -> void:
 	elif page == Page.CAREER and presented_summary != null:
 		_update_career_page(presented_summary.career_snapshot)
 	elif page == Page.GLOBAL:
+		if profile_store != null:
+			_sync_callsign_edits(profile_store.callsign())
 		_update_global_page()
 	apply_responsive_layout(get_viewport_rect().size)
 	if page == Page.GLOBAL:
@@ -215,6 +221,14 @@ func debug_snapshot() -> Dictionary:
 		"global_rows": _visible_row_text(global_rows),
 		"global_state": String(global_state),
 		"callsign": callsign_edit.text if callsign_edit != null else "",
+		"global_callsign": (
+			global_callsign_edit.text if global_callsign_edit != null else ""
+		),
+		"global_callsign_status": (
+			global_callsign_status_label.text
+			if global_callsign_status_label != null
+			else ""
+		),
 		"chart": weapon_history_chart.debug_snapshot() if weapon_history_chart != null else {},
 		"panel_rect": Rect2(
 			content_root.position,
@@ -226,6 +240,8 @@ func debug_snapshot() -> Dictionary:
 		"retry_rect": _scaled_rect(retry_button),
 		"title_rect": _scaled_rect(title_button),
 		"callsign_rect": _scaled_rect(callsign_edit),
+		"global_callsign_rect": _scaled_rect(global_callsign_edit),
+		"global_callsign_save_rect": _scaled_rect(global_callsign_save_button),
 		"refresh_rect": _scaled_rect(global_refresh_button),
 	}
 
@@ -355,6 +371,29 @@ func _build_global_controls() -> void:
 	global_status_label = _label("GlobalStatus", 16, MUTED)
 	global_refresh_button = _button("GlobalRefreshButton", "debrief.global.refresh")
 	global_refresh_button.pressed.connect(global_refresh_requested.emit)
+	global_callsign_header_label = _section_label(
+		"GlobalCallsignHeader",
+		"debrief.callsign.header"
+	)
+	global_callsign_edit = LineEdit.new()
+	global_callsign_edit.name = "GlobalCallsignEdit"
+	global_callsign_edit.placeholder_text = L10n.t("debrief.callsign.placeholder")
+	global_callsign_edit.max_length = PlayerCombatProfileStore.MAX_CALLSIGN_LENGTH
+	global_callsign_edit.add_theme_font_size_override(&"font_size", 19)
+	content_root.add_child(global_callsign_edit)
+	global_callsign_save_button = _button(
+		"GlobalCallsignSaveButton",
+		"debrief.callsign.save"
+	)
+	global_callsign_save_button.pressed.connect(
+		func() -> void:
+			_save_callsign(global_callsign_edit, global_callsign_status_label)
+	)
+	global_callsign_edit.text_submitted.connect(
+		func(_value: String) -> void:
+			_save_callsign(global_callsign_edit, global_callsign_status_label)
+	)
+	global_callsign_status_label = _label("GlobalCallsignStatus", 14, MUTED)
 	personal_rank_label = _label("PersonalRank", 18, AMBER)
 	for index: int in range(GLOBAL_ROW_COUNT):
 		var row: Label = _label("GlobalRow%d" % index, 15, MUTED)
@@ -362,7 +401,8 @@ func _build_global_controls() -> void:
 		global_rows.append(row)
 	_global_controls.assign([
 		global_panel, global_header_label, global_status_label, global_refresh_button,
-		personal_rank_label,
+		global_callsign_header_label, global_callsign_edit, global_callsign_save_button,
+		global_callsign_status_label, personal_rank_label,
 	])
 	_global_controls.append_array(global_rows)
 
@@ -409,21 +449,55 @@ func _button(button_name: String, key: String) -> Button:
 	return button
 
 
-func _save_callsign() -> void:
+func _save_callsign(
+	source_edit: LineEdit = null,
+	status_label: Label = null
+) -> void:
+	var active_edit: LineEdit = source_edit if source_edit != null else callsign_edit
+	var active_status: Label = status_label if status_label != null else callsign_status_label
 	if profile_store == null:
-		callsign_status_label.text = L10n.t("debrief.callsign.unavailable")
-		callsign_status_label.modulate = RED
+		active_status.text = L10n.t("debrief.callsign.unavailable")
+		active_status.modulate = RED
 		return
-	var result: StringName = profile_store.set_callsign(callsign_edit.text)
+	var result: StringName = profile_store.set_callsign(active_edit.text)
 	if result != &"ok":
-		callsign_status_label.text = L10n.t("debrief.callsign.%s" % String(result))
-		callsign_status_label.modulate = RED
+		active_status.text = L10n.t("debrief.callsign.%s" % String(result))
+		active_status.modulate = RED
 		return
-	callsign_edit.text = profile_store.callsign()
-	callsign_status_label.text = L10n.t("debrief.callsign.saved")
-	callsign_status_label.modulate = CYAN
+	var saved_callsign: String = profile_store.callsign()
+	_sync_callsign_edits(saved_callsign)
+	_sync_callsign_status(L10n.t("debrief.callsign.saved"), CYAN)
+	_update_global_callsign(saved_callsign)
 	_update_career_page(profile_store.snapshot())
-	callsign_saved.emit(profile_store.callsign())
+	_update_global_page()
+	callsign_saved.emit(saved_callsign)
+
+
+func _sync_callsign_edits(value: String) -> void:
+	if callsign_edit != null:
+		callsign_edit.text = value
+	if global_callsign_edit != null:
+		global_callsign_edit.text = value
+
+
+func _sync_callsign_status(message: String, color: Color) -> void:
+	var labels: Array[Label] = [callsign_status_label, global_callsign_status_label]
+	for label: Label in labels:
+		if label != null:
+			label.text = message
+			label.modulate = color
+
+
+func _update_global_callsign(saved_callsign: String) -> void:
+	var personal_rank: int = int(_personal_rank.get("rank", 0))
+	if not _personal_rank.is_empty():
+		_personal_rank["callsign"] = saved_callsign
+	if personal_rank <= 0:
+		return
+	for entry: Dictionary in _global_entries:
+		if int(entry.get("rank", 0)) == personal_rank:
+			entry["callsign"] = saved_callsign
+			return
 
 
 func _set_chart_mode(mode: CareerWeaponHistoryChart.DisplayMode) -> void:
@@ -449,11 +523,11 @@ func _update_career_page(career: Dictionary) -> void:
 	var history: Array[Dictionary] = []
 	var local_rows: Array[Dictionary] = []
 	if profile_store != null:
-		callsign_edit.text = profile_store.callsign()
+		_sync_callsign_edits(profile_store.callsign())
 		history = profile_store.chart_history()
 		local_rows = profile_store.local_leaderboard(LOCAL_ROW_COUNT)
 	else:
-		callsign_edit.text = String(career.get("callsign", ""))
+		_sync_callsign_edits(String(career.get("callsign", "")))
 		var raw_history: Array = career.get("run_history", []) as Array
 		for entry: Variant in raw_history:
 			if entry is Dictionary:
@@ -726,17 +800,25 @@ func _layout_global_landscape() -> void:
 	global_panel.position = Vector2(20.0, 89.0)
 	global_panel.size = Vector2(1120.0, 461.0)
 	global_header_label.position = Vector2(40.0, 101.0)
-	global_header_label.size = Vector2(400.0, 28.0)
-	global_status_label.position = Vector2(450.0, 101.0)
-	global_status_label.size = Vector2(390.0, 28.0)
+	global_header_label.size = Vector2(360.0, 28.0)
+	global_status_label.position = Vector2(410.0, 101.0)
+	global_status_label.size = Vector2(420.0, 28.0)
 	global_refresh_button.position = Vector2(930.0, 97.0)
 	global_refresh_button.size = Vector2(190.0, 42.0)
-	personal_rank_label.position = Vector2(40.0, 137.0)
+	global_callsign_header_label.position = Vector2(40.0, 140.0)
+	global_callsign_header_label.size = Vector2(260.0, 26.0)
+	global_callsign_edit.position = Vector2(310.0, 137.0)
+	global_callsign_edit.size = Vector2(360.0, 48.0)
+	global_callsign_save_button.position = Vector2(682.0, 137.0)
+	global_callsign_save_button.size = Vector2(218.0, 48.0)
+	global_callsign_status_label.position = Vector2(912.0, 137.0)
+	global_callsign_status_label.size = Vector2(208.0, 48.0)
+	personal_rank_label.position = Vector2(40.0, 191.0)
 	personal_rank_label.size = Vector2(1080.0, 32.0)
 	for index: int in range(global_rows.size()):
-		global_rows[index].position = Vector2(40.0, 175.0 + float(index) * 35.0)
-		global_rows[index].size = Vector2(1080.0, 31.0)
-		global_rows[index].add_theme_font_size_override(&"font_size", 14)
+		global_rows[index].position = Vector2(40.0, 226.0 + float(index) * 31.0)
+		global_rows[index].size = Vector2(1080.0, 29.0)
+		global_rows[index].add_theme_font_size_override(&"font_size", 13)
 
 
 func _apply_portrait_layout(viewport_size: Vector2) -> void:
@@ -852,12 +934,20 @@ func _layout_global_portrait() -> void:
 	global_status_label.size = Vector2(380.0, 28.0)
 	global_refresh_button.position = Vector2(438.0, 111.0)
 	global_refresh_button.size = Vector2(202.0, 54.0)
-	personal_rank_label.position = Vector2(32.0, 175.0)
+	global_callsign_header_label.position = Vector2(32.0, 179.0)
+	global_callsign_header_label.size = Vector2(608.0, 26.0)
+	global_callsign_edit.position = Vector2(32.0, 211.0)
+	global_callsign_edit.size = Vector2(392.0, 50.0)
+	global_callsign_save_button.position = Vector2(438.0, 211.0)
+	global_callsign_save_button.size = Vector2(202.0, 50.0)
+	global_callsign_status_label.position = Vector2(32.0, 267.0)
+	global_callsign_status_label.size = Vector2(608.0, 34.0)
+	personal_rank_label.position = Vector2(32.0, 307.0)
 	personal_rank_label.size = Vector2(608.0, 42.0)
 	for index: int in range(global_rows.size()):
-		global_rows[index].position = Vector2(32.0, 225.0 + float(index) * 72.0)
-		global_rows[index].size = Vector2(608.0, 64.0)
-		global_rows[index].add_theme_font_size_override(&"font_size", 14)
+		global_rows[index].position = Vector2(32.0, 355.0 + float(index) * 64.0)
+		global_rows[index].size = Vector2(608.0, 56.0)
+		global_rows[index].add_theme_font_size_override(&"font_size", 13)
 
 
 func _layout_tabs(x: float, y: float, total_width: float, height: float) -> void:
