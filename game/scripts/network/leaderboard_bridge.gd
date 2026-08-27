@@ -175,8 +175,11 @@ func _handle_response(response: Dictionary) -> void:
 		return
 	var data: Dictionary = response.get("data", {}) as Dictionary
 	var entries: Array[Dictionary] = _sanitize_entries(data.get("entries", []) as Array)
-	var personal_rank: Dictionary = _sanitize_personal_rank(
-		data.get("personalRank", {}) as Dictionary
+	var personal_value: Variant = data.get("personalRank", {})
+	var personal_rank: Dictionary = (
+		_sanitize_personal_rank(personal_value as Dictionary)
+		if personal_value is Dictionary
+		else {}
 	)
 	_set_state(&"online", entries, personal_rank)
 
