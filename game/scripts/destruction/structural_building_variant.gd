@@ -23,7 +23,7 @@ const EXPECTED_MATERIAL_COUNT: int = 6
 		return _rubble_texture
 	set(value):
 		_rubble_texture = value
-@export var display_size: Vector2 = Vector2(500.0, 445.0)
+@export var display_size: Vector2 = Vector2(600.0, 534.0)
 @export var material_ids: PackedStringArray = PackedStringArray([
 	"concrete",
 	"steel",
