@@ -1,7 +1,7 @@
 # Living District Skies — Concept and Implementation Plan
 
 **Author:** Manus AI
-**Status:** Implemented and visually verified; source integration pending
+**Status:** Implemented, visually verified, and pushed
 **Target branch:** `main`
 **Engine:** Godot 4.7.2 stable
 
@@ -66,6 +66,8 @@ Capture all five districts at day, dusk, and night in ultra-wide and portrait la
 GPT Image 2 generated the cloud bank, courier shuttle, and heavy state carrier. The reproducible preparation script removed temporary green/magenta key spill, cropped against existing alpha, produced compact 1024×265, 256×125, and 384×154 WebP derivatives, and recorded source/runtime SHA-256 hashes in the asset manifest. `DistrictSkyLifeRuntime` now owns exactly two `Parallax2D` bands and three sprites, with five district profiles and normalized smoothstep time keys. `DistrictParallaxRuntime` advances the clock, synchronizes profile interpolation to its existing 850 ms crossfade, updates the seamless panorama shader, retints shared depth sprites, and forwards floating-origin compensation.
 
 Focused Godot 4.7.2 verification passed **16 tests and 371 assertions** across living-sky behavior, district parallax, synchronized weather, and the central runtime budget. The dedicated Xvfb scenario produced **30 full-game captures**: every district at day, dusk, and night in 2048×905 ultra-wide and 720×1280 portrait layouts. Visual inspection confirmed distinct time grading, visible cloud and air-traffic layers, clean alpha, readable gameplay and HUD, continuous panorama coverage, and no reintroduced black interval or hard tile join.
+
+The GPT Image 2 concept and runtime-asset phase was pushed as `639eea7acfedacec30c1d2799e1d5ffe8900ead5`. The integrated runtime, shader, budget, focused regression, and visual-scenario phase was pushed as `4ad02ff3a5aa9b52cb2411e9fdce7a3263c04b02`. Both commits use ordinary shared-main history; no branch rewrite or project-format upgrade occurred.
 
 ## Acceptance Matrix
 
