@@ -3,7 +3,7 @@
 **Project:** Proto Scroller  
 **Engine:** Godot 4.7.2  
 **Feature:** Twenty additional district-specific Project CHOIR enemy variants  
-**Status:** Implementation in progress  
+**Status:** Implemented and deployed
 **Canonical design:** [District Chimera Enemy Proposal](DISTRICT_CHIMERA_ENEMY_PROPOSAL.md)
 
 ## 1. Objective
@@ -59,7 +59,7 @@ A fresh Godot 4.7.2 Web export after source integration is the only authoritativ
 | WP2 — Deterministic encounter integration | Completed | Hybrid-then-variant resolver, Business support, director trace and final-beat accounting | Resolver determinism, immutability, family/threat safety | Commit and push resolver/director layer |
 | WP3 — Runtime and narrative integration | Completed | Concrete/base identity, reset hardening, narrative canonicalization, containment selection | Shell reuse, support values, narrative/containment focused tests | Commit and push runtime layer |
 | WP4 — Gallery and focused regression | Completed | Exactly-20 district gallery/selftest, targeted tests, plan completion record | Touched-script parse and focused GUT/selftests only | Commit and push final source |
-| WP5 — Web export and deployment | Pending | Fresh Web export, immutable WASM/PCK remap, WebDev checkpoint, public deploy | Direct artifact existence/size and lightweight HTTP/runtime smoke | Checkpoint and deploy existing WebDev project |
+| WP5 — Web export and deployment | Completed | Fresh Web export, immutable WASM/PCK remap, WebDev checkpoint, public deploy | Direct artifact existence/size and public shell route confirmation | Checkpoint and deploy existing WebDev project |
 
 ## 5. WP0 — Proposal and Asset Production
 
@@ -135,4 +135,4 @@ This section will be updated after each work package with commit IDs, focused ch
 | WP2 | Completed | `5dd1e5446a86ee57a90ce7b80614c987a80e0581` | Five staged resolver/director tests passed, including all five district allowlists, 40-seed roster coverage, Business variant injection without legacy hybrids, deep-copy determinism, family/threat preservation, and reservation-before-pending tracing | The focused CHOIR file passed 7/8 tests; its only failure was the pre-existing Reclaimed Breacher frontal-brace mismatch, scheduled for correction in WP3 where pooled actor identity is updated. |
 | WP3 | Completed | `3ff2afeaeacc58c39a62dc52aa256941ec782d56` | 13 focused tests and 287 assertions passed: complete CHOIR runtime file, exact repair/mark values, canonical first-contact dedupe, deterministic concrete containment, old→variant→old reset, and all 12 airborne flattened profiles | Reclaimed Breacher frontal bracing was corrected while leaving Covenant Warden's shield presentation-only. Glassback Double canonicalizes to Ossuary Crawler for the existing bounded containment and narrative contract. |
 | WP4 | Completed | `45868d6e3e2008077b61821490b2e575826ef701` | Final selected GUT regression: 10/10 tests and 817 assertions passed. The direct gallery passed 64/64 checks in both 1280×720 and 720×1280 headless layouts, with exactly 20 cards and four per district. | Headless mode intentionally skipped image capture; no Xvfb or screenshot certification was run under the release-gate override. `enemy_variety_scenario.gd` remains unchanged at 26 base archetypes. |
-| WP5 | Pending | — | — | — |
+| WP5 | Completed | Source export `5dd9d139ddea2d493f7ae4b2a280c142b8d9bcbf`; WebDev checkpoint `71c1c6dd` | Fresh Godot 4.7.2 bundle: WASM 39,514,754 bytes and PCK 15,622,608 bytes; PCK SHA-256 `3d226a40160d94425242f6c5d246671d6e7e85ad556f6c143baf184083e33c94`; 1,154,608 bytes below 16 MiB. Public shell serves the exact immutable routes `/manus-storage/game_c2e11355.wasm` and `/manus-storage/game_60c6f488.pck`. | Reused existing WebDev project and public domain. Preserved fullscreen iframe, title scheduler, local worklets, boss campaign, density-normalized score, and final responsive combo heralds. Type/build suites, browser matrices, and screenshot certification remained intentionally skipped under the release-gate override. |
