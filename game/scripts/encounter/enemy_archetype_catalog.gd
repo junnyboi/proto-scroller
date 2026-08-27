@@ -18,6 +18,208 @@ const PROCEDURAL_IDS: Array[StringName] = [
 	&"ossuary_crawler", &"seraph_carrier", &"pale_engine",
 ]
 
+const DISTRICT_VARIANT_IDS: Array[StringName] = [
+	&"covenant_warden", &"mercy_recovery_cart", &"testament_kite",
+	&"receivership_ambulance", &"intake_shepherd", &"evacuation_litter",
+	&"rainvault_pressure_ward", &"balcony_recall_beacon", &"memorial_usher",
+	&"glassback_double", &"recall_lantern", &"marquee_anesthetist",
+	&"suture_marshal", &"mercy_raker", &"revetment_ward", &"triage_kite",
+	&"privy_chirurgeon", &"laureate_courser", &"ninefold_witness",
+	&"regency_conservator",
+]
+const ALL_SPAWNABLE_IDS: Array[StringName] = PROCEDURAL_IDS + DISTRICT_VARIANT_IDS
+const DISTRICT_VARIANTS: Dictionary = {
+	&"BUSINESS": [
+		&"covenant_warden", &"mercy_recovery_cart", &"testament_kite",
+		&"receivership_ambulance",
+	],
+	&"RESIDENTIAL": [
+		&"intake_shepherd", &"evacuation_litter", &"rainvault_pressure_ward",
+		&"balcony_recall_beacon",
+	],
+	&"ENTERTAINMENT": [
+		&"memorial_usher", &"glassback_double", &"recall_lantern",
+		&"marquee_anesthetist",
+	],
+	&"MILITARY": [
+		&"suture_marshal", &"mercy_raker", &"revetment_ward", &"triage_kite",
+	],
+	&"ROYAL": [
+		&"privy_chirurgeon", &"laureate_courser", &"ninefold_witness",
+		&"regency_conservator",
+	],
+}
+
+const DISTRICT_VARIANT_PROFILES: Dictionary = {
+	&"covenant_warden": {
+		"base_archetype_id": &"bulwark", "display_name": "COVENANT WARDEN",
+		"texture": "res://art/city/enemies/archetypes/27-covenant-warden.png",
+		"faces_right": false, "health": 125.0, "threat": 1, "xp": 700,
+		"district_id": &"BUSINESS", "district_weight": 8,
+	},
+	&"mercy_recovery_cart": {
+		"base_archetype_id": &"jackal", "display_name": "MERCY RECOVERY CART",
+		"texture": "res://art/city/enemies/archetypes/28-mercy-recovery-cart.png",
+		"faces_right": false, "health": 100.0, "threat": 2, "xp": 950,
+		"district_id": &"BUSINESS", "district_weight": 6,
+	},
+	&"testament_kite": {
+		"base_archetype_id": &"needle", "display_name": "TESTAMENT KITE",
+		"texture": "res://art/city/enemies/archetypes/29-testament-kite.png",
+		"faces_right": false, "display": Vector2(150.0, 150.0),
+		"collision": Vector2(104.0, 104.0), "spawn_y": 175.0,
+		"health": 45.0, "threat": 1, "xp": 420,
+		"district_id": &"BUSINESS", "district_weight": 5,
+		"variant_tags": [&"marker"],
+	},
+	&"receivership_ambulance": {
+		"base_archetype_id": &"aegis", "display_name": "RECEIVERSHIP AMBULANCE",
+		"texture": "res://art/city/enemies/archetypes/30-receivership-ambulance.png",
+		"faces_right": false, "display": Vector2(245.0, 115.0),
+		"collision": Vector2(225.0, 85.0), "spawn_y": 547.5,
+		"health": 230.0, "speed": 58.0, "attack_interval": 2.3,
+		"behavior": &"support", "movement_style": &"apc_roll",
+		"attack_style": &"repair", "damage": 0.0, "threat": 3, "xp": 1900,
+		"district_id": &"BUSINESS", "district_weight": 3,
+		"variant_tags": [&"healer"],
+	},
+	&"intake_shepherd": {
+		"base_archetype_id": &"sapper", "display_name": "INTAKE SHEPHERD",
+		"texture": "res://art/city/enemies/archetypes/31-intake-shepherd.png",
+		"faces_right": false, "display": Vector2(125.0, 108.0),
+		"collision": Vector2(48.0, 98.0), "health": 145.0,
+		"threat": 2, "xp": 1250, "district_id": &"RESIDENTIAL",
+		"district_weight": 13, "variant_tags": [&"healer"],
+	},
+	&"evacuation_litter": {
+		"base_archetype_id": &"jackal", "display_name": "EVACUATION LITTER",
+		"texture": "res://art/city/enemies/archetypes/32-evacuation-litter.png",
+		"faces_right": false, "display": Vector2(215.0, 105.0),
+		"collision": Vector2(184.0, 72.0), "spawn_y": 554.0,
+		"health": 190.0, "projectile_speed": 0.0, "damage": 18.0,
+		"anticipation": 0.52, "attack_style": &"shock_brace",
+		"threat": 2, "xp": 1800, "district_id": &"RESIDENTIAL",
+		"district_weight": 11,
+	},
+	&"rainvault_pressure_ward": {
+		"base_archetype_id": &"basilisk", "display_name": "RAINVAULT PRESSURE WARD",
+		"texture": "res://art/city/enemies/archetypes/33-rainvault-pressure-ward.png",
+		"faces_right": false, "display": Vector2(245.0, 140.0),
+		"collision": Vector2(220.0, 90.0), "health": 255.0,
+		"damage": 19.0, "threat": 3, "xp": 2200,
+		"district_id": &"RESIDENTIAL", "district_weight": 8,
+		"variant_tags": [&"artillery"],
+	},
+	&"balcony_recall_beacon": {
+		"base_archetype_id": &"needle", "display_name": "BALCONY RECALL BEACON",
+		"texture": "res://art/city/enemies/archetypes/34-balcony-recall-beacon.png",
+		"faces_right": false, "display": Vector2(150.0, 180.0),
+		"collision": Vector2(104.0, 132.0), "spawn_y": 205.0,
+		"health": 90.0, "threat": 1, "xp": 800,
+		"district_id": &"RESIDENTIAL", "district_weight": 10,
+		"variant_tags": [&"marker"],
+	},
+	&"memorial_usher": {
+		"base_archetype_id": &"sapper", "display_name": "MEMORIAL USHER",
+		"texture": "res://art/city/enemies/archetypes/35-memorial-usher.png",
+		"faces_right": false, "display": Vector2(125.0, 108.0),
+		"collision": Vector2(48.0, 98.0), "health": 135.0,
+		"threat": 2, "xp": 1400, "district_id": &"ENTERTAINMENT",
+		"district_weight": 11, "variant_tags": [&"healer"],
+	},
+	&"glassback_double": {
+		"base_archetype_id": &"jackal", "display_name": "GLASSBACK DOUBLE",
+		"texture": "res://art/city/enemies/archetypes/36-glassback-double.png",
+		"faces_right": false, "display": Vector2(220.0, 100.0),
+		"collision": Vector2(190.0, 72.0), "health": 185.0,
+		"threat": 3, "xp": 2400, "district_id": &"ENTERTAINMENT",
+		"district_weight": 10,
+	},
+	&"recall_lantern": {
+		"base_archetype_id": &"choir_siren", "display_name": "RECALL LANTERN",
+		"texture": "res://art/city/enemies/archetypes/37-recall-lantern.png",
+		"faces_right": false, "health": 280.0, "threat": 4, "xp": 4000,
+		"district_id": &"ENTERTAINMENT", "district_weight": 8,
+		"variant_tags": [&"marker"],
+	},
+	&"marquee_anesthetist": {
+		"base_archetype_id": &"basilisk", "display_name": "MARQUEE ANESTHETIST",
+		"texture": "res://art/city/enemies/archetypes/38-marquee-anesthetist.png",
+		"faces_right": false, "display": Vector2(245.0, 135.0),
+		"collision": Vector2(220.0, 90.0), "health": 275.0,
+		"damage": 24.0, "threat": 4, "xp": 3300,
+		"district_id": &"ENTERTAINMENT", "district_weight": 6,
+		"variant_tags": [&"artillery"],
+	},
+	&"suture_marshal": {
+		"base_archetype_id": &"sapper", "display_name": "SUTURE MARSHAL",
+		"texture": "res://art/city/enemies/archetypes/39-suture-marshal.png",
+		"faces_right": false, "display": Vector2(125.0, 108.0),
+		"collision": Vector2(48.0, 98.0), "health": 240.0,
+		"threat": 3, "xp": 2500, "district_id": &"MILITARY",
+		"district_weight": 8, "variant_tags": [&"healer"],
+	},
+	&"mercy_raker": {
+		"base_archetype_id": &"jackal", "display_name": "MERCY RAKER",
+		"texture": "res://art/city/enemies/archetypes/40-mercy-raker.png",
+		"faces_right": false, "display": Vector2(230.0, 105.0),
+		"collision": Vector2(202.0, 74.0), "health": 285.0,
+		"damage": 10.0, "threat": 4, "xp": 3600,
+		"district_id": &"MILITARY", "district_weight": 7,
+	},
+	&"revetment_ward": {
+		"base_archetype_id": &"cinder", "display_name": "REVETMENT WARD",
+		"texture": "res://art/city/enemies/archetypes/41-revetment-ward.png",
+		"faces_right": false, "display": Vector2(255.0, 135.0),
+		"collision": Vector2(230.0, 88.0), "health": 390.0,
+		"damage": 20.0, "threat": 5, "xp": 4400,
+		"district_id": &"MILITARY", "district_weight": 5,
+	},
+	&"triage_kite": {
+		"base_archetype_id": &"kestrel", "display_name": "TRIAGE KITE",
+		"texture": "res://art/city/enemies/archetypes/42-triage-kite.png",
+		"faces_right": false, "display": Vector2(260.0, 130.0),
+		"collision": Vector2(225.0, 78.0), "health": 275.0,
+		"damage": 22.0, "threat": 4, "xp": 4200,
+		"district_id": &"MILITARY", "district_weight": 6,
+		"variant_tags": [&"bomber"],
+	},
+	&"privy_chirurgeon": {
+		"base_archetype_id": &"sapper", "display_name": "PRIVY CHIRURGEON",
+		"texture": "res://art/city/enemies/archetypes/43-privy-chirurgeon.png",
+		"faces_right": false, "display": Vector2(125.0, 108.0),
+		"collision": Vector2(48.0, 98.0), "health": 175.0,
+		"threat": 2, "xp": 2600, "district_id": &"ROYAL",
+		"district_weight": 8, "variant_tags": [&"healer"],
+	},
+	&"laureate_courser": {
+		"base_archetype_id": &"ossuary_crawler", "display_name": "LAUREATE COURSER",
+		"texture": "res://art/city/enemies/archetypes/44-laureate-courser.png",
+		"faces_right": false, "display": Vector2(230.0, 118.0),
+		"collision": Vector2(190.0, 76.0), "health": 285.0,
+		"behavior": &"ground_pass", "threat": 4, "xp": 4700,
+		"district_id": &"ROYAL", "district_weight": 7,
+	},
+	&"ninefold_witness": {
+		"base_archetype_id": &"choir_siren", "display_name": "NINEFOLD WITNESS",
+		"texture": "res://art/city/enemies/archetypes/45-ninefold-witness.png",
+		"faces_right": false, "display": Vector2(205.0, 190.0),
+		"collision": Vector2(132.0, 150.0), "health": 360.0,
+		"threat": 5, "xp": 6200, "district_id": &"ROYAL",
+		"district_weight": 5, "variant_tags": [&"marker"],
+	},
+	&"regency_conservator": {
+		"base_archetype_id": &"basilisk", "display_name": "REGENCY CONSERVATOR",
+		"texture": "res://art/city/enemies/archetypes/46-regency-conservator.png",
+		"faces_right": false, "display": Vector2(275.0, 145.0),
+		"collision": Vector2(245.0, 94.0), "health": 395.0,
+		"preferred_range": 720.0, "minimum_range": 450.0,
+		"attack_interval": 3.0, "anticipation": 1.0, "damage": 30.0,
+		"threat": 5, "xp": 6500, "district_id": &"ROYAL",
+		"district_weight": 4, "variant_tags": [&"artillery"],
+	},
+}
+
 const PROFILES: Dictionary = {
 	&"needle": {
 		"display_name": "NEEDLE SPOTTER DRONE", "family": &"air", "airborne": true,
@@ -300,11 +502,63 @@ const PROFILES: Dictionary = {
 
 
 static func has(archetype_id: StringName) -> bool:
-	return PROFILES.has(archetype_id)
+	return PROFILES.has(archetype_id) or DISTRICT_VARIANT_PROFILES.has(archetype_id)
 
 
 static func profile(archetype_id: StringName) -> Dictionary:
-	return (PROFILES.get(archetype_id, {}) as Dictionary).duplicate(true)
+	if PROFILES.has(archetype_id):
+		return (PROFILES[archetype_id] as Dictionary).duplicate(true)
+	if not DISTRICT_VARIANT_PROFILES.has(archetype_id):
+		return {}
+	var overlay: Dictionary = DISTRICT_VARIANT_PROFILES[archetype_id] as Dictionary
+	var base_archetype_id: StringName = StringName(overlay.get("base_archetype_id", &""))
+	if not PROFILES.has(base_archetype_id):
+		return {}
+	var flattened: Dictionary = (PROFILES[base_archetype_id] as Dictionary).duplicate(true)
+	for key: Variant in overlay:
+		flattened[key] = overlay[key]
+	flattened["concrete_archetype_id"] = archetype_id
+	return flattened
+
+
+static func canonical_id(archetype_id: StringName) -> StringName:
+	if not DISTRICT_VARIANT_PROFILES.has(archetype_id):
+		return archetype_id
+	return StringName(
+		(DISTRICT_VARIANT_PROFILES[archetype_id] as Dictionary).get(
+			"base_archetype_id",
+			archetype_id
+		)
+	)
+
+
+static func is_district_variant(archetype_id: StringName) -> bool:
+	return DISTRICT_VARIANT_PROFILES.has(archetype_id)
+
+
+static func variants_for_district(district_id: StringName) -> Array[StringName]:
+	var variants: Array[StringName] = []
+	for archetype_id: StringName in DISTRICT_VARIANTS.get(district_id, []):
+		variants.append(archetype_id)
+	return variants
+
+
+static func district_for_variant(archetype_id: StringName) -> StringName:
+	if not DISTRICT_VARIANT_PROFILES.has(archetype_id):
+		return &""
+	return StringName(
+		(DISTRICT_VARIANT_PROFILES[archetype_id] as Dictionary).get("district_id", &"")
+	)
+
+
+static func has_variant_tag(archetype_id: StringName, tag: StringName) -> bool:
+	if not DISTRICT_VARIANT_PROFILES.has(archetype_id):
+		return false
+	var tags: Array = (DISTRICT_VARIANT_PROFILES[archetype_id] as Dictionary).get(
+		"variant_tags",
+		[]
+	)
+	return tag in tags
 
 
 static func family_for(kind: StringName) -> StringName:
@@ -314,7 +568,7 @@ static func family_for(kind: StringName) -> StringName:
 		return &"heavy"
 	if kind == &"helicopter":
 		return &"air"
-	return StringName((PROFILES.get(kind, {}) as Dictionary).get("family", &""))
+	return StringName(profile(kind).get("family", &""))
 
 
 static func reservation_key(kind: StringName) -> StringName:
@@ -331,7 +585,7 @@ static func threat_cost(kind: StringName) -> int:
 		return 2
 	if kind == &"soldier":
 		return 1
-	return int((PROFILES.get(kind, {}) as Dictionary).get("threat", 0))
+	return int(profile(kind).get("threat", 0))
 
 
 static func xp_value(kind: StringName) -> int:
@@ -341,7 +595,7 @@ static func xp_value(kind: StringName) -> int:
 		return 1200
 	if kind == &"soldier":
 		return 500
-	return int((PROFILES.get(kind, {}) as Dictionary).get("xp", 500))
+	return int(profile(kind).get("xp", 500))
 
 
 static func is_valid_kind(kind: StringName) -> bool:
@@ -349,7 +603,7 @@ static func is_valid_kind(kind: StringName) -> bool:
 
 
 static func is_human_enemy(kind: StringName) -> bool:
-	return kind in HUMAN_KINDS
+	return canonical_id(kind) in HUMAN_KINDS
 
 
 static func is_ground_vehicle(kind: StringName) -> bool:
@@ -357,11 +611,17 @@ static func is_ground_vehicle(kind: StringName) -> bool:
 		return true
 	if not has(kind):
 		return false
-	var profile_value: Dictionary = PROFILES[kind] as Dictionary
+	var profile_value: Dictionary = profile(kind)
 	return (
 		not bool(profile_value.get("airborne", false))
 		and StringName(profile_value.get("remains", &"")) == &"vehicle"
 	)
+
+
+static func is_airborne(kind: StringName) -> bool:
+	if kind == &"helicopter":
+		return true
+	return bool(profile(kind).get("airborne", false))
 
 
 static func presentation_scale(kind: StringName) -> float:
@@ -370,3 +630,35 @@ static func presentation_scale(kind: StringName) -> float:
 
 static func spawn_multiplier(kind: StringName) -> int:
 	return HUMAN_SPAWN_MULTIPLIER if is_human_enemy(kind) else 1
+
+
+static func validation_errors() -> PackedStringArray:
+	var errors: PackedStringArray = []
+	if PROCEDURAL_IDS.size() != 26:
+		errors.append("Expected 26 base procedural archetypes")
+	if DISTRICT_VARIANT_IDS.size() != 20:
+		errors.append("Expected 20 district variants")
+	if ALL_SPAWNABLE_IDS.size() != 46:
+		errors.append("Expected 46 all-spawnable archetypes")
+	var seen: Dictionary[StringName, bool] = {}
+	for archetype_id: StringName in ALL_SPAWNABLE_IDS:
+		if seen.has(archetype_id):
+			errors.append("Duplicate all-spawnable archetype: %s" % archetype_id)
+		seen[archetype_id] = true
+		if profile(archetype_id).is_empty():
+			errors.append("Missing flattened profile: %s" % archetype_id)
+	for district_id: StringName in [
+		&"BUSINESS", &"RESIDENTIAL", &"ENTERTAINMENT", &"MILITARY", &"ROYAL",
+	]:
+		var district_variants: Array[StringName] = variants_for_district(district_id)
+		if district_variants.size() != 4:
+			errors.append("Expected four variants for %s" % district_id)
+		for archetype_id: StringName in district_variants:
+			if district_for_variant(archetype_id) != district_id:
+				errors.append("District mismatch for %s" % archetype_id)
+			var base_archetype_id: StringName = canonical_id(archetype_id)
+			if not PROFILES.has(base_archetype_id):
+				errors.append("Missing base archetype for %s" % archetype_id)
+			elif family_for(archetype_id) != family_for(base_archetype_id):
+				errors.append("Family override is not allowed for %s" % archetype_id)
+	return errors

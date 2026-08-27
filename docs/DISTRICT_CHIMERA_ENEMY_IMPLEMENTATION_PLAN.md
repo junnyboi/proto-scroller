@@ -55,7 +55,7 @@ A fresh Godot 4.7.2 Web export after source integration is the only authoritativ
 | Work package | Status | Deliverable | Focused check | Source milestone |
 |---|---|---|---|---|
 | WP0 — Proposal and assets | Completed | Canon proposal, twenty embedded GPT Image 2 concepts, masters, processor, provenance | 20/20 concepts and runtime outputs; alpha and dimensions inspected | Commit and push documents/assets |
-| WP1 — Catalog and identity | Pending | 26/20/46 catalog contract, overlays, canonical helpers, concrete textures | Catalog cardinality and profile validity tests | Commit and push catalog layer |
+| WP1 — Catalog and identity | Completed | 26/20/46 catalog contract, overlays, canonical helpers, concrete textures | Catalog cardinality and profile validity tests | Commit and push catalog layer |
 | WP2 — Deterministic encounter integration | Pending | Hybrid-then-variant resolver, Business support, director trace and final-beat accounting | Resolver determinism, immutability, family/threat safety | Commit and push resolver/director layer |
 | WP3 — Runtime and narrative integration | Pending | Concrete/base identity, reset hardening, narrative canonicalization, containment selection | Shell reuse, support values, narrative/containment focused tests | Commit and push runtime layer |
 | WP4 — Gallery and focused regression | Pending | Exactly-20 district gallery/selftest, targeted tests, plan completion record | Touched-script parse and focused GUT/selftests only | Commit and push final source |
@@ -131,7 +131,7 @@ This section will be updated after each work package with commit IDs, focused ch
 | Work package | Completion | Commit / checkpoint | Focused evidence | Notes |
 |---|---|---|---|---|
 | WP0 | Completed | `88e2fe9d480bd2929942c4289853add7320f9f27` | 20 proposal concepts, 20 GPT Image 2 masters, 20 transparent runtime sprites; runtime PNG total 2,831,759 bytes; visual contact sheet inspected | Proposal embeds every concept; source masters remain outside `game/`; runtime derivatives are 320–448 pixels maximum dimension. |
-| WP1 | Pending | — | — | — |
+| WP1 | Completed | WP1 source commit recorded after integration | Focused catalog filters: 3/3 tests and 632 assertions passed; Godot 4.7.2 imported all 20 textures without catalog or spawn-entry parse errors | Base behavior-signature uniqueness remains scoped to the original 26; overlays intentionally reuse those behaviors. The inherited isolated Reclaimed Breacher TTK expectation remains outside WP1 and was not altered. |
 | WP2 | Pending | — | — | — |
 | WP3 | Pending | — | — | — |
 | WP4 | Pending | — | — | — |
