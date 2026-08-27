@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 **Date:** 2026-08-27
-**Status:** Approved and in progress
+**Status:** Complete and checkpointed
 **Canonical baseline:** `21a15680c231646c0a7b2853205be1a2ba19887d`
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 
@@ -164,6 +164,8 @@ The feature is complete when a finalized run displays exact highest combo tier, 
 | WP3 — Persistent career profile | Complete | Versioned atomic local profile, corruption fallback, personal-best flags, bounded lifetime totals, and privacy-minimal leaderboard candidate covered by the same 6/6 focused suite. |
 | WP4 — Responsive debrief | Complete | Dedicated hard-cornered final-run panel uses the GPT Image 2 crest and localized Godot controls; 1280×720 and 720×1280 screenshots passed bounded geometry and visual inspection. |
 | WP5 — Source integration | Complete | End-to-end focused suite passed 8/8 tests and 118 assertions; legacy rampage, summary, and live-city compatibility suites passed 27 tests and 277 assertions in aggregate. |
-| WP6 — WebDev synchronization | Pending | Fresh final export and checkpoint pending. |
+| WP6 — WebDev synchronization | Complete | Fresh exact `ec03c403` export remapped to `/manus-storage/game_e396304f.wasm` and `/manus-storage/game_da759b2a.pck`; WebDev checkpoint `c8247fb8` saved. |
 
 Focused compatibility checks passed `test_rampage_progression.gd` at 14 tests / 170 assertions, `test_overdrive_and_summary.gd` at 7 tests / 55 assertions, and `test_city_rampage_integration.gd` at 6 tests / 52 assertions. Per the active project release override, no full release-gate matrix or certification loop was run.
+
+The final runtime code revision is `ec03c403b9a99ccbf723f4229b24b25d1a445509`. Its PCK is 16,638,892 bytes with SHA-256 `b948d88e845624dc4224ffdb63ceeb77ad27065ccfb6f6bd17f4fe30f47ed4b4`, leaving 138,324 bytes below the 16 MiB ceiling. The matching Godot 4.7.2 WASM is 39,514,754 bytes with SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`.
