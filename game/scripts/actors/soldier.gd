@@ -73,7 +73,10 @@ func _begin_fire() -> void:
 		and not catalyst_target.spent
 	):
 		target_point = catalyst_target.global_position
-	if begin_telegraph(&"bullet", anticipation_duration, origin, target_point):
+	var damage_output: float = (
+		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier
+	)
+	if begin_telegraph(&"bullet", anticipation_duration, origin, target_point, damage_output):
 		state = State.ANTICIPATE
 	else:
 		_cooldown = 0.15

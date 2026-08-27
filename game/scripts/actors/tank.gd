@@ -78,7 +78,8 @@ func _begin_shell() -> void:
 		var cell: Destructible2D = structural_target.get_cell(1, 1)
 		if cell != null and not cell.is_destroyed():
 			target_point = cell.global_position
-	if begin_telegraph(&"shell", anticipation_duration, origin, target_point):
+	var damage_output: float = shell_damage * projectile_damage_multiplier * aura_damage_multiplier
+	if begin_telegraph(&"shell", anticipation_duration, origin, target_point, damage_output):
 		state = State.ANTICIPATE
 	else:
 		_cooldown = 0.20
