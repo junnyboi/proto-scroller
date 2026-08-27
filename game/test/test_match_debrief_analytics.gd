@@ -2,6 +2,7 @@ extends GutTest
 
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 const TEST_PROFILE_PATH: String = "user://test_player_combat_profile.json"
+const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
 func before_each() -> void:
@@ -164,6 +165,91 @@ func test_malformed_profile_falls_back_without_blocking_launch() -> void:
 	_record_test_execution()
 
 
+func test_debrief_presents_bounded_rankings_and_both_responsive_layouts() -> void:
+	L10n.set_locale("en")
+	var panel: MatchDebriefPanel = MatchDebriefPanel.new()
+	add_child_autofree(panel)
+	await get_tree().process_frame
+	var summary: RunSummarySnapshot = _make_summary(
+		12_345,
+		10,
+		true,
+		{
+			&"choir_siren": 8,
+			&"pale_engine": 6,
+			&"covenant_warden": 5,
+			&"needle": 4,
+			&"tank": 3,
+		},
+		{
+			&"MISSILE": 9,
+			&"GROUND_SMASH": 8,
+			&"JAB_CROSS": 5,
+			&"LASER": 4,
+		}
+	).with_career_result({
+		"new_combo_record": true,
+		"new_score_record": true,
+		"career_snapshot": {
+			"best_score": 12_345,
+			"highest_combo_tier": 10,
+			"total_enemy_kills": 99,
+			"total_runs": 7,
+			"victories": 4,
+		},
+	})
+	panel.present(summary, "DISTRICT CLEARED", 25, 2)
+	var state: Dictionary = panel.debug_snapshot()
+	assert_true(state.visible)
+	assert_true(String(state.combo).contains("EXTINCTION EVENT"))
+	assert_true(state.personal_best)
+	assert_eq((state.weapon_rows as PackedStringArray).size(), 3)
+	assert_eq((state.enemy_rows as PackedStringArray).size(), 4)
+	assert_true(panel.crest.texture is Texture2D)
+
+	panel.apply_responsive_layout(Vector2(1280.0, 720.0))
+	_assert_rect_inside(panel.debug_snapshot().panel_rect, Vector2(1280.0, 720.0))
+	_assert_touch_rect(panel.debug_snapshot().retry_rect)
+	_assert_touch_rect(panel.debug_snapshot().title_rect)
+	panel.apply_responsive_layout(Vector2(720.0, 1280.0))
+	_assert_rect_inside(panel.debug_snapshot().panel_rect, Vector2(720.0, 1280.0))
+	_assert_touch_rect(panel.debug_snapshot().retry_rect)
+	_assert_touch_rect(panel.debug_snapshot().title_rect)
+	var signal_counts: Dictionary = {"retry": 0, "title": 0}
+	panel.retry_pressed.connect(func() -> void: signal_counts.retry += 1)
+	panel.title_pressed.connect(func() -> void: signal_counts.title += 1)
+	panel.retry_button.pressed.emit()
+	panel.title_button.pressed.emit()
+	assert_eq(int(signal_counts.retry), 1)
+	assert_eq(int(signal_counts.title), 1)
+	_record_test_execution()
+
+
+func test_run_lifecycle_submits_profile_once_and_presents_enriched_dossier() -> void:
+	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(store)
+	store.setup(TEST_PROFILE_PATH)
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	city.mobile_detection_override = 1
+	city.combat_profile = store
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+		enemy.set_physics_process(false)
+	var event: GameplayEvent = _kill_event(501, &"choir_siren", &"air", &"LASER")
+	assert_true(city.rampage_session.publish(event))
+	city.run_lifecycle._finish_run(false)
+	var summary: RunSummarySnapshot = city.rampage_session.frozen_summary
+	assert_not_null(summary)
+	assert_eq(summary.total_enemies_defeated, 1)
+	assert_eq(int(summary.career_snapshot.total_runs), 1)
+	assert_true(city.gameplay_hud.match_debrief.visible)
+	assert_eq(int(store.snapshot().total_runs), 1)
+	city.run_lifecycle._finish_run(false)
+	assert_eq(int(store.snapshot().total_runs), 1)
+	_record_test_execution()
+
+
 func _session() -> RampageSession:
 	var session: RampageSession = RampageSession.new()
 	add_child_autofree(session)
@@ -234,6 +320,18 @@ func _clear_profile_files() -> void:
 		var path: String = TEST_PROFILE_PATH + suffix
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func _assert_rect_inside(rect: Rect2, viewport_size: Vector2) -> void:
+	assert_gte(rect.position.x, 0.0)
+	assert_gte(rect.position.y, 0.0)
+	assert_lte(rect.end.x, viewport_size.x + 0.01)
+	assert_lte(rect.end.y, viewport_size.y + 0.01)
+
+
+func _assert_touch_rect(rect: Rect2) -> void:
+	assert_gte(rect.size.x, 120.0)
+	assert_gte(rect.size.y, 44.0)
 
 
 func _record_test_execution() -> void:

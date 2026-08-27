@@ -64,6 +64,7 @@ var boss_label: Label
 var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
+var match_debrief: MatchDebriefPanel
 var new_game_plus_badge: TextureRect
 var retry_button: Button
 var title_button: Button
@@ -441,11 +442,20 @@ func _show_summary(summary: RunSummarySnapshot, completed: bool) -> void:
 		"generation": _continuity_generation,
 	})
 	game_over_overlay.visible = true
-	retry_button.grab_focus()
+	if summary != null and match_debrief != null:
+		match_debrief.present(
+			summary,
+			overlay_title.text,
+			_campaign_dossier_count,
+			_continuity_generation
+		)
+	else:
+		retry_button.grab_focus()
 
 
 func show_cycle_choice(cycle: int, can_continue: bool) -> void:
 	dismiss_combo_herald()
+	match_debrief.hide_panel()
 	overlay_title.text = L10n.t(
 		"hud.new_game_plus_ready" if can_continue else "hud.district_secured"
 	)
@@ -469,6 +479,7 @@ func show_cycle_choice(cycle: int, can_continue: bool) -> void:
 
 func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
 	dismiss_combo_herald()
+	match_debrief.hide_panel()
 	overlay_title.text = L10n.t("finale.choice.title")
 	overlay_summary.text = L10n.t(
 		"finale.choice.summary" if snapshot.disentangle_eligible else "finale.choice.summary_ineligible",
@@ -496,6 +507,7 @@ func _show_finale_choice(snapshot: FinaleEligibilitySnapshot) -> void:
 
 func _show_finale_result(outcome: int, cycle: int, can_continue: bool) -> void:
 	dismiss_combo_herald()
+	match_debrief.hide_panel()
 	var ending_key: String = String(BossOutcome.id_for(outcome)).to_lower()
 	overlay_title.text = L10n.t("finale.ending.%s.title" % ending_key)
 	overlay_summary.text = (
@@ -524,6 +536,7 @@ func _show_finale_result(outcome: int, cycle: int, can_continue: bool) -> void:
 
 func hide_terminal_overlay() -> void:
 	dismiss_combo_herald()
+	match_debrief.hide_panel()
 	game_over_overlay.visible = false
 	_hide_terminal_choices()
 
@@ -878,6 +891,10 @@ func _build_game_over_overlay() -> void:
 	disentangle_button.pressed.connect(disentangle_pressed.emit)
 	disentangle_button.visible = false
 	game_over_overlay.add_child(disentangle_button)
+	match_debrief = MatchDebriefPanel.new()
+	match_debrief.retry_pressed.connect(retry_pressed.emit)
+	match_debrief.title_pressed.connect(title_pressed.emit)
+	game_over_overlay.add_child(match_debrief)
 
 
 func _is_portrait_layout() -> bool:
@@ -905,6 +922,8 @@ func _apply_responsive_layout() -> void:
 		transmission_toast.apply_responsive_layout(viewport_size)
 	if combo_herald != null:
 		combo_herald.apply_responsive_layout(viewport_size)
+	if match_debrief != null:
+		match_debrief.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout() -> void:
@@ -1109,6 +1128,8 @@ func _apply_portrait_terminal_layout(viewport_size: Vector2) -> void:
 
 
 func _hide_terminal_choices() -> void:
+	if match_debrief != null:
+		match_debrief.hide_panel()
 	retry_button.visible = true
 	title_button.visible = true
 	extract_button.visible = false

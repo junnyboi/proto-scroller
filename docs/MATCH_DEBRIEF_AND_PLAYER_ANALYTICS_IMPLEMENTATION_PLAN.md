@@ -162,8 +162,8 @@ The feature is complete when a finalized run displays exact highest combo tier, 
 | WP1 — GPT Image 2 concepts and crest | Complete | Landscape and portrait mockups plus a cleaned transparent 256×256 runtime crest; hashes recorded in `MATCH_DEBRIEF_ASSET_PROVENANCE.md`. |
 | WP2 — Run telemetry | Complete | Accepted-event telemetry captures exact archetype, family, fatal weapon, total kills, and uncapped authored combo tier; dedicated suite passed 6/6 tests and 87 assertions. |
 | WP3 — Persistent career profile | Complete | Versioned atomic local profile, corruption fallback, personal-best flags, bounded lifetime totals, and privacy-minimal leaderboard candidate covered by the same 6/6 focused suite. |
-| WP4 — Responsive debrief | In progress | Dedicated final-run panel and compatibility bridge pending. |
-| WP5 — Source integration | Pending | Final focused UI and lifecycle evidence pending. |
+| WP4 — Responsive debrief | Complete | Dedicated hard-cornered final-run panel uses the GPT Image 2 crest and localized Godot controls; 1280×720 and 720×1280 screenshots passed bounded geometry and visual inspection. |
+| WP5 — Source integration | Complete | End-to-end focused suite passed 8/8 tests and 118 assertions; legacy rampage, summary, and live-city compatibility suites passed 27 tests and 277 assertions in aggregate. |
 | WP6 — WebDev synchronization | Pending | Fresh final export and checkpoint pending. |
 
-Focused compatibility checks after WP2/WP3 also passed `test_rampage_progression.gd` at 14 tests / 170 assertions and `test_overdrive_and_summary.gd` at 7 tests / 55 assertions.
+Focused compatibility checks passed `test_rampage_progression.gd` at 14 tests / 170 assertions, `test_overdrive_and_summary.gd` at 7 tests / 55 assertions, and `test_city_rampage_integration.gd` at 6 tests / 52 assertions. Per the active project release override, no full release-gate matrix or certification loop was run.
