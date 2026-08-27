@@ -72,11 +72,8 @@ func test_bounded_overrun_advances_with_surviving_low_threat() -> void:
 	director.act_elapsed = DISTRICT.acts[0].target_duration
 	city.encounter_runtime.acquire(&"soldier", Vector2(1200.0, 542.5))
 	director.advance(0.1)
-	assert_eq(director.phase_index, 0)
-	assert_true(city.weapon_shop_assembler.session.active)
-	_close_shop_if_active()
-	director.advance(0.1)
 	assert_eq(director.phase_index, 1)
+	assert_false(city.weapon_shop_assembler.session.active)
 	assert_eq(city.encounter_runtime.active_count(&"soldier"), 1)
 
 
@@ -132,9 +129,9 @@ func test_retaliation_triggers_every_wave_25_percent_sooner() -> void:
 
 func test_act_five_releases_overrun_survivors_and_starts_max_tier_retaliation() -> void:
 	var director: DistrictResponseDirector = city.urban_siege.director
-	city.world_stream.current_logical_chunk = 20
+	city.world_stream.current_logical_chunk = 28
 	city.world_stream.current_district_id = &"ROYAL"
-	city.world_stream.maximum_visited_chunk = 20
+	city.world_stream.maximum_visited_chunk = 28
 	city.rampage_session.run_experience.level = 5
 	director.stop()
 	director.running = true
@@ -149,11 +146,8 @@ func test_act_five_releases_overrun_survivors_and_starts_max_tier_retaliation() 
 	assert_not_null(city.encounter_runtime.acquire(&"goliath", Vector2(1200.0, 485.0)))
 	assert_gt(director._threat_weight(), DistrictResponseDirector.LOW_THREAT_WEIGHT)
 	director.advance(0.1)
-	assert_eq(director.phase_index, 3)
-	assert_true(city.weapon_shop_assembler.session.active)
-	_close_shop_if_active()
-	director.advance(0.1)
 	assert_eq(director.phase_index, 4)
+	assert_false(city.weapon_shop_assembler.session.active)
 	assert_eq(city.encounter_runtime.active_count(), 0)
 	director.advance(0.1)
 	assert_eq(director.current_beat_id(), &"RETALIATION_FRONT")

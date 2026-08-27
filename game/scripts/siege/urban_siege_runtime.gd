@@ -382,6 +382,7 @@ func _on_boss_completed(_elapsed_seconds: float) -> void:
 func _on_campaign_boss_completed(definition: BossEncounterDefinition) -> void:
 	if definition != null and definition.boss_id == &"CHOIR_PRIME":
 		finale_boss_completed = true
+		finale_arc_completed = true
 		_try_complete_finale_gate()
 
 
@@ -426,6 +427,7 @@ func _prepare_cycle() -> void:
 	)
 	dependencies.encounter_runtime.set_catalyst_target(transformer)
 	director.start()
+	director.hold_act_advance()
 
 
 func _select_configuration(apply_to_director: bool) -> void:

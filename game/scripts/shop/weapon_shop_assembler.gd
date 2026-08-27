@@ -48,7 +48,6 @@ func setup(city: Node) -> PackedStringArray:
 	overlay.purchase_requested.connect(session.purchase)
 	overlay.preview_requested.connect(_on_preview_requested)
 	overlay.continue_requested.connect(session.close_shop)
-	siege.act_completed.connect(_on_act_completed)
 	siege.pause_coordinator.pause_changed.connect(_on_pause_changed)
 	return errors
 
@@ -57,16 +56,18 @@ func queue_royal_completion() -> bool:
 	return session != null and session.queue_royal_completion(siege.cycle_count)
 
 
-func _on_act_completed(
-	act_index: int,
-	_act_id: StringName,
-	_display_name: String
-) -> void:
-	if act_index < 0 or act_index > 3:
-		return
-	siege.director.hold_act_advance()
-	if not session.queue_act_completion(act_index, siege.cycle_count):
-		siege.director.resume_act_advance()
+func queue_boss_salvage(definition: BossEncounterDefinition) -> bool:
+	if definition == null or session == null:
+		return false
+	if definition.district_id == &"ROYAL":
+		return session.queue_royal_completion(siege.cycle_count)
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		if district.district_id == definition.district_id:
+			return session.queue_act_completion(
+				district.district_index,
+				siege.cycle_count
+			)
+	return false
 
 
 func _on_shop_opened(
@@ -100,17 +101,20 @@ func _on_purchase_rejected(product: WeaponShopProduct, reason: StringName) -> vo
 
 
 func _on_shop_closed(
-	_district: CityDistrictProfile,
+	district: CityDistrictProfile,
 	_act_index: int,
 	terminal: bool
 ) -> void:
 	overlay.hide_shop()
 	music_duck.set_ducked(false)
 	upgrade_session.set_presentation_blocked(false)
-	if terminal:
+	var handoff_completed: bool = false
+	if siege.boss_campaign != null:
+		handoff_completed = siege.boss_campaign.complete_shop_handoff(
+			district.district_id
+		)
+	if terminal and not handoff_completed:
 		royal_shop_closed.emit()
-	else:
-		siege.director.resume_act_advance()
 
 
 func _on_pause_changed(paused: bool) -> void:

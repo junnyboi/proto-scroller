@@ -61,6 +61,7 @@ var props: Array[DestructibleProp2D] = []
 var post_warm_creation_count: int = 0
 var _slot_buildings: Dictionary[int, StructuralBuilding2D] = {}
 var _slot_props: Dictionary[int, Array] = {}
+var _suppressed_collision_state: Dictionary[int, Vector2i] = {}
 
 
 func setup(p_world_stream: CityWorldStream) -> void:
@@ -74,6 +75,7 @@ func _ready() -> void:
 	world_stream.chunk_reassigning.connect(_on_chunk_reassigning)
 	world_stream.chunk_reassigned.connect(_on_chunk_reassigned)
 	world_stream.run_configured.connect(_on_run_configured)
+	world_stream.content_access_changed.connect(refresh_content_access)
 	for chunk: CityStreetChunk in world_stream.chunks:
 		_build_slot(chunk)
 		_configure_slot(
@@ -81,6 +83,7 @@ func _ready() -> void:
 			CityChunkBlueprint.generate(world_stream.run_seed, chunk.logical_index)
 		)
 	world_stream.refresh_culling()
+	refresh_content_access()
 
 
 func primary_building() -> StructuralBuilding2D:
@@ -160,6 +163,15 @@ func reset_run(run_seed: int) -> void:
 	ledger.reset(run_seed)
 	for chunk: CityStreetChunk in world_stream.chunks:
 		_configure_slot(chunk, CityChunkBlueprint.generate(run_seed, chunk.logical_index))
+	refresh_content_access()
+
+
+func refresh_content_access() -> void:
+	for chunk: CityStreetChunk in world_stream.chunks:
+		_set_slot_content_enabled(
+			chunk,
+			world_stream.should_present_chunk_content(chunk.logical_index)
+		)
 
 
 func _build_slot(chunk: CityStreetChunk) -> void:
@@ -321,6 +333,42 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 		blueprint.logical_index,
 		configured_variant.variant_id
 	)
+	_set_slot_content_enabled(
+		chunk,
+		world_stream.should_present_chunk_content(blueprint.logical_index)
+	)
+
+
+func _set_slot_content_enabled(chunk: CityStreetChunk, enabled: bool) -> void:
+	if chunk == null or not _slot_buildings.has(chunk.get_instance_id()):
+		return
+	var roots: Array[CanvasItem] = [_slot_buildings[chunk.get_instance_id()]]
+	for value: Variant in _slot_props[chunk.get_instance_id()]:
+		roots.append(value as CanvasItem)
+	for root: CanvasItem in roots:
+		root.visible = enabled
+		root.process_mode = Node.PROCESS_MODE_INHERIT if enabled else Node.PROCESS_MODE_DISABLED
+		var collision_objects: Array[CollisionObject2D] = []
+		if root is CollisionObject2D:
+			collision_objects.append(root as CollisionObject2D)
+		for descendant: Node in root.find_children("*", "CollisionObject2D", true, false):
+			collision_objects.append(descendant as CollisionObject2D)
+		for collision_object: CollisionObject2D in collision_objects:
+			var instance_id: int = collision_object.get_instance_id()
+			if enabled:
+				if _suppressed_collision_state.has(instance_id):
+					var saved: Vector2i = _suppressed_collision_state[instance_id]
+					collision_object.collision_layer = saved.x
+					collision_object.collision_mask = saved.y
+					_suppressed_collision_state.erase(instance_id)
+			else:
+				if not _suppressed_collision_state.has(instance_id):
+					_suppressed_collision_state[instance_id] = Vector2i(
+						collision_object.collision_layer,
+						collision_object.collision_mask
+					)
+				collision_object.collision_layer = 0
+				collision_object.collision_mask = 0
 
 
 func _save_slot(chunk: CityStreetChunk) -> void:

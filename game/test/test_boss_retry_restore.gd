@@ -13,7 +13,7 @@ func before_each() -> void:
 	await get_tree().process_frame
 	city.urban_siege.run_active = true
 	campaign = city.urban_siege.boss_campaign
-	definition = BossCampaignCatalog.definition_for_trigger(4)
+	definition = BossCampaignCatalog.definitions()[0]
 	await _trigger_gate()
 
 
@@ -115,11 +115,23 @@ func test_repeated_failure_retry_keeps_runtime_counts_and_one_gate_lease() -> vo
 
 
 func _trigger_gate() -> void:
-	city.robot.global_position.x = city.world_stream.runtime_x_for_logical_index(4) + 100.0
-	city.world_stream.advance_stream()
-	await get_tree().process_frame
 	city.robot.global_position.x = (
-		(4.0 + BossCampaignDirector.GATE_APPROACH_FRACTION) * CityWorldStream.CHUNK_WIDTH
+		city.world_stream.runtime_x_for_logical_index(definition.trigger_chunk) + 100.0
+	)
+	city.world_stream.advance_stream()
+	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(
+		definition.trigger_chunk
+	)
+	for variant: StructuralBuildingVariant in district.building_variants:
+		var building: StructuralBuilding2D = StructuralBuilding2D.new()
+		building.set_meta(&"district_id", district.district_id)
+		building.set_meta(&"district_index", district.district_index)
+		building.set_meta(&"building_variant_id", variant.variant_id)
+		assert_true(city.world_stream.report_building_cleared(building))
+		building.free()
+	city.robot.global_position.x = (
+		(float(definition.trigger_chunk) + BossCampaignDirector.GATE_APPROACH_FRACTION)
+		* CityWorldStream.CHUNK_WIDTH
 		- float(city.world_stream.floating_origin.origin_chunk) * CityWorldStream.CHUNK_WIDTH
 		+ 1.0
 	)

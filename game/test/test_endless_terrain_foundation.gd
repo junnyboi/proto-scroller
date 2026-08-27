@@ -63,7 +63,7 @@ func test_blueprints_are_seeded_by_run_and_logical_chunk_not_pool_slot() -> void
 	_record_test_execution()
 
 
-func test_five_unique_buildings_unlock_the_next_district_once() -> void:
+func test_five_unique_buildings_arm_boss_then_unlock_after_clear_corridor() -> void:
 	var city: CitySlice = await _spawn_city()
 	var stream: CityWorldStream = city.world_stream
 	var business: CityDistrictProfile = CityDistrictCatalog.districts()[0]
@@ -79,13 +79,33 @@ func test_five_unique_buildings_unlock_the_next_district_once() -> void:
 		assert_false(stream.report_building_cleared(building))
 		building.free()
 		assert_eq(stream.district_clear_count(business.district_id), index + 1)
+		var expected_gate_offset: int = (
+			CityDistrictCatalog.CHUNKS_PER_DISTRICT
+			if index == business.building_variants.size() - 1
+			else index + 2
+		)
 		assert_almost_eq(
 			stream.district_exit_barrier.position.x,
-			float(index + 2) * CityWorldStream.CHUNK_WIDTH,
+			float(expected_gate_offset) * CityWorldStream.CHUNK_WIDTH,
 			EPSILON
 		)
+	assert_false(stream.district_exit_is_unlocked(0))
+	assert_true(stream.district_boss_is_ready(0))
+	assert_eq(stream.unlocked_district_index, 0)
+	assert_almost_eq(
+		stream.district_exit_barrier.position.x,
+		float(CityDistrictCatalog.CHUNKS_PER_DISTRICT) * CityWorldStream.CHUNK_WIDTH,
+		EPSILON
+	)
+	assert_true(stream.begin_post_boss_corridor(0))
+	assert_false(stream.should_present_chunk_content(5))
+	assert_false(stream.should_present_chunk_content(6))
+	assert_true(stream.should_present_chunk_content(7))
+	assert_true(stream.post_boss_corridor_is_clear(0))
+	assert_true(stream.complete_district_handoff(0))
 	assert_true(stream.district_exit_is_unlocked(0))
 	assert_eq(stream.unlocked_district_index, 1)
+	assert_true(stream.should_present_chunk_content(7))
 	assert_almost_eq(
 		stream.district_exit_barrier.position.x,
 		float(CityDistrictCatalog.CHUNKS_PER_DISTRICT + 1)
@@ -110,9 +130,10 @@ func test_out_of_order_district_clears_are_recorded_without_route_blocking() -> 
 			building.free()
 		if district_index == 1:
 			assert_eq(stream.unlocked_district_index, 0)
-	assert_eq(stream.unlocked_district_index, 2)
-	_move_to_logical_chunk(city, 11)
-	assert_eq(stream.current_logical_chunk, 11)
+	assert_eq(stream.unlocked_district_index, 0)
+	assert_eq(stream.district_clear_count(&"RESIDENTIAL"), 5)
+	_move_to_logical_chunk(city, 15)
+	assert_eq(stream.current_logical_chunk, 15)
 	assert_eq(stream.current_district_id, &"ENTERTAINMENT")
 	_record_test_execution()
 
@@ -283,6 +304,8 @@ func _unlock_districts_through(stream: CityWorldStream, logical_index: int) -> v
 			building.set_meta(&"building_variant_id", variant.variant_id)
 			assert_true(stream.report_building_cleared(building))
 			building.free()
+		assert_true(stream.begin_post_boss_corridor(district.district_index))
+		assert_true(stream.complete_district_handoff(district.district_index))
 
 
 func _assert_contiguous_window(stream: CityWorldStream) -> void:

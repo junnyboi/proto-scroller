@@ -276,18 +276,18 @@ func test_forward_boundaries_emit_four_spatial_district_transitions() -> void:
 				"chunk": chunk,
 			})
 	)
-	for logical_index: int in [5, 10, 15, 20]:
+	for logical_index: int in [7, 14, 21, 28]:
 		_unlock_current_district(city.world_stream)
 		await _move_to_logical_chunk(city, logical_index)
 		assert_false(city.weapon_shop_assembler.session.active)
 	assert_eq(transitions.size(), 4)
 	assert_eq(transitions[0].previous, &"BUSINESS")
 	assert_eq(transitions[0].district, &"RESIDENTIAL")
-	assert_eq(transitions[0].chunk, 5)
+	assert_eq(transitions[0].chunk, 7)
 	assert_eq(transitions[1].district, &"ENTERTAINMENT")
 	assert_eq(transitions[2].district, &"MILITARY")
 	assert_eq(transitions[3].district, &"ROYAL")
-	assert_eq(transitions[3].chunk, 20)
+	assert_eq(transitions[3].chunk, 28)
 	assert_eq(city.world_stream.current_district_id, &"ROYAL")
 	assert_eq(city.world_stream.current_district().district_id, &"ROYAL")
 	assert_eq(city.district_transition_banner.presentation_count, 4)
@@ -320,3 +320,5 @@ func _unlock_current_district(stream: CityWorldStream) -> void:
 		building.set_meta(&"building_variant_id", variant.variant_id)
 		stream.report_building_cleared(building)
 		building.free()
+	stream.begin_post_boss_corridor(district.district_index)
+	stream.complete_district_handoff(district.district_index)
