@@ -259,6 +259,17 @@ func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 	siege.boss_session.boss_wreck.receive_damage(
 		DamageEvent.new(81_003, city.robot, 999.0, &"ground_smash")
 	)
+	var rubble: Node2D = siege.boss_session.utility_pool.boss_rubble_record
+	var rubble_sprite: Sprite2D = rubble.get_child(0) as Sprite2D
+	assert_true(rubble.visible)
+	assert_almost_eq(rubble.global_position.y, CityStreetChunk.ROAD_DIVIDER_Y, 0.001)
+	assert_almost_eq(
+		rubble.global_position.y
+		+ rubble_sprite.position.y
+		+ BossUtilityPool.BOSS_RUBBLE_DISPLAY_SIZE.y * 0.5,
+		CityStreetChunk.ROAD_DIVIDER_Y,
+		0.001
+	)
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SALVAGE)
 	assert_true(director.is_suspended_for_boss())
 	campaign._on_salvage_claimed()

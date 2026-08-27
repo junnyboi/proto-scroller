@@ -22,6 +22,11 @@ const LANE_PLATE_TEXTURE: Texture2D = preload(
 	"res://art/bosses/boss-lane-footprint.png"
 )
 const LINE_BEAM_TEXTURE: Texture2D = preload("res://art/bosses/boss-line-beam.png")
+const SHOCKWAVE_RING_TEXTURE: Texture2D = preload(
+	"res://art/bosses/attacks/settlement-shockwave-ring.webp"
+)
+const MAX_SHOCKWAVE_FRONTS: int = 3
+const SHOCKWAVE_SEGMENTS: int = 72
 
 static var _next_activation_attack_id: int = 9_000_000
 
@@ -32,6 +37,12 @@ var attack_id: StringName = &""
 var activation_attack_id: int = 0
 var damage_amount: float = DEFAULT_DAMAGE
 var radial_age: float = 0.0
+var shockwave_front_count: int = 1
+var shockwave_release_delays: PackedFloat32Array = PackedFloat32Array([0.0])
+var shockwave_travel_seconds: float = 0.82
+var shockwave_vertical_ratio: float = 0.26
+var shockwave_band_thickness: float = 84.0
+var shockwave_telegraph_seconds: float = 0.9
 
 var _damage_target: GiantRobotController
 var _damaged_target_ids: Dictionary[int, bool] = {}
@@ -41,6 +52,29 @@ func setup_damage_target(robot: GiantRobotController) -> void:
 	_damage_target = robot
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
+
+
+func configure_traveling_shockwave(
+	front_count_value: int,
+	release_delays_value: PackedFloat32Array,
+	travel_seconds_value: float,
+	vertical_ratio_value: float,
+	band_thickness_value: float,
+	telegraph_seconds_value: float
+) -> void:
+	shockwave_front_count = clampi(front_count_value, 1, MAX_SHOCKWAVE_FRONTS)
+	shockwave_release_delays = PackedFloat32Array()
+	for front_index: int in range(shockwave_front_count):
+		shockwave_release_delays.append(
+			maxf(float(release_delays_value[front_index]), 0.0)
+			if front_index < release_delays_value.size()
+			else 0.0
+		)
+	shockwave_travel_seconds = maxf(travel_seconds_value, 0.1)
+	shockwave_vertical_ratio = clampf(vertical_ratio_value, 0.15, 1.0)
+	shockwave_band_thickness = maxf(band_thickness_value, 24.0)
+	shockwave_telegraph_seconds = maxf(telegraph_seconds_value, 0.1)
+	queue_redraw()
 
 
 func configure_footprint(
@@ -108,6 +142,8 @@ func authored_texture() -> Texture2D:
 			return LANE_PLATE_TEXTURE
 		PresentationRole.LINE_BEAM:
 			return LINE_BEAM_TEXTURE
+		PresentationRole.RADIAL_SHOCKWAVE:
+			return SHOCKWAVE_RING_TEXTURE
 	return null
 
 
@@ -129,7 +165,14 @@ func contains_world_point(world_point: Vector2) -> bool:
 		return false
 	var local_point: Vector2 = to_local(world_point)
 	if presentation_role == PresentationRole.RADIAL_SHOCKWAVE:
-		return local_point.length() <= maxf(footprint_size.x, footprint_size.y) * 0.5
+		var road_distance: float = absf(local_point.x)
+		for front_index: int in range(shockwave_front_count):
+			var front_radius: float = _shockwave_front_radius(front_index)
+			if front_radius >= 0.0 and absf(road_distance - front_radius) <= (
+				shockwave_band_thickness * 0.5
+			):
+				return true
+		return false
 	return (
 		absf(local_point.x) <= footprint_size.x * 0.5
 		and absf(local_point.y) <= footprint_size.y * 0.5
@@ -146,6 +189,8 @@ func try_damage_body(body: Node) -> bool:
 	):
 		return false
 	var robot: GiantRobotController = body as GiantRobotController
+	if not contains_world_point(robot.global_position):
+		return false
 	var target_id: int = int(robot.get_instance_id())
 	if _damaged_target_ids.has(target_id):
 		return false
@@ -156,7 +201,7 @@ func try_damage_body(body: Node) -> bool:
 		activation_attack_id,
 		self,
 		damage_amount * EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER,
-		&"boss_unblockable_shockwave"
+		&"boss_traveling_shockwave"
 		if presentation_role == PresentationRole.RADIAL_SHOCKWAVE
 		else &"boss_hazard",
 		robot.global_position,
@@ -164,11 +209,7 @@ func try_damage_body(body: Node) -> bool:
 		0.0,
 		activation_attack_id,
 		0,
-		DamageEvent.FLAG_HAZARD | (
-			DamageEvent.FLAG_UNBLOCKABLE
-			if presentation_role == PresentationRole.RADIAL_SHOCKWAVE
-			else DamageEvent.FLAG_NONE
-		)
+		DamageEvent.FLAG_HAZARD
 	))
 	if accepted:
 		_damaged_target_ids[target_id] = true
@@ -190,6 +231,8 @@ func _process(delta: float) -> void:
 	if presentation_role != PresentationRole.RADIAL_SHOCKWAVE or not visible:
 		return
 	radial_age += delta
+	if visual_state == VisualState.ARMED and _damage_target != null:
+		try_damage_body(_damage_target)
 	queue_redraw()
 
 
@@ -234,28 +277,141 @@ func _draw() -> void:
 func _draw_radial_shockwave() -> void:
 	var radius: float = maxf(footprint_size.x, footprint_size.y) * 0.5
 	var armed: bool = visual_state == VisualState.ARMED
-	var pulse: float = fmod(radial_age * (2.8 if armed else 1.2), 1.0)
-	var core_color: Color = (
-		Color(1.0, 0.20, 0.08, 0.24)
-		if armed
-		else Color(1.0, 0.72, 0.14, 0.10)
-	)
-	var edge_color: Color = (
-		Color(1.0, 0.94, 0.82, 0.98)
-		if armed
-		else Color(1.0, 0.70, 0.12, 0.88)
-	)
-	draw_circle(Vector2.ZERO, radius, core_color)
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 72, edge_color, 7.0 if armed else 4.0)
-	for ring_index: int in range(3):
-		var ring_ratio: float = fmod(pulse + float(ring_index) / 3.0, 1.0)
-		var ring_radius: float = lerpf(radius * 0.18, radius, ring_ratio)
-		draw_arc(
-			Vector2.ZERO,
-			ring_radius,
+	if not armed:
+		_draw_shockwave_telegraph(radius)
+		return
+	for front_index: int in range(shockwave_front_count):
+		var front_radius: float = _shockwave_front_radius(front_index)
+		if front_radius < 0.0:
+			var launch_ratio: float = clampf(
+				1.0 - (
+					shockwave_release_delays[front_index] - radial_age
+				) / maxf(shockwave_release_delays[front_index], 0.01),
+				0.0,
+				1.0
+			)
+			_draw_ellipse_arc(
+				lerpf(28.0, 68.0, launch_ratio),
+				Color(1.0, 0.42, 0.08, 0.35 + launch_ratio * 0.55),
+				4.0 + launch_ratio * 4.0
+			)
+			continue
+		var travel_ratio: float = clampf(
+			(radial_age - shockwave_release_delays[front_index])
+			/ shockwave_travel_seconds,
 			0.0,
-			TAU,
-			64,
-			Color(edge_color, (1.0 - ring_ratio) * (0.72 if armed else 0.38)),
-			5.0 if armed else 2.5
+			1.0
 		)
+		var front_alpha: float = pow(1.0 - travel_ratio, 0.28)
+		_draw_authored_shockwave(front_radius, front_alpha)
+		_draw_ellipse_arc(
+			front_radius,
+			Color(1.0, 0.97, 0.84, front_alpha),
+			9.0
+		)
+		_draw_ellipse_arc(
+			maxf(front_radius - shockwave_band_thickness * 0.42, 4.0),
+			Color(1.0, 0.28, 0.04, front_alpha * 0.58),
+			14.0
+		)
+
+
+func shockwave_snapshot() -> Dictionary:
+	var radii: PackedFloat32Array = PackedFloat32Array()
+	for front_index: int in range(shockwave_front_count):
+		radii.append(_shockwave_front_radius(front_index))
+	return {
+		"front_count": shockwave_front_count,
+		"release_delays": shockwave_release_delays.duplicate(),
+		"radii": radii,
+		"travel_seconds": shockwave_travel_seconds,
+		"vertical_ratio": shockwave_vertical_ratio,
+		"band_thickness": shockwave_band_thickness,
+		"authored_texture": authored_texture().resource_path if authored_texture() != null else "",
+	}
+
+
+func _draw_shockwave_telegraph(radius: float) -> void:
+	var progress: float = clampf(radial_age / shockwave_telegraph_seconds, 0.0, 1.0)
+	var pulse: float = 0.5 + 0.5 * sin(radial_age * lerpf(8.0, 22.0, progress))
+	draw_colored_polygon(
+		_ellipse_points(radius, shockwave_vertical_ratio, SHOCKWAVE_SEGMENTS),
+		Color(1.0, 0.34, 0.04, 0.035 + pulse * 0.035)
+	)
+	_draw_ellipse_arc(
+		radius,
+		Color(1.0, 0.47, 0.08, 0.56 + pulse * 0.28),
+		4.0 + progress * 3.0
+	)
+	for front_index: int in range(shockwave_front_count):
+		var ghost_radius: float = radius * (
+			0.22 + float(front_index) * 0.09 + progress * 0.05
+		)
+		_draw_ellipse_arc(
+			ghost_radius,
+			Color(1.0, 0.88, 0.64, 0.42 + pulse * 0.36),
+			3.0 + progress * 2.5
+		)
+	var emitter_radius: float = lerpf(82.0, 34.0, progress)
+	_draw_authored_shockwave(emitter_radius, 0.44 + pulse * 0.38)
+	for spoke_index: int in range(shockwave_front_count):
+		var angle: float = -PI * 0.5 + float(spoke_index) * TAU / float(shockwave_front_count)
+		var spoke_end: Vector2 = Vector2(
+			cos(angle) * radius,
+			sin(angle) * radius * shockwave_vertical_ratio
+		)
+		draw_line(
+			spoke_end * 0.72,
+			spoke_end,
+			Color(1.0, 0.78, 0.18, 0.46 + pulse * 0.34),
+			3.0
+		)
+
+
+func _draw_authored_shockwave(radius: float, alpha: float) -> void:
+	if radius <= 1.0 or SHOCKWAVE_RING_TEXTURE == null or alpha <= 0.0:
+		return
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, shockwave_vertical_ratio))
+	draw_texture_rect(
+		SHOCKWAVE_RING_TEXTURE,
+		Rect2(Vector2.ONE * -radius, Vector2.ONE * radius * 2.0),
+		false,
+		Color(1.0, 1.0, 1.0, alpha)
+	)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_ellipse_arc(radius: float, color: Color, width: float) -> void:
+	draw_polyline(
+		_ellipse_points(radius, shockwave_vertical_ratio, SHOCKWAVE_SEGMENTS),
+		color,
+		width,
+		true
+	)
+
+
+func _ellipse_points(radius: float, vertical_ratio: float, segments: int) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for point_index: int in range(segments + 1):
+		var angle: float = float(point_index) * TAU / float(segments)
+		points.append(Vector2(
+			cos(angle) * radius,
+			sin(angle) * radius * vertical_ratio
+		))
+	return points
+
+
+func _shockwave_front_radius(front_index: int) -> float:
+	if (
+		visual_state != VisualState.ARMED
+		or front_index < 0
+		or front_index >= shockwave_front_count
+		or front_index >= shockwave_release_delays.size()
+	):
+		return -1.0
+	var front_age: float = radial_age - shockwave_release_delays[front_index]
+	if front_age < 0.0 or front_age > shockwave_travel_seconds:
+		return -1.0
+	var travel_ratio: float = clampf(front_age / shockwave_travel_seconds, 0.0, 1.0)
+	var radius: float = maxf(footprint_size.x, footprint_size.y) * 0.5
+	return lerpf(24.0, radius, 1.0 - pow(1.0 - travel_ratio, 1.35))

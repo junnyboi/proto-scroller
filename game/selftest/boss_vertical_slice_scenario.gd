@@ -48,15 +48,26 @@ func _present_business(session: CommandBossSession, portrait: bool) -> Dictionar
 	)
 	_check("business_started", session.start_definition(definition))
 	var slice: BossVerticalSliceController = session.utility_pool.vertical_slice
-	_check("business_five_attacks", slice.active_attack_choices().size() == 5)
+	_check("business_shockwave_suite", slice.active_attack_choices() == [
+		BossVerticalSliceController.BUSINESS_ASSESSMENT_ATTACK,
+		BossVerticalSliceController.BUSINESS_DOUBLE_ATTACK,
+	])
 	_check(
 		"business_direct_target",
 		slice.direct_clear_seconds >= 45.0 and slice.direct_clear_seconds <= 75.0
 	)
-	_check("business_support_cap", slice.deploy_business_support().size() == 2)
+	_check(
+		"business_support_batch",
+		slice.deploy_business_support().size()
+		== BossVerticalSliceController.BUSINESS_SUPPORT_BATCH
+	)
 	for _connection: int in range(2):
 		slice.register_armor_connection()
 	await process_frame
+	var telegraph_shot: String = await _capture("business-shockwave-telegraph", portrait)
+	slice.advance(BossVerticalSliceController.ASSESSMENT_TELEGRAPH_SECONDS)
+	session.utility_pool.radial_shockwave.radial_age = 0.36
+	session.utility_pool.radial_shockwave.queue_redraw()
 	var shot: String = await _capture("business", portrait)
 	var result: Dictionary = {
 		"boss_id": String(definition.boss_id),
@@ -64,6 +75,8 @@ func _present_business(session: CommandBossSession, portrait: bool) -> Dictionar
 		"armor_connections": slice.armor_connections,
 		"archive_preserved": slice.archive_preserved,
 		"signature": slice.mechanical_signature(),
+		"telegraph_shot": telegraph_shot,
+		"shockwave": session.utility_pool.radial_shockwave.shockwave_snapshot(),
 		"shot": shot,
 	}
 	session.stop()

@@ -344,7 +344,10 @@ func boss_rubble_count() -> int:
 func present_boss_rubble(world_position: Vector2) -> bool:
 	if boss_rubble_record == null:
 		return false
-	boss_rubble_record.global_position = world_position
+	boss_rubble_record.global_position = Vector2(
+		world_position.x,
+		CityStreetChunk.ROAD_DIVIDER_Y
+	)
 	if not configure_utility_presentation(
 		boss_rubble_record,
 		UtilityPresentationRole.RUBBLE_BED

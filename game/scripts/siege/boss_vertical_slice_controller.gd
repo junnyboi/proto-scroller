@@ -8,17 +8,22 @@ signal rescue_tally_changed(rescued: int, lost: int)
 
 const BUSINESS_ID: StringName = &"SETTLEMENT_ENGINE_S04"
 const RESIDENTIAL_ID: StringName = &"SAMARITAN_15"
+const BUSINESS_ASSESSMENT_ATTACK: StringName = &"ASSESSMENT_LEVY"
+const BUSINESS_DOUBLE_ATTACK: StringName = &"DOUBLE_ENTRY_RUPTURE"
+const BUSINESS_COMPOUND_ATTACK: StringName = &"COMPOUND_DEFAULT"
 const BUSINESS_ATTACKS: Array[StringName] = [
-	&"FIDUCIARY_SHOCKWAVE",
+	BUSINESS_ASSESSMENT_ATTACK,
+	BUSINESS_DOUBLE_ATTACK,
+	BUSINESS_COMPOUND_ATTACK,
 ]
 const BUSINESS_ARMORED_ATTACKS: Array[StringName] = [
-	&"FIDUCIARY_SHOCKWAVE",
+	BUSINESS_ASSESSMENT_ATTACK, BUSINESS_DOUBLE_ATTACK,
 ]
 const BUSINESS_EXPOSED_ATTACKS: Array[StringName] = [
-	&"FIDUCIARY_SHOCKWAVE",
+	BUSINESS_DOUBLE_ATTACK, BUSINESS_COMPOUND_ATTACK,
 ]
 const BUSINESS_FINAL_ATTACKS: Array[StringName] = [
-	&"FIDUCIARY_SHOCKWAVE",
+	BUSINESS_COMPOUND_ATTACK, BUSINESS_DOUBLE_ATTACK,
 ]
 const RESIDENTIAL_ATTACKS: Array[StringName] = [
 	&"TRIAGE_SWEEP",
@@ -40,8 +45,23 @@ const POD_COUNT: int = 4
 const LANE_COUNT: int = 3
 const BUSINESS_SUPPORT_BATCH: int = 4
 const BUSINESS_SUPPORT_CAP: int = 8
-const BUSINESS_SHOCKWAVE_DIAMETER: float = 820.0
-const BUSINESS_SHOCKWAVE_DAMAGE: float = 72.0
+const ASSESSMENT_SHOCKWAVE_DIAMETER: float = 1520.0
+const ASSESSMENT_SHOCKWAVE_DAMAGE: float = 60.0
+const ASSESSMENT_TELEGRAPH_SECONDS: float = 0.9
+const ASSESSMENT_ACTIVE_SECONDS: float = 0.95
+const ASSESSMENT_TRAVEL_SECONDS: float = 0.82
+const DOUBLE_SHOCKWAVE_DIAMETER: float = 1660.0
+const DOUBLE_SHOCKWAVE_DAMAGE: float = 66.0
+const DOUBLE_TELEGRAPH_SECONDS: float = 1.05
+const DOUBLE_ACTIVE_SECONDS: float = 1.24
+const DOUBLE_TRAVEL_SECONDS: float = 0.90
+const COMPOUND_SHOCKWAVE_DIAMETER: float = 1800.0
+const COMPOUND_SHOCKWAVE_DAMAGE: float = 72.0
+const COMPOUND_TELEGRAPH_SECONDS: float = 1.16
+const COMPOUND_ACTIVE_SECONDS: float = 1.50
+const COMPOUND_TRAVEL_SECONDS: float = 0.96
+const SHOCKWAVE_VERTICAL_RATIO: float = 0.22
+const SHOCKWAVE_BAND_THICKNESS: float = 92.0
 const BUSINESS_SUPPORT_OFFSETS: Array[Vector2] = [
 	Vector2(-540.0, 0.0), Vector2(540.0, 0.0),
 	Vector2(-460.0, 0.0), Vector2(460.0, 0.0),
@@ -198,13 +218,13 @@ func advance(delta: float) -> void:
 		extraction_remaining = maxf(extraction_remaining - delta, 0.0)
 		if is_zero_approx(extraction_remaining):
 			lose_targeted_pod()
-	if attack_stage == &"TELEGRAPH" and attack_elapsed >= TELEGRAPH_SECONDS:
-		attack_elapsed -= TELEGRAPH_SECONDS
+	if attack_stage == &"TELEGRAPH" and attack_elapsed >= _telegraph_seconds_for(active_attack):
+		attack_elapsed -= _telegraph_seconds_for(active_attack)
 		attack_stage = &"ACTIVE"
 		_set_attack_visual_state(BossAttackArea2D.VisualState.ARMED)
 		attack_changed.emit(active_attack, attack_stage)
-	elif attack_stage == &"ACTIVE" and attack_elapsed >= ACTIVE_SECONDS:
-		attack_elapsed -= ACTIVE_SECONDS
+	elif attack_stage == &"ACTIVE" and attack_elapsed >= _active_seconds_for(active_attack):
+		attack_elapsed -= _active_seconds_for(active_attack)
 		attack_stage = &"RECOVERY"
 		_set_attack_visual_state(BossAttackArea2D.VisualState.HIDDEN)
 		attack_changed.emit(active_attack, attack_stage)
@@ -278,7 +298,7 @@ func trigger_treasury_slab() -> float:
 		not active()
 		or active_definition.boss_id != BUSINESS_ID
 		or treasury_slab_used
-		or not active_attack in [&"FORECLOSURE_STAMP", &"AUDIT_BEAM"]
+		or not active_attack in [BUSINESS_DOUBLE_ATTACK, BUSINESS_COMPOUND_ATTACK]
 	):
 		return 0.0
 	treasury_slab_used = true
@@ -705,17 +725,65 @@ func _configure_attack(attack: StringName) -> void:
 
 
 func _configure_business_attack(attack: StringName) -> void:
+	var diameter: float = ASSESSMENT_SHOCKWAVE_DIAMETER
+	var damage: float = ASSESSMENT_SHOCKWAVE_DAMAGE
+	var front_count: int = 1
+	var release_delays: PackedFloat32Array = PackedFloat32Array([0.0])
+	var travel_seconds: float = ASSESSMENT_TRAVEL_SECONDS
 	match attack:
-		&"FIDUCIARY_SHOCKWAVE":
+		BUSINESS_DOUBLE_ATTACK:
+			diameter = DOUBLE_SHOCKWAVE_DIAMETER
+			damage = DOUBLE_SHOCKWAVE_DAMAGE
+			front_count = 2
+			release_delays = PackedFloat32Array([0.0, 0.30])
+			travel_seconds = DOUBLE_TRAVEL_SECONDS
+		BUSINESS_COMPOUND_ATTACK:
+			diameter = COMPOUND_SHOCKWAVE_DIAMETER
+			damage = COMPOUND_SHOCKWAVE_DAMAGE
+			front_count = 3
+			release_delays = PackedFloat32Array([0.0, 0.24, 0.48])
+			travel_seconds = COMPOUND_TRAVEL_SECONDS
+	match attack:
+		BUSINESS_ASSESSMENT_ATTACK, BUSINESS_DOUBLE_ATTACK, BUSINESS_COMPOUND_ATTACK:
 			utility_pool.radial_shockwave.damage_amount = (
-				BUSINESS_SHOCKWAVE_DAMAGE * encounter_runtime.cycle_attack_multiplier
+				damage * encounter_runtime.cycle_attack_multiplier
+			)
+			utility_pool.radial_shockwave.configure_traveling_shockwave(
+				front_count,
+				release_delays,
+				travel_seconds,
+				SHOCKWAVE_VERTICAL_RATIO,
+				SHOCKWAVE_BAND_THICKNESS,
+				_telegraph_seconds_for(attack)
 			)
 			utility_pool.radial_shockwave.configure_footprint(
-				center,
-				Vector2.ONE * BUSINESS_SHOCKWAVE_DIAMETER,
+				Vector2(center.x, CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y),
+				Vector2.ONE * diameter,
 				BossAttackArea2D.VisualState.TELEGRAPH,
 				attack
 			)
+
+
+func _telegraph_seconds_for(attack: StringName) -> float:
+	match attack:
+		BUSINESS_ASSESSMENT_ATTACK:
+			return ASSESSMENT_TELEGRAPH_SECONDS
+		BUSINESS_DOUBLE_ATTACK:
+			return DOUBLE_TELEGRAPH_SECONDS
+		BUSINESS_COMPOUND_ATTACK:
+			return COMPOUND_TELEGRAPH_SECONDS
+	return TELEGRAPH_SECONDS
+
+
+func _active_seconds_for(attack: StringName) -> float:
+	match attack:
+		BUSINESS_ASSESSMENT_ATTACK:
+			return ASSESSMENT_ACTIVE_SECONDS
+		BUSINESS_DOUBLE_ATTACK:
+			return DOUBLE_ACTIVE_SECONDS
+		BUSINESS_COMPOUND_ATTACK:
+			return COMPOUND_ACTIVE_SECONDS
+	return ACTIVE_SECONDS
 
 
 func _configure_residential_attack(attack: StringName) -> void:
