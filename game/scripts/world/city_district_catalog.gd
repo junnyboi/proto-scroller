@@ -8,6 +8,7 @@ const FACADE_ENCOUNTERS_PER_DISTRICT: int = (
 	VARIANTS_PER_DISTRICT * FACADE_PASSES_PER_DISTRICT
 )
 const BUILDING_VARIANT_COUNT: int = DISTRICT_COUNT * VARIANTS_PER_DISTRICT
+const FACADE_SIZE_SCALE: float = 1.2
 const TRANSITION_CORRIDOR_CHUNKS: int = 2
 const CHUNKS_PER_DISTRICT: int = (
 	FACADE_ENCOUNTERS_PER_DISTRICT + TRANSITION_CORRIDOR_CHUNKS
@@ -579,7 +580,7 @@ static func _variant(
 			facade_path,
 			SHARED_RUBBLE.resource_path
 		)
-	variant.display_size = size
+	variant.display_size = size * FACADE_SIZE_SCALE
 	variant.material_ids = PackedStringArray(materials)
 	variant.visual_tint = tint
 	variant.destruction_signature = signature

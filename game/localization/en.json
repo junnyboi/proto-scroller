@@ -260,7 +260,7 @@
   "upgrade.dash_amplifier.name": "DASH AMPLIFIER",
   "upgrade.dash_amplifier.description": "Extend dodge range and duration each rank. Invulnerability remains 300 ms.",
   "upgrade.destruction.name": "DESTRUCTION",
-  "upgrade.destruction.description": "Every accepted debris burst gains a second visual fragment.",
+  "upgrade.destruction.description": "Every accepted debris burst gains two additional visual debris particles.",
   "shop.credit": "RAMPAGE CREDIT",
   "shop.score_warning": "SPENDING REDUCES YOUR FINAL RAMPAGE SCORE.",
   "shop.price": "COST  {price}",

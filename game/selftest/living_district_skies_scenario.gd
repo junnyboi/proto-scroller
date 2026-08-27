@@ -53,6 +53,10 @@ func _run() -> void:
 	var parallax: DistrictParallaxRuntime = city.get_node(^"ParallaxCity")
 	var weather: DistrictWeatherRuntime = city.get_node(^"DistrictWeather")
 	var life: DistrictSkyLifeRuntime = parallax.sky_life_runtime()
+	if life.find_child("CloudBank", true, false) != null:
+		push_error("Cloud bank remains mounted after cloud-removal request")
+		quit(1)
+		return
 	var report: Dictionary = {
 		"done": false,
 		"result": "FAIL",
@@ -64,13 +68,8 @@ func _run() -> void:
 		weather.transition_to(district_id, true)
 		for state: Dictionary in TIME_STATES:
 			parallax.set_time_phase(float(state.phase))
-			var cloud_before: float = life.cloud_offset()
 			var traffic_before: float = life.traffic_offset()
 			parallax._process(1.0)
-			if is_equal_approx(cloud_before, life.cloud_offset()):
-				push_error("Cloud bank did not animate")
-				quit(1)
-				return
 			if is_equal_approx(traffic_before, life.traffic_offset()):
 				push_error("Air traffic did not animate")
 				quit(1)
@@ -97,7 +96,7 @@ func _run() -> void:
 					"district": String(district_id),
 					"time": String(state.id),
 					"path": path,
-					"cloud_offset": life.cloud_offset(),
+					"cloud_mounted": false,
 					"traffic_offset": life.traffic_offset(),
 					"width": image.get_width(),
 					"height": image.get_height(),

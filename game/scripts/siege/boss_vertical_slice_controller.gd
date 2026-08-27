@@ -377,7 +377,7 @@ func deploy_business_support() -> Array[EnemyActor2D]:
 	for offset_index: int in range(requested):
 		var support_index: int = active_count + offset_index
 		var spawn_position: Vector2 = center + BUSINESS_SUPPORT_OFFSETS[support_index]
-		spawn_position.y = EncounterRuntime.LAND_BASELINE_Y
+		spawn_position.y = EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y
 		var support: EnemyActor2D = encounter_runtime.acquire(
 			&"soldier",
 			spawn_position

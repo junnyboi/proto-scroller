@@ -9,10 +9,10 @@ enum ImpactProfile {
 }
 
 const CONTOUR_POINTS: int = 16
-const BASE_CRACK_COUNT: int = 5
+const BASE_CRACK_COUNT: int = 2
 const EDGE_MARGIN: float = 8.0
-const CRACK_SHADOW: Color = Color(0.015, 0.012, 0.012, 0.78)
-const CRACK_HIGHLIGHT: Color = Color(0.34, 0.27, 0.22, 0.58)
+const CRACK_SHADOW: Color = Color(0.015, 0.012, 0.012, 0.50)
+const CRACK_HIGHLIGHT: Color = Color(0.34, 0.27, 0.22, 0.34)
 const CABLE_DETAIL_BIT: int = 1
 const PIPE_DETAIL_BIT: int = 2
 const FIRE_DETAIL_BIT: int = 4
@@ -25,8 +25,8 @@ const PIPE_TEXTURE: Texture2D = preload(
 	"res://art/destruction/damage_details/broken_water_pipe.png"
 )
 const FACADE_ALPHA_THRESHOLD: float = 0.08
-const DAMAGED_DARKEN_STRENGTH: float = 0.72
-const DESTROYED_DARKEN_STRENGTH: float = 1.0
+const DAMAGED_DARKEN_STRENGTH: float = 0.12
+const DESTROYED_DARKEN_STRENGTH: float = 0.30
 const DESTROYED_HOLLOW_EXTENTS: Vector2 = Vector2(0.37, 0.43)
 const HOLLOW_CENTER_Y: float = 0.56
 const CAVITY_SHADER_CODE: String = """
@@ -53,13 +53,14 @@ void fragment() {
 	if (hollow_progress > 0.0001) {
 		vec2 cell_uv = (UV - region_uv_rect.xy) / max(region_uv_rect.zw, vec2(0.0001));
 		vec2 extents = max(hollow_extents_uv, vec2(0.0001));
-		if (impact_profile == 1) {
-			extents *= vec2(1.20, 0.72);
-		} else if (impact_profile == 2) {
-			extents *= vec2(0.96, 1.06);
-		} else if (impact_profile == 3) {
-			extents *= vec2(1.28, 0.68);
-		}
+			float profile_weight = 1.0 - smoothstep(0.70, 1.0, hollow_progress);
+			if (impact_profile == 1) {
+				extents *= mix(vec2(1.0), vec2(1.20, 0.72), profile_weight);
+			} else if (impact_profile == 2) {
+				extents *= mix(vec2(1.0), vec2(0.96, 1.06), profile_weight);
+			} else if (impact_profile == 3) {
+				extents *= mix(vec2(1.0), vec2(1.28, 0.68), profile_weight);
+			}
 		vec2 delta = cell_uv - hollow_center_uv;
 		float angle = atan(delta.y, delta.x);
 		float coarse = sin(angle * 5.0 + hollow_seed * 19.0);
@@ -78,12 +79,22 @@ void fragment() {
 			* smoothstep(0.58, 0.92, cell_uv.y)
 			* (1.0 - smoothstep(0.68, 0.96, abs(delta.x) / extents.x));
 		boundary += lower_breach * 0.18;
-		float radial = length(delta / extents);
-		float edge_softness = 0.012;
-		if (radial < boundary - edge_softness) {
-			discard;
-		}
-		facade.a *= smoothstep(boundary - edge_softness, boundary + edge_softness, radial);
+			float radial = length(delta / extents);
+			float arch_metric = abs(delta.x) / extents.x;
+			if (delta.y < 0.0) {
+				arch_metric = length(vec2(delta.x / extents.x, delta.y / extents.y));
+			}
+			float terminal_arch_blend = smoothstep(0.72, 1.0, hollow_progress);
+			float opening_metric = mix(radial, arch_metric, terminal_arch_blend);
+			float edge_softness = 0.012;
+			if (opening_metric < boundary - edge_softness) {
+				discard;
+			}
+			facade.a *= smoothstep(
+				boundary - edge_softness,
+				boundary + edge_softness,
+				opening_metric
+			);
 	}
 	float cavity_mix = clamp(darken_strength, 0.0, 1.0);
 	facade.rgb = mix(facade.rgb, cavity_tint.rgb, cavity_mix);
@@ -368,22 +379,26 @@ func restore_stream_state(state: Dictionary) -> void:
 	queue_redraw()
 
 
-func _generate(_impact_center: Vector2, severity: float, event_seed: int) -> void:
+func _generate(impact_center: Vector2, severity: float, event_seed: int) -> void:
 	var contour_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	contour_rng.seed = _pattern_seed * 32452843 + 49979687
 	var crack_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	crack_rng.seed = event_seed
-	var center: Vector2 = _hollow_center_local()
+	var half_size: Vector2 = _cell_size * 0.5
+	var center: Vector2 = Vector2(
+		clampf(impact_center.x, -half_size.x * 0.32, half_size.x * 0.32),
+		clampf(impact_center.y, -half_size.y * 0.28, half_size.y * 0.32)
+	)
 	var base_radius: float = minf(_cell_size.x, _cell_size.y) * lerpf(
 		0.10,
 		0.42,
 		_smooth_progress(severity)
 	)
 	var radius_scale: Vector2 = Vector2(1.18, 0.88)
-	var crack_total: int = BASE_CRACK_COUNT + floori(severity * 4.0)
+	var crack_total: int = BASE_CRACK_COUNT + floori(severity * 2.0)
 	if _material_id == &"glass":
 		radius_scale = Vector2(1.02, 1.20)
-		crack_total += 2
+		crack_total += 1
 	elif _material_id == &"steel":
 		radius_scale = Vector2(1.42, 0.66)
 		crack_total -= 1
@@ -421,11 +436,11 @@ func _generate(_impact_center: Vector2, severity: float, event_seed: int) -> voi
 		var edge: Vector2 = _contour[contour_index]
 		var direction: Vector2 = center.direction_to(edge)
 		var normal: Vector2 = direction.orthogonal()
-		var outer: Vector2 = edge + direction * crack_rng.randf_range(18.0, 42.0)
+		var outer: Vector2 = edge + direction * crack_rng.randf_range(8.0, 24.0)
 		outer.x = clampf(outer.x, -_cell_size.x * 0.5, _cell_size.x * 0.5)
 		outer.y = clampf(outer.y, -_cell_size.y * 0.5, _cell_size.y * 0.5)
 		var middle: Vector2 = edge.lerp(outer, crack_rng.randf_range(0.38, 0.62))
-		middle += normal * crack_rng.randf_range(-8.0, 8.0)
+		middle += normal * crack_rng.randf_range(-4.0, 4.0)
 		var crack: PackedVector2Array = PackedVector2Array([
 			edge + normal * crack_rng.randf_range(-2.0, 2.0),
 			middle,
@@ -455,7 +470,7 @@ func _update_hollow_material() -> void:
 	_cavity_material.set_shader_parameter("hollow_progress", _hollow_progress)
 	_cavity_material.set_shader_parameter(
 		"hollow_center_uv",
-		Vector2(0.5, _hollow_center_y_for_profile())
+		_hollow_center_uv()
 	)
 	_cavity_material.set_shader_parameter(
 		"hollow_extents_uv",
@@ -498,6 +513,13 @@ func _hollow_center_local() -> Vector2:
 		0.0,
 		(_cell_size.y * _hollow_center_y_for_profile()) - _cell_size.y * 0.5
 	)
+
+
+func _hollow_center_uv() -> Vector2:
+	var center: Vector2 = (
+		_contour_center() if not _contour.is_empty() else _hollow_center_local()
+	)
+	return (center + _cell_size * 0.5) / _cell_size
 
 
 func _hollow_center_y_for_profile() -> float:
@@ -662,11 +684,11 @@ func _cavity_tint() -> Color:
 
 
 func _draw() -> void:
-	if _contour.is_empty():
+	if _contour.is_empty() or _destroyed_stage:
 		return
 	var closed_contour: PackedVector2Array = _contour.duplicate()
 	closed_contour.append(_contour[0])
-	draw_polyline(closed_contour, CRACK_SHADOW, 3.5, true)
+	draw_polyline(closed_contour, CRACK_SHADOW, 2.0, true)
 	for crack: PackedVector2Array in _cracks:
-		draw_polyline(crack, CRACK_SHADOW, 4.0, true)
-		draw_polyline(crack, CRACK_HIGHLIGHT, 1.25, true)
+		draw_polyline(crack, CRACK_SHADOW, 2.25, true)
+		draw_polyline(crack, CRACK_HIGHLIGHT, 0.65, true)

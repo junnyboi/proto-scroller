@@ -90,8 +90,6 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		Vector2(0.0, 551.0),
 		&"AHEAD"
 	)
-	if definition != null and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
-		spawn_position.y = BossRig2D.SETTLEMENT_ROAD_CONTACT_Y
 	var resident_bounds: Vector2 = dependencies.city.world_stream.resident_bounds()
 	spawn_position.x = clampf(
 		maxf(spawn_position.x, dependencies.robot.global_position.x + 900.0),
@@ -108,6 +106,8 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		utility_pool.cleanup_generation(generation_token)
 		active_definition = null
 		return false
+	if definition != null and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+		boss.global_position.y = BossRig2D.SETTLEMENT_ROAD_CONTACT_Y
 	if active_definition == null:
 		boss.set_meta(&"enemy_boss_id", &"COMMAND_UNIT")
 		boss.configure_boss(ARMOR, HEALTH)

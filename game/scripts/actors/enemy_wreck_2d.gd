@@ -6,7 +6,9 @@ signal crash_landed(wreck: EnemyWreck2D)
 signal crash_impact_accepted(wreck: EnemyWreck2D, event: DamageEvent, target: Node)
 
 const ENEMY_LAYER: int = 1 << 2
+const BUILDING_LAYER: int = 1 << 3
 const PROP_LAYER: int = 1 << 7
+const ROBOT_LAYER: int = 1 << 1
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const MIN_CRASH_IMPACT_SPEED: float = 220.0
@@ -94,9 +96,9 @@ func activate(
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	collision_layer = REMAINS_LAYER
-	collision_mask = REMAINS_GROUND_LAYER | REMAINS_LAYER
+	collision_mask = REMAINS_GROUND_LAYER | ROBOT_LAYER
 	if airborne_crash:
-		collision_mask |= ENEMY_LAYER | PROP_LAYER
+		collision_mask |= ENEMY_LAYER
 	set_meta(&"enemy_remains", wreck_kind)
 	var collision: CollisionShape2D = get_node(^"WreckCollision") as CollisionShape2D
 	(collision.shape as RectangleShape2D).size = collision_size
@@ -280,7 +282,7 @@ func _on_body_entered(body: Node) -> void:
 	if collision_body.collision_layer & REMAINS_GROUND_LAYER != 0:
 		_finish_crash_landing()
 		return
-	if collision_body.collision_layer & (ENEMY_LAYER | PROP_LAYER) != 0:
+	if collision_body.collision_layer & ENEMY_LAYER != 0:
 		_queue_crash_damage(body)
 
 
@@ -350,7 +352,7 @@ func _finish_crash_landing() -> void:
 	linear_damp = 1.1
 	angular_damp = 1.8
 	can_sleep = true
-	collision_mask = REMAINS_GROUND_LAYER | REMAINS_LAYER
+	collision_mask = REMAINS_GROUND_LAYER | ROBOT_LAYER
 	_last_crash_velocity = Vector2.ZERO
 	crash_landed.emit(self)
 

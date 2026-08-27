@@ -53,10 +53,10 @@ func _process(delta: float) -> void:
 	peak_active_count = maxi(peak_active_count, _active_total)
 
 
-func spawn_counterparts(event: GameplayEvent) -> int:
-	if event == null or event.debris_units <= 0:
+func spawn_counterparts(event: GameplayEvent, counterparts_per_unit: int = 1) -> int:
+	if event == null or event.debris_units <= 0 or counterparts_per_unit <= 0:
 		return 0
-	var count: int = mini(event.debris_units, CAPACITY)
+	var count: int = mini(event.debris_units * counterparts_per_unit, CAPACITY)
 	for unit_index: int in range(count):
 		var slot: int = _acquire_slot(_priority(event.material_id))
 		var slot_was_active: bool = active[slot]

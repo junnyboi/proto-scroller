@@ -38,6 +38,18 @@ func test_every_airborne_archetype_spawns_as_a_physical_crash() -> void:
 		assert_gt(wreck.gravity_scale, 1.0, String(archetype_id))
 		assert_gt(wreck.linear_velocity.y, 0.0, String(archetype_id))
 		assert_gt(absf(wreck.angular_velocity), 1.0, String(archetype_id))
+		assert_ne(wreck.collision_mask & EnemyWreck2D.ROBOT_LAYER, 0, String(archetype_id))
+		assert_ne(wreck.collision_mask & EnemyWreck2D.ENEMY_LAYER, 0, String(archetype_id))
+		assert_eq(
+			wreck.collision_mask
+			& (
+				EnemyWreck2D.BUILDING_LAYER
+				| EnemyWreck2D.PROP_LAYER
+				| EnemyWreck2D.REMAINS_LAYER
+			),
+			0,
+			String(archetype_id)
+		)
 
 
 func test_airborne_wreck_falls_and_lands_on_the_remains_ground_layer() -> void:
@@ -86,9 +98,17 @@ func test_airborne_wreck_falls_and_lands_on_the_remains_ground_layer() -> void:
 	assert_eq(wreck.crash_landing_count, 1)
 	assert_true(wreck.can_sleep)
 	assert_eq(
-		wreck.collision_mask & (EnemyWreck2D.ENEMY_LAYER | EnemyWreck2D.PROP_LAYER),
+		wreck.collision_mask
+		& (
+			EnemyWreck2D.ENEMY_LAYER
+			| EnemyWreck2D.BUILDING_LAYER
+			| EnemyWreck2D.PROP_LAYER
+			| EnemyWreck2D.REMAINS_LAYER
+		),
 		0
 	)
+	assert_ne(wreck.collision_mask & EnemyWreck2D.ROBOT_LAYER, 0)
+	assert_ne(wreck.collision_mask & EnemyWreck2D.REMAINS_GROUND_LAYER, 0)
 
 
 func test_falling_wreck_damages_an_enemy_body_once() -> void:
@@ -113,7 +133,7 @@ func test_falling_wreck_damages_an_enemy_body_once() -> void:
 	assert_eq(enemy.current_health, health_after_impact)
 
 
-func test_falling_wreck_damages_a_destructible_prop() -> void:
+func test_falling_wreck_ignores_destructible_props_and_keeps_falling() -> void:
 	var prop: DestructibleProp2D = _damageable_prop(Vector2(680.0, 390.0), 320.0)
 	add_child_autofree(prop)
 	var wreck: EnemyWreck2D = EnemyWreck2D.new()
@@ -121,14 +141,14 @@ func test_falling_wreck_damages_a_destructible_prop() -> void:
 	await get_tree().process_frame
 	_activate_crashing_wreck(wreck, Vector2(640.0, 100.0), 38.0)
 
-	for frame: int in range(90):
+	var start_y: float = wreck.global_position.y
+	for frame: int in range(45):
 		await get_tree().physics_frame
-		if wreck.crash_impact_count > 0:
-			break
 
-	assert_eq(wreck.crash_impact_count, 1)
-	assert_lt(prop.current_health, prop.max_health)
+	assert_eq(wreck.crash_impact_count, 0)
+	assert_eq(prop.current_health, prop.max_health)
 	assert_false(prop.is_fully_destroyed)
+	assert_gt(wreck.global_position.y, start_y + 140.0)
 
 
 func _airborne_enemy(archetype_id: StringName, profile: Dictionary) -> ProceduralEnemy:

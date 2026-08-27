@@ -62,6 +62,9 @@ var _act_completion_emitted: bool = false
 var _act_advance_blocked: bool = false
 var _boss_suspended: bool = false
 var _boss_resume_snapshot: Dictionary = {}
+var _engaged_facade_chunks: Dictionary[int, bool] = {}
+var _pending_facade_reinforcements: int = 0
+var _started_beat_count: int = 0
 
 
 func setup(p_runtime: EncounterRuntime, p_waves: Array[EnemyWave]) -> void:
@@ -124,6 +127,10 @@ func start() -> void:
 	peak_hazard_pending = 0
 	_act_completion_emitted = false
 	_act_advance_blocked = false
+	_engaged_facade_chunks.clear()
+	_pending_facade_reinforcements = 0
+	_started_beat_count = 0
+	_seed_current_facade_engagement()
 	_advance_act()
 
 
@@ -141,6 +148,8 @@ func stop() -> void:
 	_act_advance_blocked = false
 	_boss_suspended = false
 	_boss_resume_snapshot.clear()
+	_engaged_facade_chunks.clear()
+	_pending_facade_reinforcements = 0
 	if _beat_reservation_id != 0:
 		ledger.cancel(_beat_reservation_id)
 	_beat_reservation_id = 0
@@ -178,6 +187,12 @@ func advance(delta: float) -> void:
 			if is_zero_approx(pressure_remaining) and _beat_pending.is_empty():
 				_start_recovery()
 		STATE_RECOVERY:
+			if _pending_facade_reinforcements > 0:
+				recovery_remaining = 0.0
+				runtime.set_attack_gate(true)
+				state = STATE_WAITING
+				_try_start_next_beat()
+				return
 			recovery_remaining = maxf(recovery_remaining - delta, 0.0)
 			if is_zero_approx(recovery_remaining):
 				runtime.set_attack_gate(true)
@@ -227,6 +242,41 @@ func resume_act_advance() -> void:
 	_act_advance_blocked = false
 
 
+func request_facade_reinforcement(logical_chunk: int) -> bool:
+	if (
+		district == null
+		or not running
+		or completed
+		or _boss_suspended
+		or not CityDistrictCatalog.chunk_hosts_facade(logical_chunk)
+		or _engaged_facade_chunks.has(logical_chunk)
+	):
+		return false
+	_engaged_facade_chunks[logical_chunk] = true
+	_pending_facade_reinforcements = mini(
+		_pending_facade_reinforcements + 1,
+		CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+	)
+	if state == STATE_WAITING:
+		_try_start_next_beat()
+	elif state == STATE_PRESSURE and _beat_pending.is_empty():
+		pressure_remaining = 0.0
+		_start_recovery()
+	return true
+
+
+func facade_engagement_count() -> int:
+	return _engaged_facade_chunks.size()
+
+
+func pending_facade_reinforcement_count() -> int:
+	return _pending_facade_reinforcements
+
+
+func started_beat_count() -> int:
+	return _started_beat_count
+
+
 func current_act_progress() -> float:
 	if district == null or phase_index < 0 or phase_index >= district.acts.size():
 		return 0.0
@@ -253,6 +303,7 @@ func suspend_for_boss() -> Dictionary:
 		"act_advance_blocked": _act_advance_blocked,
 	}
 	_boss_suspended = true
+	_pending_facade_reinforcements = 0
 	_beat_pending.clear()
 	_hazard_pending.clear()
 	if _beat_reservation_id != 0:
@@ -303,6 +354,7 @@ func advance_after_district_handoff(completed_act_index: int) -> bool:
 	completed = false
 	_boss_suspended = false
 	_boss_resume_snapshot.clear()
+	_pending_facade_reinforcements = 0
 	var completed_act: DistrictAct = district.acts[phase_index]
 	if not _act_completion_emitted:
 		_act_completion_emitted = true
@@ -348,6 +400,13 @@ func _advance_act() -> void:
 func _try_start_next_beat() -> void:
 	var act: DistrictAct = district.acts[phase_index]
 	if beat_index >= act.beats.size() - 1:
+		if _act_advance_blocked:
+			_try_emit_held_act_completion(act)
+			beat_index = -1
+			_try_start_next_beat()
+			if _beat_pending.is_empty() and runtime.active_count() == 0:
+				_ensure_blocked_act_continuity()
+			return
 		var target_duration: float = _scaled_target_duration(act)
 		if act_elapsed < target_duration:
 			return
@@ -355,15 +414,11 @@ func _try_start_next_beat() -> void:
 			act_elapsed
 			>= target_duration + EnemySpawnTuning.scaled_interval(MAXIMUM_ACT_OVERRUN)
 		)
-		if _threat_weight() > LOW_THREAT_WEIGHT:
-			if not overrun_expired:
-				return
+		if _threat_weight() > LOW_THREAT_WEIGHT and not overrun_expired:
+			return
 		if not _act_completion_emitted:
 			_act_completion_emitted = true
 			act_completed.emit(phase_index, act.act_id, act.display_name)
-		if _act_advance_blocked:
-			_ensure_blocked_act_continuity()
-			return
 		if not act.milestone_after.is_empty():
 			milestone_reached.emit(act.milestone_after)
 		_advance_act()
@@ -442,6 +497,9 @@ func _try_start_next_beat() -> void:
 		_planned_threat(next_beat, progression_copies)
 	)
 	beat_index += 1
+	_started_beat_count += 1
+	if _pending_facade_reinforcements > 0:
+		_pending_facade_reinforcements -= 1
 	_beat_reservation_id = reservation_id
 	_beat_pending.clear()
 	var elite_plan: Dictionary[int, StringName] = _roll_elite_plan(
@@ -539,6 +597,11 @@ func _start_recovery() -> void:
 	if _beat_reservation_id != 0:
 		ledger.cancel(_beat_reservation_id)
 	_beat_reservation_id = 0
+	if _pending_facade_reinforcements > 0:
+		runtime.set_attack_gate(true)
+		state = STATE_WAITING
+		_try_start_next_beat()
+		return
 	runtime.set_attack_gate(false)
 	state = STATE_RECOVERY
 	recovery_started.emit(recovery_remaining)
@@ -617,6 +680,29 @@ func _process_legacy_pending(delta: float) -> void:
 		var entry: EnemySpawnEntry = record.entry
 		if runtime.acquire(StringName(entry.kind), entry.position) != null:
 			_pending.remove_at(index)
+
+
+func _seed_current_facade_engagement() -> void:
+	if runtime == null or runtime.world_stream == null:
+		return
+	var logical_chunk: int = runtime.world_stream.current_logical_chunk
+	if CityDistrictCatalog.chunk_hosts_facade(logical_chunk):
+		_engaged_facade_chunks[logical_chunk] = true
+
+
+func _try_emit_held_act_completion(act: DistrictAct) -> void:
+	if _act_completion_emitted or act_elapsed < _scaled_target_duration(act):
+		return
+	var overrun_deadline: float = (
+		_scaled_target_duration(act)
+		+ EnemySpawnTuning.scaled_interval(MAXIMUM_ACT_OVERRUN)
+	)
+	if _threat_weight() > LOW_THREAT_WEIGHT and act_elapsed < overrun_deadline:
+		return
+	_act_completion_emitted = true
+	act_completed.emit(phase_index, act.act_id, act.display_name)
+	if not act.milestone_after.is_empty():
+		milestone_reached.emit(act.milestone_after)
 
 
 func _resolve_position(

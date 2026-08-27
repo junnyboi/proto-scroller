@@ -283,13 +283,17 @@ func test_debrief_presents_bounded_rankings_and_both_responsive_layouts() -> voi
 	assert_true(panel.crest.texture is Texture2D)
 
 	panel.apply_responsive_layout(Vector2(1280.0, 720.0))
-	_assert_rect_inside(panel.debug_snapshot().panel_rect, Vector2(1280.0, 720.0))
-	_assert_touch_rect(panel.debug_snapshot().retry_rect)
-	_assert_touch_rect(panel.debug_snapshot().title_rect)
+	var landscape_state: Dictionary = panel.debug_snapshot()
+	_assert_rect_inside(landscape_state.panel_rect, Vector2(1280.0, 720.0))
+	_assert_touch_rect(landscape_state.retry_rect)
+	_assert_touch_rect(landscape_state.title_rect)
+	_assert_action_group_margins(panel, landscape_state)
 	panel.apply_responsive_layout(Vector2(720.0, 1280.0))
-	_assert_rect_inside(panel.debug_snapshot().panel_rect, Vector2(720.0, 1280.0))
-	_assert_touch_rect(panel.debug_snapshot().retry_rect)
-	_assert_touch_rect(panel.debug_snapshot().title_rect)
+	var portrait_state: Dictionary = panel.debug_snapshot()
+	_assert_rect_inside(portrait_state.panel_rect, Vector2(720.0, 1280.0))
+	_assert_touch_rect(portrait_state.retry_rect)
+	_assert_touch_rect(portrait_state.title_rect)
+	_assert_action_group_margins(panel, portrait_state)
 	var signal_counts: Dictionary = {"retry": 0, "title": 0}
 	panel.retry_pressed.connect(func() -> void: signal_counts.retry += 1)
 	panel.title_pressed.connect(func() -> void: signal_counts.title += 1)
@@ -540,6 +544,18 @@ func _assert_rect_inside(rect: Rect2, viewport_size: Vector2) -> void:
 func _assert_touch_rect(rect: Rect2) -> void:
 	assert_gte(rect.size.x, 120.0)
 	assert_gte(rect.size.y, 44.0)
+
+
+func _assert_action_group_margins(panel: MatchDebriefPanel, state: Dictionary) -> void:
+	var expected_margin: float = (
+		MatchDebriefPanel.CONTROL_GROUP_MARGIN * panel.content_root.scale.x
+	)
+	var tabs_rect: Rect2 = state.tabs_rect as Rect2
+	var page_content_rect: Rect2 = state.page_content_rect as Rect2
+	var bottom_content_rect: Rect2 = state.bottom_content_rect as Rect2
+	var retry_rect: Rect2 = state.retry_rect as Rect2
+	assert_almost_eq(page_content_rect.position.y - tabs_rect.end.y, expected_margin, 0.01)
+	assert_almost_eq(retry_rect.position.y - bottom_content_rect.end.y, expected_margin, 0.01)
 
 
 func _record_test_execution() -> void:

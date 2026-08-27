@@ -47,11 +47,11 @@ Generate the three transparent GPT Image 2 sources, inspect alpha and style, cre
 
 ### Phase 2 — Fixed living-sky runtime
 
-Add `DistrictSkyLifeRuntime`, build exactly two bands and three sprites at startup, implement district profile interpolation, continuous movement, deterministic wrap/repeat behavior, floating-origin compensation, and time-of-day sampling.
+Add `DistrictSkyLifeRuntime`, build exactly one traffic band and two traffic sprites at startup, implement district profile interpolation, continuous movement, deterministic wrap/repeat behavior, floating-origin compensation, and time-of-day sampling.
 
 ### Phase 3 — Environmental grading
 
-Extend the existing seamless panorama shader with district and cycle uniforms. Apply sampled time state to both panorama materials, all three shared depth sprites, the cloud bank, and both vehicles. Preserve alpha crossfade and exact edge matching.
+Extend the existing seamless panorama shader with district and cycle uniforms. Apply sampled time state to both panorama materials, all three shared depth sprites, and both vehicles. Preserve alpha crossfade and exact edge matching.
 
 ### Phase 4 — Integration and focused verification
 
@@ -63,23 +63,27 @@ Capture all five districts at day, dusk, and night in ultra-wide and portrait la
 
 ## Implementation Evidence
 
-GPT Image 2 generated the cloud bank, courier shuttle, and heavy state carrier. The reproducible preparation script removed temporary green/magenta key spill, cropped against existing alpha, produced compact 1024×265, 256×125, and 384×154 WebP derivatives, and recorded source/runtime SHA-256 hashes in the asset manifest. `DistrictSkyLifeRuntime` now owns exactly two `Parallax2D` bands and three sprites, with five district profiles and normalized smoothstep time keys. `DistrictParallaxRuntime` advances the clock, synchronizes profile interpolation to its existing 850 ms crossfade, updates the seamless panorama shader, retints shared depth sprites, and forwards floating-origin compensation.
+GPT Image 2 generated the cloud bank, courier shuttle, and heavy state carrier. The reproducible preparation script removed temporary green/magenta key spill, cropped against existing alpha, produced compact 1024×265, 256×125, and 384×154 WebP derivatives, and recorded source/runtime SHA-256 hashes in the asset manifest. `DistrictSkyLifeRuntime` now owns exactly one `Parallax2D` traffic band and two sprites, with five district profiles and normalized smoothstep time keys. `DistrictParallaxRuntime` advances the clock, synchronizes profile interpolation to its existing 850 ms crossfade, updates the seamless panorama shader, retints shared depth sprites, and forwards floating-origin compensation.
 
-Focused Godot 4.7.2 verification passed **16 tests and 371 assertions** across living-sky behavior, district parallax, synchronized weather, and the central runtime budget. The dedicated Xvfb scenario produced **30 full-game captures**: every district at day, dusk, and night in 2048×905 ultra-wide and 720×1280 portrait layouts. Visual inspection confirmed distinct time grading, visible cloud and air-traffic layers, clean alpha, readable gameplay and HUD, continuous panorama coverage, and no reintroduced black interval or hard tile join.
+Focused Godot 4.7.2 verification passed **16 tests and 371 assertions** across living-sky behavior, district parallax, synchronized weather, and the central runtime budget. The dedicated Xvfb scenario produced **30 full-game captures**: every district at day, dusk, and night in 2048×905 ultra-wide and 720×1280 portrait layouts. The current visual contract retains distinct time grading and air traffic while explicitly requiring no mounted `CloudBank` or `CloudLife` node; gameplay, HUD, panorama coverage, and seam behavior remain unchanged.
 
 The GPT Image 2 concept and runtime-asset phase was pushed as `639eea7acfedacec30c1d2799e1d5ffe8900ead5`. The integrated runtime, shader, budget, focused regression, and visual-scenario phase was pushed as `4ad02ff3a5aa9b52cb2411e9fdce7a3263c04b02`. Both commits use ordinary shared-main history; no branch rewrite or project-format upgrade occurred.
+
+### Cloud-motion retirement
+
+The later annotation-driven polish pass removes the drifting cloud bank entirely because its constant lateral motion overloaded the already active weather, parallax, and air-traffic composition. The original generated cloud asset remains archived in source provenance, but the runtime no longer preloads or mounts it. District grading, the six-minute day/night cycle, both air vehicles, seamless panoramas, weather, and floating-origin compensation remain active.
 
 ## Acceptance Matrix
 
 | Concern | Acceptance |
 |---|---|
-| Animated life | Cloud and air-traffic positions change continuously and wrap without allocation or popping |
+| Animated life | Air-traffic positions change continuously and wrap without allocation or popping; no drifting cloud band is mounted |
 | District identity | Five profiles produce visibly distinct motion cadence and tint while retaining panorama identity |
-| Transition grading | Panorama, depth bands, clouds, traffic, and weather change together over the existing 850 ms transition |
+| Transition grading | Panorama, depth bands, traffic, and weather change together over the existing 850 ms transition |
 | Day/night | The six-minute loop is continuous, deterministic, visually distinct at day/dusk/night, and does not affect HUD or gameplay |
 | Seam safety | Panorama repeat width and edge-equalization shader remain active at every district and time state |
 | Responsive view | Ultra-wide and portrait captures retain full coverage and legible atmospheric scale |
-| Runtime budget | One runtime, two bands, three sprites, zero post-warm creation |
+| Runtime budget | One runtime, one traffic band, two sprites, zero post-warm creation |
 | Deployment | Exact final-tree HTML, JavaScript, WASM, and PCK synchronize to the existing WebDev project |
 
 ## References

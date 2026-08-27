@@ -74,7 +74,7 @@ func test_settlement_engine_is_50_percent_larger_and_touches_road() -> void:
 		rig.global_position.y
 		+ BossRig2D.SETTLEMENT_VISIBLE_BOTTOM_LOCAL_Y * rig.scale.y
 	)
-	assert_almost_eq(visible_bottom, EncounterRuntime.LAND_BASELINE_Y, 0.02)
+	assert_almost_eq(visible_bottom, CityStreetChunk.ROAD_DIVIDER_Y, 0.02)
 
 
 func test_moving_loop_and_attack_stage_reset_are_deterministic() -> void:

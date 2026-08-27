@@ -122,7 +122,7 @@ func test_mission_failure_never_despawns_enemies_or_stalls_empty_pressure() -> v
 	var director: DistrictResponseDirector = city.urban_siege.director
 	city.encounter_runtime.release_all()
 	var survivor: EnemyActor2D = city.encounter_runtime.acquire(
-		&"soldier", Vector2(1180.0, EncounterRuntime.LAND_BASELINE_Y)
+		&"soldier", Vector2(1180.0, EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y)
 	)
 	assert_not_null(survivor)
 	var act: DistrictAct = director.district.acts[0]
@@ -143,15 +143,15 @@ func test_mission_failure_never_despawns_enemies_or_stalls_empty_pressure() -> v
 	assert_true(survivor.active)
 	assert_eq(city.encounter_runtime.active_count(), 1)
 	city.encounter_runtime.release(survivor)
+	var started_before: int = director.started_beat_count()
 	director._try_start_next_beat()
-	assert_eq(
-		city.encounter_runtime.active_count(),
-		DistrictResponseDirector.BLOCKED_CONTINUITY_SOLDIER_COUNT
-	)
-	assert_eq(
-		director.continuity_spawn_count,
-		DistrictResponseDirector.BLOCKED_CONTINUITY_SOLDIER_COUNT
-	)
+	assert_gt(director.started_beat_count(), started_before)
+	assert_gt(director.pending_count(), 0)
+	for _step: int in range(120):
+		director.advance(0.1)
+		if city.encounter_runtime.active_count() > 0:
+			break
+	assert_gt(city.encounter_runtime.active_count(), 0)
 
 
 func test_breach_completes_after_three_accepted_cells() -> void:
