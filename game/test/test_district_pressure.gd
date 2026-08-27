@@ -164,6 +164,39 @@ func test_pressure_profile_is_locked_for_the_duration_of_a_started_beat() -> voi
 	director.ledger.cancel_all()
 
 
+func test_business_variant_trace_is_final_before_reservation_and_pending_spawns() -> void:
+	city.world_stream.current_district_id = &"BUSINESS"
+	city.world_stream.current_logical_chunk = 0
+	city.rampage_session.run_experience.level = 1
+	director.running = true
+	director.completed = false
+	director.phase_index = 0
+	director.beat_index = -1
+	director.state = DistrictResponseDirector.STATE_WAITING
+	director._elite_seed = 913
+	director.hybrid_substitution_trace.clear()
+	director.district_variant_substitution_trace.clear()
+	director._try_start_next_beat()
+	assert_true(director.hybrid_substitution_trace.is_empty())
+	assert_gt(director.district_variant_substitution_trace.size(), 0)
+	var traced_ids: Dictionary[StringName, bool] = {}
+	for change: Dictionary in director.district_variant_substitution_trace:
+		assert_eq(StringName(change.district_id), &"BUSINESS")
+		assert_true(EnemyArchetypeCatalog.is_district_variant(change.after))
+		traced_ids[StringName(change.after)] = true
+	var pending_variant_count: int = 0
+	for record: Dictionary in director._beat_pending:
+		var entry: EnemySpawnEntry = record.entry as EnemySpawnEntry
+		var kind: StringName = StringName(entry.kind)
+		if EnemyArchetypeCatalog.is_district_variant(kind):
+			pending_variant_count += 1
+			assert_true(traced_ids.has(kind), kind)
+	assert_gt(pending_variant_count, 0)
+	assert_gt(director._beat_reservation_id, 0)
+	director._beat_pending.clear()
+	director.ledger.cancel_all()
+
+
 func test_absolute_threat_saturation_delays_and_then_releases_the_next_beat() -> void:
 	city.world_stream.current_district_id = &"ROYAL"
 	city.world_stream.current_logical_chunk = 20
