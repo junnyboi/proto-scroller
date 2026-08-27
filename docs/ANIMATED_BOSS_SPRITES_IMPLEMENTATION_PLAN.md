@@ -41,7 +41,7 @@ The runtime requires twenty sequences. Fourteen source carriers are generated be
 | CHOIR Prime | E/W × moving/attacking = 4 | 0 | 4 |
 | **Total** | **14** | **6** | **20** |
 
-Every carrier uses a flat hot-pink `#FF00FF` background selected by the video-to-sprites contrast tool, one full-body boss, a locked orthographic-style side view, zero camera motion, constant scale, fixed ground origin, no particles, no shadows, no duplicate subject, no text, and no audio. First and last keyframes are identical for loop closure. The gameplay-optimized extraction profile is **16 frames per sequence at an 8 FPS moving-loop rate**, processed within a 512×288 ceiling. The attack state uses the same sixteen ordered frames but maps them to the authoritative 0.85-second telegraph, 0.55-second active, and 0.75-second recovery intervals rather than running an independent damage clock.
+Every carrier uses a flat hot-pink `#FF00FF` background selected by the video-to-sprites contrast tool, one full-body boss, a locked orthographic-style side view, zero camera motion, constant scale, fixed ground origin, no particles, no shadows, no duplicate subject, no text, and no audio. First and last keyframes are identical for loop closure. The gameplay-optimized extraction profile is **eight frames per sequence at a 6 FPS moving-loop rate**, processed within a 384×216 ceiling. The attack state uses the same eight ordered frames but maps them to the authoritative 0.85-second telegraph, 0.55-second active, and 0.75-second recovery intervals rather than running an independent damage clock.
 
 ## Boss Motion Briefs
 
@@ -79,7 +79,7 @@ game/art/bosses/animated/
   ANIMATION_ASSET_MANIFEST.md
 ```
 
-Each atlas contains four contiguous 16-frame sequences in this order: `E_moving`, `W_moving`, `E_attacking`, `W_attacking`. Eight columns produce two rows per sequence and eight rows per boss. Cells share one bottom-center anchor and include transparent padding, allowing one stable `Sprite2D.region_rect` envelope per boss. Godot imports runtime atlases as filtered lossy Web textures without mipmaps; lossless masters and videos remain outside the PCK.
+Each atlas contains four contiguous eight-frame sequences in this order: `E_moving`, `W_moving`, `E_attacking`, `W_attacking`. Eight columns produce one row per sequence and four rows per boss. Cells share one bottom-center anchor and include transparent padding, allowing one stable `Sprite2D.region_rect` envelope per boss. Godot imports runtime atlases as filtered lossy Web textures without mipmaps; lossless masters and videos remain outside the PCK.
 
 ## Runtime Architecture
 
@@ -97,7 +97,7 @@ The existing part-zero sprite becomes an atlas-region renderer. All textures and
 - `advance_animation(delta)`;
 - `animation_signature()` for deterministic inspection.
 
-The moving state loops at 8 FPS. The attacking state maps frames 0–5 to `TELEGRAPH`, 6–9 to `ACTIVE`, and 10–15 to `RECOVERY`, using each controller’s existing stage duration. A state change snaps to the first frame of the correct stage so retry restoration and large-delta transitions cannot drift. No animation frame emits damage, changes collision, moves sockets, or starts controller actions.
+The moving state loops at 6 FPS. The attacking state maps frames 0–2 to `TELEGRAPH`, 3–4 to `ACTIVE`, and 5–7 to `RECOVERY`, using each controller’s existing stage duration. A state change snaps to the first frame of the correct stage so retry restoration and large-delta transitions cannot drift. No animation frame emits damage, changes collision, moves sockets, or starts controller actions.
 
 ### `CommandBossSession`
 
@@ -113,7 +113,7 @@ The session connects once to `BossVerticalSliceController.attack_changed`, `Boss
 | Mechanical stability | Region rendering affects only `_presentation_root`; hurt regions and sockets never flip or move. |
 | Portrait parity | The current portrait presentation scale remains; frame cells retain the same bottom-center origin and 520×390 display envelope. |
 | Retry determinism | Restored controller stage immediately selects the corresponding attack frame range. No independent callback survives generation cleanup. |
-| Web package budget | Use 16 frames, 512×288 processing, one compressed atlas per boss, and exclude generation masters from source/export. Optimize only presentation imports if the fresh PCK exceeds the current ceiling. |
+| Web package budget | Use eight frames, 384×216 processing, one compressed atlas per boss, and exclude generation masters from source/export. Optimize only presentation imports if the fresh PCK exceeds the current ceiling. |
 | Static fallback | Existing five static sprites remain source-controlled as identity references and rollback assets but are removed from runtime preload paths. |
 
 ## Work Packages
@@ -128,7 +128,7 @@ Generate seven GPT Image 2 chroma anchors: E/W for S-04, E for the three mirror-
 
 ### WP3 — Extraction and atlas packing
 
-Process every carrier into sixteen transparent WebP frames. Derive west sequences only for SAMARITAN, MIMESIS, and CANTOR. Pack one four-sequence atlas per boss, emit JSON manifests, inspect the five final atlases, and copy only runtime atlases plus provenance into the repository.
+Process every carrier into eight transparent WebP frames. Derive west sequences only for SAMARITAN, MIMESIS, and CANTOR. Pack one four-sequence atlas per boss, emit JSON manifests, inspect the five final atlases, and copy only runtime atlases plus provenance into the repository.
 
 ### WP4 — Godot runtime integration
 
@@ -157,10 +157,10 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 
 | Work package | Status | Revision / checkpoint | Notes |
 |---|---|---|---|
-| WP1 — Reference lock and plan | In progress | Pending | Five references and current static sprites inspected; 14-carrier/20-sequence matrix selected. |
-| WP2 — Anchors and carriers | Pending | Pending | Seven GPT Image 2 anchors and fourteen locked Veo carriers. |
-| WP3 — Extraction and atlases | Pending | Pending | Five compact lossless masters plus runtime copies. |
-| WP4 — Godot integration | Pending | Pending | Catalog, playback, facing, stage wiring, lifecycle. |
+| WP1 — Reference lock and plan | Complete | `86fa1a5` | Five references and current static sprites inspected; 14-carrier/20-sequence matrix selected and pushed before generation. |
+| WP2 — Anchors and carriers | Complete | External masters | Seven GPT Image 2 anchors and fourteen 4-second locked Veo 3.1 carriers; 720p and audio disabled. |
+| WP3 — Extraction and atlases | Complete | Implementation commit pending | Twenty eight-frame sequences packed into five 32-frame lossless masters and five compact runtime atlases; visual inspection recorded externally. |
+| WP4 — Godot integration | Complete | Implementation commit pending | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
 | WP5 — Export and WebDev | Pending | Pending | Fresh runtime payloads and checkpoint. |
 
 ## References

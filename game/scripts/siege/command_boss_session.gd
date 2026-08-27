@@ -51,10 +51,13 @@ func setup(p_dependencies: UrbanSiegeDependencies) -> void:
 		dependencies.encounter_runtime,
 		dependencies.projectile_pool
 	)
+	utility_pool.vertical_slice.attack_changed.connect(_on_boss_attack_changed)
+	utility_pool.escalation.attack_changed.connect(_on_boss_attack_changed)
 	royal_finale = BossRoyalFinaleController.new()
 	royal_finale.name = "BossRoyalFinaleController"
 	royal_finale.setup(utility_pool, dependencies.encounter_runtime)
 	royal_finale.severance_receiver_moved.connect(_on_severance_receiver_moved)
+	royal_finale.attack_changed.connect(_on_royal_boss_attack_changed)
 	add_child(royal_finale)
 	utility_pool.rig.damage_forwarded.connect(_on_rig_damage_forwarded)
 
@@ -138,6 +141,9 @@ func advance(delta: float) -> void:
 		utility_pool.vertical_slice.advance(delta)
 		utility_pool.escalation.advance(delta)
 		royal_finale.advance(delta)
+	_sync_rig_facing()
+	if utility_pool != null and utility_pool.rig != null:
+		utility_pool.rig.advance_animation(delta)
 	var screen_duration: float = (
 		SCREEN_DURATION if active_definition == null else active_definition.screen_seconds
 	)
@@ -535,6 +541,7 @@ func _set_state(next_state: StringName) -> void:
 	state = next_state
 	_state_elapsed = 0.0
 	_sync_controller_phase()
+	_sync_rig_animation_state()
 	state_changed.emit(state)
 
 
@@ -550,6 +557,53 @@ func _sync_controller_phase() -> void:
 		utility_pool.escalation.set_combat_state(state, health_ratio)
 	if royal_finale != null and royal_finale.active():
 		royal_finale.set_combat_state(state, health_ratio)
+
+
+func _on_boss_attack_changed(_attack_id: StringName, stage: StringName) -> void:
+	if utility_pool == null or utility_pool.rig == null:
+		return
+	utility_pool.rig.play_attacking(stage, _rig_facing())
+
+
+func _on_royal_boss_attack_changed(
+	_mechanic_id: StringName,
+	_echo_id: StringName,
+	stage: StringName
+) -> void:
+	_on_boss_attack_changed(_mechanic_id, stage)
+
+
+func _sync_rig_animation_state() -> void:
+	if utility_pool == null or utility_pool.rig == null:
+		return
+	var direction: StringName = _rig_facing()
+	if state in [STATE_BARRAGE, STATE_EXPOSED]:
+		var stage: StringName = &"TELEGRAPH"
+		if utility_pool.vertical_slice.active():
+			stage = utility_pool.vertical_slice.attack_stage
+		elif utility_pool.escalation.active():
+			stage = utility_pool.escalation.attack_stage
+		elif royal_finale != null and royal_finale.active():
+			stage = royal_finale.attack_stage
+		utility_pool.rig.play_attacking(stage, direction)
+	else:
+		utility_pool.rig.play_moving(direction)
+
+
+func _sync_rig_facing() -> void:
+	if utility_pool == null or utility_pool.rig == null:
+		return
+	utility_pool.rig.set_facing(_rig_facing())
+
+
+func _rig_facing() -> StringName:
+	if boss == null or dependencies == null or dependencies.robot == null:
+		return BossRig2D.DIRECTION_EAST
+	return (
+		BossRig2D.DIRECTION_WEST
+		if dependencies.robot.global_position.x < boss.global_position.x
+		else BossRig2D.DIRECTION_EAST
+	)
 
 
 func _on_rig_damage_forwarded(event: DamageEvent, accepted: bool) -> void:
