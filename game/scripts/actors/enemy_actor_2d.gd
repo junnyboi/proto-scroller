@@ -456,6 +456,7 @@ func deactivate() -> void:
 	_cancel_player_reaction_tween()
 	cancel_telegraph()
 	clear_profiles()
+	remove_meta(&"enemy_boss_id")
 	boss_mode = false
 	_boss_base_health = 0.0
 	boss_armor = 0.0

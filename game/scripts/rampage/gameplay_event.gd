@@ -51,6 +51,9 @@ var debris_units: int = 0
 var presentation_direction: Vector2 = Vector2.RIGHT
 var presentation_speed: float = 0.0
 var presentation_seed: int = 0
+var enemy_archetype_id: StringName = &""
+var enemy_family_id: StringName = &""
+var weapon_id: StringName = &""
 
 
 func _init(

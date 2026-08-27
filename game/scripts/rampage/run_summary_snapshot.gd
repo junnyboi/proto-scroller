@@ -61,6 +61,42 @@ var cycle_count: int:
 var ending_id: StringName:
 	get:
 		return _ending_id
+var completed: bool:
+	get:
+		return _completed
+var highest_combo_tier: int:
+	get:
+		return _highest_combo_tier
+var total_enemies_defeated: int:
+	get:
+		return _total_enemies_defeated
+var unique_enemy_types: int:
+	get:
+		return _unique_enemy_types
+var enemy_kills: Dictionary:
+	get:
+		return _enemy_kills.duplicate()
+var enemy_family_kills: Dictionary:
+	get:
+		return _enemy_family_kills.duplicate()
+var weapon_kills: Dictionary:
+	get:
+		return _weapon_kills.duplicate()
+var preferred_weapon: StringName:
+	get:
+		return _preferred_weapon
+var preferred_weapon_kills: int:
+	get:
+		return _preferred_weapon_kills
+var new_combo_record: bool:
+	get:
+		return _new_combo_record
+var new_score_record: bool:
+	get:
+		return _new_score_record
+var career_snapshot: Dictionary:
+	get:
+		return _career_snapshot.duplicate(true)
 
 var _score: int
 var _peak_combo: int
@@ -82,6 +118,18 @@ var _contract_result: StringName
 var _run_seed: int
 var _cycle_count: int
 var _ending_id: StringName
+var _completed: bool
+var _highest_combo_tier: int
+var _total_enemies_defeated: int
+var _unique_enemy_types: int
+var _enemy_kills: Dictionary
+var _enemy_family_kills: Dictionary
+var _weapon_kills: Dictionary
+var _preferred_weapon: StringName
+var _preferred_weapon_kills: int
+var _new_combo_record: bool
+var _new_score_record: bool
+var _career_snapshot: Dictionary
 
 
 func _init(
@@ -113,3 +161,74 @@ func _init(
 	_run_seed = int(metrics.get("run_seed", 0))
 	_cycle_count = int(metrics.get("cycle_count", 1))
 	_ending_id = metrics.get("ending_id", &"NONE") as StringName
+	_completed = bool(metrics.get("completed", false))
+	_highest_combo_tier = maxi(int(metrics.get("highest_combo_tier", 0)), 0)
+	_total_enemies_defeated = maxi(int(metrics.get("total_enemies_defeated", 0)), 0)
+	_enemy_kills = _copy_counts(metrics.get("enemy_kills", {}) as Dictionary)
+	_enemy_family_kills = _copy_counts(metrics.get("enemy_family_kills", {}) as Dictionary)
+	_weapon_kills = _copy_counts(metrics.get("weapon_kills", {}) as Dictionary)
+	_unique_enemy_types = int(metrics.get("unique_enemy_types", _enemy_kills.size()))
+	_preferred_weapon = metrics.get("preferred_weapon", &"UNKNOWN") as StringName
+	_preferred_weapon_kills = maxi(int(metrics.get("preferred_weapon_kills", 0)), 0)
+	_new_combo_record = bool(metrics.get("new_combo_record", false))
+	_new_score_record = bool(metrics.get("new_score_record", false))
+	_career_snapshot = (metrics.get("career_snapshot", {}) as Dictionary).duplicate(true)
+
+
+func with_career_result(result: Dictionary) -> RunSummarySnapshot:
+	var metrics: Dictionary = _metric_snapshot()
+	metrics["new_combo_record"] = bool(result.get("new_combo_record", false))
+	metrics["new_score_record"] = bool(result.get("new_score_record", false))
+	metrics["career_snapshot"] = (
+		result.get("career_snapshot", {}) as Dictionary
+	).duplicate(true)
+	return RunSummarySnapshot.new(
+		_score,
+		_peak_combo,
+		_best_chain,
+		_waves_cleared,
+		_overdrive_activations,
+		_rare_events,
+		metrics
+	)
+
+
+func _metric_snapshot() -> Dictionary:
+	return {
+		"grade": _grade,
+		"mastery_points": _mastery_points,
+		"strongest": _strongest_metric,
+		"weakest": _weakest_metric,
+		"objective": _retry_objective,
+		"heavy_hits": _heavy_hits,
+		"unique_actions": _unique_actions,
+		"causal_depth": _causal_depth,
+		"directive_path": _directive_path,
+		"boss_result": _boss_result,
+		"contract_result": _contract_result,
+		"run_seed": _run_seed,
+		"cycle_count": _cycle_count,
+		"ending_id": _ending_id,
+		"completed": _completed,
+		"highest_combo_tier": _highest_combo_tier,
+		"total_enemies_defeated": _total_enemies_defeated,
+		"unique_enemy_types": _unique_enemy_types,
+		"enemy_kills": _enemy_kills.duplicate(),
+		"enemy_family_kills": _enemy_family_kills.duplicate(),
+		"weapon_kills": _weapon_kills.duplicate(),
+		"preferred_weapon": _preferred_weapon,
+		"preferred_weapon_kills": _preferred_weapon_kills,
+		"new_combo_record": _new_combo_record,
+		"new_score_record": _new_score_record,
+		"career_snapshot": _career_snapshot.duplicate(true),
+	}
+
+
+static func _copy_counts(source: Dictionary) -> Dictionary:
+	var copy: Dictionary = {}
+	for value: Variant in source:
+		var identifier: StringName = StringName(value)
+		var count: int = maxi(int(source[value]), 0)
+		if not identifier.is_empty() and count > 0:
+			copy[identifier] = count
+	return copy

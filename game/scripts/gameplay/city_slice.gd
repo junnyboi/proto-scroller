@@ -81,6 +81,7 @@ var encounter_runtime: EncounterRuntime
 var encounter_director: EncounterDirector
 var urban_siege: UrbanSiegeRuntime
 var campaign_progress: CampaignProgressStore
+var combat_profile: PlayerCombatProfileStore
 var project_choir_runtime: ProjectChoirRuntime
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D

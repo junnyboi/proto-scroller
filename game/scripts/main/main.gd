@@ -12,6 +12,9 @@ const TRANSITION_BOOM_SFX: AudioStream = preload(
 const CAMPAIGN_PROGRESS_SCRIPT: Script = preload(
 	"res://scripts/narrative/campaign_progress_store.gd"
 )
+const COMBAT_PROFILE_SCRIPT: Script = preload(
+	"res://scripts/rampage/player_combat_profile_store.gd"
+)
 const DUMMY_AUDIO_DRIVER_NAME: String = "Dummy"
 const FADE_TO_BLACK_SECONDS: float = 0.45
 const FADE_FROM_BLACK_SECONDS: float = 0.35
@@ -23,6 +26,7 @@ var title_screen: TitleScreen
 var city_slice: CitySlice
 var responsive_viewport: ResponsiveViewport
 var campaign_progress: CampaignProgressStore
+var combat_profile: PlayerCombatProfileStore
 var title_transition_active: bool = false
 var title_transition_duration_scale: float = 1.0
 var transition_kind: StringName = &"idle"
@@ -44,6 +48,10 @@ var _title_music_calibration_callback: JavaScriptObject = null
 func _ready() -> void:
 	InputBindingSettings.apply_saved()
 	AudioVolumeSettings.apply_saved()
+	combat_profile = COMBAT_PROFILE_SCRIPT.new() as PlayerCombatProfileStore
+	combat_profile.name = "PlayerCombatProfileStore"
+	add_child(combat_profile)
+	combat_profile.setup()
 	campaign_progress = CAMPAIGN_PROGRESS_SCRIPT.new() as CampaignProgressStore
 	campaign_progress.name = "CampaignProgressStore"
 	add_child(campaign_progress)
@@ -307,6 +315,7 @@ func _spawn_city_slice() -> void:
 	city_slice = CITY_SCENE.instantiate() as CitySlice
 	city_slice.name = "CitySlice"
 	city_slice.campaign_progress = campaign_progress
+	city_slice.combat_profile = combat_profile
 	city_slice.retry_requested.connect(retry_game)
 	city_slice.defeat_requested.connect(present_defeat_with_transition)
 	city_slice.title_requested.connect(return_to_title_with_transition)

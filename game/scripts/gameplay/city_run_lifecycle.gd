@@ -313,6 +313,9 @@ func _finish_run(completed: bool, ending_id: StringName = &"NONE") -> void:
 		city.overdrive_session.activation_count,
 		run_metrics
 	)
+	if city.combat_profile != null:
+		summary = city.combat_profile.enrich_and_submit(summary)
+		city.rampage_session.frozen_summary = summary
 	run_finished.emit(completed, summary)
 	if completed:
 		city.gameplay_hud.show_district_complete(summary)

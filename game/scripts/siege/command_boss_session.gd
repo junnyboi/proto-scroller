@@ -81,8 +81,10 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		active_definition = null
 		return false
 	if active_definition == null:
+		boss.set_meta(&"enemy_boss_id", &"COMMAND_UNIT")
 		boss.configure_boss(ARMOR, HEALTH)
 	else:
+		boss.set_meta(&"enemy_boss_id", active_definition.boss_id)
 		boss.configure_boss(
 			active_definition.armor,
 			active_definition.health,

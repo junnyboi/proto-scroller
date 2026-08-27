@@ -137,6 +137,9 @@ func enemy_defeated(
 	gameplay_event.combo_progress_units = (
 		RampageRewardTuning.enemy_combo_progress_units(named_boss)
 	)
+	gameplay_event.enemy_archetype_id = _enemy_archetype_id(enemy)
+	gameplay_event.enemy_family_id = _enemy_family_id(enemy, gameplay_event.enemy_archetype_id)
+	gameplay_event.weapon_id = CombatRunTelemetry.weapon_id_for_damage_type(event.damage_type)
 	return _publish_damage(gameplay_event, event, enemy, robot)
 
 
@@ -286,6 +289,36 @@ func _enemy_momentum_delta(enemy: EnemyActor2D) -> float:
 	if enemy is HelicopterEnemy:
 		return 0.0
 	return 8.0
+
+
+func _enemy_archetype_id(enemy: EnemyActor2D) -> StringName:
+	var identifier: StringName = CombatRunTelemetry.UNKNOWN_ENEMY
+	var boss_id: StringName = StringName(enemy.get_meta(&"enemy_boss_id", &""))
+	if not boss_id.is_empty():
+		identifier = StringName("boss:%s" % String(boss_id).to_lower())
+	elif enemy is ProceduralEnemy and not (enemy as ProceduralEnemy).boss_support_id.is_empty():
+		identifier = (enemy as ProceduralEnemy).boss_support_id
+	else:
+		var metadata_id: StringName = StringName(enemy.get_meta(&"enemy_archetype", &""))
+		if not metadata_id.is_empty():
+			identifier = metadata_id
+		elif enemy is SoldierEnemy:
+			identifier = &"soldier"
+		elif enemy is TankEnemy:
+			identifier = &"tank"
+		elif enemy is HelicopterEnemy:
+			identifier = &"helicopter"
+	return identifier
+
+
+func _enemy_family_id(enemy: EnemyActor2D, archetype_id: StringName) -> StringName:
+	var metadata_family: StringName = StringName(enemy.get_meta(&"enemy_family", &""))
+	if not metadata_family.is_empty():
+		return metadata_family
+	if String(archetype_id).begins_with("boss:"):
+		return &"boss"
+	var family: StringName = EnemyArchetypeCatalog.family_for(archetype_id)
+	return family if not family.is_empty() else CombatRunTelemetry.UNKNOWN_FAMILY
 
 
 func _persistent_id(target: Node) -> String:

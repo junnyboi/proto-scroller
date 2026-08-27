@@ -8,6 +8,7 @@ var combo_tracker: ComboTracker
 var momentum_meter: MomentumMeter
 var rare_event_tracker: RareEventTracker
 var causal_chain_tracker: CausalChainTracker = CausalChainTracker.new()
+var combat_telemetry: CombatRunTelemetry = CombatRunTelemetry.new()
 var frozen_summary: RunSummarySnapshot
 var heavy_hit_count: int = 0
 var _unique_action_tags: Dictionary[StringName, bool] = {}
@@ -40,6 +41,12 @@ func publish(event: GameplayEvent) -> bool:
 	var score_multiplier: int = 1
 	if combo_tracker.register_event(event):
 		score_multiplier = combo_tracker.current_multiplier
+	combat_telemetry.register_accepted_event(
+		event,
+		CombatRunTelemetry.authored_tier_for_progress_units(
+			combo_tracker.current_progress_units
+		)
+	)
 	run_score.apply_event(event, score_multiplier)
 	run_experience.apply_event(event)
 	momentum_meter.apply_event(event)
@@ -71,6 +78,7 @@ func reset_run() -> void:
 	momentum_meter.reset_run()
 	rare_event_tracker.reset_run()
 	causal_chain_tracker.reset()
+	combat_telemetry.reset_run()
 	heavy_hit_count = 0
 	_unique_action_tags.clear()
 	frozen_summary = null
@@ -114,6 +122,7 @@ func freeze_summary(
 			"contract_succeeded": bool(run_metrics.get("contract_succeeded", false)),
 		})
 		var summary_metrics: Dictionary = run_metrics.duplicate()
+		summary_metrics.merge(combat_telemetry.snapshot(), true)
 		summary_metrics.merge({
 			"grade": mastery.grade,
 			"mastery_points": mastery.points,

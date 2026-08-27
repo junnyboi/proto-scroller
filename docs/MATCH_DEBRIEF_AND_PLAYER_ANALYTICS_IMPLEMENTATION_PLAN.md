@@ -153,3 +153,17 @@ Per the explicit project release-gate override, this task will not run the repos
 ## 12. Completion Definition
 
 The feature is complete when a finalized run displays exact highest combo tier, concrete enemies defeated, preferred and supporting kill-attribution weapons, career records, personal-best states, and existing narrative/progression facts in both orientations; local profile data persists safely; a privacy-minimal leaderboard candidate can be serialized; focused evidence is recorded; canonical source is pushed; and the current WebDev deployment loads the fresh final export.
+
+## 13. Implementation Record
+
+| Package | Status | Evidence |
+|---|---|---|
+| WP0 — Proposal and contracts | Complete | Proposal, implementation plan, and concept direction pushed in `1be1423`. |
+| WP1 — GPT Image 2 concepts and crest | Complete | Landscape and portrait mockups plus a cleaned transparent 256×256 runtime crest; hashes recorded in `MATCH_DEBRIEF_ASSET_PROVENANCE.md`. |
+| WP2 — Run telemetry | Complete | Accepted-event telemetry captures exact archetype, family, fatal weapon, total kills, and uncapped authored combo tier; dedicated suite passed 6/6 tests and 87 assertions. |
+| WP3 — Persistent career profile | Complete | Versioned atomic local profile, corruption fallback, personal-best flags, bounded lifetime totals, and privacy-minimal leaderboard candidate covered by the same 6/6 focused suite. |
+| WP4 — Responsive debrief | In progress | Dedicated final-run panel and compatibility bridge pending. |
+| WP5 — Source integration | Pending | Final focused UI and lifecycle evidence pending. |
+| WP6 — WebDev synchronization | Pending | Fresh final export and checkpoint pending. |
+
+Focused compatibility checks after WP2/WP3 also passed `test_rampage_progression.gd` at 14 tests / 170 assertions and `test_overdrive_and_summary.gd` at 7 tests / 55 assertions.
