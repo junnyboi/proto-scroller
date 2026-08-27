@@ -22,7 +22,7 @@ The district model is deliberately separate from the existing siege `DistrictDef
 
 ## Shared Destruction Language
 
-Every building retains a **3×2 logical structural grid** so the player can read targets at speed. Each cell progresses from intact facade to a procedural crack pattern, exposed cable or pipe attachments, an alpha-clipped dark hollow cut directly into the authored facade, and a shallow nonblocking rubble bed. No destroyed cross-section sprite replaces the building. Lower-cell failure transfers damage upward; complete floors start staggered collapse; loss of all authored steel supports triggers the faster steel-support chain.[1]
+Every building retains a **3×2 logical structural grid** so the player can read targets at speed. Each damaged cell progressively erodes its own authored sprite from the center outward: a small initial void grows through a stable jagged boundary while all surviving facade pixels darken with cumulative damage. Terminal failure removes most of the center and lower middle, leaving dark irregular side rails and a top lintel around the opening, final cracks, broken plumbing, dangling cables, and a shallow nonblocking rubble bed. Transparent source pixels remain transparent, and no destroyed cross-section sprite replaces the building. Lower-cell failure transfers damage upward; complete floors start staggered collapse; loss of all authored steel supports triggers the faster steel-support chain.[1]
 
 Variation is delivered through GPT Image 2 facade art, silhouette, display dimensions, six-cell material layout, district palette, deterministic crack seed, and a named destruction signature. The live runtime continues to use only six pooled building instances—one per resident chunk—so 25 catalog entries do not multiply the active node or physics budget.[4] [5]
 
@@ -98,7 +98,7 @@ A ceremonial capital quarter engineered to make imperial power appear permanent.
 
 ## Runtime Asset Strategy
 
-Each of the 25 buildings receives a standalone GPT Image 2 transparent facade sprite. The procedural damage system uses the facade as both the intact source and the alpha-clipped cavity source, so cracks, cables, pipes, and hollow cutouts remain runtime-generated and deterministic rather than requiring 75 bespoke stage images. The shared shallow-rubble atlas remains material-tinted; it never replaces the failed facade section.
+Each of the 25 buildings receives a standalone GPT Image 2 transparent facade sprite. One per-cell shader operates directly on that facade, preserving pristine alpha at zero damage and expanding a seed-stable jagged alpha void as normalized damage rises. Cracks, cables, pipes, and hollow cutouts therefore remain runtime-generated and deterministic rather than requiring 75 bespoke stage images. The shared shallow-rubble atlas remains material-tinted; it never replaces the failed facade section.
 
 Sprites are imported without mipmaps and resized to a compact gameplay resolution. The package gate increases from 8 MiB to **16 MiB**, with the implementation required to report actual HTML, JavaScript, WASM, and PCK sizes and preserve the non-threaded Web export contract.[6]
 
