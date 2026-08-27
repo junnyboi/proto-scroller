@@ -122,11 +122,19 @@ func _trigger_gate() -> void:
 	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(
 		definition.trigger_chunk
 	)
-	for variant: StructuralBuildingVariant in district.building_variants:
+	for encounter_index: int in range(
+		CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+	):
+		var logical_chunk: int = district.start_chunk + encounter_index
+		var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+			city.world_stream.run_seed,
+			logical_chunk
+		)
 		var building: StructuralBuilding2D = StructuralBuilding2D.new()
 		building.set_meta(&"district_id", district.district_id)
 		building.set_meta(&"district_index", district.district_index)
 		building.set_meta(&"building_variant_id", variant.variant_id)
+		building.set_meta(&"logical_chunk", logical_chunk)
 		assert_true(city.world_stream.report_building_cleared(building))
 		building.free()
 	city.robot.global_position.x = (
