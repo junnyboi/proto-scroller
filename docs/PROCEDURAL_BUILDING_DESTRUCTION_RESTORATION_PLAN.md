@@ -1,6 +1,6 @@
 # Procedural Building Destruction Restoration Plan
 
-**Status:** Progressive sprite hollowing implemented and exported; WebDev deployment in progress
+**Status:** Complete and deployed
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export  
 **Target branch:** `main`  
 **Applies to:** all 25 district facade variants through the six-instance streamed building pool
@@ -121,3 +121,5 @@ The progressive extension moves the per-cell shader onto `IntactVisual` itself. 
 Progress is captured with the mutation state and reconstructed from authoritative health for older saves. The material instance remains bound during all 25 facade reconfigurations and resets to an untouched zero-progress sprite on pooled reuse. Four focused Godot 4.7.2 tests passed with **4,316 assertions**, covering cumulative growth, full darkening, lower breach logic, nonterminal persistence, all 150 terminal cell states, per-cell atlas normalization, stable node reuse, and the prior alpha-safe/detail contract.
 
 The implementation was merged with concurrent projectile-impact work and pushed as source `172fa284e23f0620ea741a283b3e47438588e5a1`. Its fresh Godot 4.7.2 Web export produced a **39,514,754-byte WASM** with SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` and a **16,108,216-byte PCK** with SHA-256 `038a25b7b362b3d6171ccc15cf1a8f28cdc6115596693ad8476103d5afdcc78b`.
+
+The existing `proto-scroller` WebDev project now maps `/manus-storage/game-d5398ce_7a77a19c.wasm` and `/manus-storage/game-d5398ce_611542dc.pck` while preserving the fullscreen dynamic iframe, responsive title scheduler, local worklets, database leaderboard, repaired bosses, and concurrent projectile-impact variation. The release is sealed at checkpoint `81fb5d75`.
