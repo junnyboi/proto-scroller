@@ -59,6 +59,8 @@ func acquire(p_definition: BossEncounterDefinition) -> bool:
 	):
 		_fail_acquire()
 		return false
+	if definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+		arena_building.set_encounter_suppressed(true)
 	_refresh_cached_anchors()
 	active = true
 	generation += 1
@@ -112,7 +114,9 @@ func restore_structural_state(states: Array[Dictionary]) -> bool:
 			if variant == null or not building.apply_variant(variant):
 				return false
 			building.set_meta(&"building_variant_id", variant_id)
-		building.restore_stream_state(state)
+			building.restore_stream_state(state)
+			if building == arena_building and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+				building.set_encounter_suppressed(true)
 	return true
 
 
@@ -149,6 +153,8 @@ func _fail_acquire() -> void:
 
 
 func _clear() -> void:
+	if arena_building != null:
+		arena_building.set_encounter_suppressed(false)
 	active = false
 	definition = null
 	arena_building = null

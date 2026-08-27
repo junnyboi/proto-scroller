@@ -36,13 +36,13 @@ var active_definition: BossEncounterDefinition
 var elapsed_seconds: float = 0.0
 var generation_token: int = 0
 var last_completed_wreck_position: Vector2 = Vector2.ZERO
+var last_repair_drop_count: int = 0
 var _state_elapsed: float = 0.0
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
 var _armor_feedback_key: String = ""
 var _royal_finisher_attacks: Dictionary[int, bool] = {}
 var _royal_finisher_roots: Dictionary[int, bool] = {}
-var last_repair_drop_count: int = 0
 
 
 func setup(p_dependencies: UrbanSiegeDependencies) -> void:
@@ -106,6 +106,8 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		utility_pool.cleanup_generation(generation_token)
 		active_definition = null
 		return false
+	if definition != null and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+		boss.global_position.y = BossRig2D.SETTLEMENT_ROAD_CONTACT_Y
 	if active_definition == null:
 		boss.set_meta(&"enemy_boss_id", &"COMMAND_UNIT")
 		boss.configure_boss(ARMOR, HEALTH)
@@ -522,7 +524,9 @@ func _spawn_boss_repair_pickups(origin: Vector2, requested_count: int) -> int:
 	for index: int in range(mini(requested_count, BOSS_REPAIR_DROP_OFFSETS.size())):
 		var pickup: ChassisRepairPickup2D = (
 			dependencies.city.urban_siege.catalysts.spawn_repair_pickup(
-				origin + BOSS_REPAIR_DROP_OFFSETS[index]
+				origin + BOSS_REPAIR_DROP_OFFSETS[index],
+				ChassisRepairPickup2D.REPAIR_AMOUNT
+				* RampageRewardTuning.NAMED_BOSS_REWARD_MULTIPLIER
 			)
 		)
 		if pickup != null:

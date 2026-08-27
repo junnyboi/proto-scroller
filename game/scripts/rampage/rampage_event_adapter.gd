@@ -118,6 +118,7 @@ func enemy_defeated(
 ) -> bool:
 	var is_soldier: bool = enemy is SoldierEnemy
 	var named_boss: bool = enemy.boss_mode
+	var reward_points: int = RampageRewardTuning.enemy_reward_points(points, named_boss)
 	var gameplay_event: GameplayEvent = GameplayEvent.new(
 		StringName(
 			"enemy:%d:%d" % [enemy.get_instance_id(), enemy.activation_generation]
@@ -125,13 +126,13 @@ func enemy_defeated(
 		0,
 		GameplayEvent.Kind.ENEMY_DEFEATED,
 		GameplayEvent.SOLDIER_LAUNCH if is_soldier else GameplayEvent.ENEMY_KILL,
-		points,
+		reward_points,
 		_enemy_momentum_delta(enemy),
 		true,
 		enemy.global_position
 	)
 	gameplay_event.score_points = RampageRewardTuning.enemy_score_points(
-		points,
+		reward_points,
 		named_boss
 	)
 	gameplay_event.combo_progress_units = (

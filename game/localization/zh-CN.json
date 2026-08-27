@@ -576,6 +576,7 @@
   "boss.archive.lost": "档案：已损失 / 通道开启",
   "boss.rescue.tally": "救援 {rescued}/{total} / 完成终结后通道开放",
   "boss.attack.none": "攻击待机",
+  "boss.attack.fiduciary_shockwave": "清算冲击波",
   "boss.attack.settlement_sweep": "清算扫射",
   "boss.attack.double_entry_barrage": "双向弹幕",
   "boss.attack.foreclosure_stamp": "目标重击",

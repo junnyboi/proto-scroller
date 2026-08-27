@@ -9,20 +9,16 @@ signal rescue_tally_changed(rescued: int, lost: int)
 const BUSINESS_ID: StringName = &"SETTLEMENT_ENGINE_S04"
 const RESIDENTIAL_ID: StringName = &"SAMARITAN_15"
 const BUSINESS_ATTACKS: Array[StringName] = [
-	&"SETTLEMENT_SWEEP",
-	&"DOUBLE_ENTRY_BARRAGE",
-	&"FORECLOSURE_STAMP",
-	&"AUDIT_BEAM",
-	&"FOUNDATION_CASCADE",
+	&"FIDUCIARY_SHOCKWAVE",
 ]
 const BUSINESS_ARMORED_ATTACKS: Array[StringName] = [
-	&"SETTLEMENT_SWEEP", &"DOUBLE_ENTRY_BARRAGE",
+	&"FIDUCIARY_SHOCKWAVE",
 ]
 const BUSINESS_EXPOSED_ATTACKS: Array[StringName] = [
-	&"FORECLOSURE_STAMP", &"AUDIT_BEAM",
+	&"FIDUCIARY_SHOCKWAVE",
 ]
 const BUSINESS_FINAL_ATTACKS: Array[StringName] = [
-	&"AUDIT_BEAM", &"FOUNDATION_CASCADE",
+	&"FIDUCIARY_SHOCKWAVE",
 ]
 const RESIDENTIAL_ATTACKS: Array[StringName] = [
 	&"TRIAGE_SWEEP",
@@ -42,6 +38,16 @@ const RESIDENTIAL_FINAL_ATTACKS: Array[StringName] = [
 const PIN_COUNT: int = 3
 const POD_COUNT: int = 4
 const LANE_COUNT: int = 3
+const BUSINESS_SUPPORT_BATCH: int = 4
+const BUSINESS_SUPPORT_CAP: int = 8
+const BUSINESS_SHOCKWAVE_DIAMETER: float = 820.0
+const BUSINESS_SHOCKWAVE_DAMAGE: float = 72.0
+const BUSINESS_SUPPORT_OFFSETS: Array[Vector2] = [
+	Vector2(-540.0, 0.0), Vector2(540.0, 0.0),
+	Vector2(-460.0, 0.0), Vector2(460.0, 0.0),
+	Vector2(-620.0, 0.0), Vector2(620.0, 0.0),
+	Vector2(-380.0, 0.0), Vector2(380.0, 0.0),
+]
 const DIRECT_CLEAR_SECONDS: float = 60.0
 const TELEGRAPH_SECONDS: float = 0.85
 const ACTIVE_SECONDS: float = 0.55
@@ -89,7 +95,8 @@ var direct_clear_seconds: float = DIRECT_CLEAR_SECONDS
 var combat_state: StringName = CommandBossSession.STATE_SCREEN
 var body_health_ratio: float = 1.0
 var blackout_cycle_count: int = 0
-var _business_support_deployed: bool = false
+var _business_support_wave_count: int = 0
+var _business_support_actors: Array[EnemyActor2D] = []
 var _active_breacher: EnemyActor2D
 var _preserve_state_on_cleanup: bool = false
 
@@ -135,6 +142,9 @@ func start(
 
 
 func deactivate() -> void:
+	for support: EnemyActor2D in _business_support_actors:
+		_release_support(support)
+	_business_support_actors.clear()
 	_release_support(_active_breacher)
 	_release_support(active_runner_slot)
 	_active_breacher = null
@@ -163,7 +173,7 @@ func deactivate() -> void:
 	combat_state = CommandBossSession.STATE_SCREEN
 	body_health_ratio = 1.0
 	blackout_cycle_count = 0
-	_business_support_deployed = false
+	_business_support_wave_count = 0
 	if utility_pool != null:
 		for marker: Marker2D in utility_pool.markers:
 			marker.visible = false
@@ -171,6 +181,8 @@ func deactivate() -> void:
 			area.deactivate()
 		for area: BossAttackArea2D in utility_pool.line_areas:
 			area.deactivate()
+		if utility_pool.radial_shockwave != null:
+			utility_pool.radial_shockwave.deactivate()
 		for pod: BossPodVisual2D in utility_pool.pod_visuals:
 			pod.visible = false
 		for record: Node2D in utility_pool.reclamation_anchor_records:
@@ -356,23 +368,34 @@ func deploy_business_support() -> Array[EnemyActor2D]:
 	if (
 		not active()
 		or active_definition.boss_id != BUSINESS_ID
-		or _business_support_deployed
 		or encounter_runtime == null
 	):
 		return result
-	_business_support_deployed = true
-	var bulwark: EnemyActor2D = encounter_runtime.acquire(
-		&"bulwark", center + Vector2(-410.0, 0.0), &"SUPPRESSOR"
-	)
-	var sapper: EnemyActor2D = encounter_runtime.acquire(
-		&"sapper", center + Vector2(410.0, 0.0), &"ANCHOR"
-	)
-	for support: EnemyActor2D in [bulwark, sapper]:
-		if support == null:
-			continue
-		utility_pool.controller.track_support(support)
-		result.append(support)
+	_prune_business_support_actors()
+	var active_count: int = business_support_count()
+	var requested: int = mini(BUSINESS_SUPPORT_BATCH, BUSINESS_SUPPORT_CAP - active_count)
+	for offset_index: int in range(requested):
+		var support_index: int = active_count + offset_index
+		var spawn_position: Vector2 = center + BUSINESS_SUPPORT_OFFSETS[support_index]
+		spawn_position.y = EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y
+		var support: EnemyActor2D = encounter_runtime.acquire(
+			&"soldier",
+			spawn_position
+		)
+		if support != null:
+			_business_support_actors.append(support)
+			result.append(support)
+	if not result.is_empty():
+		_business_support_wave_count += 1
 	return result
+
+
+func business_support_count() -> int:
+	var count: int = 0
+	for support: EnemyActor2D in _business_support_actors:
+		if support != null and is_instance_valid(support) and support.active:
+			count += 1
+	return count
 
 
 func deploy_breacher() -> EnemyActor2D:
@@ -549,7 +572,8 @@ func capture_state() -> Dictionary:
 		"combat_state": combat_state,
 		"body_health_ratio": body_health_ratio,
 		"blackout_cycle_count": blackout_cycle_count,
-		"business_support_deployed": _business_support_deployed,
+		"business_support_wave_count": _business_support_wave_count,
+		"business_support_active": business_support_count(),
 		"breacher_active": _active_breacher != null and _active_breacher.active,
 		"runner_active": active_runner_slot != null and active_runner_slot.active,
 		"pod_states": pod_states,
@@ -581,7 +605,8 @@ func restore_state(state: Dictionary) -> void:
 	combat_state = StringName(state.get("combat_state", CommandBossSession.STATE_SCREEN))
 	body_health_ratio = float(state.get("body_health_ratio", 1.0))
 	blackout_cycle_count = int(state.get("blackout_cycle_count", 0))
-	_business_support_deployed = bool(state.get("business_support_deployed", false))
+	_business_support_wave_count = int(state.get("business_support_wave_count", 0))
+	var business_support_active: int = int(state.get("business_support_active", 0))
 	var breacher_active: bool = bool(state.get("breacher_active", false))
 	var runner_active: bool = bool(state.get("runner_active", false))
 	var pod_states: PackedInt32Array = state.get("pod_states", PackedInt32Array())
@@ -595,7 +620,14 @@ func restore_state(state: Dictionary) -> void:
 	)
 	if extraction_pod >= 0:
 		_configure_extraction_clamp(extraction_pod)
-	_restore_support_actors(breacher_active, runner_active)
+	_restore_support_actors(business_support_active, breacher_active, runner_active)
+
+
+func _prune_business_support_actors() -> void:
+	for index: int in range(_business_support_actors.size() - 1, -1, -1):
+		var support: EnemyActor2D = _business_support_actors[index]
+		if support == null or not is_instance_valid(support) or not support.active:
+			_business_support_actors.remove_at(index)
 
 
 func _configure_common_targets() -> void:
@@ -664,6 +696,8 @@ func _configure_attack(attack: StringName) -> void:
 		area.deactivate()
 	for area: BossAttackArea2D in utility_pool.line_areas:
 		area.deactivate()
+	if utility_pool.radial_shockwave != null:
+		utility_pool.radial_shockwave.deactivate()
 	if active_definition.boss_id == BUSINESS_ID:
 		_configure_business_attack(attack)
 	else:
@@ -672,38 +706,15 @@ func _configure_attack(attack: StringName) -> void:
 
 func _configure_business_attack(attack: StringName) -> void:
 	match attack:
-		&"SETTLEMENT_SWEEP":
-			utility_pool.lane_damage_areas[0].configure_footprint(
-				center + Vector2(-280.0, 0.0), Vector2(360.0, 112.0),
-				BossAttackArea2D.VisualState.TELEGRAPH, attack
+		&"FIDUCIARY_SHOCKWAVE":
+			utility_pool.radial_shockwave.damage_amount = (
+				BUSINESS_SHOCKWAVE_DAMAGE * encounter_runtime.cycle_attack_multiplier
 			)
-			utility_pool.lane_damage_areas[1].configure_footprint(
-				center + Vector2(300.0, 0.0), Vector2(260.0, 112.0),
-				BossAttackArea2D.VisualState.TELEGRAPH, attack
-			)
-		&"DOUBLE_ENTRY_BARRAGE":
-			utility_pool.lane_damage_areas[0].configure_footprint(
-				center + Vector2(-386.0, 0.0), Vector2(210.0, 112.0),
-				BossAttackArea2D.VisualState.TELEGRAPH, attack
-			)
-			utility_pool.lane_damage_areas[1].configure_footprint(
-				center + Vector2(386.0, 0.0), Vector2(210.0, 112.0),
-				BossAttackArea2D.VisualState.TELEGRAPH, attack
-			)
-		&"FORECLOSURE_STAMP":
-			utility_pool.lane_damage_areas[0].configure_footprint(
-				center + Vector2(0.0, 0.0), Vector2(330.0, 120.0),
-				BossAttackArea2D.VisualState.TELEGRAPH, attack
-			)
-		&"AUDIT_BEAM":
-			utility_pool.line_areas[0].configure_footprint(
-				center + Vector2(0.0, -88.0), Vector2(720.0, 44.0),
-				BossAttackArea2D.VisualState.TELEGRAPH, attack
-			)
-		&"FOUNDATION_CASCADE":
-			utility_pool.lane_damage_areas[0].configure_footprint(
-				center + Vector2(-250.0, 0.0), Vector2(260.0, 112.0),
-				BossAttackArea2D.VisualState.TELEGRAPH, attack
+			utility_pool.radial_shockwave.configure_footprint(
+				center,
+				Vector2.ONE * BUSINESS_SHOCKWAVE_DIAMETER,
+				BossAttackArea2D.VisualState.TELEGRAPH,
+				attack
 			)
 
 
@@ -751,7 +762,12 @@ func _configure_extraction_clamp(pod_index: int) -> void:
 
 
 func _set_attack_visual_state(state_value: BossAttackArea2D.VisualState) -> void:
-	for area: BossAttackArea2D in utility_pool.lane_damage_areas + utility_pool.line_areas:
+	var attack_areas: Array[BossAttackArea2D] = (
+		utility_pool.lane_damage_areas + utility_pool.line_areas
+	)
+	if utility_pool.radial_shockwave != null:
+		attack_areas.append(utility_pool.radial_shockwave)
+	for area: BossAttackArea2D in attack_areas:
 		if area.visible:
 			if area.visual_state == BossAttackArea2D.VisualState.DRY:
 				continue
@@ -761,7 +777,7 @@ func _set_attack_visual_state(state_value: BossAttackArea2D.VisualState) -> void
 
 
 func _on_recovery_started() -> void:
-	if active_definition.boss_id == BUSINESS_ID and active_attack == &"DOUBLE_ENTRY_BARRAGE":
+	if active_definition.boss_id == BUSINESS_ID:
 		deploy_business_support()
 	elif active_definition.boss_id == RESIDENTIAL_ID:
 		if active_attack == &"PRESSURE_SENTENCE":
@@ -770,12 +786,20 @@ func _on_recovery_started() -> void:
 			deploy_next_runner()
 
 
-func _restore_support_actors(breacher_active: bool, runner_active: bool) -> void:
+func _restore_support_actors(
+	business_support_active: int,
+	breacher_active: bool,
+	runner_active: bool
+) -> void:
 	if active_definition == null or encounter_runtime == null:
 		return
-	if active_definition.boss_id == BUSINESS_ID and _business_support_deployed:
-		_business_support_deployed = false
-		deploy_business_support()
+	if active_definition.boss_id == BUSINESS_ID:
+		var expected_wave_count: int = _business_support_wave_count
+		_business_support_wave_count = 0
+		while business_support_count() < business_support_active:
+			if deploy_business_support().is_empty():
+				break
+		_business_support_wave_count = expected_wave_count
 	elif active_definition.boss_id == RESIDENTIAL_ID:
 		if breacher_active:
 			breacher_deployed = false
@@ -796,6 +820,9 @@ func _cleanup_generation(token: int) -> void:
 	if generation_token != token:
 		return
 	if _preserve_state_on_cleanup:
+		for support: EnemyActor2D in _business_support_actors:
+			_release_support(support)
+		_business_support_actors.clear()
 		_release_support(_active_breacher)
 		_release_support(active_runner_slot)
 		_active_breacher = null

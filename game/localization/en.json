@@ -576,6 +576,7 @@
   "boss.archive.lost": "ARCHIVE: LOST / ROUTE OPEN",
   "boss.rescue.tally": "RESCUE {rescued}/{total} / ROUTE SECURED AFTER FINISHER",
   "boss.attack.none": "ATTACK STANDBY",
+  "boss.attack.fiduciary_shockwave": "FIDUCIARY SHOCKWAVE",
   "boss.attack.settlement_sweep": "SETTLEMENT SWEEP",
   "boss.attack.double_entry_barrage": "DOUBLE-ENTRY BARRAGE",
   "boss.attack.foreclosure_stamp": "FORECLOSURE STAMP",

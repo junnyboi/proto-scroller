@@ -105,7 +105,10 @@ func _on_catalyst_triggered(catalyst: Catalyst2D, event: DamageEvent) -> void:
 	_resolve_after_delay(catalyst, event)
 
 
-func spawn_repair_pickup(world_position: Vector2) -> ChassisRepairPickup2D:
+func spawn_repair_pickup(
+	world_position: Vector2,
+	repair_amount: float = ChassisRepairPickup2D.REPAIR_AMOUNT
+) -> ChassisRepairPickup2D:
 	var selected: ChassisRepairPickup2D
 	for pickup: ChassisRepairPickup2D in repair_pickups:
 		if not pickup.active:
@@ -113,7 +116,7 @@ func spawn_repair_pickup(world_position: Vector2) -> ChassisRepairPickup2D:
 			break
 	if selected == null:
 		return null
-	selected.activate(world_position)
+	selected.activate(world_position, repair_amount)
 	repair_pickup_spawned.emit(selected)
 	return selected
 

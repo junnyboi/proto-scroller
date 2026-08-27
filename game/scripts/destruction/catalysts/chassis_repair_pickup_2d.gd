@@ -14,6 +14,7 @@ const PICKUP_TEXTURE: Texture2D = preload(
 )
 
 var active: bool = false
+var repair_amount: float = REPAIR_AMOUNT
 var _lifetime_remaining: float = 0.0
 var _phase: float = 0.0
 var _origin: Vector2 = Vector2.ZERO
@@ -55,11 +56,12 @@ func _process(delta: float) -> void:
 		expired.emit(self)
 
 
-func activate(world_position: Vector2) -> void:
+func activate(world_position: Vector2, p_repair_amount: float = REPAIR_AMOUNT) -> void:
 	_origin = world_position
 	position = world_position
 	_phase = 0.0
 	_lifetime_remaining = LIFETIME_SECONDS
+	repair_amount = maxf(p_repair_amount, 0.0)
 	active = true
 	visible = true
 	set_deferred("monitoring", true)
@@ -75,6 +77,7 @@ func reset_pickup() -> void:
 		_collision.set_deferred("disabled", true)
 	_lifetime_remaining = 0.0
 	_phase = 0.0
+	repair_amount = REPAIR_AMOUNT
 	position = Vector2(-4096.0, -4096.0)
 	_origin = position
 	set_process(false)
@@ -83,7 +86,7 @@ func reset_pickup() -> void:
 func try_collect(robot: GiantRobotController) -> bool:
 	if not active or robot == null:
 		return false
-	var repaired_health: float = robot.repair_chassis(REPAIR_AMOUNT)
+	var repaired_health: float = robot.repair_chassis(repair_amount)
 	if repaired_health <= 0.0:
 		return false
 	reset_pickup()

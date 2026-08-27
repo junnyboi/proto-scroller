@@ -20,6 +20,13 @@ const CHAOS_SYSTEM_SALT: int = 0x0C4A05
 const ELITE_AFFIXES: Array[StringName] = EnemyArchetypeCatalog.RANDOM_AFFIXES
 const HUMAN_COPY_STAGGER: float = 0.14
 const HUMAN_COPY_SPACING: float = 64.0
+const BLOCKED_CONTINUITY_SOLDIER_COUNT: int = 4
+const BLOCKED_CONTINUITY_OFFSETS: Array[Vector2] = [
+	Vector2(-156.0, 0.0),
+	Vector2(-84.0, 0.0),
+	Vector2(84.0, 0.0),
+	Vector2(156.0, 0.0),
+]
 
 var district: DistrictDefinition
 var ledger: CapacityReservationLedger = CapacityReservationLedger.new()
@@ -43,6 +50,7 @@ var run_experience: RunExperience
 var current_pressure_profile: DistrictPressureProfile
 var peak_hazard_pending: int = 0
 var progression_peak_threat: int = 0
+var continuity_spawn_count: int = 0
 var _elite_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _elite_seed: int = ELITE_SYSTEM_SALT
 var _chaos_rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -113,6 +121,7 @@ func start() -> void:
 	progression_copy_peak = 0
 	progression_degradation_count = 0
 	progression_peak_threat = 0
+	continuity_spawn_count = 0
 	hybrid_substitution_trace.clear()
 	district_variant_substitution_trace.clear()
 	peak_hazard_pending = 0
@@ -394,27 +403,26 @@ func _try_start_next_beat() -> void:
 		if _act_advance_blocked:
 			_try_emit_held_act_completion(act)
 			beat_index = -1
-		else:
-			var target_duration: float = _scaled_target_duration(act)
-			if act_elapsed < target_duration:
-				return
-			var overrun_expired: bool = (
-				act_elapsed
-				>= target_duration + EnemySpawnTuning.scaled_interval(
-					MAXIMUM_ACT_OVERRUN
-				)
-			)
-			if _threat_weight() > LOW_THREAT_WEIGHT:
-				if not overrun_expired:
-					return
-				runtime.release_all()
-			if not _act_completion_emitted:
-				_act_completion_emitted = true
-				act_completed.emit(phase_index, act.act_id, act.display_name)
-			if not act.milestone_after.is_empty():
-				milestone_reached.emit(act.milestone_after)
-			_advance_act()
+			_try_start_next_beat()
+			if _beat_pending.is_empty() and runtime.active_count() == 0:
+				_ensure_blocked_act_continuity()
 			return
+		var target_duration: float = _scaled_target_duration(act)
+		if act_elapsed < target_duration:
+			return
+		var overrun_expired: bool = (
+			act_elapsed
+			>= target_duration + EnemySpawnTuning.scaled_interval(MAXIMUM_ACT_OVERRUN)
+		)
+		if _threat_weight() > LOW_THREAT_WEIGHT and not overrun_expired:
+			return
+		if not _act_completion_emitted:
+			_act_completion_emitted = true
+			act_completed.emit(phase_index, act.act_id, act.display_name)
+		if not act.milestone_after.is_empty():
+			milestone_reached.emit(act.milestone_after)
+		_advance_act()
+		return
 	var authored_beat: DistrictBeat = act.beats[beat_index + 1]
 	var spatial_district_id: StringName = (
 		runtime.world_stream.current_district_id
@@ -561,6 +569,28 @@ func _try_start_next_beat() -> void:
 	runtime.set_attack_gate(true)
 	state = STATE_PRESSURE
 	beat_changed.emit(phase_index, beat_index, next_beat.beat_id)
+
+
+func _ensure_blocked_act_continuity() -> void:
+	if (
+		runtime == null
+		or _boss_suspended
+		or runtime.active_count() > 0
+		or not _beat_pending.is_empty()
+	):
+		return
+	var center: Vector2 = runtime.resolve_spawn_position(Vector2(0.0, 655.0), &"AHEAD")
+	for index: int in range(BLOCKED_CONTINUITY_SOLDIER_COUNT):
+		var spawn_anchor: StringName = &"AHEAD" if index % 2 == 0 else &"BEHIND"
+		var spawn_position: Vector2 = runtime.resolve_spawn_position(
+			Vector2(0.0, 655.0),
+			spawn_anchor,
+			BLOCKED_CONTINUITY_OFFSETS[index]
+		)
+		if runtime.acquire(&"soldier", spawn_position) != null:
+			continuity_spawn_count += 1
+	if continuity_spawn_count == 0:
+		push_warning("Blocked act continuity could not acquire infantry near %s" % center)
 
 
 func _start_recovery() -> void:

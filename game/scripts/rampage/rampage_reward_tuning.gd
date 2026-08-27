@@ -5,6 +5,7 @@ const BASE_COMBO_GRACE_SECONDS: float = 3.0
 const BASE_PENDING_BANK_SECONDS: float = 1.0
 const COMBO_PROGRESS_UNITS_PER_TIER: int = EnemySpawnTuning.QUANTITY_MULTIPLIER
 const MAX_MULTIPLIER: int = 5
+const NAMED_BOSS_REWARD_MULTIPLIER: int = 3
 const COMBO_GRACE_SECONDS: float = (
 	BASE_COMBO_GRACE_SECONDS * EnemySpawnTuning.INTERVAL_SCALE
 )
@@ -20,6 +21,15 @@ static func enemy_score_points(base_points: int, named_boss: bool = false) -> in
 	return maxi(
 		roundi(float(sanitized_points) / float(EnemySpawnTuning.QUANTITY_MULTIPLIER)),
 		1
+	)
+
+
+static func enemy_reward_points(base_points: int, named_boss: bool = false) -> int:
+	var sanitized_points: int = maxi(base_points, 0)
+	return (
+		sanitized_points * NAMED_BOSS_REWARD_MULTIPLIER
+		if named_boss
+		else sanitized_points
 	)
 
 

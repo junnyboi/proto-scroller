@@ -8,6 +8,12 @@ const PART_CAPACITY: int = 6
 const SOCKET_CAPACITY: int = 8
 const HURT_REGION_CAPACITY: int = 3
 const DEFAULT_DISPLAY_SIZE: Vector2 = Vector2(520.0, 390.0)
+const SETTLEMENT_PRESENTATION_SCALE: float = 1.5
+const SETTLEMENT_VISIBLE_BOTTOM_LOCAL_Y: float = 38.84
+const SETTLEMENT_ROAD_CONTACT_Y: float = (
+	CityStreetChunk.ROAD_DIVIDER_Y
+	- SETTLEMENT_VISIBLE_BOTTOM_LOCAL_Y * SETTLEMENT_PRESENTATION_SCALE
+)
 const STATE_MOVING: StringName = &"MOVING"
 const STATE_ATTACKING: StringName = &"ATTACKING"
 const DIRECTION_EAST: StringName = &"E"
@@ -62,6 +68,11 @@ func configure(
 	active_definition = definition
 	host = p_host
 	portrait = use_portrait
+	scale = (
+		Vector2.ONE * SETTLEMENT_PRESENTATION_SCALE
+		if definition.rig_preset == &"SETTLEMENT_ENGINE"
+		else Vector2.ONE
+	)
 	global_position = host.global_position
 	_configure_art(definition.rig_preset)
 	_configure_sockets(definition.rig_preset, definition.portrait_socket_overrides)
@@ -75,6 +86,7 @@ func deactivate() -> void:
 	active_definition = null
 	host = null
 	portrait = false
+	scale = Vector2.ONE
 	active_part_count = 0
 	active_hurt_region_count = 0
 	animation_state = STATE_MOVING

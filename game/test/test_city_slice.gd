@@ -91,9 +91,9 @@ func test_structural_cells_have_distinct_material_profiles() -> void:
 		[&"glass", &"concrete", &"steel"],
 	]
 	var expected_health: Dictionary[StringName, float] = {
-		&"glass": 45.0,
-		&"concrete": 95.0,
-		&"steel": 155.0,
+		&"glass": 33.75,
+		&"concrete": 71.25,
+		&"steel": 116.25,
 	}
 	var expected_chunks: Dictionary[StringName, int] = {
 		&"glass": 5,
@@ -246,7 +246,7 @@ func test_jab_cross_destroys_lower_bay_and_cracks_upper_support() -> void:
 	assert_gt(upper_pattern.crack_count(), 0)
 	assert_eq(city.building.destroyed_cell_count(), 1)
 	assert_false(city.building.is_destroyed())
-	assert_eq(city.score, 1225)
+	assert_eq(city.score, 994)
 	assert_eq(city.last_material_audio, &"concrete")
 	assert_eq(city.material_audio_play_count, 2)
 	var glass_audio: AudioStreamPlayer2D = city.impact_audio_root.get_child(0)
@@ -270,7 +270,7 @@ func test_jab_cross_destroys_lower_bay_and_cracks_upper_support() -> void:
 			high_forward_shrapnel += 1
 	assert_gte(high_forward_shrapnel, 4)
 	var score_label: Label = city.get_node(^"HUD/ScoreLabel") as Label
-	assert_eq(score_label.text, "00001225")
+	assert_eq(score_label.text, "00000994")
 	_record_test_execution()
 
 

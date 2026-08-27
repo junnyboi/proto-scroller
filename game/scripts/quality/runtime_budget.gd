@@ -76,6 +76,7 @@ const BOSS_PROJECTION_SLOTS: int = BossUtilityPool.PROJECTION_SLOT_CAPACITY
 const BOSS_MARKERS: int = BossUtilityPool.MARKER_CAPACITY
 const BOSS_LANE_DAMAGE_AREAS: int = BossUtilityPool.LANE_DAMAGE_AREA_CAPACITY
 const BOSS_LINE_AREAS: int = BossUtilityPool.LINE_AREA_CAPACITY
+const BOSS_RADIAL_SHOCKWAVES: int = BossUtilityPool.RADIAL_SHOCKWAVE_CAPACITY
 const BOSS_COLLAPSE_LISTENERS: int = BossUtilityPool.COLLAPSE_LISTENER_CAPACITY
 const BOSS_POD_VISUALS: int = BossUtilityPool.POD_VISUAL_CAPACITY
 const BOSS_RECLAMATION_ANCHORS: int = BossUtilityPool.RECLAMATION_ANCHOR_CAPACITY
@@ -277,7 +278,8 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"boss_projection_slots": _boss_utility_count(city, &"projections"),
 		"boss_markers": _boss_utility_count(city, &"markers"),
 		"boss_lane_damage_areas": _boss_utility_count(city, &"lane_areas"),
-		"boss_line_areas": _boss_utility_count(city, &"line_areas"),
+			"boss_line_areas": _boss_utility_count(city, &"line_areas"),
+			"boss_radial_shockwaves": _boss_utility_count(city, &"radial_shockwaves"),
 		"boss_collapse_listeners": _boss_utility_count(city, &"collapse_listeners"),
 		"boss_pod_visuals": _boss_utility_count(city, &"pod_visuals"),
 		"boss_reclamation_anchors": _boss_utility_count(city, &"anchors"),
@@ -467,6 +469,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "boss_markers", BOSS_MARKERS)
 	_check_equal(errors, data, "boss_lane_damage_areas", BOSS_LANE_DAMAGE_AREAS)
 	_check_equal(errors, data, "boss_line_areas", BOSS_LINE_AREAS)
+	_check_equal(errors, data, "boss_radial_shockwaves", BOSS_RADIAL_SHOCKWAVES)
 	_check_equal(errors, data, "boss_collapse_listeners", BOSS_COLLAPSE_LISTENERS)
 	_check_equal(errors, data, "boss_pod_visuals", BOSS_POD_VISUALS)
 	_check_equal(errors, data, "boss_reclamation_anchors", BOSS_RECLAMATION_ANCHORS)
@@ -781,6 +784,8 @@ static func _boss_utility_count(city: CitySlice, kind: StringName) -> int:
 			return pool.lane_damage_areas.size()
 		&"line_areas":
 			return pool.line_areas.size()
+		&"radial_shockwaves":
+			return 1 if pool.radial_shockwave != null else 0
 		&"collapse_listeners":
 			return pool.collapse_listener_count()
 		&"pod_visuals":

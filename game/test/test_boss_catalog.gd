@@ -106,6 +106,11 @@ func test_utility_pool_prewarm_union_is_exact_and_never_grows_after_warm() -> vo
 	assert_eq(pool.marker_count(), 8)
 	assert_eq(pool.lane_damage_areas.size(), 3)
 	assert_eq(pool.line_areas.size(), 2)
+	assert_not_null(pool.radial_shockwave)
+	assert_eq(
+		pool.radial_shockwave.presentation_role,
+		BossAttackArea2D.PresentationRole.RADIAL_SHOCKWAVE
+	)
 	assert_eq(pool.collapse_listener_count(), 2)
 	assert_eq(pool.pod_visual_count(), 4)
 	assert_eq(pool.reclamation_anchor_count(), 3)

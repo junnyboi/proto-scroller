@@ -32,16 +32,16 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 
 ### 1. Settlement Engine S-04 — The Fiduciary Saint
 
-**Identity:** A lane-control tutorial boss with forgiving universal armor damage before later encounters introduce stricter connection mechanics.
+**Identity:** A 150-percent-scale shockwave bruiser grounded on the road divider, with forgiving universal armor damage before later encounters introduce stricter connection mechanics. Its arena landmark is hidden and non-colliding for the entire summon, so the boss arrives alone rather than inside a random facade.
 
 | Phase | Abilities and attack pattern | Counterplay |
 |---|---|---|
-| **Armored** | **Settlement Sweep** covers asymmetric left and right ground zones. **Double-Entry Barrage** attacks both outer approaches and, after recovery, deploys one Bulwark and one Sapper. | Use any melee or equipped weapon. Ground smash, tap jab-cross, bullets, shells, rockets, and impact damage all reduce armor by their actual accepted amount. Attack during the open interval and watch the yellow bar. |
-| **Exposed** | **Foreclosure Stamp** attacks the center. **Audit Beam** creates a long horizontal beam above the road. | Stay near an edge during Stamp; change vertical/road position relative to the thin beam; attack during recovery. |
-| **Final third** | **Audit Beam** remains and **Foundation Cascade** adds a heavy left-side ground collapse. | Favor the right approach, dodge through a late arm, then punish the recovery. Eliminate the two support enemies if they obstruct the charging lane. |
+| **Armored** | **Fiduciary Shockwave** warns with an 820-pixel gold ring around S-04, then arms as an expanding pulse for one deduplicated hit: 72 authored damage, or 61.2 after the current global 0.85 enemy-damage scale. It is explicitly unblockable and therefore bypasses dodge invulnerability. Each recovery summons four foot soldiers until eight are active, replacing casualties without exceeding the cap. | Use any melee or equipped weapon. Ground smash, tap jab-cross, bullets, shells, rockets, and impact damage all reduce armor by their actual accepted amount. Move beyond the warning radius before it arms; dodge is still useful for displacement, but not immunity. |
+| **Exposed** | Fiduciary Shockwave remains the sole boss attack while four-soldier recovery waves maintain pressure up to the eight-unit cap. | Clear soldiers when they crowd the approach, leave the circle during the gold telegraph, then attack the exposed body during recovery. |
+| **Final third** | The same readable radial attack scales through faster player pressure rather than introducing unrelated footprints. New Game+ doubles its damage with the global enemy attack multiplier. | Keep the arena center clear, preserve an exit route before each pulse, and punish recovery without assuming a dodge can absorb the hit. |
 | **Corpse** | The S-04 atlas freezes and darkens at body death; a gold **MELEE TO SCRAP** receiver appears. | Land one fresh jab-cross or ground smash to create rubble and two 50-HP repair cells. |
 
-**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. Use the full space left of the right arena boundary; it vanishes into the explosion-and-fireworks barrage when the body fails. Strike the darkened boss corpse once with a fresh melee for the completion record and repair drop.[1][3][10][12]
+**How to take it down:** Damage the armor with any weapon, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. Read gold as the radial warning, leave its 410-pixel radius before the pulse arms, and use the recovery to damage S-04 or thin the incoming soldiers. Use the full space left of the right arena boundary; it vanishes into the explosion-and-fireworks barrage when the body fails. Strike the darkened boss corpse once with a fresh melee for the completion record and repair drop.[1][3][10][12]
 
 ### 2. SAMARITAN-15 — The Last Evacuation
 
@@ -99,7 +99,7 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 
 The campaign now has a coherent learning curve instead of five differently decorated target dummies. Settlement teaches lane recovery and clearly visible durability while accepting the player's entire arsenal. SAMARITAN introduces the stricter movement-charge armor lesson, then adds protection pressure and rotating sanctuary. MIMESIS tests visual discrimination and spatial counterplay to a weapon jam. CANTOR adds marked pursuit and finite area denial. CHOIR Prime recombines those rules, then ends with a legible consequential choice. The visual grammar remains consistent: **yellow is armor durability, red is body health, white flash means accepted damage, pale/gold is warning, magenta is armed damage, cyan is memory or Disentangle, and labeled circles are finishers**.
 
-The implementation deliberately keeps stateful boss support singular despite global 2× enemy density. This preserves readable boss mechanics while ordinary authored waves remain doubled. Each attack uses a bounded pooled area, supports are capped, phase transitions are health-driven, and no encounter requires the player to destroy optional evidence to open the route.
+The implementation keeps stateful support mechanics singular for bosses two through five despite global 2× enemy density. S-04 is the deliberate infantry-pressure exception: four-soldier recovery waves fill its fixed eight-support cap and replace defeated soldiers without exceeding it. Each attack uses a bounded pooled area, supports are capped, phase transitions are health-driven, and no encounter requires the player to destroy optional evidence to open the route.
 
 ## Remaining high-value design opportunities
 
