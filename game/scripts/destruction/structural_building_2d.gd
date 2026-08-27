@@ -28,6 +28,7 @@ const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.g
 @export var collision_mask_value: int = 0
 @export var hurtbox_layer_value: int = 0
 @export var debris_pool_path: NodePath
+@export var section_burst_pool_path: NodePath
 
 var last_chain_reaction_kind: StringName = &""
 var chain_reaction_count: int = 0
@@ -222,6 +223,7 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 	cell.damaged_stage_ratio = 0.65
 	cell.gameplay_chunk_count = profile.chunk_count
 	cell.debris_pool_path = NodePath("../" + str(debris_pool_path))
+	cell.section_burst_pool_path = NodePath("../" + str(section_burst_pool_path))
 	cell.intact_visual_path = ^"IntactVisual"
 	cell.damaged_visual_path = ^"DamagedVisual"
 	cell.rubble_visual_path = ^"RubbleVisual"
