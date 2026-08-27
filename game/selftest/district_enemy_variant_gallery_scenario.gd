@@ -40,6 +40,16 @@ func _run() -> void:
 		"count=%d" % _count_cards(gallery)
 	)
 	_check(
+		"vfx_catalog_twenty_variants",
+		EnemyAttackVfxCatalog.SPECS.size() == 20,
+		"count=%d" % EnemyAttackVfxCatalog.SPECS.size()
+	)
+	_check(
+		"vfx_delivery_split",
+		EnemyAttackVfxCatalog.RANGED_IDS.size() == 9,
+		"ranged=9 actor=11"
+	)
+	_check(
 		"five_district_groups",
 		_district_card_counts(gallery) == {
 			&"BUSINESS": 4,
@@ -140,9 +150,15 @@ func _variant_card(
 ) -> PanelContainer:
 	var profile: Dictionary = EnemyArchetypeCatalog.profile(variant_id)
 	var canonical_id: StringName = EnemyArchetypeCatalog.canonical_id(variant_id)
+	var vfx_spec: Dictionary = EnemyAttackVfxCatalog.spec(variant_id)
 	var texture: Texture2D = load(String(profile.get("texture", ""))) as Texture2D
 	_check("%s_profile" % variant_id, not profile.is_empty(), "base=%s" % canonical_id)
 	_check("%s_texture" % variant_id, texture != null, "path=%s" % profile.get("texture", ""))
+	_check(
+		"%s_attack_vfx" % variant_id,
+		not vfx_spec.is_empty(),
+		"delivery=%s" % vfx_spec.get("delivery", &"")
+	)
 	_check(
 		"%s_family" % variant_id,
 		EnemyArchetypeCatalog.family_for(variant_id) == EnemyArchetypeCatalog.family_for(canonical_id),
@@ -184,9 +200,10 @@ func _variant_card(
 	identity_label.add_theme_font_size_override("font_size", 9)
 	stack.add_child(identity_label)
 	var family_label: Label = Label.new()
-	family_label.text = "%s // THREAT %02d" % [
+	family_label.text = "%s // THREAT %02d // %s" % [
 		String(profile.family).to_upper(),
 		int(profile.threat),
+		"SHOT" if EnemyAttackVfxCatalog.is_projectile_delivery(variant_id) else "ACTOR",
 	]
 	family_label.add_theme_color_override("font_color", Color("70c9c8"))
 	family_label.add_theme_font_size_override("font_size", 10)
@@ -231,6 +248,18 @@ func _variant_records() -> Array[Dictionary]:
 	var records: Array[Dictionary] = []
 	for variant_id: StringName in EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS:
 		var profile: Dictionary = EnemyArchetypeCatalog.profile(variant_id)
+		var attack_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+			variant_id,
+			&"attack"
+		)
+		var impact_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+			variant_id,
+			&"impact"
+		)
+		var payload_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+			variant_id,
+			&"projectile"
+		)
 		records.append({
 			"id": String(variant_id),
 			"canonical_id": String(EnemyArchetypeCatalog.canonical_id(variant_id)),
@@ -240,6 +269,17 @@ func _variant_records() -> Array[Dictionary]:
 			"faces_right": bool(profile.get("faces_right", false)),
 			"display": profile.display,
 			"collision": profile.collision,
+			"attack_vfx_id": String(profile.attack_vfx_id),
+			"delivery": (
+				"projectile"
+				if EnemyAttackVfxCatalog.is_projectile_delivery(variant_id)
+				else "actor"
+			),
+			"projectile_key": String(EnemyAttackVfxCatalog.projectile_key(variant_id)),
+			"impact_key": String(EnemyAttackVfxCatalog.impact_key(variant_id)),
+			"payload_region": payload_phase.region,
+			"impact_region": impact_phase.region,
+			"attack_region": attack_phase.region,
 		})
 	return records
 
