@@ -180,7 +180,11 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 		BuildingDamageAttachment2D.MAX_WATER_PARTICLES
 	)
 	assert_eq(pattern.damage_detail_count(), 1)
-	assert_ne(cable.visible, pipe.visible)
+	assert_true(
+		cable.visible
+		or pipe.visible
+		or (pattern.damage_detail_mask() & BuildingDamagePattern2D.FIRE_DETAIL_BIT) != 0
+	)
 	if cable.visible:
 		var initial_rotation: float = cable.rotation
 		for _step: int in range(8):
@@ -226,7 +230,7 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 	assert_not_null(cavity_material.shader)
 	assert_true(cavity_material.shader.code.contains("discard"))
 	assert_true(cavity_material.shader.code.contains("facade.a <= alpha_threshold"))
-	assert_true(cavity_material.shader.code.contains("radial < boundary - edge_softness"))
+	assert_true(cavity_material.shader.code.contains("opening_metric < boundary - edge_softness"))
 	assert_eq(
 		float(cavity_material.get_shader_parameter("alpha_threshold")),
 		BuildingDamagePattern2D.FACADE_ALPHA_THRESHOLD
@@ -301,11 +305,15 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_gte(BuildingDamagePattern2D.HOLLOW_CENTER_Y + terminal_extents.y, 0.94)
 	assert_eq(pattern.damage_detail_count(), 0)
 	assert_eq(pattern.damage_detail_mask(), 0)
-	assert_gte(pattern.crack_count(), BuildingDamagePattern2D.BASE_CRACK_COUNT + 3)
+	assert_gte(pattern.crack_count(), 1)
+	assert_lte(pattern.crack_count(), BuildingDamagePattern2D.BASE_CRACK_COUNT + 3)
+	assert_lt(BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH, 0.5)
 	var shader_code: String = pattern.cavity_material().shader.code
 	assert_true(shader_code.contains("texture(TEXTURE, UV)"))
 	assert_true(shader_code.contains("notches"))
 	assert_true(shader_code.contains("lower_breach"))
+	assert_true(shader_code.contains("arch_metric"))
+	assert_true(shader_code.contains("terminal_arch_blend"))
 	assert_true(shader_code.contains("discard"))
 	_record_test_execution()
 

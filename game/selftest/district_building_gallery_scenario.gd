@@ -60,8 +60,7 @@ func _render_district(district: CityDistrictProfile) -> void:
 		_place_building(building, index, portrait)
 		if index == 1:
 			_apply_partial_damage(building, index)
-		if index == 2:
-			_apply_hollow_cell(building)
+		_apply_hollow_cell(building)
 	await process_frame
 	await process_frame
 	var path: String = "%s/%s-%s.png" % [

@@ -144,7 +144,7 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 					)
 					assert_true(
 						pattern.cavity_material().shader.code.contains(
-							"radial < boundary - edge_softness"
+							"opening_metric < boundary - edge_softness"
 						),
 						String(variant.variant_id)
 					)

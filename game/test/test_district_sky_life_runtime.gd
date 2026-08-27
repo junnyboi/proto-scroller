@@ -2,7 +2,6 @@ extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const EXPECTED_ASSETS: Dictionary = {
-	"CloudBank": "res://art/city/parallax/living/cloud_bank.webp",
 	"CourierShuttle": "res://art/city/parallax/living/courier_shuttle.webp",
 	"StateCarrier": "res://art/city/parallax/living/state_carrier.webp",
 }
@@ -16,6 +15,8 @@ func test_living_sky_uses_fixed_prewarmed_art_and_node_budget() -> void:
 	assert_eq(life.band_count(), RuntimeBudget.SKY_LIFE_BANDS)
 	assert_eq(life.sprite_count(), RuntimeBudget.SKY_LIFE_SPRITES)
 	assert_eq(life.post_warm_creation_count, 0)
+	assert_null(life.find_child("CloudBank", true, false))
+	assert_null(life.find_child("CloudLife", true, false))
 	var baseline_nodes: int = _node_count(life)
 	for sprite_name: String in EXPECTED_ASSETS:
 		var sprite: Sprite2D = life.find_child(sprite_name, true, false) as Sprite2D
@@ -40,18 +41,14 @@ func test_all_districts_have_distinct_motion_and_color_profiles() -> void:
 	assert_eq(seen_speeds.size(), CityDistrictCatalog.DISTRICT_COUNT)
 
 
-func test_clouds_and_traffic_advance_and_wrap_without_allocation() -> void:
+func test_traffic_advances_and_wraps_without_cloud_allocation() -> void:
 	var city: CitySlice = await _spawn_city()
 	var life: DistrictSkyLifeRuntime = _life(city)
-	var cloud_before: float = life.cloud_offset()
 	var traffic_before: float = life.traffic_offset()
 	var nodes_before: int = _node_count(life)
 	life.advance(2.0)
-	assert_gt(life.cloud_offset(), cloud_before)
 	assert_gt(life.traffic_offset(), traffic_before)
 	life.advance(DistrictSkyLifeRuntime.DAY_CYCLE_SECONDS * 4.0)
-	assert_gte(life.cloud_offset(), 0.0)
-	assert_lt(life.cloud_offset(), DistrictSkyLifeRuntime.CLOUD_REPEAT_WIDTH)
 	assert_gte(life.traffic_offset(), 0.0)
 	assert_lt(life.traffic_offset(), DistrictSkyLifeRuntime.TRAFFIC_REPEAT_WIDTH)
 	assert_eq(_node_count(life), nodes_before)
@@ -115,15 +112,9 @@ func test_reset_preserves_world_clock_and_origin_compensation() -> void:
 	var life: DistrictSkyLifeRuntime = parallax.sky_life_runtime()
 	parallax.set_time_phase(0.36)
 	assert_true(parallax.transition_to(&"ROYAL", true))
-	var cloud_before: float = life.cloud_offset()
 	var traffic_before: float = life.traffic_offset()
 	var offset: Vector2 = Vector2(-CityWorldStream.CHUNK_WIDTH, 0.0)
 	parallax.compensate_origin(offset)
-	assert_almost_eq(
-		life.cloud_offset(),
-		cloud_before + offset.x * DistrictSkyLifeRuntime.CLOUD_SCROLL_SCALE.x,
-		0.001
-	)
 	assert_almost_eq(
 		life.traffic_offset(),
 		traffic_before + offset.x * DistrictSkyLifeRuntime.TRAFFIC_SCROLL_SCALE.x,
