@@ -4,13 +4,8 @@ extends Node2D
 const BUSINESS: StringName = &"BUSINESS"
 const DAY_CYCLE_SECONDS: float = 360.0
 const START_PHASE: float = 0.70
-const CLOUD_REPEAT_WIDTH: float = 1024.0
 const TRAFFIC_REPEAT_WIDTH: float = 2048.0
-const CLOUD_SCROLL_SCALE: Vector2 = Vector2(0.10, 1.0)
 const TRAFFIC_SCROLL_SCALE: Vector2 = Vector2(0.12, 1.0)
-const CLOUD_TEXTURE: Texture2D = preload(
-	"res://art/city/parallax/living/cloud_bank.webp"
-)
 const COURIER_TEXTURE: Texture2D = preload(
 	"res://art/city/parallax/living/courier_shuttle.webp"
 )
@@ -21,9 +16,6 @@ const PROFILES: Dictionary = {
 	&"BUSINESS": {
 		"grade": Color("e9f7ff"),
 		"saturation": 0.92,
-		"cloud_tint": Color("9cb6bd"),
-		"cloud_alpha": 0.24,
-		"cloud_speed": 8.0,
 		"traffic_tint": Color("a9e4ea"),
 		"traffic_alpha": 0.44,
 		"traffic_speed": 34.0,
@@ -32,9 +24,6 @@ const PROFILES: Dictionary = {
 	&"RESIDENTIAL": {
 		"grade": Color("dcf3ef"),
 		"saturation": 0.86,
-		"cloud_tint": Color("839fa4"),
-		"cloud_alpha": 0.34,
-		"cloud_speed": 14.0,
 		"traffic_tint": Color("b6d3ce"),
 		"traffic_alpha": 0.30,
 		"traffic_speed": 24.0,
@@ -43,9 +32,6 @@ const PROFILES: Dictionary = {
 	&"ENTERTAINMENT": {
 		"grade": Color("f1d8ff"),
 		"saturation": 1.08,
-		"cloud_tint": Color("9d729f"),
-		"cloud_alpha": 0.22,
-		"cloud_speed": 7.0,
 		"traffic_tint": Color("98f3e8"),
 		"traffic_alpha": 0.76,
 		"traffic_speed": 58.0,
@@ -54,9 +40,6 @@ const PROFILES: Dictionary = {
 	&"MILITARY": {
 		"grade": Color("e1dfbd"),
 		"saturation": 0.82,
-		"cloud_tint": Color("817e69"),
-		"cloud_alpha": 0.33,
-		"cloud_speed": 22.0,
 		"traffic_tint": Color("c7b48d"),
 		"traffic_alpha": 0.44,
 		"traffic_speed": 42.0,
@@ -65,9 +48,6 @@ const PROFILES: Dictionary = {
 	&"ROYAL": {
 		"grade": Color("ffd9c6"),
 		"saturation": 0.94,
-		"cloud_tint": Color("9e777d"),
-		"cloud_alpha": 0.27,
-		"cloud_speed": 6.0,
 		"traffic_tint": Color("e6bc83"),
 		"traffic_alpha": 0.34,
 		"traffic_speed": 18.0,
@@ -133,9 +113,7 @@ var post_warm_creation_count: int = 0
 var _district_weight: float = 1.0
 var _current_profile: Dictionary = PROFILES[BUSINESS] as Dictionary
 var _target_profile: Dictionary = PROFILES[BUSINESS] as Dictionary
-var _cloud_band: Parallax2D
 var _traffic_band: Parallax2D
-var _cloud_sprite: Sprite2D
 var _courier_sprite: Sprite2D
 var _carrier_sprite: Sprite2D
 var _cycle_tint: Color = Color.WHITE
@@ -157,12 +135,7 @@ func advance(delta: float) -> void:
 		return
 	time_phase = fposmod(time_phase + delta / DAY_CYCLE_SECONDS, 1.0)
 	_sample_time()
-	var cloud_speed: float = _profile_value(&"cloud_speed")
 	var traffic_speed: float = _profile_value(&"traffic_speed")
-	_cloud_band.scroll_offset.x = fposmod(
-		_cloud_band.scroll_offset.x + cloud_speed * delta,
-		CLOUD_REPEAT_WIDTH
-	)
 	_traffic_band.scroll_offset.x = fposmod(
 		_traffic_band.scroll_offset.x + traffic_speed * delta,
 		TRAFFIC_REPEAT_WIDTH
@@ -204,7 +177,6 @@ func apply_district(district_id: StringName) -> bool:
 
 
 func reset_to_business() -> void:
-	_cloud_band.scroll_offset = Vector2.ZERO
 	_traffic_band.scroll_offset = Vector2.ZERO
 	apply_district(BUSINESS)
 
@@ -216,7 +188,6 @@ func set_time_phase(phase: float) -> void:
 
 
 func compensate_origin(offset: Vector2) -> void:
-	_cloud_band.scroll_offset += offset * CLOUD_SCROLL_SCALE
 	_traffic_band.scroll_offset += offset * TRAFFIC_SCROLL_SCALE
 
 
@@ -264,19 +235,14 @@ func _profile_color(key: StringName) -> Color:
 
 
 func band_count() -> int:
-	return int(_cloud_band != null) + int(_traffic_band != null)
+	return int(_traffic_band != null)
 
 
 func sprite_count() -> int:
 	return (
-		int(_cloud_sprite != null)
-		+ int(_courier_sprite != null)
+		int(_courier_sprite != null)
 		+ int(_carrier_sprite != null)
 	)
-
-
-func cloud_offset() -> float:
-	return _cloud_band.scroll_offset.x
 
 
 func traffic_offset() -> float:
@@ -284,15 +250,6 @@ func traffic_offset() -> float:
 
 
 func _build_fixed_bands() -> void:
-	_cloud_band = _create_band(
-		"CloudLife",
-		CLOUD_SCROLL_SCALE,
-		-45,
-		Vector2(CLOUD_REPEAT_WIDTH, 0.0)
-	)
-	_cloud_sprite = _create_sprite(CLOUD_TEXTURE, Vector2(0.0, 24.0), Vector2.ONE)
-	_cloud_sprite.name = "CloudBank"
-	_cloud_band.add_child(_cloud_sprite)
 	_traffic_band = _create_band(
 		"AirTraffic",
 		TRAFFIC_SCROLL_SCALE,
@@ -373,12 +330,8 @@ func _sample_time() -> void:
 
 
 func _apply_life_style() -> void:
-	if _cloud_sprite == null:
+	if _courier_sprite == null or _carrier_sprite == null:
 		return
-	var night_visibility: float = clampf(1.30 - _cycle_brightness, 0.25, 0.80)
-	var cloud_color: Color = _profile_color(&"cloud_tint") * _cycle_tint
-	cloud_color.a = _profile_value(&"cloud_alpha") * lerpf(0.74, 1.12, night_visibility)
-	_cloud_sprite.modulate = cloud_color
 	var traffic_color: Color = _profile_color(&"traffic_tint") * _cycle_tint
 	var traffic_alpha: float = _profile_value(&"traffic_alpha")
 	var carrier_mix: float = _profile_value(&"carrier_mix")
