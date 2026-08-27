@@ -171,6 +171,12 @@ func test_tank_warning_fires_exact_snapshot_from_reserved_slot() -> void:
 	assert_eq(warning.origin, tank.visual.global_position)
 	assert_ne(warning.origin, origin)
 	assert_eq(tank.telegraph_origin(), origin)
+	assert_almost_eq(
+		float(warning.thickness_scale),
+		tank.attack_telegraph_thickness_scale(),
+		0.001
+	)
+	assert_gt(float(warning.thickness_scale), 2.0)
 	assert_false(tank.advance_telegraph(0.74))
 	assert_true(tank.advance_telegraph(0.01))
 	tank._fire_snapshot()
