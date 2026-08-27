@@ -6,11 +6,11 @@
 
 **Runtime source total:** 5,205,290 bytes
 
-**Measured Web PCK:** 15,723,964 bytes
+**Measured Web PCK:** 16,724,720 bytes
 
 **PCK ceiling:** 16,777,216 bytes
 
-**Remaining PCK headroom:** 1,053,252 bytes
+**Remaining PCK headroom:** 52,496 bytes
 
 The five canonical animated boss atlases began with **GPT Image 2** keyframes and locked-camera Veo carriers; the five instrumental themes were generated with **Lyria 3 Pro**. Concept plates and superseded static sprites remain outside the Web PCK. Runtime art is stored as transparent WebP atlases; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter.
 
