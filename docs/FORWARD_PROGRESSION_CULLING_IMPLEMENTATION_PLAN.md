@@ -91,7 +91,7 @@ Commit and push the final integrated tree to shared `main`, create a fresh Godot
 
 | Layer | Acceptance requirement |
 |---|---|
-| Movement | Furthest progress is monotonic; rear frontier remains exactly 500 px behind it. |
+| Movement | Furthest progress is monotonic; rear frontier remains exactly 1,000 px behind it. |
 | Collision | Walking or dodging left cannot cross the invisible rear wall. |
 | Feedback | Rear-wall contact produces one responsive red vignette pulse and one non-spatial `Voice`-bus warning cue from the same debounced event, with no input interception. |
 | Culling | Chunks fully behind the frontier are hidden, nonprocessing, and noncolliding; recycled chunks restore correctly. |
@@ -120,10 +120,11 @@ The highest risk is disabling pooled collisions without restoring mutation-sensi
 | 5 — Source/WebDev delivery | Complete | `fca74d1` / WebDev `c0da9c13` | Shared `main` updated non-force; fresh Godot 4.7.2 Web export synchronized to immutable WASM/PCK payloads and saved in the existing host checkpoint. |
 | 6 — Rear-wall warning feedback | Complete | `5b16bd9` / WebDev `82a6869a` | Debounced contact signal, prewarmed input-transparent shader vignette, HUD wiring, runtime-budget contract, fresh Godot 4.7.2 export, and existing-host synchronization delivered. |
 | 7 — Rear-wall warning audio | Complete | `66b4b21` / WebDev `4f2100a8` | GPT Image 2 anchor, generated video-carrier bed, exact `Gacrux` line, mastered 48 kHz mono cue, synchronous debounced HUD playback, fresh Godot 4.7.2 export, and combined concurrent-host checkpoint delivered. |
+| 8 — Boss/shop/corridor handoff | Complete | `dd5f25f` / WebDev `240dc289` | Each fifth facade triggers its boss first; the defeated-boss overlap opens the shop; future content remains suppressed through two road-only chunks; old facades must be culled before the next district and act activate atomically. The checkpoint also preserves concurrent district weather, progressive facade hollowing, and optimized cosmetic Web imports. |
 
 ## Delivered Runtime
 
-The delivered warning-audio gameplay revision is `66b4b21`. WebDev checkpoint `4f2100a8` maps `/manus-storage/game_9bfa26ef.wasm` (39,514,754 bytes) and `/manus-storage/game_2576cd11.pck` (13,780,932 bytes). The checkpoint semantically preserves the concurrent two-stage transformer and size-aware enemy-telegraph releases. Full release-gate certification was intentionally not executed under the project-level user override; generated-audio integrity and the exact spoken transcript were confirmed.
+The delivered staged-handoff revision is `dd5f25f`. WebDev checkpoint `240dc289` maps `/manus-storage/game_0b8d1591.wasm` (39,514,754 bytes) and `/manus-storage/game_38b66e51.pck` (14,655,884 bytes). The checkpoint semantically preserves concurrent district weather, progressive facade hollowing, optimized cosmetic Web imports, the two-stage transformer, size-aware enemy telegraphs, responsive fullscreen rendering, the managed leaderboard, and prior audio/title behavior. Full release-gate certification was intentionally not executed under the project-level user override; the required Godot 4.7.2 Web export completed successfully from shared `main`.
 
 ## References
 
