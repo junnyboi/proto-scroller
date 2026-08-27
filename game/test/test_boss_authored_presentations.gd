@@ -52,7 +52,11 @@ func test_mimesis_markers_reset_before_choir_reuse() -> void:
 	assert_eq(marker_sprite.texture, BossUtilityPool.MIMESIS_AFTERIMAGE_TEXTURE)
 	assert_true(marker_sprite.visible)
 	assert_true(recorder.arm_marker(0, &"ARMED_AFTERIMAGE"))
-	assert_eq(marker_sprite.scale, Vector2(60.0 / 512.0, 40.0 / 384.0))
+	assert_eq(
+		marker_sprite.scale,
+		MotionEchoRecorder.SELECTED_DISPLAY_SIZE
+		/ BossUtilityPool.MIMESIS_AFTERIMAGE_TEXTURE.get_size()
+	)
 	assert_true(pool.configure_royal_echo_presentation(
 		0, CHOIR_TEST_TEXTURE, Vector2.ZERO, Vector2(78.0, 112.0)
 	))
@@ -109,8 +113,8 @@ func test_choir_pylon_preserves_existing_scale_and_tint_contract() -> void:
 	add_child_autofree(pool)
 	var sprite: Sprite2D = pool.pylon_presentations[0].get_child(0) as Sprite2D
 	assert_eq(sprite.texture, BossUtilityPool.CHOIR_PYLON_TEXTURE)
-	assert_eq(sprite.scale, Vector2(0.34, 0.34))
+	assert_eq(sprite.scale, Vector2(0.68, 0.68))
 	assert_eq(sprite.modulate, Color(0.72, 1.0, 0.95, 0.96))
 	assert_true(pool.set_royal_pylon_active(0, true))
-	assert_eq(sprite.scale, Vector2(0.40, 0.40))
+	assert_eq(sprite.scale, Vector2(0.80, 0.80))
 	assert_eq(sprite.modulate, Color(1.0, 0.78, 0.28, 1.0))

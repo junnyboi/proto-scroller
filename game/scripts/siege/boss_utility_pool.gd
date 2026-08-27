@@ -241,7 +241,7 @@ func set_royal_pylon_active(index: int, active: bool) -> bool:
 			if active
 			else Color(0.72, 1.0, 0.95, 0.96)
 		)
-		sprite.scale = Vector2.ONE * (0.40 if active else 0.34)
+		sprite.scale = Vector2.ONE * (0.80 if active else 0.68)
 	return true
 
 
@@ -388,7 +388,7 @@ func _prewarm() -> void:
 		var pylon: Node2D = _make_record("PylonPresentation%02d" % index, rig)
 		var sprite: Sprite2D = Sprite2D.new()
 		sprite.texture = CHOIR_PYLON_TEXTURE
-		sprite.scale = Vector2(0.34, 0.34)
+		sprite.scale = Vector2(0.68, 0.68)
 		sprite.modulate = Color(0.72, 1.0, 0.95, 0.96)
 		pylon.add_child(sprite)
 		pylon_presentations.append(pylon)

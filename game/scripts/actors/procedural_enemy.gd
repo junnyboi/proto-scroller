@@ -35,14 +35,14 @@ const CONVENTIONAL_DEPLOYMENT: Texture2D = preload(
 const CHOIR_INCUBATION_PAYLOAD: Texture2D = preload(
 	"res://art/city/enemies/effects/choir-incubation-payload.png"
 )
-const MULE_RAMP_OPEN_REGION: Rect2 = Rect2(632.0, 8.0, 192.0, 168.0)
-const SOLDIER_DISPATCH_REGION: Rect2 = Rect2(824.0, 32.0, 128.0, 128.0)
-const HIVE_BAY_OPEN_REGION: Rect2 = Rect2(704.0, 200.0, 240.0, 184.0)
-const HOUND_LAUNCH_POD_REGION: Rect2 = Rect2(336.0, 384.0, 176.0, 112.0)
-const SERAPH_BAY_REGION: Rect2 = Rect2(112.0, 240.0, 304.0, 104.0)
+const MULE_RAMP_OPEN_REGION: Rect2 = Rect2(316.0, 4.0, 96.0, 84.0)
+const SOLDIER_DISPATCH_REGION: Rect2 = Rect2(412.0, 16.0, 64.0, 64.0)
+const HIVE_BAY_OPEN_REGION: Rect2 = Rect2(352.0, 100.0, 120.0, 92.0)
+const HOUND_LAUNCH_POD_REGION: Rect2 = Rect2(168.0, 192.0, 88.0, 56.0)
+const SERAPH_BAY_REGION: Rect2 = Rect2(56.0, 120.0, 152.0, 52.0)
 const SERAPH_CLUTCH_REGIONS: Array[Rect2] = [
-	Rect2(0.0, 0.0, 112.0, 224.0),
-	Rect2(112.0, 0.0, 112.0, 224.0),
+	Rect2(0.0, 0.0, 56.0, 112.0),
+	Rect2(56.0, 0.0, 56.0, 112.0),
 ]
 const PRESENTATION_SPRITE_COUNT: int = 5
 
