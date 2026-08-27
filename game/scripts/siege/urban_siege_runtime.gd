@@ -132,6 +132,9 @@ func setup(p_dependencies: UrbanSiegeDependencies, p_district: DistrictDefinitio
 		dependencies.city.world_stream.district_changed.connect(
 			_on_spatial_district_changed
 		)
+		dependencies.city.world_stream.window_changed.connect(
+			_on_world_window_changed
+		)
 	_select_configuration(false)
 
 
@@ -326,6 +329,11 @@ func _on_spatial_district_changed(
 	_withdraw_directive_presentation()
 	_pending_district_offer = district_id
 	_try_present_pending_district_offer()
+
+
+func _on_world_window_changed(logical_chunk: int) -> void:
+	if director != null:
+		director.request_facade_reinforcement(logical_chunk)
 
 
 func _offer_current_district_once() -> void:
