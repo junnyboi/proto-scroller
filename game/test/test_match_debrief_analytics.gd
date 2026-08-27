@@ -122,6 +122,76 @@ func test_profile_persists_records_merges_totals_and_marks_personal_bests() -> v
 	assert_eq(int(enriched_second.career_snapshot.victories), 1)
 	assert_eq(int(enriched_second.career_snapshot.total_enemy_kills), 7)
 	assert_eq(int(enriched_second.career_snapshot.lifetime_enemy_kills.needle), 5)
+	assert_eq((enriched_second.career_snapshot.run_history as Array).size(), 2)
+	assert_eq(String(enriched_second.career_snapshot.preferred_weapon), "MISSILE")
+	_record_test_execution()
+
+
+func test_schema_v1_profile_migrates_without_losing_records() -> void:
+	var legacy_id: String = "0123456789abcdef0123456789abcdef"
+	var file: FileAccess = FileAccess.open(TEST_PROFILE_PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify({
+		"schema_version": 1,
+		"anonymous_profile_id": legacy_id,
+		"total_runs": 12,
+		"victories": 3,
+		"best_score": 44_000,
+		"highest_combo_tier": 17,
+		"total_enemy_kills": 901,
+		"lifetime_enemy_kills": {"choir_siren": 8},
+		"lifetime_weapon_kills": {"LASER": 21},
+		"updated_unix_time": 42,
+	}))
+	file.close()
+	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(store)
+	store.setup(TEST_PROFILE_PATH)
+	var migrated: Dictionary = store.snapshot()
+	assert_eq(int(migrated.schema_version), 2)
+	assert_eq(String(migrated.anonymous_profile_id), legacy_id)
+	assert_eq(String(migrated.callsign), "OBELISK-CDEF")
+	assert_eq(int(migrated.total_runs), 12)
+	assert_eq(int(migrated.best_score), 44_000)
+	assert_eq(int(migrated.highest_combo_tier), 17)
+	assert_eq(int(migrated.lifetime_weapon_kills.LASER), 21)
+	assert_eq((migrated.run_history as Array).size(), 0)
+	_record_test_execution()
+
+
+func test_callsign_history_and_local_ranking_are_bounded_and_deterministic() -> void:
+	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(store)
+	store.setup(TEST_PROFILE_PATH)
+	assert_eq(store.validate_callsign("  Echo   Seven  "), &"ok")
+	assert_eq(store.set_callsign("  Echo   Seven  "), &"ok")
+	assert_eq(store.callsign(), "Echo Seven")
+	assert_eq(store.set_callsign("<script>"), &"invalid_characters")
+	assert_eq(store.set_callsign("x"), &"too_short")
+	for index: int in range(32):
+		var tier: int = 25 if index == 4 else index % 11
+		var score: int = 1000 + index * 100
+		store.enrich_and_submit(_make_summary(
+			score,
+			tier,
+			index % 3 == 0,
+			{&"soldier": index + 1},
+			{&"MISSILE": index + 1, &"LASER": 32 - index}
+		))
+	var history: Array[Dictionary] = store.history_snapshot()
+	assert_eq(history.size(), PlayerCombatProfileStore.MAX_HISTORY_ENTRIES)
+	assert_eq(int(history[0].run_number), 3)
+	assert_eq(int(history[-1].run_number), 32)
+	var board: Array[Dictionary] = store.local_leaderboard(5)
+	assert_eq(board.size(), 5)
+	assert_eq(int(board[0].highest_combo_tier), 25)
+	assert_eq(int(board[0].rank), 1)
+	assert_eq(String(board[0].callsign), "Echo Seven")
+	assert_eq(store.chart_history(12).size(), 12)
+	var reloaded: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(reloaded)
+	reloaded.setup(TEST_PROFILE_PATH)
+	assert_eq(reloaded.callsign(), "Echo Seven")
+	assert_eq(reloaded.history_snapshot().size(), PlayerCombatProfileStore.MAX_HISTORY_ENTRIES)
 	_record_test_execution()
 
 
@@ -139,13 +209,18 @@ func test_leaderboard_candidate_is_versioned_and_privacy_minimal() -> void:
 	var payload: Dictionary = store.leaderboard_candidate(summary, "revision-test")
 	assert_eq(int(payload.schema_version), PlayerCombatProfileStore.SCHEMA_VERSION)
 	assert_eq(String(payload.build_revision), "revision-test")
-	assert_eq(String(payload.run.preferred_weapon), "GROUND_SMASH")
-	assert_eq(int(payload.run.enemy_kills.ninefold_witness), 3)
+	assert_eq(String(payload.career.preferred_weapon), "GROUND_SMASH")
+	assert_eq(int(payload.career.best_score), 8100)
+	assert_eq(int(payload.career.highest_combo_tier), 7)
 	assert_true(String(payload.anonymous_profile_id).length() >= 16)
+	assert_false(payload.has("run"))
+	assert_false((payload.career as Dictionary).has("enemy_kills"))
+	assert_false((payload.career as Dictionary).has("weapon_kills"))
 	var serialized: String = JSON.stringify(payload)
 	for forbidden: String in [
 		"dossier", "campaign", "input_binding", "audio_settings", "user://", "hardware",
-	]:
+		"run_history",
+		]:
 		assert_false(serialized.to_lower().contains(forbidden), forbidden)
 	_record_test_execution()
 

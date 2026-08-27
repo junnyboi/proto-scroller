@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 **Date:** 2026-08-27
-**Status:** In progress
+**Status:** In progress — WP1 complete
 **Canonical baseline:** `089f486`
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 **WebDev project:** `proto-scroller`
@@ -202,6 +202,18 @@ Global and local comparisons use the same pure ordering function. Global ranks u
 | WP4 — WebDev backend | Full-stack upgrade, schema/migration, Drizzle helpers, tRPC procedures, React bridge | Database migration applies; API tests cover validation/upsert/ranking; host remains iframe-only |
 | WP5 — Integration | Lifecycle submit, online refresh, callsign sync, local fallback, README/plan | Focused source and WebDev tests pass; source pushed without overwriting upstream |
 | WP6 — Release | Fresh Godot export, immutable payload remap, continuity records, checkpoint, publish | Exact routes/hashes recorded; checkpoint published; broad release gates skipped per project override |
+
+## 8.1 Implementation Record
+
+| Package | Status | Evidence |
+|---|---|---|
+| WP0 — Proposal and plan | Complete | Proposal and this implementation contract pushed in `754389a`. |
+| WP1 — Local profile/history | Complete | Schema v1 migrates to v2 without record loss; callsigns validate and persist; history is capped at 30; local ranking uses combo/score/chain/timestamp ordering. Focused analytics suite passed 10 tests and 148 assertions. |
+| WP2 — Career UI | Pending | — |
+| WP3 — Network bridge | Pending | — |
+| WP4 — WebDev backend | Pending | — |
+| WP5 — Integration | Pending | — |
+| WP6 — Release | Pending | — |
 
 ## 9. Verification
 
