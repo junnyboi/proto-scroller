@@ -64,6 +64,22 @@ func test_named_placeholders_are_substituted() -> void:
 	assert_true(L10n.t(dash_profile.description).contains("300 毫秒"))
 
 
+func test_simplified_chinese_shop_catalog_has_no_english_fallbacks() -> void:
+	var shop_keys: PackedStringArray = []
+	var english_values: Dictionary[String, String] = {}
+	L10n.set_locale("en")
+	for key: String in L10n.keys_for_locale("en"):
+		if key.begins_with("shop."):
+			shop_keys.append(key)
+			english_values[key] = L10n.t(key)
+	assert_eq(shop_keys.size(), 79)
+	L10n.set_locale("zh-CN")
+	for key: String in shop_keys:
+		var chinese_value: String = L10n.t(key)
+		assert_false(chinese_value.is_empty(), "Missing Chinese shop copy: %s" % key)
+		assert_ne(chinese_value, english_values[key], "English shop fallback: %s" % key)
+
+
 func test_unsupported_locale_is_rejected_without_mutation() -> void:
 	assert_false(L10n.set_locale("fr-FR"))
 	assert_eq(L10n.current_locale(), "en")

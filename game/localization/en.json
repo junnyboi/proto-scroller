@@ -296,6 +296,7 @@
   "shop.stat.weapon_cooldown": "WEAPON COOLDOWN",
   "shop.stat.critical_chance": "CRITICAL CHANCE",
   "shop.stat.damage_taken": "DAMAGE TAKEN",
+  "shop.value.damage": "{value} DMG",
   "shop.rejected.sold": "MODULE ALREADY ACQUIRED",
   "shop.rejected.healthy": "CHASSIS ALREADY AT FULL INTEGRITY",
   "shop.rejected.funds": "INSUFFICIENT RAMPAGE SCORE",

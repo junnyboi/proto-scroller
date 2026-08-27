@@ -38,7 +38,7 @@ static func _format_value(row: Dictionary, value: float) -> String:
 		&"integrity":
 			return "%d / %d" % [roundi(value), roundi(float(row.get("maximum", 0.0)))]
 		&"damage":
-			return "%d DMG" % roundi(value)
+			return L10n.t("shop.value.damage", {"value": roundi(value)})
 		&"chance":
 			return "%d%%" % roundi(value * 100.0)
 		_:

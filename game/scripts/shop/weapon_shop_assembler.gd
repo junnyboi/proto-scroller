@@ -31,6 +31,7 @@ func setup(city: Node) -> PackedStringArray:
 	overlay = WeaponShopOverlay.new()
 	var hud: GameplayHud = city.get("gameplay_hud") as GameplayHud
 	hud.add_child(overlay)
+	L10n.apply_locale_font(overlay)
 	session = WeaponShopSession.new()
 	session.name = "WeaponShopSession"
 	add_child(session)

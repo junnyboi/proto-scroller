@@ -3,6 +3,14 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
+func before_each() -> void:
+	L10n.set_locale("en")
+
+
+func after_each() -> void:
+	L10n.set_locale("en")
+
+
 func test_catalog_has_three_unique_shop_only_products_per_district() -> void:
 	assert_eq(WeaponShopCatalog.validation_errors(), PackedStringArray())
 	assert_eq(WeaponShopVisualCatalog.validation_errors(), PackedStringArray())
@@ -41,6 +49,37 @@ func test_catalog_has_three_unique_shop_only_products_per_district() -> void:
 			assert_eq(product.price, expected_prices[product.product_id])
 			product_ids[product.product_id] = true
 	assert_eq(product_ids.size(), CityDistrictCatalog.DISTRICT_COUNT * 3)
+
+
+func test_simplified_chinese_shop_localizes_every_visible_surface() -> void:
+	L10n.set_locale("zh-CN")
+	var city: CitySlice = await _spawn_city()
+	city.rampage_session.run_score.safe_score = 20_000
+	_open_act_shop(city, 0)
+	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
+	assert_eq(overlay.title_label.text, "黑账本交易所")
+	assert_eq(overlay.tagline_label.text, "账本脊柱 // 无证军备清算")
+	assert_eq(overlay.score_caption.text, "破坏积分")
+	assert_eq(overlay.warning_label.text, "消费将降低你的最终破坏得分。")
+	assert_eq(overlay.continue_button.text, "继续")
+	assert_eq(overlay.dialogue_panel.operator_label.text, "审计官维尔 // 黑账本")
+	assert_string_contains(overlay.dialogue_panel.body_label.text, "破坏得分")
+	assert_eq(overlay.dialogue_panel.continue_button.text, "打开账本")
+	assert_eq(overlay.cards[0].title_label.text, "止赎弹头")
+	assert_eq(overlay.cards[0].description_label.text, "机枪伤害 +15%。")
+	assert_string_contains(overlay.cards[0].price_label.text, "价格")
+	assert_eq(overlay.cards[0].state_label.text, "购买")
+	assert_true(overlay.title_label.get_theme_font(&"font").has_char("黑".unicode_at(0)))
+	overlay.dialogue_panel._dismiss()
+	overlay.cards[2]._request_preview()
+	assert_eq(overlay.preview_panel.heading_label.text, "预计装备变化")
+	assert_eq(overlay.preview_panel.product_label.text, "抵押物再融资")
+	assert_string_contains(overlay.preview_panel.rows_label.text, "底盘完整度")
+	overlay.cards[2]._on_pressed()
+	assert_true(overlay.confirmation_panel.active)
+	assert_eq(overlay.confirmation_panel.prompt_label.text, "授权扣除破坏得分？")
+	assert_eq(overlay.confirmation_panel.confirm_button.text, "确认 / 9600")
+	assert_eq(overlay.confirmation_panel.cancel_button.text, "取消")
 
 
 func test_boss_salvage_opens_matching_shop_banks_score_and_keeps_handoff_held() -> void:
