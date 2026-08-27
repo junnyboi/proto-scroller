@@ -300,6 +300,109 @@ func test_debrief_presents_bounded_rankings_and_both_responsive_layouts() -> voi
 	_record_test_execution()
 
 
+func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
+	L10n.set_locale("en")
+	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(store)
+	store.setup(TEST_PROFILE_PATH)
+	store.set_callsign("Echo Seven")
+	var latest: RunSummarySnapshot
+	for index: int in range(4):
+		latest = store.enrich_and_submit(_make_summary(
+			4000 + index * 1200,
+			3 + index,
+			index % 2 == 0,
+			{&"soldier": 4 + index},
+			{&"MISSILE": 2 + index, &"LASER": 5 - index, &"GROUND_SMASH": index + 1}
+		))
+	var panel: MatchDebriefPanel = MatchDebriefPanel.new()
+	add_child_autofree(panel)
+	await get_tree().process_frame
+	panel.configure_profile(store)
+	panel.present(latest, "DISTRICT CLEARED", 25, 2)
+	panel.set_page(MatchDebriefPanel.Page.CAREER)
+	var career_state: Dictionary = panel.debug_snapshot()
+	assert_eq(String(career_state.page), "CAREER")
+	assert_eq(String(career_state.callsign), "Echo Seven")
+	assert_eq(int((career_state.chart as Dictionary).history_size), 4)
+	assert_eq((career_state.local_rows as PackedStringArray).size(), 4)
+	panel.chart_share_button.pressed.emit()
+	assert_eq(String(panel.weapon_history_chart.debug_snapshot().mode), "SHARE")
+	panel.weapon_history_chart.select_index(0)
+	assert_eq(int(panel.weapon_history_chart.debug_snapshot().selected_index), 0)
+	var signal_state: Dictionary = {"callsign": ""}
+	panel.callsign_saved.connect(func(value: String) -> void: signal_state.callsign = value)
+	panel.callsign_edit.text = "Rook-7"
+	panel.callsign_save_button.pressed.emit()
+	assert_eq(store.callsign(), "Rook-7")
+	assert_eq(String(signal_state.callsign), "Rook-7")
+	panel.set_global_state(&"online", [{
+		"rank": 1,
+		"callsign": "Rook-7",
+		"highest_combo_tier": 19,
+		"best_score": 88_000,
+		"preferred_weapon": "MISSILE",
+	}], {"rank": 1, "callsign": "Rook-7"})
+	panel.set_page(MatchDebriefPanel.Page.GLOBAL)
+	var global_state: Dictionary = panel.debug_snapshot()
+	assert_eq(String(global_state.page), "GLOBAL")
+	assert_eq(String(global_state.global_state), "online")
+	assert_eq((global_state.global_rows as PackedStringArray).size(), 1)
+	assert_true(String((global_state.global_rows as PackedStringArray)[0]).contains("Rook-7"))
+	panel.apply_responsive_layout(Vector2(720.0, 1280.0))
+	_assert_rect_inside(panel.debug_snapshot().panel_rect, Vector2(720.0, 1280.0))
+	_assert_touch_rect(panel.debug_snapshot().refresh_rect)
+	_record_test_execution()
+
+
+func test_leaderboard_bridge_is_native_safe_and_rejects_unsolicited_responses() -> void:
+	L10n.set_locale("en")
+	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(store)
+	store.setup(TEST_PROFILE_PATH)
+	var panel: MatchDebriefPanel = MatchDebriefPanel.new()
+	add_child_autofree(panel)
+	await get_tree().process_frame
+	panel.configure_profile(store)
+	var bridge: LeaderboardBridge = LeaderboardBridge.new()
+	add_child_autofree(bridge)
+	bridge.setup(store, panel)
+	assert_eq(String(bridge.debug_snapshot().state), "native_local")
+	panel.set_page(MatchDebriefPanel.Page.GLOBAL)
+	bridge._pending["request-1"] = {"type": &"list", "deadline": 999_999.0}
+	bridge._handle_response({
+		"channel": "wrong-channel",
+		"version": LeaderboardBridge.PROTOCOL_VERSION,
+		"requestId": "request-1",
+		"ok": true,
+	})
+	assert_eq(int(bridge.debug_snapshot().pending_count), 1)
+	bridge._handle_response({
+		"channel": LeaderboardBridge.CHANNEL,
+		"version": LeaderboardBridge.PROTOCOL_VERSION,
+		"requestId": "request-1",
+		"ok": true,
+		"data": {
+			"entries": [{
+				"rank": 1,
+				"callsign": "ECHO-7",
+				"highestComboTier": 22,
+				"bestScore": 1_500_000,
+				"bestPhysicalChain": 38,
+				"preferredWeapon": "LASER",
+			}],
+			"personalRank": {"rank": 1, "callsign": "ECHO-7"},
+		},
+	})
+	assert_eq(String(bridge.debug_snapshot().state), "online")
+	assert_eq(int(bridge.debug_snapshot().pending_count), 0)
+	var snapshot: Dictionary = panel.debug_snapshot()
+	assert_eq(String(snapshot.global_state), "online")
+	assert_eq((snapshot.global_rows as PackedStringArray).size(), 1)
+	assert_true(String((snapshot.global_rows as PackedStringArray)[0]).contains("ECHO-7"))
+	_record_test_execution()
+
+
 func test_run_lifecycle_submits_profile_once_and_presents_enriched_dossier() -> void:
 	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
 	add_child_autofree(store)

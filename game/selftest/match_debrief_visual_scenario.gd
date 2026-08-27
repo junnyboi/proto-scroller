@@ -1,8 +1,8 @@
 extends SceneTree
 
 const MAX_FRAMES: int = 180
-const SHOT_PATH: String = "res://artifacts/match_debrief/match-debrief.png"
 const REPORT_PATH: String = "res://artifacts/match_debrief/report.json"
+const PROFILE_PATH: String = "user://match_debrief_visual_profile.json"
 
 var elapsed_frames: int = 0
 var completed: bool = false
@@ -23,89 +23,60 @@ func _on_process_frame() -> void:
 
 func _run() -> void:
 	L10n.set_locale("en")
+	_clear_profile()
 	var target_size: Vector2i = _target_size()
 	root.get_window().content_scale_size = target_size
 	root.size = target_size
+	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	root.add_child(store)
+	store.setup(PROFILE_PATH)
+	store.set_callsign("ECHO-7")
+	var summary: RunSummarySnapshot = _build_history(store)
 	var scene: PackedScene = load("res://scenes/gameplay/city_slice.tscn") as PackedScene
 	if scene == null:
 		_finish(false, "city scene missing")
 		return
 	var city: CitySlice = scene.instantiate() as CitySlice
+	city.combat_profile = store
 	root.add_child(city)
 	await process_frame
 	city.gameplay_hud.first_run_tutorial._finish_tutorial(true)
 	city.encounter_runtime.release_all()
 	city.encounter_director.process_mode = Node.PROCESS_MODE_DISABLED
 	city.gameplay_hud._set_campaign_summary(25, 2)
-	var summary: RunSummarySnapshot = RunSummarySnapshot.new(
-		874_200,
-		5,
-		24,
-		6,
-		4,
-		{&"SKYBREAKER": 3},
-		{
-			"completed": true,
-			"grade": &"S",
-			"mastery_points": 982,
-			"objective": "summary.retry.reach_next_act",
-			"cycle_count": 2,
-			"highest_combo_tier": 12,
-			"total_enemies_defeated": 78,
-			"unique_enemy_types": 14,
-			"enemy_kills": {
-				&"covenant_warden": 12,
-				&"choir_siren": 10,
-				&"pale_engine": 8,
-				&"tank": 7,
-				&"needle": 6,
-			},
-			"weapon_kills": {
-				&"GROUND_SMASH": 42,
-				&"MISSILE": 18,
-				&"JAB_CROSS": 11,
-				&"LASER": 7,
-			},
-			"preferred_weapon": &"GROUND_SMASH",
-			"preferred_weapon_kills": 42,
-		}
-	).with_career_result({
-		"new_combo_record": true,
-		"new_score_record": true,
-		"career_snapshot": {
-			"best_score": 874_200,
-			"highest_combo_tier": 12,
-			"total_enemy_kills": 784,
-			"total_runs": 34,
-			"victories": 27,
-		},
-	})
 	city.gameplay_hud.show_district_complete(summary)
 	for _frame: int in range(4):
 		await process_frame
 	var panel: MatchDebriefPanel = city.gameplay_hud.match_debrief
+	var page_name: String = OS.get_environment("PROTO_SCROLLER_DEBRIEF_PAGE").to_lower()
+	if page_name == "career":
+		panel.set_page(MatchDebriefPanel.Page.CAREER)
+	elif page_name == "global":
+		panel.set_global_state(&"online", _global_rows(), {
+			"rank": 4,
+			"callsign": "ECHO-7",
+		})
+		panel.set_page(MatchDebriefPanel.Page.GLOBAL)
+	else:
+		page_name = "overview"
+		panel.set_page(MatchDebriefPanel.Page.AFTER_ACTION)
+	for _frame: int in range(2):
+		await process_frame
 	var snapshot: Dictionary = panel.debug_snapshot()
 	var viewport_rect: Rect2 = Rect2(Vector2.ZERO, Vector2(target_size))
 	var valid: bool = (
 		panel.is_visible_in_tree()
-		and String(snapshot.result) == "DISTRICT CLEARED"
-		and String(snapshot.combo).contains("EXTINCTION EVENT")
-		and bool(snapshot.personal_best)
-		and (snapshot.weapon_rows as PackedStringArray).size() == 3
-		and (snapshot.enemy_rows as PackedStringArray).size() == 4
 		and viewport_rect.encloses(snapshot.panel_rect as Rect2)
 		and viewport_rect.encloses(snapshot.retry_rect as Rect2)
 		and viewport_rect.encloses(snapshot.title_rect as Rect2)
+		and _page_valid(page_name, snapshot)
 	)
 	if not valid:
-		_finish(false, JSON.stringify(snapshot))
+		_finish(false, JSON.stringify(_json_safe_snapshot(snapshot)))
 		return
 	if DisplayServer.get_name() == "headless":
 		_finish(true, "headless geometry pass")
-		panel.hide_panel()
-		city.queue_free()
-		await process_frame
-		await process_frame
+		await _cleanup(panel, city, store)
 		quit(0)
 		return
 	await RenderingServer.frame_post_draw
@@ -113,12 +84,14 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(
 		ProjectSettings.globalize_path("res://artifacts/match_debrief")
 	)
-	var save_error: Error = image.save_png(ProjectSettings.globalize_path(SHOT_PATH))
+	var shot_path: String = "res://artifacts/match_debrief/match-debrief-%s.png" % page_name
+	var save_error: Error = image.save_png(ProjectSettings.globalize_path(shot_path))
 	if save_error != OK or image.get_size() != target_size:
 		_finish(false, "shot error=%s size=%s" % [save_error, image.get_size()])
 		return
 	var report: Dictionary = {
 		"result": "PASS",
+		"page": page_name,
 		"viewport": {"width": target_size.x, "height": target_size.y},
 		"summary": {
 			"score": summary.score,
@@ -128,7 +101,7 @@ func _run() -> void:
 			"preferred_weapon": String(summary.preferred_weapon),
 		},
 		"layout": _json_safe_snapshot(snapshot),
-		"shot": SHOT_PATH,
+		"shot": shot_path,
 	}
 	var report_file: FileAccess = FileAccess.open(REPORT_PATH, FileAccess.WRITE)
 	if report_file == null:
@@ -136,12 +109,110 @@ func _run() -> void:
 		return
 	report_file.store_string(JSON.stringify(report, "  "))
 	report_file.close()
-	_finish(true, SHOT_PATH)
+	_finish(true, shot_path)
+	await _cleanup(panel, city, store)
+	quit(0)
+
+
+func _build_history(store: PlayerCombatProfileStore) -> RunSummarySnapshot:
+	var latest: RunSummarySnapshot
+	for index: int in range(8):
+		var score: int = 84_000 + index * 112_000
+		if index == 7:
+			score = 874_200
+		latest = RunSummarySnapshot.new(
+			score,
+			mini(index + 1, 5),
+			10 + index * 2,
+			6 if index == 7 else 2 + index % 4,
+			index,
+			{&"SKYBREAKER": index},
+			{
+				"completed": index % 2 == 1,
+				"grade": &"S" if index == 7 else &"B",
+				"mastery_points": 982 if index == 7 else 200 + index * 40,
+				"objective": "summary.retry.reach_next_act",
+				"cycle_count": 2 if index == 7 else 1,
+				"highest_combo_tier": 12 if index == 7 else 3 + index,
+				"total_enemies_defeated": 78 if index == 7 else 22 + index * 5,
+				"unique_enemy_types": 14 if index == 7 else 5 + index,
+				"enemy_kills": {
+					&"covenant_warden": 12 + index,
+					&"choir_siren": 4 + index,
+					&"pale_engine": index,
+				},
+				"weapon_kills": {
+					&"GROUND_SMASH": 12 + index * 4,
+					&"MISSILE": 18 + (7 - index) * 2,
+					&"LASER": 5 + index * 3,
+				},
+				"preferred_weapon": &"GROUND_SMASH" if index >= 4 else &"MISSILE",
+				"preferred_weapon_kills": 42 if index == 7 else 18 + index * 4,
+			}
+		)
+		latest = store.enrich_and_submit(latest)
+	return latest
+
+
+func _global_rows() -> Array[Dictionary]:
+	var callsigns: Array[String] = [
+		"CROWN-BREAKER", "MERCY ZERO", "ASH PILOT", "ECHO-7", "PALE SIGNAL",
+		"NIGHT ENGINE", "GLASS SAINT", "IRON WITNESS", "VANTA FOX", "CHOIRLESS",
+	]
+	var rows: Array[Dictionary] = []
+	for index: int in range(callsigns.size()):
+		rows.append({
+			"rank": index + 1,
+			"callsign": callsigns[index],
+			"highest_combo_tier": 24 - index,
+			"best_score": 9_500_000 - index * 640_000,
+			"preferred_weapon": "GROUND_SMASH" if index % 2 == 0 else "MISSILE",
+		})
+	return rows
+
+
+func _page_valid(page_name: String, snapshot: Dictionary) -> bool:
+	if page_name == "career":
+		return (
+			String(snapshot.page) == "CAREER"
+			and String(snapshot.callsign) == "ECHO-7"
+			and int((snapshot.chart as Dictionary).history_size) == 8
+			and (snapshot.local_rows as PackedStringArray).size() == 5
+		)
+	if page_name == "global":
+		return (
+			String(snapshot.page) == "GLOBAL"
+			and String(snapshot.global_state) == "online"
+			and (snapshot.global_rows as PackedStringArray).size() == 10
+		)
+	return (
+		String(snapshot.page) == "AFTER_ACTION"
+		and String(snapshot.result) == "DISTRICT CLEARED"
+		and String(snapshot.combo).contains("EXTINCTION EVENT")
+		and bool(snapshot.personal_best)
+		and (snapshot.weapon_rows as PackedStringArray).size() == 3
+		and (snapshot.enemy_rows as PackedStringArray).size() == 3
+	)
+
+
+func _cleanup(
+	panel: MatchDebriefPanel,
+	city: CitySlice,
+	store: PlayerCombatProfileStore
+) -> void:
 	panel.hide_panel()
 	city.queue_free()
+	store.queue_free()
 	await process_frame
 	await process_frame
-	quit(0)
+	_clear_profile()
+
+
+func _clear_profile() -> void:
+	for suffix: String in ["", ".tmp", ".bak"]:
+		var path: String = PROFILE_PATH + suffix
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _finish(success: bool, detail: String) -> void:
@@ -162,11 +233,17 @@ func _target_size() -> Vector2i:
 func _json_safe_snapshot(snapshot: Dictionary) -> Dictionary:
 	return {
 		"visible": bool(snapshot.visible),
+		"page": String(snapshot.page),
 		"result": String(snapshot.result),
 		"combo": String(snapshot.combo),
 		"personal_best": bool(snapshot.personal_best),
+		"callsign": String(snapshot.callsign),
+		"global_state": String(snapshot.global_state),
 		"weapon_rows": Array(snapshot.weapon_rows as PackedStringArray),
 		"enemy_rows": Array(snapshot.enemy_rows as PackedStringArray),
+		"local_rows": Array(snapshot.local_rows as PackedStringArray),
+		"global_rows": Array(snapshot.global_rows as PackedStringArray),
+		"chart": snapshot.chart,
 		"panel_rect": _rect_dictionary(snapshot.panel_rect as Rect2),
 		"retry_rect": _rect_dictionary(snapshot.retry_rect as Rect2),
 		"title_rect": _rect_dictionary(snapshot.title_rect as Rect2),

@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 **Date:** 2026-08-27
-**Status:** In progress — WP1 complete
+**Status:** In progress — WP3 complete
 **Canonical baseline:** `089f486`
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 **WebDev project:** `proto-scroller`
@@ -209,8 +209,8 @@ Global and local comparisons use the same pure ordering function. Global ranks u
 |---|---|---|
 | WP0 — Proposal and plan | Complete | Proposal and this implementation contract pushed in `754389a`. |
 | WP1 — Local profile/history | Complete | Schema v1 migrates to v2 without record loss; callsigns validate and persist; history is capped at 30; local ranking uses combo/score/chain/timestamp ordering. Focused analytics suite passed 10 tests and 148 assertions. |
-| WP2 — Career UI | Pending | — |
-| WP3 — Network bridge | Pending | — |
+| WP2 — Career UI | Complete | Three responsive tabs, callsign editing, interactive 12-run kills/share chart, deterministic local ranking, and global/fallback presentation. Focused suite passed 11 tests and 166 assertions; career/global pages passed 1280×720 and 720×1280 focused visual checks. |
+| WP3 — Network bridge | Complete | Same-origin/versioned envelopes, correlated request IDs, bounded queue polling, four-second timeout, native-safe local state, local-first callsign updates, and non-blocking post-finalization submission. Focused suite passed 12 tests and 173 assertions. |
 | WP4 — WebDev backend | Pending | — |
 | WP5 — Integration | Pending | — |
 | WP6 — Release | Pending | — |

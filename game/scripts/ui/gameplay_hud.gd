@@ -84,6 +84,7 @@ var rear_barrier_warning_audio: AudioStreamPlayer
 var rear_barrier_warning_play_count: int = 0
 var _robot: GiantRobotController
 var _contextual_attacks: ContextualAttackController
+var _combat_profile: PlayerCombatProfileStore
 var _pulse_age: float = 0.0
 var _overdrive_active: bool = false
 var _momentum_fill_width: float = 392.0
@@ -99,10 +100,12 @@ var _rear_barrier_warning_remaining: float = 0.0
 
 func setup(
 	robot: GiantRobotController,
-	contextual_attacks: ContextualAttackController = null
+	contextual_attacks: ContextualAttackController = null,
+	combat_profile: PlayerCombatProfileStore = null
 ) -> void:
 	_robot = robot
 	_contextual_attacks = contextual_attacks
+	_combat_profile = combat_profile
 
 
 func _ready() -> void:
@@ -895,6 +898,7 @@ func _build_game_over_overlay() -> void:
 	match_debrief.retry_pressed.connect(retry_pressed.emit)
 	match_debrief.title_pressed.connect(title_pressed.emit)
 	game_over_overlay.add_child(match_debrief)
+	match_debrief.configure_profile(_combat_profile)
 
 
 func _is_portrait_layout() -> bool:
