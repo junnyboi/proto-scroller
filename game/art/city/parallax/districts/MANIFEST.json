@@ -1,0 +1,57 @@
+{
+  "generator": "GPT Image 2",
+  "concept_dimensions": "2688x1152",
+  "runtime_dimensions": "1344x576",
+  "entries": [
+    {
+      "district": "BUSINESS",
+      "concept": "docs/concepts/parallax/business-parallax-concept.png",
+      "concept_sha256": "b60bd4c1d43b2cd09fea85e1306edc86c37e3869429dc9083c3de78114f1b3f2",
+      "runtime": "game/art/city/parallax/districts/business_panorama.webp",
+      "runtime_sha256": "10a43ba465de6c4798f4cb619122fc706f73ebb459f3e8f1c4604b1473534b0a",
+      "runtime_bytes": 74376,
+      "runtime_dimensions": "1344x576",
+      "processing": "Lanczos 2x downsample; brightness 0.80; contrast 0.92; saturation 0.88; WebP quality 80"
+    },
+    {
+      "district": "RESIDENTIAL",
+      "concept": "docs/concepts/parallax/residential-parallax-concept.png",
+      "concept_sha256": "b301495350cb52512adef5c55a31bb71bb4af7017607e5fc9cc4cc2d5d4dc7c5",
+      "runtime": "game/art/city/parallax/districts/residential_panorama.webp",
+      "runtime_sha256": "27a4d459f7702d9bbbb29b2c6600a052706ca0a06bac3d19fae001ac855490b7",
+      "runtime_bytes": 49358,
+      "runtime_dimensions": "1344x576",
+      "processing": "Lanczos 2x downsample; brightness 0.80; contrast 0.92; saturation 0.88; WebP quality 80"
+    },
+    {
+      "district": "ENTERTAINMENT",
+      "concept": "docs/concepts/parallax/entertainment-parallax-concept.png",
+      "concept_sha256": "bf8f6ed50e5103e614142fff3483dd7fd8c9b0b21513ea0f77c74845a94d30bc",
+      "runtime": "game/art/city/parallax/districts/entertainment_panorama.webp",
+      "runtime_sha256": "09502a2079bc70793d66e7cd256de9edeb826e396811197b987ff8be994d1cb2",
+      "runtime_bytes": 60204,
+      "runtime_dimensions": "1344x576",
+      "processing": "Lanczos 2x downsample; brightness 0.80; contrast 0.92; saturation 0.88; WebP quality 80"
+    },
+    {
+      "district": "MILITARY",
+      "concept": "docs/concepts/parallax/military-parallax-concept.png",
+      "concept_sha256": "32ec9cbc6c9a06bc3125a5fe2c605efaf1ad1b4067da67f3df5a61d3d71e5619",
+      "runtime": "game/art/city/parallax/districts/military_panorama.webp",
+      "runtime_sha256": "d51098e0dac07e03e443e9cfbe79df20300155ee7132ff16a592ead5d9cab529",
+      "runtime_bytes": 45660,
+      "runtime_dimensions": "1344x576",
+      "processing": "Lanczos 2x downsample; brightness 0.80; contrast 0.92; saturation 0.88; WebP quality 80"
+    },
+    {
+      "district": "ROYAL",
+      "concept": "docs/concepts/parallax/royal-parallax-concept.png",
+      "concept_sha256": "b197c37b81453cda8bb7faa560c75744e13e4901bed328e8b03e88740a4467c4",
+      "runtime": "game/art/city/parallax/districts/royal_panorama.webp",
+      "runtime_sha256": "47c4e2b00a7a440cd5db7dad0e4ca85b26c2d9fda3fcd5efe8d075e4fdc5538f",
+      "runtime_bytes": 49044,
+      "runtime_dimensions": "1344x576",
+      "processing": "Lanczos 2x downsample; brightness 0.80; contrast 0.92; saturation 0.88; WebP quality 80"
+    }
+  ]
+}
