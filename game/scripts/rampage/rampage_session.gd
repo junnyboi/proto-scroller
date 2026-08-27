@@ -111,35 +111,47 @@ func freeze_summary(
 ) -> RunSummarySnapshot:
 	if frozen_summary == null:
 		run_score.bank_all()
-		var completed: bool = bool(run_metrics.get("completed", waves_cleared >= 6))
-		var mastery: Dictionary = MasteryEvaluator.evaluate({
-			"completed": completed,
-			"highest_act": waves_cleared,
-			"heavy_hits": heavy_hit_count,
-			"unique_actions": _unique_action_tags.size(),
-			"causal_depth": causal_chain_tracker.best_depth,
-			"overdrives": overdrive_activations,
-			"contract_succeeded": bool(run_metrics.get("contract_succeeded", false)),
-		})
-		var summary_metrics: Dictionary = run_metrics.duplicate()
-		summary_metrics.merge(combat_telemetry.snapshot(), true)
-		summary_metrics.merge({
-			"grade": mastery.grade,
-			"mastery_points": mastery.points,
-			"strongest": mastery.strongest,
-			"weakest": mastery.weakest,
-			"objective": mastery.objective,
-			"heavy_hits": heavy_hit_count,
-			"unique_actions": _unique_action_tags.size(),
-			"causal_depth": causal_chain_tracker.best_depth,
-		}, true)
-		frozen_summary = RunSummarySnapshot.new(
-			run_score.score,
-			combo_tracker.peak_multiplier,
-			combo_tracker.best_chain_count,
+		frozen_summary = snapshot_summary(
 			waves_cleared,
 			overdrive_activations,
-			rare_event_tracker.snapshot_counts(),
-			summary_metrics
+			run_metrics
 		)
 	return frozen_summary
+
+
+func snapshot_summary(
+	waves_cleared: int,
+	overdrive_activations: int,
+	run_metrics: Dictionary = {}
+) -> RunSummarySnapshot:
+	var completed: bool = bool(run_metrics.get("completed", waves_cleared >= 6))
+	var mastery: Dictionary = MasteryEvaluator.evaluate({
+		"completed": completed,
+		"highest_act": waves_cleared,
+		"heavy_hits": heavy_hit_count,
+		"unique_actions": _unique_action_tags.size(),
+		"causal_depth": causal_chain_tracker.best_depth,
+		"overdrives": overdrive_activations,
+		"contract_succeeded": bool(run_metrics.get("contract_succeeded", false)),
+	})
+	var summary_metrics: Dictionary = run_metrics.duplicate()
+	summary_metrics.merge(combat_telemetry.snapshot(), true)
+	summary_metrics.merge({
+		"grade": mastery.grade,
+		"mastery_points": mastery.points,
+		"strongest": mastery.strongest,
+		"weakest": mastery.weakest,
+		"objective": mastery.objective,
+		"heavy_hits": heavy_hit_count,
+		"unique_actions": _unique_action_tags.size(),
+		"causal_depth": causal_chain_tracker.best_depth,
+	}, true)
+	return RunSummarySnapshot.new(
+		run_score.score,
+		combo_tracker.peak_multiplier,
+		combo_tracker.best_chain_count,
+		waves_cleared,
+		overdrive_activations,
+		rare_event_tracker.snapshot_counts(),
+		summary_metrics
+	)

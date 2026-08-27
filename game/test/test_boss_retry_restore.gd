@@ -98,6 +98,37 @@ func test_retry_stays_suspended_with_controls_live_and_no_competing_state() -> v
 	assert_false(city.game_over_active)
 
 
+func test_boss_defeat_presents_full_nonfinal_dossier_and_retry_restores_play() -> void:
+	var kill: GameplayEvent = GameplayEvent.new(
+		&"boss_attempt_dossier_kill",
+		82_300,
+		GameplayEvent.Kind.ENEMY_DEFEATED,
+		GameplayEvent.ENEMY_KILL,
+		250,
+		1.0,
+		true,
+		Vector2.ZERO
+	)
+	kill.enemy_archetype_id = &"covenant_warden"
+	kill.enemy_family_id = &"infantry"
+	kill.weapon_id = &"JAB_CROSS"
+	assert_true(city.rampage_session.publish(kill))
+	city.robot.current_health = 0.0
+	city.run_lifecycle.robot_defeated()
+	assert_true(city.game_over_active)
+	assert_true(campaign.attempt_failed)
+	assert_true(city.gameplay_hud.game_over_overlay.visible)
+	assert_true(city.gameplay_hud.match_debrief.visible)
+	assert_eq(city.gameplay_hud.match_debrief.presented_summary.total_enemies_defeated, 1)
+	assert_null(city.rampage_session.frozen_summary)
+	city.gameplay_hud.retry_pressed.emit()
+	assert_false(city.game_over_active)
+	assert_false(campaign.attempt_failed)
+	assert_false(city.gameplay_hud.game_over_overlay.visible)
+	assert_false(city.gameplay_hud.match_debrief.visible)
+	assert_eq(city.urban_siege.boss_session.state, CommandBossSession.STATE_SCREEN)
+
+
 func test_repeated_failure_retry_keeps_runtime_counts_and_one_gate_lease() -> void:
 	var baseline: Dictionary = RuntimeBudget.snapshot(city)
 	for _attempt: int in range(5):
