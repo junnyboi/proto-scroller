@@ -100,6 +100,30 @@ func _run() -> void:
 		_check("shot_saved", error == OK, "error=%s" % error)
 		_check("shot_geometry", image.get_size() == expected_size, "size=%s" % image.get_size())
 		shot_status = "PASS" if error == OK else "FAIL"
+	var finishing_event: DamageEvent = DamageEvent.new(
+		7002,
+		city.robot,
+		1.0,
+		&"ground_smash",
+		transformer.global_position,
+		Vector2.RIGHT,
+		520.0
+	)
+	_check(
+		"second_hit_fully_destroys_power_box",
+		transformer.receive_damage(finishing_event),
+		"fully_destroyed=%s" % transformer.is_fully_destroyed
+	)
+	_check(
+		"spent_shell_is_removed",
+		transformer.is_fully_destroyed and not transformer.visual.visible,
+		"visible=%s layer=%d" % [transformer.visual.visible, transformer.collision_layer]
+	)
+	_check(
+		"repair_pickup_survives_second_hit",
+		catalysts.active_repair_pickup_count() == 1,
+		"active=%d" % catalysts.active_repair_pickup_count()
+	)
 	_check(
 		"pickup_collects",
 		pickup.try_collect(city.robot),

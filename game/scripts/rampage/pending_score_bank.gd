@@ -1,7 +1,7 @@
 class_name PendingScoreBank
 extends RefCounted
 
-const BANK_DELAY: float = 1.0
+const BANK_DELAY: float = RampageRewardTuning.PENDING_BANK_SECONDS
 
 var value: int = 0
 var bank_remaining: float = 0.0

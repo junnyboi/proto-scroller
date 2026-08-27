@@ -12,7 +12,7 @@ signal disentangle_pressed
 const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
 const MUTED_COLOR: Color = Color("b7c4cb")
-const COMBO_GRACE_SECONDS: float = 3.0
+const COMBO_GRACE_SECONDS: float = RampageRewardTuning.COMBO_GRACE_SECONDS
 const REAR_BARRIER_WARNING_DURATION: float = 0.72
 const REAR_BARRIER_WARNING_VOICE: AudioStream = preload(
 	"res://audio/voice/rear_barrier_warning.wav"

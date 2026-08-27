@@ -89,6 +89,22 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	assert_eq(transformer.trigger_count, 1)
 	assert_false(transformer.receive_damage(event))
 	assert_eq(catalysts.active_repair_pickup_count(), 1)
+	var finishing_event: DamageEvent = DamageEvent.new(
+		903,
+		city.robot,
+		1.0,
+		&"ground_smash",
+		transformer.global_position,
+		Vector2.RIGHT,
+		400.0
+	)
+	assert_true(transformer.receive_damage(finishing_event))
+	assert_true(transformer.is_fully_destroyed)
+	assert_false(transformer.armed)
+	assert_false(transformer.visual.visible)
+	assert_eq(transformer.collision_layer, 0)
+	assert_eq(transformer.trigger_count, 1)
+	assert_eq(catalysts.active_repair_pickup_count(), 1)
 	var pickup: ChassisRepairPickup2D = catalysts.repair_pickups[0]
 	assert_true(pickup.active)
 	assert_eq(pickup.global_position, transformer.global_position + Vector2(0.0, -96.0))
