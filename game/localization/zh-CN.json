@@ -260,7 +260,7 @@
   "upgrade.dash_amplifier.name": "冲刺增幅器",
   "upgrade.dash_amplifier.description": "每阶延长闪避距离与持续时间。无敌时间仍为 300 毫秒。",
   "upgrade.destruction.name": "强化破坏",
-  "upgrade.destruction.description": "每次有效的碎片爆发都会额外生成一块视觉碎片。",
+  "upgrade.destruction.description": "每次有效的碎片爆发都会额外生成两块视觉碎片。",
   "shop.credit": "RAMPAGE CREDIT",
   "shop.score_warning": "SPENDING REDUCES YOUR FINAL RAMPAGE SCORE.",
   "shop.price": "COST  {price}",
