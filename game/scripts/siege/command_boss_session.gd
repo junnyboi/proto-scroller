@@ -20,6 +20,11 @@ const ARMOR: float = 330.0
 const HEALTH: float = 320.0
 const SCREEN_DURATION: float = 4.0
 const TARGET_DURATION: float = 60.0
+const BOSS_REPAIR_DROP_OFFSETS: Array[Vector2] = [
+	Vector2(-82.0, -96.0),
+	Vector2(0.0, -126.0),
+	Vector2(82.0, -96.0),
+]
 const CHOIR_PRIME_TEXTURE: Texture2D = preload("res://art/finale/choir-prime-core.png")
 var dependencies: UrbanSiegeDependencies
 var state: StringName = STATE_IDLE
@@ -30,13 +35,14 @@ var royal_finale: BossRoyalFinaleController
 var active_definition: BossEncounterDefinition
 var elapsed_seconds: float = 0.0
 var generation_token: int = 0
+var last_completed_wreck_position: Vector2 = Vector2.ZERO
 var _state_elapsed: float = 0.0
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
 var _armor_feedback_key: String = ""
 var _royal_finisher_attacks: Dictionary[int, bool] = {}
 var _royal_finisher_roots: Dictionary[int, bool] = {}
-var last_completed_wreck_position: Vector2 = Vector2.ZERO
+var last_repair_drop_count: int = 0
 
 
 func setup(p_dependencies: UrbanSiegeDependencies) -> void:
@@ -75,6 +81,8 @@ func start_definition(definition: BossEncounterDefinition) -> bool:
 func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	if state != STATE_IDLE and state != STATE_COMPLETE:
 		return false
+	if utility_pool.defeat_spectacle != null:
+		utility_pool.defeat_spectacle.deactivate()
 	generation_token = utility_pool.begin_generation()
 	active_definition = definition
 	dependencies.encounter_runtime.release_all()
@@ -122,6 +130,7 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	_state_elapsed = 0.0
 	_completion_payload.clear()
 	last_completed_wreck_position = Vector2.ZERO
+	last_repair_drop_count = 0
 	_armor_feedback_key = ""
 	_royal_finisher_attacks.clear()
 	_royal_finisher_roots.clear()
@@ -154,6 +163,8 @@ func advance(delta: float) -> void:
 
 func stop() -> void:
 	_next_generation()
+	if utility_pool != null and utility_pool.defeat_spectacle != null:
+		utility_pool.defeat_spectacle.deactivate()
 	if _is_choir_prime():
 		dependencies.encounter_runtime.release_all()
 	elif boss != null and boss.active:
@@ -405,6 +416,10 @@ func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> v
 	if enemy == boss:
 		_capture_completion_payload()
 		dependencies.encounter_runtime.set_attack_gate(false)
+		utility_pool.defeat_spectacle.activate(
+			enemy.global_position + Vector2(0.0, -96.0),
+			dependencies.city.camera_rig
+		)
 
 
 func _capture_completion_payload() -> void:
@@ -430,13 +445,16 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 	var royal_state: Dictionary = (
 		royal_finale.capture_state() if royal_finale.active() else {}
 	)
-	_next_generation()
+	var defeated_position: Vector2 = boss.global_position
+	var defeated_direction: StringName = _rig_facing()
+	generation_token = utility_pool.begin_wreck_generation()
 	boss_wreck = wreck
-	if active_definition == null:
-		boss_wreck.configure_finisher_policy(true, wreck.fatal_event)
-	else:
+	boss_wreck.configure_one_hit_melee_finisher(wreck.fatal_event)
+	boss_wreck.set_wreck_visual_visible(false)
+	utility_pool.rig.freeze_defeated(defeated_position, defeated_direction)
+	if active_definition != null:
 		if _is_choir_prime():
-			_configure_campaign_runtime()
+			_start_royal_wreck_runtime(defeated_position)
 			if not royal_state.is_empty():
 				royal_finale.restore_state(royal_state)
 			var snapshot: FinaleEligibilitySnapshot = _snapshot_royal_eligibility()
@@ -453,15 +471,63 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 	_set_state(STATE_WRECK)
 
 
+func _start_royal_wreck_runtime(world_position: Vector2) -> void:
+	var portrait: bool = (
+		dependencies.city != null
+		and dependencies.city.get_viewport_rect().size.y
+		> dependencies.city.get_viewport_rect().size.x
+	)
+	royal_finale.start(
+		active_definition,
+		generation_token,
+		world_position,
+		portrait
+	)
+
+
 func _on_wreck_scrapped(wreck: EnemyWreck2D, _event: DamageEvent, _points: int) -> void:
 	if wreck != boss_wreck:
 		return
 	last_completed_wreck_position = wreck.global_position
+	var repair_drop_count: int = _boss_repair_drop_count()
 	defeated_wreck_committed.emit(active_definition, last_completed_wreck_position)
 	_next_generation()
+	utility_pool.present_boss_rubble(last_completed_wreck_position)
+	last_repair_drop_count = _spawn_boss_repair_pickups(
+		last_completed_wreck_position,
+		repair_drop_count
+	)
 	boss_wreck = null
 	_set_state(STATE_COMPLETE)
 	completed.emit(elapsed_seconds)
+
+
+func _boss_repair_drop_count() -> int:
+	if active_definition == null:
+		return 2
+	return 2 if active_definition.boss_id in [
+		&"SETTLEMENT_ENGINE_S04", &"SAMARITAN_15",
+	] else 3
+
+
+func _spawn_boss_repair_pickups(origin: Vector2, requested_count: int) -> int:
+	if (
+		dependencies == null
+		or dependencies.city == null
+		or dependencies.city.urban_siege == null
+		or dependencies.city.urban_siege.catalysts == null
+	):
+		return 0
+	var spawned: int = 0
+	for index: int in range(mini(requested_count, BOSS_REPAIR_DROP_OFFSETS.size())):
+		var pickup: ChassisRepairPickup2D = (
+			dependencies.city.urban_siege.catalysts.spawn_repair_pickup(
+				origin + BOSS_REPAIR_DROP_OFFSETS[index]
+			)
+		)
+		if pickup != null:
+			spawned += 1
+	return spawned
 
 
 func _commit_crown_pylon_transaction() -> bool:
@@ -487,7 +553,7 @@ func _on_wreck_receiver_damage(
 		or event == null
 		or boss_wreck == null
 		or boss_wreck.scrapped_state
-		or event.damage_type != &"ground_smash"
+		or event.damage_type not in [&"jab_cross", &"ground_smash"]
 	):
 		return false
 	if not _is_choir_prime():
@@ -505,12 +571,8 @@ func _on_wreck_receiver_damage(
 			BossOutcome.ASCENSION_FAILURE
 		)
 		return boss_wreck.receive_damage(event)
-	if not royal_finale.severance_active:
-		return royal_finale.begin_severance()
-	if not royal_finale.complete_severance_window():
+	if not royal_finale.complete_severance_immediately():
 		return false
-	if royal_finale.severance_completed < BossRoyalFinaleController.SEVERANCE_WINDOW_COUNT:
-		return true
 	_completion_payload = royal_finale.completion_payload(BossOutcome.DISENTANGLE)
 	return boss_wreck.receive_damage(event)
 

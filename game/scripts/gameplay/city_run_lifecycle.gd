@@ -62,9 +62,37 @@ func robot_defeated() -> void:
 	):
 		city.game_over_active = true
 		city.mobile_controls.set_controls_enabled(true)
-		city.gameplay_hud.show_game_over()
+		city.gameplay_hud.show_game_over(_boss_attempt_summary())
 		return
 	_finish_run(false)
+
+
+func _boss_attempt_summary() -> RunSummarySnapshot:
+	var run_metrics: Dictionary = {
+		"completed": false,
+		"boss_result": &"ATTEMPT_FAILED",
+		"contract_result": &"FAILED",
+	}
+	if city.urban_siege != null:
+		var directive: DirectiveProfile = city.urban_siege.directives.selected_profile
+		run_metrics.directive_path = (
+			directive.directive_id if directive != null else &"NONE"
+		)
+		run_metrics.run_seed = city.urban_siege.run_seed
+		run_metrics.cycle_count = city.urban_siege.cycle_count
+	var waves_cleared: int = clampi(city.encounter_director.phase_index + 1, 0, 6)
+	var summary: RunSummarySnapshot = city.rampage_session.snapshot_summary(
+		waves_cleared,
+		city.overdrive_session.activation_count,
+		run_metrics
+	)
+	if city.combat_profile != null:
+		summary = summary.with_career_result({
+			"new_combo_record": false,
+			"new_score_record": false,
+			"career_snapshot": city.combat_profile.snapshot(),
+		})
+	return summary
 
 
 func _on_momentum_changed(value: float, band: int) -> void:

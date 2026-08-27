@@ -23,14 +23,14 @@ func test_forward_chunk_boundaries_select_the_authored_districts() -> void:
 	var expectations: Dictionary[int, StringName] = {
 		-64: &"BUSINESS",
 		0: &"BUSINESS",
-		6: &"BUSINESS",
-		7: &"RESIDENTIAL",
-		13: &"RESIDENTIAL",
-		14: &"ENTERTAINMENT",
-		20: &"ENTERTAINMENT",
-		21: &"MILITARY",
-		27: &"MILITARY",
-		28: &"ROYAL",
+		11: &"BUSINESS",
+		12: &"RESIDENTIAL",
+		23: &"RESIDENTIAL",
+		24: &"ENTERTAINMENT",
+		35: &"ENTERTAINMENT",
+		36: &"MILITARY",
+		47: &"MILITARY",
+		48: &"ROYAL",
 		96: &"ROYAL",
 	}
 	for logical_index: int in expectations:
@@ -43,7 +43,7 @@ func test_forward_chunk_boundaries_select_the_authored_districts() -> void:
 
 
 func test_blueprint_selection_is_replayable_and_order_independent() -> void:
-	var indices: Array[int] = [-12, -1, 0, 4, 6, 7, 13, 14, 21, 28, 48]
+	var indices: Array[int] = [-12, -1, 0, 9, 11, 12, 23, 24, 36, 48, 72]
 	var forward: Dictionary[int, StringName] = {}
 	for logical_index: int in indices:
 		var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(917, logical_index)
@@ -56,38 +56,55 @@ func test_blueprint_selection_is_replayable_and_order_independent() -> void:
 		assert_eq(replay.building_variant_id, replay.building_variant.variant_id)
 
 
-func test_each_district_guarantees_its_complete_five_facade_roster() -> void:
+func test_each_district_displays_two_shuffled_complete_five_facade_rosters() -> void:
 	for run_seed: int in [0, 731, 917, 4401]:
 		for district: CityDistrictProfile in CityDistrictCatalog.districts():
-			var selected_ids: Dictionary[StringName, bool] = {}
-			var selected_paths: Dictionary[String, bool] = {}
-			for local_index: int in range(CityDistrictCatalog.VARIANTS_PER_DISTRICT):
-				var logical_index: int = district.start_chunk + local_index
-				var variant: StructuralBuildingVariant = (
-					CityDistrictCatalog.variant_for_chunk(run_seed, logical_index)
+			var encounter_counts: Dictionary[StringName, int] = {}
+			var pass_signatures: PackedStringArray = PackedStringArray()
+			for facade_pass: int in range(
+				CityDistrictCatalog.FACADE_PASSES_PER_DISTRICT
+			):
+				var selected_ids: Dictionary[StringName, bool] = {}
+				var pass_ids: PackedStringArray = PackedStringArray()
+				for pass_index: int in range(CityDistrictCatalog.VARIANTS_PER_DISTRICT):
+					var local_index: int = (
+						facade_pass * CityDistrictCatalog.VARIANTS_PER_DISTRICT
+						+ pass_index
+					)
+					var logical_index: int = district.start_chunk + local_index
+					var variant: StructuralBuildingVariant = (
+						CityDistrictCatalog.variant_for_chunk(run_seed, logical_index)
+					)
+					assert_true(district.building_variants.has(variant))
+					selected_ids[variant.variant_id] = true
+					pass_ids.append(String(variant.variant_id))
+					encounter_counts[variant.variant_id] = int(
+						encounter_counts.get(variant.variant_id, 0)
+					) + 1
+				assert_eq(
+					selected_ids.size(),
+					CityDistrictCatalog.VARIANTS_PER_DISTRICT,
+					"seed=%d district=%s pass=%d"
+					% [run_seed, district.district_id, facade_pass]
 				)
-				assert_true(district.building_variants.has(variant))
-				selected_ids[variant.variant_id] = true
-				selected_paths[variant.intact_texture.resource_path] = true
+				pass_signatures.append(",".join(pass_ids))
 			assert_eq(
-				selected_ids.size(),
-				CityDistrictCatalog.VARIANTS_PER_DISTRICT,
-				"seed=%d district=%s" % [run_seed, district.district_id]
+				encounter_counts.size(),
+				CityDistrictCatalog.VARIANTS_PER_DISTRICT
 			)
-			assert_eq(
-				selected_paths.size(),
-				CityDistrictCatalog.VARIANTS_PER_DISTRICT,
-					"seed=%d district=%s" % [run_seed, district.district_id]
-				)
+			assert_ne(pass_signatures[0], pass_signatures[1])
+			for count: int in encounter_counts.values():
+				assert_eq(count, CityDistrictCatalog.FACADE_PASSES_PER_DISTRICT)
 	assert_eq(
 		CityDistrictCatalog.variant_for_chunk(0, 0).variant_id,
 		&"business_mercy_exchange_annex"
 	)
+	assert_eq(CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT, 10)
 	assert_eq(CityDistrictCatalog.TRANSITION_CORRIDOR_CHUNKS, 2)
-	assert_true(CityDistrictCatalog.chunk_hosts_facade(4))
-	assert_false(CityDistrictCatalog.chunk_hosts_facade(5))
-	assert_false(CityDistrictCatalog.chunk_hosts_facade(6))
-	assert_true(CityDistrictCatalog.chunk_hosts_facade(7))
+	assert_true(CityDistrictCatalog.chunk_hosts_facade(9))
+	assert_false(CityDistrictCatalog.chunk_hosts_facade(10))
+	assert_false(CityDistrictCatalog.chunk_hosts_facade(11))
+	assert_true(CityDistrictCatalog.chunk_hosts_facade(12))
 
 
 func test_nonzero_run_seeds_rotate_the_opening_facade_without_losing_rosters() -> void:

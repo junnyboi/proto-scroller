@@ -37,7 +37,9 @@ const AHEAD_CHUNKS: int = 3
 const PROGRESSION_CHUNKS_PER_TIER: int = CityDistrictCatalog.CHUNKS_PER_DISTRICT
 const MAX_PROGRESSION_TIER: int = 4
 const LEFT_RETENTION_DISTANCE: float = 1000.0
-const DISTRICT_BUILDINGS_REQUIRED: int = CityDistrictCatalog.VARIANTS_PER_DISTRICT
+const DISTRICT_BUILDINGS_REQUIRED: int = (
+	CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+)
 const BARRIER_WIDTH: float = 48.0
 const BARRIER_HEIGHT: float = 1200.0
 const ROBOT_BARRIER_CLEARANCE: float = 72.0
@@ -67,7 +69,7 @@ var rear_barrier: StaticBody2D
 var district_exit_barrier: StaticBody2D
 var _rear_barrier_collision: CollisionShape2D
 var _district_exit_collision: CollisionShape2D
-var _cleared_variants_by_district: Dictionary[StringName, Dictionary] = {}
+var _cleared_encounters_by_district: Dictionary[StringName, Dictionary] = {}
 var _last_frontier_signal_logical_x: float = 0.0
 var _resident_lease_owner: Object
 var _rear_barrier_contact_active: bool = false
@@ -243,7 +245,7 @@ func rear_frontier_runtime_x() -> float:
 
 
 func district_clear_count(district_id: StringName = current_district_id) -> int:
-	var cleared: Dictionary = _cleared_variants_by_district.get(district_id, {})
+	var cleared: Dictionary = _cleared_encounters_by_district.get(district_id, {})
 	return cleared.size()
 
 
@@ -335,19 +337,25 @@ func report_building_cleared(
 	var variant_id: StringName = StringName(
 		building.get_meta(&"building_variant_id", &"")
 	)
-	if district_id.is_empty() or variant_id.is_empty():
+	var logical_chunk: int = int(building.get_meta(&"logical_chunk", -1))
+	if district_id.is_empty() or variant_id.is_empty() or logical_chunk < 0:
 		return false
 	var districts: Array[CityDistrictProfile] = CityDistrictCatalog.districts()
 	if district_index < 0 or district_index >= districts.size():
 		return false
 	var district: CityDistrictProfile = districts[district_index]
-	if district.district_id != district_id or district.variant_by_id(variant_id) == null:
+	if (
+		district.district_id != district_id
+		or district.variant_by_id(variant_id) == null
+		or CityDistrictCatalog.district_index_for_chunk(logical_chunk) != district_index
+		or not CityDistrictCatalog.chunk_hosts_facade(logical_chunk)
+	):
 		return false
-	var cleared: Dictionary = _cleared_variants_by_district.get(district_id, {})
-	if cleared.has(variant_id):
+	var cleared: Dictionary = _cleared_encounters_by_district.get(district_id, {})
+	if cleared.has(logical_chunk):
 		return false
-	cleared[variant_id] = true
-	_cleared_variants_by_district[district_id] = cleared
+	cleared[logical_chunk] = variant_id
+	_cleared_encounters_by_district[district_id] = cleared
 	district_clear_progress.emit(
 		district_id,
 		cleared.size(),
@@ -385,7 +393,7 @@ func reset_stream(p_run_seed: int = 0, preserve_spatial_state: bool = false) -> 
 	unlocked_district_index = CityDistrictCatalog.district_index_for_chunk(
 		current_logical_chunk
 	)
-	_cleared_variants_by_district.clear()
+	_cleared_encounters_by_district.clear()
 	_pending_boss_district_index = -1
 	_corridor_district_index = -1
 	_campaign_handoff_complete = false

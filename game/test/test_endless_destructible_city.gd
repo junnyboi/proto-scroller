@@ -335,7 +335,7 @@ func test_run_reset_clears_sparse_mutations_without_reallocating() -> void:
 
 func test_district_readiness_scales_enemy_and_hazard_pressure_inside_caps() -> void:
 	var city: CitySlice = await _spawn_city()
-	await _move_to_logical_chunk(city, 15)
+	await _move_to_logical_chunk(city, 36)
 	assert_eq(city.world_stream.progression_tier(), 3)
 	assert_eq(city.world_stream.current_district_id, &"MILITARY")
 	var director: DistrictResponseDirector = city.urban_siege.director
@@ -434,13 +434,23 @@ func _unlock_districts_through(stream: CityWorldStream, logical_index: int) -> v
 			stream.unlocked_district_index
 		]
 		stream.current_district_id = district.district_id
-		for variant: StructuralBuildingVariant in district.building_variants:
+		for encounter_index: int in range(
+			CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+		):
+			var encounter_chunk: int = district.start_chunk + encounter_index
+			var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+				stream.run_seed,
+				encounter_chunk
+			)
 			var building_value: StructuralBuilding2D = StructuralBuilding2D.new()
 			building_value.set_meta(&"district_id", district.district_id)
 			building_value.set_meta(&"district_index", district.district_index)
 			building_value.set_meta(&"building_variant_id", variant.variant_id)
+			building_value.set_meta(&"logical_chunk", encounter_chunk)
 			stream.report_building_cleared(building_value)
 			building_value.free()
+		assert_true(stream.begin_post_boss_corridor(district.district_index))
+		assert_true(stream.complete_district_handoff(district.district_index))
 
 
 func _fatal_event(

@@ -2,7 +2,7 @@ class_name BossCampaignCatalog
 extends RefCounted
 
 const DEFINITION_COUNT: int = 5
-const CANONICAL_TRIGGERS: Array[int] = [4, 11, 18, 25, 32]
+const CANONICAL_TRIGGERS: Array[int] = [9, 21, 33, 45, 57]
 const CANONICAL_EVIDENCE: Array[StringName] = [
 	&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
 ]
@@ -157,11 +157,11 @@ static func _ensure_catalog() -> void:
 	if not _definitions.is_empty():
 		return
 	_definitions = [
-		_make_definition(
-				&"SETTLEMENT_ENGINE_S04",
-				&"BUSINESS",
-				4,
-				7,
+			_make_definition(
+					&"SETTLEMENT_ENGINE_S04",
+					&"BUSINESS",
+					9,
+					12,
 			"boss.settlement_engine_s04.name",
 			"SETTLEMENT ENGINE S-04 — The Fiduciary Saint",
 			&"business_crown_reserve_treasury",
@@ -184,11 +184,11 @@ static func _ensure_catalog() -> void:
 				&"FOUNDATION_CASCADE",
 			]
 		),
-			_make_definition(
-					&"SAMARITAN_15",
-					&"RESIDENTIAL",
-					11,
-					14,
+				_make_definition(
+						&"SAMARITAN_15",
+						&"RESIDENTIAL",
+						21,
+						24,
 			"boss.samaritan_15.name",
 			"SAMARITAN-15 — The Last Evacuation",
 			&"residential_nightglass_mutual_clinic",
@@ -210,11 +210,11 @@ static func _ensure_catalog() -> void:
 				&"BLACKOUT_HARVEST",
 			]
 		),
-			_make_definition(
-					&"MIMESIS_04",
-					&"ENTERTAINMENT",
-					18,
-					21,
+				_make_definition(
+						&"MIMESIS_04",
+						&"ENTERTAINMENT",
+						33,
+						36,
 			"boss.mimesis_04.name",
 			"MIMESIS-04 — The Afterimage Conductor",
 			&"entertainment_house_of_static",
@@ -233,11 +233,11 @@ static func _ensure_catalog() -> void:
 				&"ARMED_AFTERIMAGE", &"ENCORE_IMPACT",
 			]
 		),
-			_make_definition(
-					&"CANTOR_31_PALE_ENGINE",
-					&"MILITARY",
-					25,
-					28,
+				_make_definition(
+						&"CANTOR_31_PALE_ENGINE",
+						&"MILITARY",
+						45,
+						48,
 			"boss.cantor_31.name",
 			"CANTOR-31 / PALE ENGINE — The Export Surgeon",
 			&"military_prefect_war_keep",
@@ -258,10 +258,10 @@ static func _ensure_catalog() -> void:
 				&"PALE_RECLAMATION", &"COMPRESSION_PSALM",
 			]
 		),
-			_make_definition(
-					&"CHOIR_PRIME",
-					&"ROYAL",
-					32,
+				_make_definition(
+						&"CHOIR_PRIME",
+						&"ROYAL",
+						57,
 			-1,
 			"boss.choir_prime.name",
 			"CHOIR Prime — The Last Sovereign",
@@ -360,7 +360,7 @@ static func _make_definition(
 		&"echo": "boss.%s.echo" % String(boss_id).to_lower(),
 		&"veyr": "boss.%s.veyr" % String(boss_id).to_lower(),
 	}
-	definition_value.wreck_mode = &"FRESH_GROUND_SMASH"
+	definition_value.wreck_mode = &"FRESH_MELEE"
 	definition_value.outcome_policy = (
 		&"ROYAL_THREE_OUTCOME" if boss_id == &"CHOIR_PRIME" else &"STANDARD_PURGE"
 	)

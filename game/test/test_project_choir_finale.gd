@@ -108,7 +108,7 @@ func test_ineligible_disentangle_warns_and_commits_ascension_failure() -> void:
 	)
 
 
-func test_eligible_disentangle_repeats_without_timeout_and_completes_five_windows() -> void:
+func test_eligible_disentangle_commits_on_one_fresh_melee() -> void:
 	_prepare_pre_crown_eligible_store()
 	_start_royal()
 	_break_armor(30_000)
@@ -117,17 +117,12 @@ func test_eligible_disentangle_repeats_without_timeout_and_completes_five_window
 	assert_eq(royal.finale_snapshot.dossier_count, 20)
 	var receiver: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
 	assert_true(receiver.receive_damage(_smash_event(30_200)))
-	assert_true(royal.severance_active)
-	assert_eq(royal.severance_completed, 0)
-	assert_false(receiver.receive_damage(_smash_event(30_200)))
-	royal.advance(BossRoyalFinaleController.SEVERANCE_WINDOW_SECONDS * 3.1)
-	assert_true(royal.severance_active)
-	assert_gt(royal.severance_loop_count, 0)
-	for index: int in range(BossRoyalFinaleController.SEVERANCE_WINDOW_COUNT):
-		assert_eq(royal.active_mechanic_count(), 1)
-		assert_eq(royal.active_composition_echo_count(), 1)
-		assert_true(receiver.receive_damage(_smash_event(30_300 + index)))
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_false(royal.severance_active)
+	assert_eq(
+		royal.severance_completed,
+		BossRoyalFinaleController.SEVERANCE_WINDOW_COUNT
+	)
 	assert_eq(int(session.completion_payload().finale_outcome), BossOutcome.DISENTANGLE)
 	assert_eq(
 		int(session.completion_payload().severance_windows_completed),

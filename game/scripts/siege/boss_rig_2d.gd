@@ -12,6 +12,7 @@ const STATE_MOVING: StringName = &"MOVING"
 const STATE_ATTACKING: StringName = &"ATTACKING"
 const DIRECTION_EAST: StringName = &"E"
 const DIRECTION_WEST: StringName = &"W"
+const DEFEATED_MODULATE: Color = Color("625d58")
 const SOCKET_NAMES: Array[StringName] = [
 	&"CORE",
 	&"WEAK_POINT",
@@ -37,6 +38,7 @@ var animation_direction: StringName = DIRECTION_EAST
 var animation_stage: StringName = &"TELEGRAPH"
 var animation_frame: int = 0
 var animation_elapsed: float = 0.0
+var defeated_pose: bool = false
 var damage_flash_count: int = 0
 
 var _presentation_root: Node2D
@@ -80,6 +82,7 @@ func deactivate() -> void:
 	animation_stage = &"TELEGRAPH"
 	animation_frame = 0
 	animation_elapsed = 0.0
+	defeated_pose = false
 	_cancel_damage_flash()
 	visible = false
 	for part: Sprite2D in parts:
@@ -145,6 +148,8 @@ func configure_orientation(use_portrait: bool) -> void:
 
 
 func play_moving(direction: StringName = animation_direction) -> void:
+	if defeated_pose:
+		return
 	set_facing(direction)
 	if animation_state == STATE_MOVING:
 		return
@@ -156,6 +161,8 @@ func play_moving(direction: StringName = animation_direction) -> void:
 
 
 func play_attacking(stage: StringName, direction: StringName = animation_direction) -> void:
+	if defeated_pose:
+		return
 	set_facing(direction)
 	var stage_changed: bool = animation_state != STATE_ATTACKING or animation_stage != stage
 	animation_state = STATE_ATTACKING
@@ -167,6 +174,8 @@ func play_attacking(stage: StringName, direction: StringName = animation_directi
 
 
 func set_facing(direction: StringName) -> void:
+	if defeated_pose:
+		return
 	var normalized: StringName = DIRECTION_WEST if direction == DIRECTION_WEST else DIRECTION_EAST
 	if animation_direction == normalized:
 		return
@@ -175,7 +184,7 @@ func set_facing(direction: StringName) -> void:
 
 
 func advance_animation(delta: float) -> void:
-	if not visible or active_definition == null or delta <= 0.0:
+	if defeated_pose or not visible or active_definition == null or delta <= 0.0:
 		return
 	animation_elapsed += delta
 	if animation_state == STATE_MOVING:
@@ -193,12 +202,35 @@ func advance_animation(delta: float) -> void:
 	_apply_animation_frame()
 
 
+func freeze_defeated(world_position: Vector2, direction: StringName) -> void:
+	if active_definition == null:
+		return
+	_cancel_damage_flash()
+	global_position = world_position
+	animation_direction = DIRECTION_WEST if direction == DIRECTION_WEST else DIRECTION_EAST
+	animation_state = STATE_ATTACKING
+	animation_stage = &"RECOVERY"
+	animation_frame = BossAnimationCatalog.FRAME_COUNT - 1
+	animation_elapsed = 0.0
+	defeated_pose = true
+	for area: Area2D in hurt_regions:
+		_set_hurt_region_active(area, false)
+	active_hurt_region_count = 0
+	if parts.size() > 1:
+		parts[1].visible = false
+	_presentation_root.modulate = DEFEATED_MODULATE
+	visible = true
+	_apply_animation_frame()
+
+
 func animation_signature() -> Dictionary:
 	return {
 		"state": animation_state,
 		"direction": animation_direction,
 		"stage": animation_stage,
 		"frame": animation_frame,
+		"defeated": defeated_pose,
+		"modulate": _presentation_root.modulate,
 		"sequence_row": BossAnimationCatalog.sequence_row(
 			animation_direction, animation_state
 		),

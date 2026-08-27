@@ -208,8 +208,10 @@ func record_damage(event: DamageEvent, health_ratio: float) -> void:
 	_impact_direction = -1.0 if event.direction.x < 0.0 else 1.0
 	_set_hollow_progress(severity)
 	_generate(local_hit, severity, event_seed)
-	_emit_attachment_effects(event, severity)
-	set_destroyed_stage(health_ratio <= 0.0)
+	var terminal: bool = health_ratio <= 0.0
+	set_destroyed_stage(terminal)
+	if not terminal:
+		_emit_attachment_effects(event, severity)
 	visible = true
 	queue_redraw()
 

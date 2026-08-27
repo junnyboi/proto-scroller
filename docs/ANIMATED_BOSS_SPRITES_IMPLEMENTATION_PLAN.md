@@ -89,13 +89,14 @@ A new immutable catalog preloads five atlases and records each atlas cell size, 
 
 ### `BossRig2D`
 
-The existing part-zero sprite becomes an atlas-region renderer. All textures and region state are configured inside the existing prewarmed rig. The rig owns only presentation fields: active preset, state, direction, frame index, elapsed state time, and current authoritative attack stage. It exposes:
+The existing part-zero sprite becomes an atlas-region renderer. All textures and region state are configured inside the existing prewarmed rig. The rig owns only presentation fields: active preset, state, direction, frame index, elapsed state time, current authoritative attack stage, and an immutable defeated-pose latch. It exposes:
 
 - `play_moving(direction)`;
 - `play_attacking(direction, stage)`;
 - `set_facing(direction)`;
 - `advance_animation(delta)`;
-- `animation_signature()` for deterministic inspection.
+- `animation_signature()` for deterministic inspection;
+- `freeze_defeated(world_position, direction)` to select frame seven of the directional attack row, disable rig hurt regions, apply the regular defeated-unit dark tint, and reject later animation changes.
 
 The moving state loops at 6 FPS. The attacking state maps frames 0–2 to `TELEGRAPH`, 3–4 to `ACTIVE`, and 5–7 to `RECOVERY`, using each controller’s existing stage duration. A state change snaps to the first frame of the correct stage so retry restoration and large-delta transitions cannot drift. No animation frame emits damage, changes collision, moves sockets, or starts controller actions.
 
@@ -103,12 +104,18 @@ The moving state loops at 6 FPS. The attacking state maps frames 0–2 to `TELEG
 
 The session connects once to `BossVerticalSliceController.attack_changed`, `BossEscalationController.attack_changed`, and `BossRoyalFinaleController.attack_changed`. It keeps the rig in `moving` during `SCREEN`; enters the current attack state when `BARRAGE` or `EXPOSED` begins; forwards subsequent attack stages; and advances the rig from the session clock. Facing is derived from the live robot’s X position relative to the hidden boss host and passed to the rig every frame. Stop, death, wreck transition, retry, and generation cleanup reset the animation with existing lifecycle authority.
 
+### Defeated presentation, rubble, and repairs
+
+Body death now starts a dedicated wreck generation that clears boss attacks, support utilities, and reservations while preserving the visible atlas rig. The hidden generic tank wreck remains the collision and deduplication authority, but its sprite is suppressed; the player sees the actual boss frozen on the last attack frame and darkened with the same defeated tint as ordinary wrecks. The lethal attack and root IDs remain seeded, so the killing strike cannot also finish the corpse.
+
+One subsequent fresh player melee, either jab-cross or ground smash, immediately scraps the hidden wreck. Generation cleanup then hides the frozen rig, reveals one prewarmed `RUBBLE_BED` presentation at the same world position, and retains the existing bounded debris burst. The first two campaign bosses drop two repair cells; MIMESIS, CANTOR, and CHOIR Prime drop three. The existing catalyst runtime owns a fixed five-slot repair pool—two power-box slots plus three boss-drop headroom—and every cell restores a fixed 50 chassis HP. Royal keeps its two outcome receivers: the same single melee commits PURGE, eligible DISENTANGLE, or warned ASCENSION FAILURE before rubble conversion.
+
 ## Integration Constraints
 
 | Constraint | Implementation response |
 |---|---|
-| No gameplay authority in frames | Damage, telegraphs, safe lanes, projectiles, support, evidence, and wreck completion remain in existing controllers/session objects. |
-| Fixed runtime allocation | One existing part-zero sprite and five preloaded textures; no nodes, timers, tweens, or frame resources are created during combat. |
+| No gameplay authority in frames | Damage, telegraphs, safe lanes, projectiles, support, evidence, and corpse completion remain in existing controllers/session/wreck objects; the frozen atlas remains visual only. |
+| Fixed runtime allocation | One existing part-zero sprite, five preloaded textures, one prewarmed rubble presentation, and five fixed repair pickups; no nodes, timers, tweens, or frame resources are created during combat. |
 | Directional asymmetry | S-04 and CHOIR Prime use separately generated W assets. Other bosses mirror the entire E sequence during deterministic extraction. |
 | Mechanical stability | Region rendering affects only `_presentation_root`; hurt regions and sockets never flip or move. |
 | Portrait parity | The current portrait presentation scale remains; frame cells retain the same bottom-center origin and 520×390 display envelope. |
@@ -148,9 +155,9 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 | Runtime | One prewarmed rig sprite renders one region from one boss atlas; no combat-time node allocation occurs. |
 | Facing | Visible boss faces the live player; S-04 archive and CHOIR pylon semantics do not swap. |
 | State | `SCREEN` uses moving; controller telegraph/active/recovery stages select the corresponding attack frame ranges. |
-| Mechanics | Hurt regions, sockets, attack areas, damage timing, safe lanes, supports, wrecks, evidence, and outcomes are unchanged. |
+| Mechanics | Hurt regions, sockets, attack areas, damage timing, safe lanes, supports, evidence, and outcomes stay controller-owned; corpse completion is explicitly one fresh player melee. |
 | Responsive | Existing 520×390 fit and portrait presentation scaling remain authoritative. |
-| Lifecycle | Armor generation changes, retry, death, wreck, stop, and New Game+ cannot retain stale animation state. |
+| Lifecycle | Armor generation changes, retry, death, rubble, stop, and New Game+ cannot retain stale animation or pickup state. |
 | Delivery | Shared `main`, the fresh Web export, immutable payload map, runtime manifest, continuity records, and WebDev checkpoint identify the same feature tree. |
 
 ## Implementation Record
@@ -159,9 +166,10 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 |---|---|---|---|
 | WP1 — Reference lock and plan | Complete | `86fa1a5` | Five references and current static sprites inspected; 14-carrier/20-sequence matrix selected and pushed before generation. |
 | WP2 — Anchors and carriers | Complete | External masters | Seven GPT Image 2 anchors and fourteen 4-second locked Veo 3.1 carriers; 720p and audio disabled. |
-| WP3 — Extraction and atlases | Complete | Implementation commit pending | Twenty eight-frame sequences packed into five 32-frame lossless masters and five compact runtime atlases; visual inspection recorded externally. |
-| WP4 — Godot integration | Complete | Implementation commit pending | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
-| WP5 — Export and WebDev | Pending | Pending | Fresh runtime payloads and checkpoint. |
+| WP3 — Extraction and atlases | Complete | `a89ab7b` | Twenty eight-frame sequences packed into five 32-frame lossless masters and five compact runtime atlases; visual inspection recorded externally. |
+| WP4 — Godot integration | Complete | `a89ab7b` | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
+| WP5 — Export and WebDev | Complete | Source `bb106f0`; checkpoint `f0eb7790` | Final Godot 4.7.2 Web export uploaded as fresh immutable WASM/PCK and synchronized into the existing fullscreen WebDev host. |
+| WP6 — Defeated pose, rubble, and repairs | Complete | Source `430f4d0`; checkpoint `e2eec3aa` | The full defeat spectacle hands off to a frozen, darkened final atlas frame; one fresh melee creates prewarmed rubble and releases two or three fixed 50-HP pickups from the expanded fixed pool. |
 
 ## References
 

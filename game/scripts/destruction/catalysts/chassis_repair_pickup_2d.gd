@@ -5,7 +5,7 @@ signal collected(pickup: ChassisRepairPickup2D, repaired_health: float)
 signal expired(pickup: ChassisRepairPickup2D)
 
 const ROBOT_LAYER: int = 1 << 1
-const REPAIR_RATIO: float = 0.05
+const REPAIR_AMOUNT: float = 50.0
 const LIFETIME_SECONDS: float = 12.0
 const HOVER_AMPLITUDE: float = 7.0
 const HOVER_SPEED: float = 2.8
@@ -83,7 +83,7 @@ func reset_pickup() -> void:
 func try_collect(robot: GiantRobotController) -> bool:
 	if not active or robot == null:
 		return false
-	var repaired_health: float = robot.repair_chassis(robot.max_health * REPAIR_RATIO)
+	var repaired_health: float = robot.repair_chassis(REPAIR_AMOUNT)
 	if repaired_health <= 0.0:
 		return false
 	reset_pickup()

@@ -28,6 +28,7 @@ var airborne_crash: bool = false
 var crash_landing_count: int = 0
 var crash_impact_count: int = 0
 var finisher_requires_ground_smash: bool = false
+var finisher_damage_types: PackedStringArray = PackedStringArray()
 var _seen_attacks: Dictionary[int, bool] = {}
 var _seen_root_attacks: Dictionary[int, bool] = {}
 var _finisher_receiver_active: bool = true
@@ -115,6 +116,7 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	airborne_crash = false
 	crash_impact_count = 0
 	finisher_requires_ground_smash = false
+	finisher_damage_types = PackedStringArray()
 	_finisher_receiver_active = false
 	_seen_attacks.clear()
 	_seen_root_attacks.clear()
@@ -143,6 +145,8 @@ func receive_damage(event: DamageEvent) -> bool:
 		return false
 	if finisher_requires_ground_smash and event.damage_type != &"ground_smash":
 		return false
+	if not finisher_damage_types.is_empty() and not finisher_damage_types.has(event.damage_type):
+		return false
 	if event.attack_id != 0 and _seen_attacks.has(event.attack_id):
 		return false
 	if event.root_attack_id != 0 and _seen_root_attacks.has(event.root_attack_id):
@@ -164,9 +168,11 @@ func receive_damage(event: DamageEvent) -> bool:
 
 func configure_finisher_policy(
 	requires_ground_smash: bool,
-	p_fatal_event: DamageEvent = fatal_event
+	p_fatal_event: DamageEvent = fatal_event,
+	allowed_damage_types: PackedStringArray = PackedStringArray()
 ) -> void:
 	finisher_requires_ground_smash = requires_ground_smash
+	finisher_damage_types = allowed_damage_types.duplicate()
 	_seen_attacks.clear()
 	_seen_root_attacks.clear()
 	if p_fatal_event != null:
@@ -175,6 +181,22 @@ func configure_finisher_policy(
 		if p_fatal_event.root_attack_id != 0:
 			_seen_root_attacks[p_fatal_event.root_attack_id] = true
 	_finisher_receiver_active = true
+
+
+func configure_one_hit_melee_finisher(p_fatal_event: DamageEvent = fatal_event) -> void:
+	scrap_health = 1.0
+	current_scrap_health = 1.0
+	configure_finisher_policy(
+		false,
+		p_fatal_event,
+		PackedStringArray(["jab_cross", "ground_smash"])
+	)
+
+
+func set_wreck_visual_visible(visible_value: bool) -> void:
+	var visual: Sprite2D = get_node_or_null(^"WreckVisual") as Sprite2D
+	if visual != null:
+		visual.visible = visible_value
 
 
 func get_material_profile() -> StructuralMaterialProfile:
