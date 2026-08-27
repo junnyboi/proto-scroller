@@ -109,11 +109,11 @@ The highest risk is disabling pooled collisions without restoring mutation-sensi
 | 4 — Contract updates | Complete | `fca74d1` | Streaming, district, boss, narrative, persistence, localization, and scenario contracts updated without executing release-gate suites per project override. |
 | 5 — Source/WebDev delivery | Complete | `fca74d1` / WebDev `c0da9c13` | Shared `main` updated non-force; fresh Godot 4.7.2 Web export synchronized to immutable WASM/PCK payloads and saved in the existing host checkpoint. |
 | 6 — Rear-wall warning feedback | Complete | `5b16bd9` / WebDev `82a6869a` | Debounced contact signal, prewarmed input-transparent shader vignette, HUD wiring, runtime-budget contract, fresh Godot 4.7.2 export, and existing-host synchronization delivered. |
-| 7 — Rear-wall warning audio | In progress | Pending | GPT Image 2 anchor, generated video-carrier bed, exact `Gacrux` voice line, mastered runtime cue, synchronous HUD playback, provenance, and bounded runtime contracts implemented; source/WebDev delivery pending. |
+| 7 — Rear-wall warning audio | Complete | `66b4b21` / WebDev `4f2100a8` | GPT Image 2 anchor, generated video-carrier bed, exact `Gacrux` line, mastered 48 kHz mono cue, synchronous debounced HUD playback, fresh Godot 4.7.2 export, and combined concurrent-host checkpoint delivered. |
 
 ## Delivered Runtime
 
-The final gameplay revision is `fca74d1`. WebDev checkpoint `c0da9c13` maps `/manus-storage/game_8d935fb5.wasm` (39,514,754 bytes) and `/manus-storage/game_b0b43373.pck` (11,473,084 bytes). Full release-gate certification was intentionally not executed under the project-level user override.
+The delivered warning-audio gameplay revision is `66b4b21`. WebDev checkpoint `4f2100a8` maps `/manus-storage/game_9bfa26ef.wasm` (39,514,754 bytes) and `/manus-storage/game_2576cd11.pck` (13,780,932 bytes). The checkpoint semantically preserves the concurrent two-stage transformer and size-aware enemy-telegraph releases. Full release-gate certification was intentionally not executed under the project-level user override; generated-audio integrity and the exact spoken transcript were confirmed.
 
 ## References
 
