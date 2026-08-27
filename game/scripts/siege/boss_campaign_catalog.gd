@@ -2,7 +2,7 @@ class_name BossCampaignCatalog
 extends RefCounted
 
 const DEFINITION_COUNT: int = 5
-const CANONICAL_TRIGGERS: Array[int] = [4, 9, 14, 19, 24]
+const CANONICAL_TRIGGERS: Array[int] = [4, 11, 18, 25, 32]
 const CANONICAL_EVIDENCE: Array[StringName] = [
 	&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
 ]
@@ -161,7 +161,7 @@ static func _ensure_catalog() -> void:
 				&"SETTLEMENT_ENGINE_S04",
 				&"BUSINESS",
 				4,
-				5,
+				7,
 			"boss.settlement_engine_s04.name",
 			"SETTLEMENT ENGINE S-04 — The Fiduciary Saint",
 			&"business_crown_reserve_treasury",
@@ -184,11 +184,11 @@ static func _ensure_catalog() -> void:
 				&"FOUNDATION_CASCADE",
 			]
 		),
-		_make_definition(
-				&"SAMARITAN_15",
-				&"RESIDENTIAL",
-				9,
-				10,
+			_make_definition(
+					&"SAMARITAN_15",
+					&"RESIDENTIAL",
+					11,
+					14,
 			"boss.samaritan_15.name",
 			"SAMARITAN-15 — The Last Evacuation",
 			&"residential_nightglass_mutual_clinic",
@@ -210,11 +210,11 @@ static func _ensure_catalog() -> void:
 				&"BLACKOUT_HARVEST",
 			]
 		),
-		_make_definition(
-				&"MIMESIS_04",
-				&"ENTERTAINMENT",
-				14,
-				15,
+			_make_definition(
+					&"MIMESIS_04",
+					&"ENTERTAINMENT",
+					18,
+					21,
 			"boss.mimesis_04.name",
 			"MIMESIS-04 — The Afterimage Conductor",
 			&"entertainment_house_of_static",
@@ -233,11 +233,11 @@ static func _ensure_catalog() -> void:
 				&"ARMED_AFTERIMAGE", &"ENCORE_IMPACT",
 			]
 		),
-		_make_definition(
-				&"CANTOR_31_PALE_ENGINE",
-				&"MILITARY",
-				19,
-				20,
+			_make_definition(
+					&"CANTOR_31_PALE_ENGINE",
+					&"MILITARY",
+					25,
+					28,
 			"boss.cantor_31.name",
 			"CANTOR-31 / PALE ENGINE — The Export Surgeon",
 			&"military_prefect_war_keep",
@@ -258,10 +258,10 @@ static func _ensure_catalog() -> void:
 				&"PALE_RECLAMATION", &"COMPRESSION_PSALM",
 			]
 		),
-		_make_definition(
-				&"CHOIR_PRIME",
-				&"ROYAL",
-				24,
+			_make_definition(
+					&"CHOIR_PRIME",
+					&"ROYAL",
+					32,
 			-1,
 			"boss.choir_prime.name",
 			"CHOIR Prime — The Last Sovereign",

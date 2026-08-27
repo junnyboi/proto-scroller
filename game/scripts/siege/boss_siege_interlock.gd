@@ -62,6 +62,22 @@ func resume_after_success() -> bool:
 	return resumed
 
 
+func complete_after_handoff(completed_act_index: int) -> bool:
+	if not owned or siege == null:
+		return false
+	siege.run_seed = int(captured_state.get("run_seed", siege.run_seed))
+	siege.cycle_count = int(captured_state.get("cycle_count", siege.cycle_count))
+	var advanced: bool = siege.director.advance_after_district_handoff(
+		completed_act_index
+	)
+	if not advanced:
+		return false
+	owned = false
+	siege.set_boss_gate_owned(false)
+	captured_state.clear()
+	return true
+
+
 func discard() -> void:
 	if siege != null:
 		siege.director.discard_boss_suspension()

@@ -25,6 +25,9 @@ const MECHANICS: Array[StringName] = [
 	&"ARSENAL_PRODUCTION_LANES",
 	&"CROWN_RADIAL_VERDICT",
 ]
+const ARMORED_TESTIMONIES: Array[int] = [0, 1]
+const EXPOSED_TESTIMONIES: Array[int] = [2, 3]
+const FINAL_TESTIMONIES: Array[int] = [3, 4]
 const COMPOSITION_ECHOES: Array[StringName] = [
 	&"BULWARK_SAPPER",
 	&"BREACHER_GRAFT",
@@ -90,6 +93,9 @@ var active_pylon_index: int = -1
 var active_mechanic: StringName = &""
 var active_echo: StringName = &""
 var armor_connections: int = 0
+var combat_state: StringName = CommandBossSession.STATE_SCREEN
+var body_health_ratio: float = 1.0
+var testimony_cycle_count: int = 0
 var finale_snapshot: FinaleEligibilitySnapshot
 var wreck_active: bool = false
 var severance_active: bool = false
@@ -124,6 +130,8 @@ func start(
 	generation_token = token
 	center = world_center
 	orientation_portrait = portrait
+	combat_state = CommandBossSession.STATE_SCREEN
+	body_health_ratio = 1.0
 	_configure_pylons()
 	utility_pool.register_generation_cleanup(_cleanup_generation.bind(token), token)
 	_begin_next_testimony()
@@ -141,6 +149,9 @@ func deactivate() -> void:
 	active_mechanic = &""
 	active_echo = &""
 	armor_connections = 0
+	combat_state = CommandBossSession.STATE_SCREEN
+	body_health_ratio = 1.0
+	testimony_cycle_count = 0
 	finale_snapshot = null
 	wreck_active = false
 	severance_active = false
@@ -186,6 +197,25 @@ func active() -> bool:
 		and utility_pool != null
 		and utility_pool.is_current_generation(generation_token)
 	)
+
+
+func active_testimony_choices() -> Array[int]:
+	if combat_state != CommandBossSession.STATE_EXPOSED:
+		return ARMORED_TESTIMONIES.duplicate()
+	return (
+		EXPOSED_TESTIMONIES.duplicate()
+		if body_health_ratio > 0.33
+		else FINAL_TESTIMONIES.duplicate()
+	)
+
+
+func set_combat_state(state_value: StringName, health_ratio: float) -> void:
+	var previous_choices: Array[int] = active_testimony_choices()
+	combat_state = state_value
+	body_health_ratio = clampf(health_ratio, 0.0, 1.0)
+	var next_choices: Array[int] = active_testimony_choices()
+	if active() and next_choices != previous_choices and not active_pylon_index in next_choices:
+		_begin_next_testimony()
 
 
 func register_armor_connection() -> bool:
@@ -363,16 +393,19 @@ func hud_feedback() -> Dictionary:
 	var consequence_tokens: Dictionary = {}
 	if crown_transaction_committed:
 		consequence_key = "boss.record.crown_committed"
+	if armor_connections >= CONNECTION_COUNT:
+		objective_key = "boss.objective.royal.core"
+		objective_tokens = {}
 	if wreck_active:
 		if finale_snapshot != null and finale_snapshot.disentangle_eligible:
-			objective_key = "boss.objective.royal.severance"
+			objective_key = "boss.objective.royal.wreck_eligible"
 			objective_tokens = {
 				"current": severance_completed,
 				"total": SEVERANCE_WINDOW_COUNT,
 			}
 			consequence_key = "finale.receiver.eligible"
 		else:
-			objective_key = "boss.objective.royal.ineligible"
+			objective_key = "boss.objective.royal.wreck_ineligible"
 			objective_tokens = {}
 			consequence_key = "finale.receiver.warning"
 	return {
@@ -413,6 +446,9 @@ func capture_state() -> Dictionary:
 		"active_mechanic": active_mechanic,
 		"active_echo": active_echo,
 		"armor_connections": armor_connections,
+		"combat_state": combat_state,
+		"body_health_ratio": body_health_ratio,
+		"testimony_cycle_count": testimony_cycle_count,
 		"finale_snapshot": finale_snapshot.as_dictionary() if finale_snapshot != null else {},
 		"wreck_active": wreck_active,
 		"severance_active": severance_active,
@@ -436,6 +472,9 @@ func restore_state(state: Dictionary) -> void:
 	armor_connections = clampi(
 		int(state.get("armor_connections", 0)), 0, CONNECTION_COUNT
 	)
+	combat_state = StringName(state.get("combat_state", CommandBossSession.STATE_SCREEN))
+	body_health_ratio = float(state.get("body_health_ratio", 1.0))
+	testimony_cycle_count = int(state.get("testimony_cycle_count", 0))
 	var snapshot_data: Dictionary = state.get("finale_snapshot", {})
 	finale_snapshot = (
 		FinaleEligibilitySnapshot.from_dictionary(snapshot_data)
@@ -492,8 +531,14 @@ func _begin_next_testimony() -> void:
 		return
 	attack_elapsed = 0.0
 	attack_stage = &"TELEGRAPH"
-	attack_index = posmod(attack_index + 1, PYLON_COUNT)
-	_configure_testimony(attack_index)
+	var choices: Array[int] = active_testimony_choices()
+	var current_choice_index: int = choices.find(active_pylon_index)
+	var next_choice_index: int = (
+		0 if current_choice_index < 0 else posmod(current_choice_index + 1, choices.size())
+	)
+	attack_index += 1
+	testimony_cycle_count += 1
+	_configure_testimony(choices[next_choice_index])
 	attack_changed.emit(active_mechanic, active_echo, attack_stage)
 
 
@@ -527,7 +572,7 @@ func _configure_mechanic(pylon_index: int) -> void:
 				BossAttackArea2D.VisualState.TELEGRAPH, active_mechanic
 			)
 		3:
-			var safe_lane: int = posmod(attack_index, 3)
+			var safe_lane: int = posmod(testimony_cycle_count, 3)
 			for lane_index: int in range(3):
 				utility_pool.lane_damage_areas[lane_index].configure_footprint(
 					center + Vector2(-360.0 + float(lane_index) * 360.0, 4.0),

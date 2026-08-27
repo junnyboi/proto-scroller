@@ -21,11 +21,14 @@ The implementation must preserve the six-slot streamed world, floating-origin st
 | Contact feedback | First contact with the rear wall emits one debounced event, pulses a left-weighted red vignette, and synchronously plays a subtle carrier-derived warning plus “We can't go back now!”; held contact does not restart either channel every frame. |
 | Culling | A resident chunk is culled only after its right edge is at or behind the rear frontier. Culling hides the chunk, disables processing, and removes collision layers without deleting pooled nodes. |
 | Spawn safety | `resident_bounds()` clamps its lower bound to the rear frontier so enemies and hazards cannot spawn in discarded space. |
-| District size | Business, Residential, Entertainment, Military, and Royal each expose five unique facade chunks before the next geography can be entered. |
+| District size | Business, Residential, Entertainment, Military, and Royal each reserve seven logical chunks: five unique facades followed by two road-only handoff chunks. |
 | District clear | A clear is credited once per unique `building_variant_id` in the building’s own district. Repeated signals, restored ruins, and duplicate variants cannot inflate progress. |
-| District exit | An invisible eastbound gate advances one chunk after each unique facade clear and reaches the next district only after all five are destroyed. |
-| Boss compatibility | Existing boss gates remain independent and may continue blocking the same boundary after the geographic five-building requirement is satisfied. |
-| Final district | Royal still streams indefinitely after its five-building roster; there is no nonexistent sixth-district gate. |
+| District exit | An invisible eastbound gate advances one facade after each clear, then holds at the transition corridor until the boss, salvage shop, and old-skyline cull phases finish. |
+| Boss handoff | The fifth unique facade arms and starts the current district boss before any shop or destination content can appear. |
+| Salvage shop | Finishing the boss wreck creates one marked overlap at the defeated boss position; walking forward across it opens that district's shop. |
+| Empty corridor | Shop checkout opens two road-only chunks. Future-district buildings and props remain hidden, nonprocessing, and noncolliding while the player advances. |
+| Next district | The next district and act activate atomically only when the rear frontier has passed the right edge of every old facade. |
+| Final district | Royal completes directly after its post-boss salvage shop; there is no nonexistent sixth-district stream activation. |
 | Reset | Retry/New Game+ stream reset clears the rear frontier, district-clear sets, and geographic unlock state using the new run’s current robot position. |
 
 ## Architecture
@@ -34,7 +37,7 @@ The implementation must preserve the six-slot streamed world, floating-origin st
 
 `CityWorldStream` remains the authority for logical coordinates, resident-window reuse, and spatial district identity.[1] It gains the monotonic furthest-progress position, rear-frontier calculation, two preallocated barriers, per-district unique-clear sets, and district unlock state. Every physics update advances the floating origin as before, updates the frontier, repairs illegal rear displacement, refreshes resident chunks, applies culling only when a chunk changes state, and positions both barriers in runtime coordinates.
 
-District transitions continue to emit only when the robot actually crosses into the destination chunk. The eastbound gate starts before the second facade, advances one chunk per accepted unique clear, and reaches the geographic exit only after the fifth building. This makes every required facade reachable without permitting a skipped building to fall behind the permanent rear frontier. Clearing the fifth building does not emit `district_changed` prematurely. This preserves mission withdrawal, pressure selection, narrative introduction, and transition-banner semantics.[4]
+District transitions continue to emit only when the robot actually crosses into an activated destination chunk. The eastbound gate starts before the second facade, advances one chunk per accepted unique clear, and stops at the road-only handoff corridor after the fifth. `district_boss_ready` starts the matching boss; boss completion arms a world-space salvage trigger; shop checkout opens the corridor; and `post_boss_corridor_is_clear()` waits until the moving rear frontier has passed the last old facade before `complete_district_handoff()` activates the destination. This makes every required facade reachable, keeps the old skyline resident through the boss and shop, and prevents a recycled future facade from materializing on the player or over an old ruin.[4]
 
 ### `CityStreetChunk`
 
@@ -46,7 +49,7 @@ Streamed buildings receive explicit `logical_chunk` metadata during slot configu
 
 ### District Catalog and Boss Gates
 
-`CityDistrictCatalog.CHUNKS_PER_DISTRICT` changes from eight to five so the first five chunks of every district map one-to-one to its complete authored facade permutation.[2] Boundaries become `0–4`, `5–9`, `10–14`, `15–19`, and `20+`. Boss trigger/unlock chunks move to the matching district caps: `4/5`, `9/10`, `14/15`, `19/20`, and Royal `24`.[5]
+`CityDistrictCatalog.CHUNKS_PER_DISTRICT` is seven: five authored facade slots plus two transition-corridor slots whose pooled destructibles are deliberately suppressed.[2] Boundaries become `0–6`, `7–13`, `14–20`, `21–27`, and `28+`. Boss trigger/unlock chunks align with the fifth facade and following district start: `4/7`, `11/14`, `18/21`, `25/28`, and Royal `32`.[5]
 
 ## Implementation Phases
 
@@ -62,11 +65,17 @@ Create the rear barrier and district exit gate once during stream initialization
 
 **Completion:** the robot can move left only within the retained 500-pixel envelope, and no active spawn/collision target remains fully behind it.
 
-### Phase 3 — Clear-driven district unlocking
+### Phase 3 — Clear-driven boss handoff
 
-Attach logical chunk metadata to streamed buildings, forward destruction completion into the stream, deduplicate by district and facade ID, open the next boundary at five clears, and reset progress on a new stream run. Preserve the final Royal endless path.
+Attach logical chunk metadata to streamed buildings, forward destruction completion into the stream, deduplicate by district and facade ID, and arm the current district boss at five clears without activating the next district. Preserve the final Royal path.
 
-**Completion:** crossing into the next district is impossible before five unique clears and possible immediately afterward, subject to existing boss gates.
+**Completion:** five unique clears start the boss first; neither the shop nor next-district content can appear early.
+
+### Phase 3B — Salvage shop and empty-corridor commit
+
+Keep the boss arena resident after defeat, create one prewarmed overlap at the defeated wreck, open the shop only when the advancing robot crosses it, then expose two road-only chunks after checkout. Continue advancing and culling without destination facades until every old building is behind the rear frontier; then activate the next district and act in one commit.
+
+**Completion:** the skyline never swaps on top of the robot, old and new pooled facades never overlap, and the player reads a deliberate boss → salvage → breathing-space → next-act cadence.
 
 ### Phase 4 — Contract tests and implementation record
 
@@ -88,10 +97,11 @@ Commit and push the final integrated tree to shared `main`, create a fresh Godot
 | Culling | Chunks fully behind the frontier are hidden, nonprocessing, and noncolliding; recycled chunks restore correctly. |
 | Streaming | Exactly six chunk nodes and six building slots remain allocated. |
 | Spawning | Resident lower bound never enters culled territory. |
-| Districts | Five geographic districts retain five globally unique facades each, with five chunks per finite district. |
-| Unlocks | Exactly five unique current-district building clears unlock the next geographic boundary. |
+| Districts | Five geographic districts retain five globally unique facades each, with two additional road-only handoff chunks per district. |
+| Unlocks | Exactly five unique current-district clears arm the boss; only boss defeat, salvage-shop checkout, and old-facade culling unlock the next district. |
 | Deduplication | Duplicate destruction notifications and restored ruins do not add progress. |
-| Bosses | Boss triggers align with district caps and continue to gate campaign progression independently. |
+| Bosses | Bosses start immediately after each fifth facade and retain handoff ownership until the corresponding shop and corridor complete. |
+| Pop-in | Future-district buildings remain suppressed until all old facades have crossed the rear frontier. |
 | Floating origin | Logical frontier and district gates remain stable across runtime rebases. |
 | Delivery | Shared `main`, fresh Web export, immutable WebDev payloads, continuity docs, and final checkpoint identify the same revision. |
 

@@ -145,6 +145,47 @@ func test_safe_gap_validation_is_order_independent_and_exact_at_threshold() -> v
 	assert_false(BossPhaseRuntime.has_safe_gap(intervals, Vector2(0.0, 1000.0), 201.0))
 
 
+func test_boss_attack_area_damages_once_only_while_armed() -> void:
+	assert_true(session.start_definition(BossCampaignCatalog.definitions()[0]))
+	var area: BossAttackArea2D = session.utility_pool.lane_damage_areas[0]
+	var health_before: float = city.robot.current_health
+	area.configure_footprint(
+		city.robot.global_position,
+		Vector2(300.0, 120.0),
+		BossAttackArea2D.VisualState.TELEGRAPH,
+		&"TEST_BOSS_HAZARD"
+	)
+	assert_false(area.try_damage_body(city.robot))
+	assert_almost_eq(city.robot.current_health, health_before, 0.001)
+	area.configure_footprint(
+		city.robot.global_position,
+		Vector2(300.0, 120.0),
+		BossAttackArea2D.VisualState.ARMED,
+		&"TEST_BOSS_HAZARD"
+	)
+	assert_true(area.try_damage_body(city.robot))
+	assert_almost_eq(
+		city.robot.current_health,
+		health_before - BossAttackArea2D.DEFAULT_DAMAGE,
+		0.001
+	)
+	assert_false(area.try_damage_body(city.robot))
+	area.deactivate()
+	assert_false(area.try_damage_body(city.robot))
+
+
+func test_campaign_hazards_do_not_advance_or_arm_during_screen() -> void:
+	assert_true(session.start_definition(BossCampaignCatalog.definitions()[0]))
+	var slice: BossVerticalSliceController = session.utility_pool.vertical_slice
+	var initial_attack: StringName = slice.active_attack
+	session.advance(session.active_definition.screen_seconds)
+	assert_eq(session.state, CommandBossSession.STATE_BARRAGE)
+	assert_eq(slice.active_attack, initial_attack)
+	assert_eq(slice.attack_stage, &"TELEGRAPH")
+	session.advance(BossVerticalSliceController.TELEGRAPH_SECONDS)
+	assert_eq(slice.attack_stage, &"ACTIVE")
+
+
 func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_root() -> void:
 	assert_true(session.start_definition(BossCampaignCatalog.definitions()[0]))
 	var host: TankEnemy = session.boss
@@ -200,6 +241,10 @@ func test_royal_receivers_are_separated_and_only_one_can_commit() -> void:
 	var royal_receiver: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
 	assert_true(default_receiver.active)
 	assert_true(royal_receiver.active)
+	assert_true(default_receiver.visible)
+	assert_true(royal_receiver.visible)
+	assert_eq(default_receiver.display_label, L10n.t("finale.receiver.purge_label"))
+	assert_eq(royal_receiver.display_label, L10n.t("finale.receiver.disentangle_label"))
 	assert_gt(
 		default_receiver.global_position.distance_to(royal_receiver.global_position),
 		BossEncounterDefinition.DEFAULT_GROUND_SMASH_RADIUS

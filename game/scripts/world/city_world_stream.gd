@@ -22,6 +22,10 @@ signal district_clear_progress(
 	cleared_buildings: int,
 	required_buildings: int
 )
+signal district_boss_ready(district_id: StringName, district_index: int)
+signal district_handoff_started(district_id: StringName, next_district_id: StringName)
+signal district_handoff_completed(district_id: StringName, next_district_id: StringName)
+signal content_access_changed
 signal district_exit_unlocked(district_id: StringName, next_district_id: StringName)
 signal rear_frontier_changed(logical_x: float, runtime_x: float)
 signal rear_barrier_contact
@@ -65,6 +69,9 @@ var _cleared_variants_by_district: Dictionary[StringName, Dictionary] = {}
 var _last_frontier_signal_logical_x: float = 0.0
 var _resident_lease_owner: Object
 var _rear_barrier_contact_active: bool = false
+var _pending_boss_district_index: int = -1
+var _corridor_district_index: int = -1
+var _campaign_handoff_complete: bool = false
 
 
 func setup(p_robot: GiantRobotController, p_run_seed: int = 0) -> void:
@@ -236,8 +243,95 @@ func district_exit_is_unlocked(district_index: int = -1) -> bool:
 	)
 	return (
 		selected_index < unlocked_district_index
-		or selected_index >= CityDistrictCatalog.DISTRICT_COUNT - 1
+		or (
+			selected_index >= CityDistrictCatalog.DISTRICT_COUNT - 1
+			and _campaign_handoff_complete
+		)
 	)
+
+
+func district_boss_is_ready(district_index: int) -> bool:
+	return district_index == _pending_boss_district_index
+
+
+func begin_post_boss_corridor(district_index: int) -> bool:
+	if (
+		district_index != unlocked_district_index
+		or district_index != _pending_boss_district_index
+		or _corridor_district_index >= 0
+	):
+		return false
+	_corridor_district_index = district_index
+	var districts: Array[CityDistrictProfile] = CityDistrictCatalog.districts()
+	var current: CityDistrictProfile = districts[district_index]
+	var next_id: StringName = (
+		districts[district_index + 1].district_id
+		if district_index + 1 < districts.size()
+		else &""
+	)
+	district_handoff_started.emit(current.district_id, next_id)
+	_update_progression_barriers()
+	return true
+
+
+func post_boss_corridor_is_clear(district_index: int) -> bool:
+	if district_index != _corridor_district_index:
+		return false
+	var last_facade_right_x: float = (
+		float(
+			district_index * CityDistrictCatalog.CHUNKS_PER_DISTRICT
+			+ DISTRICT_BUILDINGS_REQUIRED
+		)
+		* CHUNK_WIDTH
+		+ CHUNK_CONTENT_OVERHANG
+	)
+	var corridor_exit_x: float = (
+		float((district_index + 1) * CityDistrictCatalog.CHUNKS_PER_DISTRICT)
+		* CHUNK_WIDTH
+		- ROBOT_BARRIER_CLEARANCE
+	)
+	return (
+		rear_frontier_logical_x >= last_facade_right_x
+		and furthest_progress_logical_x >= corridor_exit_x
+	)
+
+
+func complete_district_handoff(district_index: int) -> bool:
+	var final_district: bool = district_index >= CityDistrictCatalog.DISTRICT_COUNT - 1
+	if (
+		district_index != _corridor_district_index
+		and not (
+			final_district
+			and district_index == _pending_boss_district_index
+		)
+	):
+		return false
+	var districts: Array[CityDistrictProfile] = CityDistrictCatalog.districts()
+	if district_index < 0 or district_index >= districts.size():
+		return false
+	if not final_district and not post_boss_corridor_is_clear(district_index):
+		return false
+	var previous: CityDistrictProfile = districts[district_index]
+	var next_id: StringName = &""
+	if district_index < districts.size() - 1:
+		unlocked_district_index = district_index + 1
+		next_id = districts[unlocked_district_index].district_id
+		district_exit_unlocked.emit(previous.district_id, next_id)
+	else:
+		_campaign_handoff_complete = true
+	_pending_boss_district_index = -1
+	_corridor_district_index = -1
+	district_handoff_completed.emit(previous.district_id, next_id)
+	content_access_changed.emit()
+	_update_progression_barriers()
+	return true
+
+
+func should_present_chunk_content(logical_index: int) -> bool:
+	var district_index: int = CityDistrictCatalog.district_index_for_chunk(logical_index)
+	if district_index > unlocked_district_index:
+		return false
+	return CityDistrictCatalog.chunk_hosts_facade(logical_index)
 
 
 func report_building_cleared(building: StructuralBuilding2D) -> bool:
@@ -272,15 +366,10 @@ func report_building_cleared(building: StructuralBuilding2D) -> bool:
 	)
 	if (
 		cleared.size() >= DISTRICT_BUILDINGS_REQUIRED
-		and unlocked_district_index < CityDistrictCatalog.DISTRICT_COUNT - 1
+		and _pending_boss_district_index < 0
 	):
-		var previous_district: CityDistrictProfile = districts[unlocked_district_index]
-		unlocked_district_index += 1
-		var next_district: CityDistrictProfile = districts[unlocked_district_index]
-		district_exit_unlocked.emit(
-			previous_district.district_id,
-			next_district.district_id
-		)
+		_pending_boss_district_index = district_index
+		district_boss_ready.emit(district_id, district_index)
 	_update_progression_barriers()
 	return true
 
@@ -305,6 +394,9 @@ func reset_stream(p_run_seed: int = 0) -> void:
 		current_logical_chunk
 	)
 	_cleared_variants_by_district.clear()
+	_pending_boss_district_index = -1
+	_corridor_district_index = -1
+	_campaign_handoff_complete = false
 	_last_frontier_signal_logical_x = rear_frontier_logical_x
 	_rear_barrier_contact_active = false
 	transition_count = 0
@@ -428,21 +520,23 @@ func _update_progression_barriers() -> void:
 	if rear_barrier == null or district_exit_barrier == null:
 		return
 	rear_barrier.position.x = rear_frontier_runtime_x()
-	var gate_enabled: bool = (
-		unlocked_district_index < CityDistrictCatalog.DISTRICT_COUNT - 1
-	)
+	var gate_enabled: bool = not _campaign_handoff_complete
 	var active_district: CityDistrictProfile = CityDistrictCatalog.districts()[
 		unlocked_district_index
 	]
 	var cleared_buildings: int = district_clear_count(active_district.district_id)
-	var next_facade_offset: int = mini(
-		cleared_buildings + 1,
-		DISTRICT_BUILDINGS_REQUIRED
+	var gate_offset: int = (
+		CityDistrictCatalog.CHUNKS_PER_DISTRICT
+		if (
+			_pending_boss_district_index == unlocked_district_index
+			or _corridor_district_index == unlocked_district_index
+		)
+		else mini(cleared_buildings + 1, DISTRICT_BUILDINGS_REQUIRED)
 	)
 	var gate_logical_x: float = (
-		float(
-			unlocked_district_index * CityDistrictCatalog.CHUNKS_PER_DISTRICT
-			+ next_facade_offset
+			float(
+				unlocked_district_index * CityDistrictCatalog.CHUNKS_PER_DISTRICT
+				+ gate_offset
 		)
 		* CHUNK_WIDTH
 	)
@@ -463,7 +557,10 @@ func _enforce_progression_barriers() -> void:
 		robot.velocity.x = maxf(robot.velocity.x, 0.0)
 		clamped_by_rear_barrier = true
 	_update_rear_barrier_contact(minimum_runtime_x, clamped_by_rear_barrier)
-	if unlocked_district_index >= CityDistrictCatalog.DISTRICT_COUNT - 1:
+	if (
+		unlocked_district_index >= CityDistrictCatalog.DISTRICT_COUNT - 1
+		and _campaign_handoff_complete
+	):
 		return
 	var gate_runtime_x: float = district_exit_barrier.position.x
 	var maximum_runtime_x: float = gate_runtime_x - ROBOT_BARRIER_CLEARANCE

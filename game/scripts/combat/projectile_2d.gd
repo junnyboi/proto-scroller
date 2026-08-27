@@ -7,7 +7,8 @@ signal impact_requested(
 	world_position: Vector2,
 	direction: Vector2,
 	kind: StringName,
-	impact_key: StringName
+	impact_key: StringName,
+	damage_value: float
 )
 
 const MACHINE_GUN_ROUND_TEXTURE: Texture2D = preload(
@@ -151,7 +152,8 @@ func _physics_process(delta: float) -> void:
 		hit_position,
 		velocity.normalized(),
 		damage_type,
-		impact_key
+		impact_key,
+		damage
 	)
 	recycle_requested.emit(self)
 

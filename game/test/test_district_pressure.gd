@@ -134,7 +134,7 @@ func test_enemy_copy_planner_prefers_cheap_units_and_respects_live_saturation() 
 		_spawn_entry("soldier"),
 		_spawn_entry("needle"),
 	]
-	city.world_stream.current_logical_chunk = 20
+	city.world_stream.current_logical_chunk = 28
 	var royal: DistrictPressureProfile = DistrictPressureCatalog.profile_by_index(4)
 	var plan: Dictionary[int, int] = director._progression_copy_plan(beat, royal)
 	assert_false(plan.has(0))
@@ -149,7 +149,7 @@ func test_enemy_copy_planner_prefers_cheap_units_and_respects_live_saturation() 
 
 func test_pressure_profile_is_locked_for_the_duration_of_a_started_beat() -> void:
 	city.world_stream.current_district_id = &"ROYAL"
-	city.world_stream.current_logical_chunk = 20
+	city.world_stream.current_logical_chunk = 28
 	city.rampage_session.run_experience.level = 1
 	director.running = true
 	director.completed = false
@@ -199,7 +199,7 @@ func test_business_variant_trace_is_final_before_reservation_and_pending_spawns(
 
 func test_absolute_threat_saturation_delays_and_then_releases_the_next_beat() -> void:
 	city.world_stream.current_district_id = &"ROYAL"
-	city.world_stream.current_logical_chunk = 20
+	city.world_stream.current_logical_chunk = 28
 	city.rampage_session.run_experience.level = 5
 	director.running = true
 	director.completed = false

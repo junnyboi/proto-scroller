@@ -14,6 +14,16 @@ signal ground_impact_accepted(
 	impact_speed: float
 )
 
+const CONCRETE_DEBRIS_TEXTURE: Texture2D = preload(
+	"res://art/city/destructibles/debris/concrete_chunk.png"
+)
+const GLASS_DEBRIS_TEXTURE: Texture2D = preload(
+	"res://art/city/destructibles/debris/glass_shard.png"
+)
+const STEEL_DEBRIS_TEXTURE: Texture2D = preload(
+	"res://art/city/destructibles/debris/steel_fragment.png"
+)
+
 const ACTIVE_COLLISION_LAYER: int = 1 << 8
 const ACTIVE_COLLISION_MASK: int = (1 << 0) | (1 << 2)
 const ACTIVE_CONTACT_LIMIT: int = 4
@@ -50,6 +60,7 @@ var _kinetic_effect_flags: int = DamageEvent.FLAG_NONE
 var _ground_hit_generations: Dictionary[int, int] = {}
 var _last_motion_velocity: Vector2 = Vector2.ZERO
 var _last_motion_age: float = INF
+var _generated_visual: Sprite2D
 
 
 func _ready() -> void:
@@ -58,6 +69,7 @@ func _ready() -> void:
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
 	body_entered.connect(_on_body_entered)
 	_ensure_fallback_shape()
+	_ensure_generated_visual()
 	_set_collision_participation(false)
 	set_physics_process(false)
 
@@ -70,7 +82,8 @@ func activate(
 	body_size: Vector2 = Vector2(36.0, 22.0),
 	material_kind: StringName = &"concrete",
 	primary_color: Color = Color("4f4a46"),
-	facet_color: Color = Color("786d65")
+	facet_color: Color = Color("786d65"),
+	use_generated_visual: bool = true
 ) -> void:
 	mass = maxf(body_mass, 0.1)
 	_body_size = Vector2(maxf(body_size.x, 4.0), maxf(body_size.y, 4.0))
@@ -79,6 +92,7 @@ func activate(
 	_facet_color = facet_color
 	set_meta(&"structural_material", _material_id)
 	_apply_body_size()
+	_apply_generated_visual(use_generated_visual)
 	_set_collision_participation(true)
 	global_transform = spawn_transform
 	linear_velocity = Vector2.ZERO
@@ -329,6 +343,8 @@ func _find_damage_receiver(start_node: Node) -> Node:
 
 
 func _draw() -> void:
+	if _generated_visual != null and _generated_visual.visible:
+		return
 	if _material_id == &"glass":
 		_draw_glass_shard()
 		return
@@ -409,6 +425,39 @@ func _ensure_fallback_shape() -> void:
 	shape.size = Vector2(36.0, 22.0)
 	shape_node.shape = shape
 	add_child(shape_node)
+	queue_redraw()
+
+
+func _ensure_generated_visual() -> void:
+	if _generated_visual != null:
+		return
+	_generated_visual = Sprite2D.new()
+	_generated_visual.name = "GeneratedDebrisVisual"
+	_generated_visual.centered = true
+	_generated_visual.visible = false
+	_generated_visual.z_index = 1
+	add_child(_generated_visual)
+
+
+func _apply_generated_visual(use_generated_visual: bool) -> void:
+	if _generated_visual == null:
+		return
+	var texture: Texture2D
+	if use_generated_visual:
+		match _material_id:
+			&"glass":
+				texture = GLASS_DEBRIS_TEXTURE
+			&"steel":
+				texture = STEEL_DEBRIS_TEXTURE
+			&"concrete":
+				texture = CONCRETE_DEBRIS_TEXTURE
+	_generated_visual.texture = texture
+	_generated_visual.visible = texture != null
+	if texture != null:
+		_generated_visual.scale = Vector2(
+			_body_size.x / float(texture.get_width()),
+			_body_size.y / float(texture.get_height())
+		)
 	queue_redraw()
 
 

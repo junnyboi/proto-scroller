@@ -60,6 +60,7 @@ func configure(
 	_configure_art(definition.rig_preset)
 	_configure_sockets(definition.rig_preset, definition.portrait_socket_overrides)
 	_configure_hurt_regions(definition.rig_preset)
+	set_armor_target_active(host.boss_armor > 0.0)
 	visible = true
 	return true
 
@@ -226,7 +227,15 @@ func _configure_sockets(preset: StringName, portrait_overrides: Dictionary) -> v
 			marker.position = socket_overrides[key_value] as Vector2
 
 
-func _configure_hurt_regions(_preset: StringName) -> void:
+func set_armor_target_active(active: bool) -> void:
+	if parts.size() < 2:
+		return
+	var weak_point: Sprite2D = parts[1]
+	weak_point.visible = active
+	weak_point.modulate = Color(1.0, 0.78, 0.18, 1.0) if active else Color.WHITE
+
+
+func _configure_hurt_regions(preset: StringName) -> void:
 	var positions: Array[Vector2] = [
 		Vector2(0.0, -112.0),
 		Vector2(-172.0, -72.0),
@@ -237,6 +246,17 @@ func _configure_hurt_regions(_preset: StringName) -> void:
 		Vector2(150.0, 118.0),
 		Vector2(150.0, 118.0),
 	]
+	if preset == &"SAMARITAN":
+		positions = [
+			Vector2(0.0, -78.0),
+			Vector2(-188.0, -48.0),
+			Vector2(188.0, -48.0),
+		]
+		sizes = [
+			Vector2(150.0, 120.0),
+			Vector2(112.0, 90.0),
+			Vector2(112.0, 90.0),
+		]
 	for index: int in range(hurt_regions.size()):
 		var area: Area2D = hurt_regions[index]
 		area.position = positions[index]

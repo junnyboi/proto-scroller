@@ -53,6 +53,7 @@ var robot: GiantRobotController
 var runtime_services: CityRuntimeServices
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
+var building_section_burst_pool: BuildingSectionBurstPool
 var enemy_scrap_pool: DebrisPool
 var soldier_defeat_pool: SoldierDefeatPool
 var mobile_controls: MobileControls
@@ -215,6 +216,7 @@ func _build_services() -> void:
 	hit_stop = runtime_services.hit_stop
 	destruction_director = runtime_services.destruction_director
 	debris_pool = runtime_services.debris_pool
+	building_section_burst_pool = runtime_services.building_section_burst_pool
 	enemy_scrap_pool = runtime_services.enemy_scrap_pool
 	soldier_defeat_pool = runtime_services.soldier_defeat_pool
 	enemy_remains_factory = runtime_services.enemy_remains_factory
@@ -324,7 +326,7 @@ func _on_spatial_district_changed(
 	logical_chunk: int
 ) -> void:
 	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_chunk)
-	CityWorldBuilder.transition_parallax(self, district.district_id)
+	CityWorldBuilder.transition_environment(self, district.district_id)
 	district_transition_banner.present(district, logical_chunk)
 
 func _refresh_primary_destructibles() -> void:

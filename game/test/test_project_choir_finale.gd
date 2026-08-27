@@ -62,17 +62,23 @@ func test_all_masks_keep_palace_routes_and_direct_core_fallback() -> void:
 func test_five_testimonies_serialize_one_mechanic_and_noncolliding_echo() -> void:
 	_start_royal()
 	var seen: Dictionary[StringName, bool] = {}
-	for _index: int in range(BossRoyalFinaleController.PYLON_COUNT):
-		seen[royal.active_mechanic] = true
-		assert_eq(royal.active_mechanic_count(), 1)
-		assert_eq(royal.active_composition_echo_count(), 1)
-		assert_between(royal.composition_marker_count(), 1, BossUtilityPool.MARKER_CAPACITY)
-		assert_eq(royal.echo_collision_count(), 0)
-		assert_eq(royal.live_support_count(), 0)
-		assert_false(royal.player_motion_history_recorded())
-		royal.advance(BossRoyalFinaleController.TELEGRAPH_SECONDS)
-		royal.advance(BossRoyalFinaleController.ACTIVE_SECONDS)
-		royal.advance(BossRoyalFinaleController.RECOVERY_SECONDS)
+	for phase: Dictionary in [
+		{"state": CommandBossSession.STATE_BARRAGE, "health": 1.0},
+		{"state": CommandBossSession.STATE_EXPOSED, "health": 0.8},
+		{"state": CommandBossSession.STATE_EXPOSED, "health": 0.2},
+	]:
+		royal.set_combat_state(StringName(phase.state), float(phase.health))
+		for _index: int in range(2):
+			seen[royal.active_mechanic] = true
+			assert_eq(royal.active_mechanic_count(), 1)
+			assert_eq(royal.active_composition_echo_count(), 1)
+			assert_between(royal.composition_marker_count(), 1, BossUtilityPool.MARKER_CAPACITY)
+			assert_eq(royal.echo_collision_count(), 0)
+			assert_eq(royal.live_support_count(), 0)
+			assert_false(royal.player_motion_history_recorded())
+			royal.advance(BossRoyalFinaleController.TELEGRAPH_SECONDS)
+			royal.advance(BossRoyalFinaleController.ACTIVE_SECONDS)
+			royal.advance(BossRoyalFinaleController.RECOVERY_SECONDS)
 	assert_eq(seen.size(), BossRoyalFinaleController.PYLON_COUNT)
 	for mechanic_id: StringName in BossRoyalFinaleController.MECHANICS:
 		assert_true(seen.has(mechanic_id), mechanic_id)
@@ -113,6 +119,7 @@ func test_eligible_disentangle_repeats_without_timeout_and_completes_five_window
 	assert_true(receiver.receive_damage(_smash_event(30_200)))
 	assert_true(royal.severance_active)
 	assert_eq(royal.severance_completed, 0)
+	assert_false(receiver.receive_damage(_smash_event(30_200)))
 	royal.advance(BossRoyalFinaleController.SEVERANCE_WINDOW_SECONDS * 3.1)
 	assert_true(royal.severance_active)
 	assert_gt(royal.severance_loop_count, 0)

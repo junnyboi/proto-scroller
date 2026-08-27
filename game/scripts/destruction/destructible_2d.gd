@@ -11,6 +11,7 @@ signal destroyed(event: DamageEvent)
 @export var chunk_spread_degrees: float = 38.0
 @export var chunk_impulse_scale: float = 1.0
 @export var debris_pool_path: NodePath
+@export var section_burst_pool_path: NodePath
 @export var intact_visual_path: NodePath
 @export var damaged_visual_path: NodePath
 @export var rubble_visual_path: NodePath
@@ -24,6 +25,9 @@ var _destroyed: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
 
 @onready var _debris_pool: DebrisPool = get_node_or_null(debris_pool_path) as DebrisPool
+@onready var _section_burst_pool: BuildingSectionBurstPool = (
+	get_node_or_null(section_burst_pool_path) as BuildingSectionBurstPool
+)
 @onready var _intact_visual: CanvasItem = get_node_or_null(intact_visual_path) as CanvasItem
 @onready var _damaged_visual: CanvasItem = get_node_or_null(damaged_visual_path) as CanvasItem
 @onready var _rubble_visual: CanvasItem = get_node_or_null(rubble_visual_path) as CanvasItem
@@ -60,7 +64,7 @@ func receive_damage(event: DamageEvent) -> bool:
 	var damage_pattern: BuildingDamagePattern2D = (
 		_damaged_visual as BuildingDamagePattern2D
 	)
-	if damage_pattern != null and current_health > 0.0:
+	if damage_pattern != null:
 		damage_pattern.record_damage(event, current_health / maxf(max_health, 1.0))
 	if current_health <= 0.0:
 		_break(event)
@@ -94,6 +98,11 @@ func restore_stream_state(state: Dictionary) -> void:
 	var damage_pattern: BuildingDamagePattern2D = _damaged_visual as BuildingDamagePattern2D
 	if damage_pattern != null:
 		damage_pattern.restore_stream_state(state.get("pattern", {}) as Dictionary)
+		damage_pattern._set_damage_progress(
+			1.0 - current_health / maxf(max_health, 1.0)
+		)
+		if _destroyed:
+			damage_pattern.ensure_destroyed_pattern()
 	_apply_stage(
 		current_health <= max_health * damaged_stage_ratio and not _destroyed,
 		_destroyed
@@ -105,20 +114,23 @@ func _break(event: DamageEvent) -> void:
 		return
 	_destroyed = true
 	_apply_stage(false, true)
+	_release_section_burst(event)
 	_release_chunks(event)
 	destroyed.emit(event)
 
 
 func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
 	if _intact_visual != null:
-		_intact_visual.visible = not show_rubble
+		_intact_visual.visible = true
 	if _damaged_visual != null:
-		_damaged_visual.visible = show_damaged and not show_rubble
+		_damaged_visual.visible = show_damaged or show_rubble
 		var damage_pattern: BuildingDamagePattern2D = (
 			_damaged_visual as BuildingDamagePattern2D
 		)
-		if damage_pattern != null and show_rubble:
-			damage_pattern.cull_damage_details()
+		if damage_pattern != null:
+			damage_pattern.set_destroyed_stage(show_rubble)
+			if not show_damaged and not show_rubble:
+				damage_pattern.cull_damage_details()
 	if _rubble_visual != null:
 		_rubble_visual.visible = show_rubble
 	if _intact_collision != null:
@@ -202,6 +214,23 @@ func _release_chunks(event: DamageEvent) -> void:
 			facet_color
 		)
 		_debris_pool.arm_kinetic_debris(debris, event)
+
+
+func _release_section_burst(event: DamageEvent) -> void:
+	if _section_burst_pool == null or event == null:
+		return
+	var profile: StructuralMaterialProfile = material_profile
+	if profile == null:
+		profile = StructuralMaterialProfile.concrete()
+	var origin: Vector2 = event.hit_position
+	if event.damage_type in [&"floor_chain", &"steel_support_chain", &"support_failure"]:
+		origin = global_position
+	_section_burst_pool.spawn(
+		origin,
+		event.direction,
+		maxf(event.impulse_per_mass, 260.0),
+		profile
+	)
 
 
 func configure_material_profile(profile: StructuralMaterialProfile) -> void:

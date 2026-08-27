@@ -23,14 +23,14 @@ func test_forward_chunk_boundaries_select_the_authored_districts() -> void:
 	var expectations: Dictionary[int, StringName] = {
 		-64: &"BUSINESS",
 		0: &"BUSINESS",
-		4: &"BUSINESS",
-		5: &"RESIDENTIAL",
-		9: &"RESIDENTIAL",
-		10: &"ENTERTAINMENT",
+		6: &"BUSINESS",
+		7: &"RESIDENTIAL",
+		13: &"RESIDENTIAL",
 		14: &"ENTERTAINMENT",
-		15: &"MILITARY",
-		19: &"MILITARY",
-		20: &"ROYAL",
+		20: &"ENTERTAINMENT",
+		21: &"MILITARY",
+		27: &"MILITARY",
+		28: &"ROYAL",
 		96: &"ROYAL",
 	}
 	for logical_index: int in expectations:
@@ -43,7 +43,7 @@ func test_forward_chunk_boundaries_select_the_authored_districts() -> void:
 
 
 func test_blueprint_selection_is_replayable_and_order_independent() -> void:
-	var indices: Array[int] = [-12, -1, 0, 4, 5, 9, 10, 15, 20, 48]
+	var indices: Array[int] = [-12, -1, 0, 4, 6, 7, 13, 14, 21, 28, 48]
 	var forward: Dictionary[int, StringName] = {}
 	for logical_index: int in indices:
 		var blueprint: CityChunkBlueprint = CityChunkBlueprint.generate(917, logical_index)
@@ -83,6 +83,11 @@ func test_each_district_guarantees_its_complete_five_facade_roster() -> void:
 		CityDistrictCatalog.variant_for_chunk(0, 0).variant_id,
 		&"business_mercy_exchange_annex"
 	)
+	assert_eq(CityDistrictCatalog.TRANSITION_CORRIDOR_CHUNKS, 2)
+	assert_true(CityDistrictCatalog.chunk_hosts_facade(4))
+	assert_false(CityDistrictCatalog.chunk_hosts_facade(5))
+	assert_false(CityDistrictCatalog.chunk_hosts_facade(6))
+	assert_true(CityDistrictCatalog.chunk_hosts_facade(7))
 
 
 func test_nonzero_run_seeds_rotate_the_opening_facade_without_losing_rosters() -> void:

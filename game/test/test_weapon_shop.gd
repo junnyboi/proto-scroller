@@ -43,7 +43,7 @@ func test_catalog_has_three_unique_shop_only_products_per_district() -> void:
 	assert_eq(product_ids.size(), CityDistrictCatalog.DISTRICT_COUNT * 3)
 
 
-func test_act_completion_opens_matching_shop_banks_score_and_holds_next_act() -> void:
+func test_boss_salvage_opens_matching_shop_banks_score_and_keeps_handoff_held() -> void:
 	var city: CitySlice = await _spawn_city()
 	var score: RunScore = city.rampage_session.run_score
 	score.safe_score = 6000
@@ -65,7 +65,7 @@ func test_act_completion_opens_matching_shop_banks_score_and_holds_next_act() ->
 	assert_true(session.close_shop())
 	assert_false(city.weapon_shop_assembler.overlay.visible)
 	assert_false(city.urban_siege.pause_coordinator.is_paused())
-	assert_false(city.urban_siege.director._act_advance_blocked)
+	assert_true(city.urban_siege.director._act_advance_blocked)
 	assert_eq(city.district_transition_banner.presentation_count, banner_count)
 	assert_false(city.upgrade_assembler.session.presentation_blocked)
 	assert_false(session.queue_act_completion(0, city.urban_siege.cycle_count))
@@ -261,11 +261,8 @@ func _spawn_city() -> CitySlice:
 
 
 func _open_act_shop(city: CitySlice, act_index: int) -> void:
-	city.urban_siege.act_completed.emit(
-		act_index,
-		&"TEST_ACT",
-		"encounter.contact"
-	)
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[act_index]
+	city.weapon_shop_assembler.queue_boss_salvage(definition)
 	await get_tree().process_frame
 
 

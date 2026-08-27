@@ -22,7 +22,7 @@ The district model is deliberately separate from the existing siege `DistrictDef
 
 ## Shared Destruction Language
 
-Every building retains a **3×2 logical structural grid** so the player can read targets at speed. Each cell progresses from intact facade to procedural crack pattern, exposed cable or pipe attachments, a dark hollow cavity, and a shallow nonblocking rubble bed. Lower-cell failure transfers damage upward; complete floors start staggered collapse; loss of all authored steel supports triggers the faster steel-support chain.[1]
+Every building retains a **3×2 logical structural grid** so the player can read targets at speed. Each damaged cell progressively erodes its own authored sprite from the center outward: a small initial void grows through a stable jagged boundary while all surviving facade pixels darken with cumulative damage. Terminal failure removes most of the center and lower middle, leaving dark irregular side rails and a top lintel around the opening, final cracks, broken plumbing, dangling cables, and a shallow nonblocking rubble bed. Transparent source pixels remain transparent, and no destroyed cross-section sprite replaces the building. Lower-cell failure transfers damage upward; complete floors start staggered collapse; loss of all authored steel supports triggers the faster steel-support chain.[1]
 
 Variation is delivered through GPT Image 2 facade art, silhouette, display dimensions, six-cell material layout, district palette, deterministic crack seed, and a named destruction signature. The live runtime continues to use only six pooled building instances—one per resident chunk—so 25 catalog entries do not multiply the active node or physics budget.[4] [5]
 
@@ -98,13 +98,13 @@ A ceremonial capital quarter engineered to make imperial power appear permanent.
 
 ## Runtime Asset Strategy
 
-Each of the 25 buildings receives a standalone GPT Image 2 transparent facade sprite. The existing procedural damage system uses the facade as both the intact source and fracture patch source, so cracks, cables, pipes, and hollow cutouts remain runtime-generated and deterministic rather than requiring 75 bespoke stage images. The shared rubble atlas remains material-tinted until a later art pass can replace it without jeopardizing the Web package budget.
+Each of the 25 buildings receives a standalone GPT Image 2 transparent facade sprite. One per-cell shader operates directly on that facade, preserving pristine alpha at zero damage and expanding a seed-stable jagged alpha void as normalized damage rises. Cracks, cables, pipes, and hollow cutouts therefore remain runtime-generated and deterministic rather than requiring 75 bespoke stage images. The shared shallow-rubble atlas remains material-tinted; it never replaces the failed facade section.
 
 Sprites are imported without mipmaps and resized to a compact gameplay resolution. The package gate increases from 8 MiB to **16 MiB**, with the implementation required to report actual HTML, JavaScript, WASM, and PCK sizes and preserve the non-threaded Web export contract.[6]
 
 ## Acceptance Criteria
 
-The implementation is complete when all five districts are selected deterministically by forward chunk progress; all 25 stable building IDs are addressable; six live building slots are reused with no post-warm allocation; every variant retains six destructible cells, staged cracks, pipe/cable details, hollow edges, support transfer, chain collapse, state persistence, and nonblocking rubble; district and variant identity survive stream-out and restore; landscape and portrait galleries are visually inspected; and the release Web bundle passes browser/network/runtime checks.
+The implementation is complete when all five districts are selected deterministically by forward chunk progress; all 25 stable building IDs are addressable; six live building slots are reused with no post-warm allocation; every variant retains six destructible cells, staged cracks, pipe/cable details, alpha-safe procedural hollows, support transfer, chain collapse, state persistence, and nonblocking shallow rubble; district and variant identity survive stream-out and restore; landscape and portrait galleries are visually inspected; and the release Web bundle passes browser/network/runtime checks.
 
 ## References
 

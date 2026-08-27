@@ -89,6 +89,12 @@ func test_siren_uses_needle_air_shell_and_ring_suspends_only_one_weapon() -> voi
 	assert_false(missile.paused)
 	assert_true(escalation.player_direct_controls_live())
 	assert_true(city.contextual_attacks != null)
+	city.robot.global_position = escalation.center
+	escalation.advance(0.01)
+	assert_false(machine_gun.paused)
+	city.robot.global_position = escalation.center + Vector2(240.0, 0.0)
+	escalation.advance(0.01)
+	assert_true(machine_gun.paused)
 	escalation.end_siren_ring()
 	assert_false(machine_gun.paused)
 
@@ -109,10 +115,16 @@ func test_entertainment_counterplay_record_and_direct_clear_contract() -> void:
 	assert_eq(String(payload.biological_termination_time), "04:17")
 
 
-func test_military_serializes_four_attacks_safe_lane_three_anchors_and_no_seraph() -> void:
+func test_military_phases_four_attacks_safe_lane_three_anchors_and_no_seraph() -> void:
 	_start(&"CANTOR_31_PALE_ENGINE")
-	assert_eq(escalation.active_attack_choices(), BossEscalationController.MILITARY_ATTACKS)
-	assert_eq(escalation.active_attack_choices().size(), 4)
+	assert_eq(escalation.active_attack_choices(), [&"SUTURE_SALVO"])
+	escalation.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.8)
+	assert_eq(escalation.active_attack_choices(), [&"SUTURE_SALVO", &"DISPATCH_HARNESS"])
+	escalation.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.2)
+	assert_eq(
+		escalation.active_attack_choices(),
+		[&"PALE_RECLAMATION", &"COMPRESSION_PSALM", &"SUTURE_SALVO"]
+	)
 	assert_true(escalation.artillery_spine_visible)
 	assert_eq(escalation.seraph_environment_count, 3)
 	assert_eq(escalation.live_seraph_count(), 0)
@@ -140,6 +152,7 @@ func test_military_dispatch_caps_one_runner_and_pool_denial_has_no_false_telegra
 	assert_eq((runner as ProceduralEnemy).archetype_id, &"jackal")
 	assert_eq((runner as ProceduralEnemy).family, &"light")
 	assert_eq((runner as ProceduralEnemy).boss_support_id, &"graft_runner")
+	assert_gt(city.encounter_runtime.target_mark_remaining, 0.0)
 	assert_eq(escalation.live_auxiliary_count(), 1)
 	assert_null(escalation.request_dispatch())
 	assert_eq(escalation.live_auxiliary_count(), 1)
@@ -225,9 +238,44 @@ func test_stage_and_arsenal_transactions_are_idempotent_with_export_data() -> vo
 		Array(store.snapshot().boss_results.CANTOR_31_PALE_ENGINE.export_destinations),
 		BossEscalationController.EXPORT_DESTINATIONS
 	)
-	assert_eq(int(store.snapshot().route_unlock_chunk), 32)
+	assert_eq(int(store.snapshot().route_unlock_chunk), 28)
 	assert_eq(store.pending_reward_grants().count("boss:MIMESIS_04:reward"), 1)
 	assert_eq(store.pending_reward_grants().count("boss:CANTOR_31_PALE_ENGINE:reward"), 1)
+
+
+func test_standard_wreck_receivers_preserve_stage_and_arsenal_payloads() -> void:
+	var cases: Array[Dictionary] = [
+		{
+			"boss_id": &"MIMESIS_04",
+			"field": "stage_record_preserved",
+		},
+		{
+			"boss_id": &"CANTOR_31_PALE_ENGINE",
+			"field": "arsenal_record_preserved",
+		},
+	]
+	var attack_id: int = 120_000
+	for test_case: Dictionary in cases:
+		_start(StringName(test_case.boss_id))
+		var armor_steps: int = 0
+		while session.boss.boss_armor > 0.0 and armor_steps < 12:
+			assert_true(session.boss.receive_damage(_charged_event(attack_id)))
+			attack_id += 1
+			armor_steps += 1
+		assert_eq(session.boss.boss_armor, 0.0)
+		assert_true(session.boss.receive_damage(_charged_event(attack_id)))
+		attack_id += 1
+		var payload_before: Dictionary = session.completion_payload()
+		assert_true(bool(payload_before.get(String(test_case.field), false)))
+		assert_true(session.utility_pool.default_wreck_receiver.receive_damage(
+			_smash_event(attack_id)
+		))
+		attack_id += 1
+		assert_true(bool(session.completion_payload().get(String(test_case.field), false)))
+		assert_eq(
+			StringName(session.completion_payload().get("boss_id", &"")),
+			StringName(test_case.boss_id)
+		)
 
 
 func test_landscape_portrait_mechanics_and_25_restarts_are_stable() -> void:
@@ -259,6 +307,34 @@ func _attack_cycle_seconds() -> float:
 		BossEscalationController.TELEGRAPH_SECONDS
 		+ BossEscalationController.ACTIVE_SECONDS
 		+ BossEscalationController.RECOVERY_SECONDS
+	)
+
+
+func _charged_event(attack_id: int) -> DamageEvent:
+	return DamageEvent.new(
+		attack_id,
+		city.robot,
+		999.0,
+		&"jab_cross",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		0.0,
+		attack_id,
+		0,
+		DamageEvent.FLAG_FULL_CHARGE
+	)
+
+
+func _smash_event(attack_id: int) -> DamageEvent:
+	return DamageEvent.new(
+		attack_id,
+		city.robot,
+		999.0,
+		&"ground_smash",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		0.0,
+		attack_id + 1_000_000
 	)
 
 

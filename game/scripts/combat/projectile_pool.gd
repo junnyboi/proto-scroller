@@ -7,6 +7,10 @@ const MACHINE_GUN_IMPACT_TEXTURE: Texture2D = preload(
 )
 const MACHINE_GUN_IMPACT_CAPACITY: int = 4
 const HOSTILE_IMPACT_CAPACITY: int = 8
+const MIN_DAMAGE_IMPACT_SCALE: float = 0.70
+const MAX_DAMAGE_IMPACT_SCALE: float = 1.80
+const HOSTILE_IMPACT_PITCH_VARIATION: float = 0.035
+const HOSTILE_IMPACT_VOLUME_VARIATION_DB: float = 0.45
 
 @export_range(1, 64, 1) var capacity: int = 24
 @export_range(1, 32, 1) var bullet_capacity: int = RuntimeBudget.BULLETS
@@ -22,6 +26,10 @@ var hostile_impacts: Array[WeaponImpactEffect2D] = []
 var last_machine_gun_impact_position: Vector2 = Vector2.ZERO
 var last_hostile_impact_position: Vector2 = Vector2.ZERO
 var last_hostile_impact_key: StringName = &""
+var last_hostile_impact_damage: float = 0.0
+var last_hostile_impact_scale: float = 1.0
+var last_hostile_impact_cue: int = AudioCueRegistry.Cue.INVALID
+var impact_feedback_pool: ImpactFeedbackPool
 var _projectiles: Array[Projectile2D] = []
 var _active_order: Array[Projectile2D] = []
 var _reservations: Dictionary[int, StringName] = {}
@@ -245,6 +253,19 @@ func hostile_impact_slot_count() -> int:
 	return hostile_impacts.size()
 
 
+func set_impact_feedback_pool(feedback_pool: ImpactFeedbackPool) -> void:
+	impact_feedback_pool = feedback_pool
+
+
+static func damage_impact_scale(damage_value: float, reference_damage: float) -> float:
+	var normalized_damage: float = maxf(damage_value, 0.01) / maxf(reference_damage, 0.01)
+	return clampf(
+		sqrt(normalized_damage),
+		MIN_DAMAGE_IMPACT_SCALE,
+		MAX_DAMAGE_IMPACT_SCALE
+	)
+
+
 func _prewarm_partition(partition: StringName, count: int) -> void:
 	for partition_index: int in range(count):
 		var projectile: Projectile2D = PROJECTILE_SCRIPT.new() as Projectile2D
@@ -302,7 +323,8 @@ func _on_impact_requested(
 	world_position: Vector2,
 	direction: Vector2,
 	kind: StringName,
-	impact_key: StringName
+	impact_key: StringName,
+	damage_value: float
 ) -> void:
 	if kind == &"machine_gun" and not machine_gun_impacts.is_empty():
 		machine_gun_impacts[_machine_gun_impact_cursor].activate(world_position, direction)
@@ -319,7 +341,22 @@ func _on_impact_requested(
 	var impact: WeaponImpactEffect2D = hostile_impacts[_hostile_impact_cursor]
 	if not impact.configure_from_spec(impact_spec):
 		return
-	impact.activate(world_position, direction)
+	var impact_scale: float = damage_impact_scale(
+		damage_value,
+		float(impact_spec.get("reference_damage", damage_value))
+	)
+	impact.activate(world_position, direction, impact_scale)
 	last_hostile_impact_position = world_position
 	last_hostile_impact_key = impact_key
+	last_hostile_impact_damage = damage_value
+	last_hostile_impact_scale = impact_scale
+	var audio_cue: int = int(impact_spec.get("audio_cue", AudioCueRegistry.Cue.INVALID))
+	last_hostile_impact_cue = audio_cue
+	if impact_feedback_pool != null and AudioCueRegistry.is_valid(audio_cue):
+		impact_feedback_pool.play_cue(
+			audio_cue,
+			world_position,
+			HOSTILE_IMPACT_PITCH_VARIATION,
+			HOSTILE_IMPACT_VOLUME_VARIATION_DB
+		)
 	_hostile_impact_cursor = (_hostile_impact_cursor + 1) % hostile_impacts.size()

@@ -112,9 +112,11 @@ func test_projectile_pool_carries_custom_visual_and_dispatches_bounded_impact() 
 			Vector2(400.0, 300.0),
 			Vector2.RIGHT,
 			StringName(profile.projectile_kind),
-			impact_key
+			impact_key,
+			projectile.damage
 		)
 		assert_gt(pool.active_hostile_impact_count(), 0, archetype_id)
+		assert_almost_eq(pool.last_hostile_impact_scale, 1.0, 0.0001, archetype_id)
 		pool.release(projectile)
 		assert_eq(projectile.visual_key, &"", archetype_id)
 		assert_eq(projectile.impact_key, &"", archetype_id)
@@ -174,7 +176,8 @@ func test_hostile_impact_cursor_wraps_without_node_growth_or_gameplay_denial() -
 			Vector2(float(impact_index) * 10.0, 200.0),
 			Vector2.RIGHT,
 			&"shell",
-			impact_key
+			impact_key,
+			30.0
 		)
 	assert_eq(pool.active_hostile_impact_count(), ProjectilePool.HOSTILE_IMPACT_CAPACITY)
 	assert_eq(pool.get_child_count(), child_count)

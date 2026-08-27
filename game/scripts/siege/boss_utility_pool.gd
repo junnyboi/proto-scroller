@@ -327,6 +327,8 @@ func configure_runtime(
 	controller.setup(self, encounter_runtime, projectile_pool)
 	vertical_slice.setup(self, encounter_runtime)
 	escalation.setup(self, encounter_runtime)
+	for area: BossAttackArea2D in lane_damage_areas + line_areas:
+		area.setup_damage_target(encounter_runtime.robot)
 
 
 func configure_wreck_receivers(
@@ -345,12 +347,30 @@ func configure_wreck_receivers(
 		wreck.global_position + offsets[0],
 		receiver_callback
 	)
+	var default_label: String = (
+		L10n.t("finale.receiver.purge_label")
+		if offsets.size() > 1
+		else L10n.t("boss.receiver.finish_label")
+	)
+	var default_color: Color = (
+		Color(1.0, 0.30, 0.20, 1.0)
+		if offsets.size() > 1
+		else Color(1.0, 0.78, 0.18, 1.0)
+	)
+	default_wreck_receiver.configure_presentation(
+		default_label,
+		default_color
+	)
 	if offsets.size() > 1:
 		royal_outcome_receiver.configure(
 			wreck,
 			BossOutcome.DISENTANGLE,
 			wreck.global_position + offsets[1],
 			receiver_callback
+		)
+		royal_outcome_receiver.configure_presentation(
+			L10n.t("finale.receiver.disentangle_label"),
+			Color(0.24, 0.94, 1.0, 1.0)
 		)
 	# Campaign finishers are reachable only through the authored receiver areas.
 	wreck.collision_layer = 0

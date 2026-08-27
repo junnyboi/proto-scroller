@@ -16,15 +16,29 @@ enum PresentationRole {
 }
 
 const ROBOT_LAYER: int = 1 << 1
+const DEFAULT_DAMAGE: float = 16.0
 const LANE_PLATE_TEXTURE: Texture2D = preload(
 	"res://art/bosses/boss-lane-footprint.png"
 )
 const LINE_BEAM_TEXTURE: Texture2D = preload("res://art/bosses/boss-line-beam.png")
 
+static var _next_activation_attack_id: int = 9_000_000
+
 var visual_state: VisualState = VisualState.HIDDEN
 var presentation_role: PresentationRole = PresentationRole.GENERIC
 var footprint_size: Vector2 = Vector2(192.0, 96.0)
 var attack_id: StringName = &""
+var activation_attack_id: int = 0
+var damage_amount: float = DEFAULT_DAMAGE
+
+var _damage_target: GiantRobotController
+var _damaged_target_ids: Dictionary[int, bool] = {}
+
+
+func setup_damage_target(robot: GiantRobotController) -> void:
+	_damage_target = robot
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
 
 
 func configure_footprint(
@@ -33,6 +47,7 @@ func configure_footprint(
 	state_value: VisualState,
 	attack: StringName
 ) -> void:
+	var was_armed: bool = visual_state == VisualState.ARMED and monitoring
 	global_position = world_position
 	footprint_size = size_value
 	visual_state = state_value
@@ -53,6 +68,11 @@ func configure_footprint(
 	monitoring = armed
 	monitorable = false
 	visible = visual_state != VisualState.HIDDEN
+	if armed and not was_armed:
+		activation_attack_id = _next_activation_attack_id
+		_next_activation_attack_id += 1
+		_damaged_target_ids.clear()
+		call_deferred(&"_damage_current_overlaps")
 	queue_redraw()
 
 
@@ -97,6 +117,50 @@ func contains_world_point(world_point: Vector2) -> bool:
 	)
 
 
+func try_damage_body(body: Node) -> bool:
+	if (
+		visual_state != VisualState.ARMED
+		or presentation_role == PresentationRole.ECHO_PRESENTATION
+		or _is_echo_attack()
+		or body == null
+		or body != _damage_target
+	):
+		return false
+	var robot: GiantRobotController = body as GiantRobotController
+	var target_id: int = int(robot.get_instance_id())
+	if _damaged_target_ids.has(target_id):
+		return false
+	var direction: Vector2 = robot.global_position - global_position
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT
+	var accepted: bool = robot.receive_damage(DamageEvent.new(
+		activation_attack_id,
+		self,
+		damage_amount,
+		&"boss_hazard",
+		robot.global_position,
+		direction,
+		0.0,
+		activation_attack_id,
+		0,
+		DamageEvent.FLAG_HAZARD
+	))
+	if accepted:
+		_damaged_target_ids[target_id] = true
+	return accepted
+
+
+func _damage_current_overlaps() -> void:
+	if visual_state != VisualState.ARMED or not monitoring:
+		return
+	for body: Node2D in get_overlapping_bodies():
+		try_damage_body(body)
+
+
+func _on_body_entered(body: Node2D) -> void:
+	try_damage_body(body)
+
+
 func _is_echo_attack() -> bool:
 	return String(attack_id).begins_with("ECHO_")
 
@@ -112,8 +176,8 @@ func _draw() -> void:
 	var edge: Color = Color(0.45, 0.96, 1.0, 0.88)
 	var width: float = 3.0
 	if visual_state == VisualState.ARMED:
-		fill = Color(0.94, 0.08, 0.16, 0.28)
-		edge = Color(1.0, 0.30, 0.24, 0.98)
+		fill = Color(0.94, 0.08, 0.72, 0.30)
+		edge = Color(1.0, 0.32, 0.86, 0.98)
 		width = 6.0
 	elif visual_state == VisualState.DRY:
 		fill = Color(0.92, 0.96, 1.0, 0.08)

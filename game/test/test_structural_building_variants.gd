@@ -3,6 +3,18 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
+func _hollow_progress(pattern: BuildingDamagePattern2D) -> float:
+	return float(pattern.cavity_material().get_shader_parameter("hollow_progress"))
+
+
+func _hollow_extents(pattern: BuildingDamagePattern2D) -> Vector2:
+	return pattern.cavity_material().get_shader_parameter("hollow_extents_uv") as Vector2
+
+
+func _region_uv_rect(pattern: BuildingDamagePattern2D) -> Vector4:
+	return pattern.cavity_material().get_shader_parameter("region_uv_rect") as Vector4
+
+
 func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 	var bootstrap: StructuralBuildingVariant = CityDistrictCatalog.districts()[0].building_variants[0]
 	var building: StructuralBuilding2D = StructuralBuilding2D.new()
@@ -35,6 +47,18 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 					)
 					var sprite: Sprite2D = cell.get_node(^"IntactVisual") as Sprite2D
 					assert_eq(sprite.texture, variant.intact_texture)
+					var pattern: BuildingDamagePattern2D = cell.get_node(
+						^"DamagedVisual"
+					) as BuildingDamagePattern2D
+					assert_not_null(pattern.cavity_material())
+					assert_eq(sprite.material, pattern.cavity_material())
+					assert_almost_eq(_hollow_progress(pattern), 0.0, 0.0001)
+					var uv_region: Vector4 = _region_uv_rect(pattern)
+					assert_almost_eq(uv_region.x, float(column) / 3.0, 0.0001)
+					assert_almost_eq(uv_region.y, float(row) / 2.0, 0.0001)
+					assert_almost_eq(uv_region.z, 1.0 / 3.0, 0.0001)
+					assert_almost_eq(uv_region.w, 1.0 / 2.0, 0.0001)
+					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					assert_lt(
 						(
 							sprite.region_rect.size * sprite.scale
@@ -83,6 +107,47 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 					])
 					await get_tree().physics_frame
 					assert_true(cell.is_destroyed())
+					var pattern: BuildingDamagePattern2D = cell.get_node(
+						^"DamagedVisual"
+					) as BuildingDamagePattern2D
+					assert_true(pattern.visible, String(variant.variant_id))
+					assert_true(pattern.is_destroyed_stage(), String(variant.variant_id))
+					assert_eq(
+						pattern.contour().size(),
+						BuildingDamagePattern2D.CONTOUR_POINTS,
+						String(variant.variant_id)
+					)
+					assert_gt(pattern.crack_count(), 0, String(variant.variant_id))
+					assert_eq(pattern.damage_detail_count(), 2, String(variant.variant_id))
+					assert_almost_eq(
+						pattern.cavity_darken_strength(),
+						BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH,
+						0.0001,
+						String(variant.variant_id)
+					)
+					assert_almost_eq(
+						_hollow_progress(pattern),
+						1.0,
+						0.0001,
+						String(variant.variant_id)
+					)
+					assert_gte(
+						_hollow_extents(pattern).x,
+						0.35,
+						String(variant.variant_id)
+					)
+					assert_gte(
+						_hollow_extents(pattern).y,
+						0.38,
+						String(variant.variant_id)
+					)
+					assert_true(
+						pattern.cavity_material().shader.code.contains(
+							"radial < boundary - edge_softness"
+						),
+						String(variant.variant_id)
+					)
+					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					var hurtbox: CollisionShape2D = cell.get_node(
 						^"Hurtbox/CollisionShape2D"
 					) as CollisionShape2D
@@ -211,18 +276,18 @@ func test_forward_boundaries_emit_four_spatial_district_transitions() -> void:
 				"chunk": chunk,
 			})
 	)
-	for logical_index: int in [5, 10, 15, 20]:
+	for logical_index: int in [7, 14, 21, 28]:
 		_unlock_current_district(city.world_stream)
 		await _move_to_logical_chunk(city, logical_index)
 		assert_false(city.weapon_shop_assembler.session.active)
 	assert_eq(transitions.size(), 4)
 	assert_eq(transitions[0].previous, &"BUSINESS")
 	assert_eq(transitions[0].district, &"RESIDENTIAL")
-	assert_eq(transitions[0].chunk, 5)
+	assert_eq(transitions[0].chunk, 7)
 	assert_eq(transitions[1].district, &"ENTERTAINMENT")
 	assert_eq(transitions[2].district, &"MILITARY")
 	assert_eq(transitions[3].district, &"ROYAL")
-	assert_eq(transitions[3].chunk, 20)
+	assert_eq(transitions[3].chunk, 28)
 	assert_eq(city.world_stream.current_district_id, &"ROYAL")
 	assert_eq(city.world_stream.current_district().district_id, &"ROYAL")
 	assert_eq(city.district_transition_banner.presentation_count, 4)
@@ -255,3 +320,17 @@ func _unlock_current_district(stream: CityWorldStream) -> void:
 		building.set_meta(&"building_variant_id", variant.variant_id)
 		stream.report_building_cleared(building)
 		building.free()
+	stream.begin_post_boss_corridor(district.district_index)
+	stream.rear_frontier_logical_x = (
+		float(
+			district.district_index * CityDistrictCatalog.CHUNKS_PER_DISTRICT
+			+ CityWorldStream.DISTRICT_BUILDINGS_REQUIRED
+		)
+		* CityWorldStream.CHUNK_WIDTH
+		+ CityWorldStream.CHUNK_CONTENT_OVERHANG
+	)
+	stream.furthest_progress_logical_x = (
+		float((district.district_index + 1) * CityDistrictCatalog.CHUNKS_PER_DISTRICT)
+		* CityWorldStream.CHUNK_WIDTH
+	)
+	stream.complete_district_handoff(district.district_index)

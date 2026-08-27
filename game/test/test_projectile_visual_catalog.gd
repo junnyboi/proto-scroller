@@ -8,6 +8,8 @@ const EXPECTED_SPECS: Dictionary = {
 		"impact_key": &"enemy_bullet_impact",
 		"impact_atlas_size": Vector2i(240, 64),
 		"impact_cell_size": Vector2i(48, 32),
+		"reference_damage": 7.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_BULLET_IMPACT,
 	},
 	&"enemy_shell": {
 		"source_size": Vector2i(256, 128),
@@ -16,6 +18,8 @@ const EXPECTED_SPECS: Dictionary = {
 		"impact_key": &"enemy_shell_impact",
 		"impact_atlas_size": Vector2i(320, 96),
 		"impact_cell_size": Vector2i(64, 48),
+		"reference_damage": 24.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_SHELL_IMPACT,
 	},
 	&"enemy_rocket_direct": {
 		"source_size": Vector2i(256, 96),
@@ -24,6 +28,8 @@ const EXPECTED_SPECS: Dictionary = {
 		"impact_key": &"enemy_rocket_direct_impact",
 		"impact_atlas_size": Vector2i(480, 128),
 		"impact_cell_size": Vector2i(96, 64),
+		"reference_damage": 22.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_ROCKET_DIRECT_IMPACT,
 	},
 	&"enemy_rocket_salvo": {
 		"source_size": Vector2i(192, 72),
@@ -32,6 +38,8 @@ const EXPECTED_SPECS: Dictionary = {
 		"impact_key": &"enemy_rocket_salvo_impact",
 		"impact_atlas_size": Vector2i(360, 112),
 		"impact_cell_size": Vector2i(72, 56),
+		"reference_damage": 24.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_ROCKET_SALVO_IMPACT,
 	},
 }
 
@@ -61,6 +69,8 @@ func test_catalog_specs_load_and_validate_declared_contracts() -> void:
 		assert_eq(int(impact_spec.get("frame_count")), 10)
 		assert_gt(float(impact_spec.get("playback_fps")), 0.0)
 		assert_gt((impact_spec.get("display_size") as Vector2).x, 0.0)
+		assert_eq(float(impact_spec.get("reference_damage")), expected.reference_damage)
+		assert_eq(int(impact_spec.get("audio_cue")), expected.audio_cue)
 	assert_false(ProjectileVisualCatalog.has(&"missing"))
 	assert_true(ProjectileVisualCatalog.spec(&"missing").is_empty())
 
@@ -174,15 +184,24 @@ func test_pool_carries_optional_visual_key_without_changing_capacity_or_reservat
 func test_four_generated_impact_families_animate_in_fixed_pool() -> void:
 	var pool: ProjectilePool = ProjectilePool.new()
 	add_child_autofree(pool)
+	var audio_root: Node2D = Node2D.new()
+	add_child_autofree(audio_root)
+	var feedback_pool: ImpactFeedbackPool = ImpactFeedbackPool.new()
+	feedback_pool.setup(audio_root, audio_root)
+	add_child_autofree(feedback_pool)
 	await get_tree().process_frame
+	pool.set_impact_feedback_pool(feedback_pool)
 	var child_count: int = pool.get_child_count()
+	var family_index: int = 0
 	for visual_key: StringName in EXPECTED_SPECS:
 		var expected: Dictionary = EXPECTED_SPECS[visual_key]
+		var damage_ratio: float = [0.5, 1.0, 2.25, 4.0][family_index]
+		var impact_damage: float = expected.reference_damage * damage_ratio
 		var projectile: Projectile2D = pool.acquire(
 			Vector2.ZERO,
 			Vector2(1.0, 1.0).normalized(),
 			440.0,
-			8.0,
+			impact_damage,
 			null,
 			1,
 			_kind_for_visual_key(visual_key),
@@ -194,7 +213,8 @@ func test_four_generated_impact_families_animate_in_fixed_pool() -> void:
 			Vector2(400.0, 300.0),
 			projectile.velocity.normalized(),
 			projectile.damage_type,
-			expected.impact_key
+			expected.impact_key,
+			projectile.damage
 		)
 		var impact: WeaponImpactEffect2D = _active_impact_for_key(
 			pool, expected.impact_key
@@ -202,6 +222,30 @@ func test_four_generated_impact_families_animate_in_fixed_pool() -> void:
 		assert_not_null(impact, visual_key)
 		assert_eq(impact.current_frame, 0, visual_key)
 		assert_almost_eq(impact.rotation, PI * 0.25, 0.0001, visual_key)
+		var expected_scale: float = ProjectilePool.damage_impact_scale(
+			impact_damage,
+			expected.reference_damage
+		)
+		assert_almost_eq(impact.presentation_scale, expected_scale, 0.0001, visual_key)
+		assert_almost_eq(pool.last_hostile_impact_scale, expected_scale, 0.0001, visual_key)
+		assert_almost_eq(pool.last_hostile_impact_damage, impact_damage, 0.0001, visual_key)
+		assert_eq(pool.last_hostile_impact_cue, expected.audio_cue, visual_key)
+		assert_eq(feedback_pool.last_cue, expected.audio_cue, visual_key)
+		assert_between(
+			feedback_pool.last_cue_pitch,
+			1.0 - ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION,
+			1.0 + ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION,
+			visual_key
+		)
+		var authored_volume_db: float = float(
+			AudioCueRegistry.profile(expected.audio_cue).volume_db
+		)
+		assert_between(
+			feedback_pool.last_cue_volume_db,
+			authored_volume_db - ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB,
+			authored_volume_db + ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB,
+			visual_key
+		)
 		assert_false(impact.particles.visible, visual_key)
 		var impact_spec: Dictionary = EnemyAttackVfxCatalog.impact_spec_for_key(
 			expected.impact_key
@@ -214,6 +258,7 @@ func test_four_generated_impact_families_animate_in_fixed_pool() -> void:
 		assert_eq(impact.current_frame, 0, visual_key)
 		pool.release(projectile)
 		assert_eq(pool.get_child_count(), child_count, visual_key)
+		family_index += 1
 	assert_not_same(
 		EnemyAttackVfxCatalog.impact_spec_for_key(
 			&"enemy_rocket_direct_impact"
@@ -224,8 +269,94 @@ func test_four_generated_impact_families_animate_in_fixed_pool() -> void:
 	)
 	assert_eq(pool.total_count(), 32)
 	assert_eq(pool.denial_count, 0)
+	assert_eq(feedback_pool.cue_play_count, 4)
+	assert_eq(feedback_pool.audio_child_count(), 8)
 	pool.release_all()
 	assert_eq(pool.active_hostile_impact_count(), 0)
+
+
+func test_generated_impact_audio_assets_are_unique_mono_qoa_and_bounded() -> void:
+	var cues: Array[AudioCueRegistry.Cue] = [
+		AudioCueRegistry.Cue.ENEMY_BULLET_IMPACT,
+		AudioCueRegistry.Cue.ENEMY_SHELL_IMPACT,
+		AudioCueRegistry.Cue.ENEMY_ROCKET_DIRECT_IMPACT,
+		AudioCueRegistry.Cue.ENEMY_ROCKET_SALVO_IMPACT,
+	]
+	var unique_payloads: Dictionary[PackedByteArray, bool] = {}
+	for cue: AudioCueRegistry.Cue in cues:
+		var profile: Dictionary = AudioCueRegistry.profile(cue)
+		var stream: AudioStreamWAV = profile.stream as AudioStreamWAV
+		var cue_label: String = str(cue)
+		assert_not_null(stream, cue_label)
+		assert_eq(stream.mix_rate, 48000, cue_label)
+		assert_eq(stream.format, AudioStreamWAV.FORMAT_QOA, cue_label)
+		assert_false(stream.stereo, cue_label)
+		assert_between(stream.get_length(), 1.0, 1.4, cue_label)
+		assert_false(unique_payloads.has(stream.data), cue_label)
+		unique_payloads[stream.data] = true
+	assert_eq(unique_payloads.size(), 4)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(
+			0.0, ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION
+		),
+		0.965,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(
+			0.5, ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION
+		),
+		1.0,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(
+			1.0, ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION
+		),
+		1.035,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(1.0, 1.0),
+		1.0 + ImpactFeedbackPool.MAX_CUE_PITCH_VARIATION,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(
+			0.0, ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB
+		),
+		-0.45,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(
+			0.5, ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB
+		),
+		0.0,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(
+			1.0, ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB
+		),
+		0.45,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(1.0, 20.0),
+		ImpactFeedbackPool.MAX_CUE_VOLUME_VARIATION_DB,
+		0.0001
+	)
+	assert_almost_eq(
+		ProjectilePool.damage_impact_scale(1.0, 100.0),
+		ProjectilePool.MIN_DAMAGE_IMPACT_SCALE,
+		0.0001
+	)
+	assert_almost_eq(
+		ProjectilePool.damage_impact_scale(1000.0, 10.0),
+		ProjectilePool.MAX_DAMAGE_IMPACT_SCALE,
+		0.0001
+	)
 
 
 func _spawn_projectile() -> Projectile2D:

@@ -16,7 +16,7 @@ var _web_resize_callback: Variant
 func setup() -> void:
 	var window: Window = get_window()
 	window.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
+	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	if not window.size_changed.is_connected(_on_window_size_changed):
 		window.size_changed.connect(_on_window_size_changed)
 	if OS.has_feature("web"):

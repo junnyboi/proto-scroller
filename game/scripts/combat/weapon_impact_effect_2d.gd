@@ -8,6 +8,7 @@ var lifetime: float = 0.24
 var activation_count: int = 0
 var visual_key: StringName = &""
 var current_frame: int = 0
+var presentation_scale: float = 1.0
 var sprite: Sprite2D
 var particles: GPUParticles2D
 var _base_scale: Vector2 = Vector2.ONE
@@ -60,16 +61,25 @@ func configure_from_spec(spec: Dictionary) -> bool:
 	return true
 
 
-func activate(world_position: Vector2, direction: Vector2 = Vector2.RIGHT) -> void:
+func activate(
+	world_position: Vector2,
+	direction: Vector2 = Vector2.RIGHT,
+	scale_multiplier: float = 1.0
+) -> void:
 	global_position = world_position
 	rotation = direction.angle()
+	presentation_scale = clampf(scale_multiplier, 0.1, 4.0)
 	age = 0.0
 	paused = false
 	active = true
 	visible = true
 	sprite.visible = true
 	current_frame = 0
-	sprite.scale = _base_scale if _uses_frame_sequence else _base_scale * 0.76
+	sprite.scale = (
+		_base_scale * presentation_scale
+		if _uses_frame_sequence
+		else _base_scale * 0.76 * presentation_scale
+	)
 	sprite.modulate.a = 1.0
 	if _uses_frame_sequence:
 		_update_animation_frame()
@@ -86,6 +96,7 @@ func deactivate() -> void:
 	age = 0.0
 	current_frame = 0
 	visual_key = &""
+	presentation_scale = 1.0
 	visible = false
 	rotation = 0.0
 	set_process(false)
@@ -113,7 +124,7 @@ func _process(delta: float) -> void:
 			_update_animation_frame()
 		return
 	var progress: float = clampf(age / lifetime, 0.0, 1.0)
-	sprite.scale = _base_scale * lerpf(0.76, 1.18, progress)
+	sprite.scale = _base_scale * lerpf(0.76, 1.18, progress) * presentation_scale
 	sprite.modulate.a = 1.0 - progress
 	if age >= lifetime:
 		deactivate()

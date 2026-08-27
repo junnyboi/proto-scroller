@@ -97,6 +97,49 @@ func test_campaign_policy_requires_three_distinct_full_charge_fixed_steps() -> v
 	assert_almost_eq(boss.current_health, definition.health - 40.0, 0.001)
 
 
+func test_campaign_armor_rejections_provide_exact_input_feedback() -> void:
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[0]
+	assert_true(session.start_definition(definition))
+	var rig: BossRig2D = session.utility_pool.rig
+	assert_false(rig.receive_damage(DamageEvent.new(
+		1090, city.robot, 999.0, &"ground_smash"
+	)))
+	assert_eq(
+		String(session.live_boss_feedback().objective),
+		L10n.t("boss.feedback.keep_moving")
+	)
+	assert_false(rig.receive_damage(DamageEvent.new(
+		1091, city.robot, 999.0, &"jab_cross"
+	)))
+	assert_eq(
+		String(session.live_boss_feedback().objective),
+		L10n.t("boss.feedback.full_charge")
+	)
+	assert_false(rig.receive_damage(DamageEvent.new(
+		1092, city.robot, 999.0, &"bullet"
+	)))
+	assert_eq(
+		String(session.live_boss_feedback().objective),
+		L10n.t("boss.feedback.armor_locked")
+	)
+	assert_true(rig.receive_damage(DamageEvent.new(
+		1093,
+		city.robot,
+		999.0,
+		&"jab_cross",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		0.0,
+		1093,
+		0,
+		DamageEvent.FLAG_FULL_CHARGE
+	)))
+	assert_eq(
+		String(session.live_boss_feedback().objective),
+		L10n.t("boss.objective.business.connect", {"current": 1, "total": 3})
+	)
+
+
 func test_jab_cross_event_propagates_full_charge_flag() -> void:
 	var resolver: AttackResolver = AttackResolver.new()
 	add_child_autofree(resolver)

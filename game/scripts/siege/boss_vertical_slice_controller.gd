@@ -15,11 +15,29 @@ const BUSINESS_ATTACKS: Array[StringName] = [
 	&"AUDIT_BEAM",
 	&"FOUNDATION_CASCADE",
 ]
+const BUSINESS_ARMORED_ATTACKS: Array[StringName] = [
+	&"SETTLEMENT_SWEEP", &"DOUBLE_ENTRY_BARRAGE",
+]
+const BUSINESS_EXPOSED_ATTACKS: Array[StringName] = [
+	&"FORECLOSURE_STAMP", &"AUDIT_BEAM",
+]
+const BUSINESS_FINAL_ATTACKS: Array[StringName] = [
+	&"AUDIT_BEAM", &"FOUNDATION_CASCADE",
+]
 const RESIDENTIAL_ATTACKS: Array[StringName] = [
 	&"TRIAGE_SWEEP",
 	&"PRESSURE_SENTENCE",
 	&"EXTRACTION_CLAMP",
 	&"BLACKOUT_HARVEST",
+]
+const RESIDENTIAL_ARMORED_ATTACKS: Array[StringName] = [
+	&"TRIAGE_SWEEP", &"PRESSURE_SENTENCE",
+]
+const RESIDENTIAL_EXPOSED_ATTACKS: Array[StringName] = [
+	&"TRIAGE_SWEEP", &"EXTRACTION_CLAMP",
+]
+const RESIDENTIAL_FINAL_ATTACKS: Array[StringName] = [
+	&"BLACKOUT_HARVEST", &"PRESSURE_SENTENCE", &"EXTRACTION_CLAMP",
 ]
 const PIN_COUNT: int = 3
 const POD_COUNT: int = 4
@@ -68,6 +86,9 @@ var rescue_tally: int = POD_COUNT
 var pod_loss_count: int = 0
 var central_cradle_preserved: bool = true
 var direct_clear_seconds: float = DIRECT_CLEAR_SECONDS
+var combat_state: StringName = CommandBossSession.STATE_SCREEN
+var body_health_ratio: float = 1.0
+var blackout_cycle_count: int = 0
 var _business_support_deployed: bool = false
 var _active_breacher: EnemyActor2D
 var _preserve_state_on_cleanup: bool = false
@@ -101,6 +122,8 @@ func start(
 	center = world_center
 	orientation_portrait = portrait
 	direct_clear_seconds = DIRECT_CLEAR_SECONDS
+	combat_state = CommandBossSession.STATE_SCREEN
+	body_health_ratio = 1.0
 	_configure_common_targets()
 	if definition.boss_id == BUSINESS_ID:
 		_configure_business()
@@ -137,6 +160,9 @@ func deactivate() -> void:
 	rescue_tally = POD_COUNT
 	pod_loss_count = 0
 	central_cradle_preserved = true
+	combat_state = CommandBossSession.STATE_SCREEN
+	body_health_ratio = 1.0
+	blackout_cycle_count = 0
 	_business_support_deployed = false
 	if utility_pool != null:
 		for marker: Marker2D in utility_pool.markers:
@@ -186,15 +212,37 @@ func active() -> bool:
 func active_attack_choices() -> Array[StringName]:
 	if active_definition == null:
 		return []
-	return BUSINESS_ATTACKS.duplicate() if active_definition.boss_id == BUSINESS_ID else (
-		RESIDENTIAL_ATTACKS.duplicate()
+	if active_definition.boss_id == BUSINESS_ID:
+		if combat_state != CommandBossSession.STATE_EXPOSED:
+			return BUSINESS_ARMORED_ATTACKS.duplicate()
+		return (
+			BUSINESS_EXPOSED_ATTACKS.duplicate()
+			if body_health_ratio > 0.33
+			else BUSINESS_FINAL_ATTACKS.duplicate()
+		)
+	if combat_state != CommandBossSession.STATE_EXPOSED:
+		return RESIDENTIAL_ARMORED_ATTACKS.duplicate()
+	return (
+		RESIDENTIAL_EXPOSED_ATTACKS.duplicate()
+		if body_health_ratio > 0.33
+		else RESIDENTIAL_FINAL_ATTACKS.duplicate()
 	)
+
+
+func set_combat_state(state_value: StringName, health_ratio: float) -> void:
+	var previous_choices: Array[StringName] = active_attack_choices()
+	combat_state = state_value
+	body_health_ratio = clampf(health_ratio, 0.0, 1.0)
+	var next_choices: Array[StringName] = active_attack_choices()
+	if active() and next_choices != previous_choices and not active_attack in next_choices:
+		_begin_next_attack()
 
 
 func register_armor_connection() -> bool:
 	if not active() or armor_connections >= PIN_COUNT:
 		return false
 	utility_pool.markers[armor_connections].visible = false
+	utility_pool.marker_presentations[armor_connections].visible = false
 	armor_connections += 1
 	if armor_connections == PIN_COUNT:
 		reveal_archive()
@@ -252,6 +300,8 @@ func begin_extraction(pod_index: int) -> bool:
 		not active()
 		or active_definition.boss_id != RESIDENTIAL_ID
 		or extraction_pod >= 0
+		or (_active_breacher != null and _active_breacher.active)
+		or (active_runner_slot != null and active_runner_slot.active)
 		or pod_index < 0
 		or pod_index >= POD_COUNT
 	):
@@ -311,19 +361,17 @@ func deploy_business_support() -> Array[EnemyActor2D]:
 	):
 		return result
 	_business_support_deployed = true
-	for copy_index: int in range(EnemySpawnTuning.QUANTITY_MULTIPLIER):
-		var copy_offset: Vector2 = EnemySpawnTuning.offset_for_copy(copy_index, 90.0)
-		var bulwark: EnemyActor2D = encounter_runtime.acquire(
-			&"bulwark", center + Vector2(-410.0, 0.0) + copy_offset, &"SUPPRESSOR"
-		)
-		var sapper: EnemyActor2D = encounter_runtime.acquire(
-			&"sapper", center + Vector2(410.0, 0.0) + copy_offset, &"ANCHOR"
-		)
-		for support: EnemyActor2D in [bulwark, sapper]:
-			if support == null:
-				continue
-			utility_pool.controller.track_support(support)
-			result.append(support)
+	var bulwark: EnemyActor2D = encounter_runtime.acquire(
+		&"bulwark", center + Vector2(-410.0, 0.0), &"SUPPRESSOR"
+	)
+	var sapper: EnemyActor2D = encounter_runtime.acquire(
+		&"sapper", center + Vector2(410.0, 0.0), &"ANCHOR"
+	)
+	for support: EnemyActor2D in [bulwark, sapper]:
+		if support == null:
+			continue
+		utility_pool.controller.track_support(support)
+		result.append(support)
 	return result
 
 
@@ -393,6 +441,13 @@ func mechanical_targets_clear_of_glass() -> bool:
 		var point: Vector2 = utility_pool.markers[marker_index].global_position
 		for pod: BossPodVisual2D in utility_pool.pod_visuals:
 			if pod.glass_rect().has_point(point):
+				return false
+	for area: Area2D in utility_pool.rig.hurt_regions:
+		var collision: CollisionShape2D = area.get_node(^"Collision") as CollisionShape2D
+		var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+		var hurt_rect: Rect2 = Rect2(area.global_position - rectangle.size * 0.5, rectangle.size)
+		for pod: BossPodVisual2D in utility_pool.pod_visuals:
+			if hurt_rect.intersects(pod.glass_rect()):
 				return false
 	return true
 
@@ -491,6 +546,9 @@ func capture_state() -> Dictionary:
 		"rescue_tally": rescue_tally,
 		"pod_loss_count": pod_loss_count,
 		"central_cradle_preserved": central_cradle_preserved,
+		"combat_state": combat_state,
+		"body_health_ratio": body_health_ratio,
+		"blackout_cycle_count": blackout_cycle_count,
 		"business_support_deployed": _business_support_deployed,
 		"breacher_active": _active_breacher != null and _active_breacher.active,
 		"runner_active": active_runner_slot != null and active_runner_slot.active,
@@ -520,6 +578,9 @@ func restore_state(state: Dictionary) -> void:
 	rescue_tally = int(state.get("rescue_tally", POD_COUNT))
 	pod_loss_count = int(state.get("pod_loss_count", 0))
 	central_cradle_preserved = bool(state.get("central_cradle_preserved", true))
+	combat_state = StringName(state.get("combat_state", CommandBossSession.STATE_SCREEN))
+	body_health_ratio = float(state.get("body_health_ratio", 1.0))
+	blackout_cycle_count = int(state.get("blackout_cycle_count", 0))
 	_business_support_deployed = bool(state.get("business_support_deployed", false))
 	var breacher_active: bool = bool(state.get("breacher_active", false))
 	var runner_active: bool = bool(state.get("runner_active", false))
@@ -542,6 +603,13 @@ func _configure_common_targets() -> void:
 		var marker: Marker2D = utility_pool.markers[index]
 		marker.global_position = center + PIN_OFFSETS[index]
 		marker.visible = true
+		var presentation: Sprite2D = utility_pool.marker_presentations[index]
+		presentation.texture = BossRig2D.WEAK_POINT_TEXTURE
+		presentation.position = Vector2.ZERO
+		var texture_size: Vector2 = presentation.texture.get_size()
+		presentation.scale = Vector2(54.0 / texture_size.x, 54.0 / texture_size.y)
+		presentation.modulate = Color(1.0, 0.78, 0.18, 0.96)
+		presentation.visible = true
 	for index: int in range(PIN_COUNT, utility_pool.markers.size()):
 		utility_pool.markers[index].visible = false
 
@@ -659,7 +727,8 @@ func _configure_residential_attack(attack: StringName) -> void:
 			if extraction_pod < 0:
 				begin_extraction((attack_index + pod_loss_count) % POD_COUNT)
 		&"BLACKOUT_HARVEST":
-			dry_lane_index = posmod(attack_index + pod_loss_count, LANE_COUNT)
+			dry_lane_index = posmod(blackout_cycle_count + pod_loss_count, LANE_COUNT)
+			blackout_cycle_count += 1
 			for lane_index: int in range(LANE_COUNT):
 				utility_pool.lane_damage_areas[lane_index].configure_footprint(
 					center + Vector2(LANE_CENTERS[lane_index], 4.0),
