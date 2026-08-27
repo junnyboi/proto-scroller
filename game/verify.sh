@@ -66,7 +66,7 @@ grep -Fq 'renderer/rendering_method="gl_compatibility"' project.godot
 grep -Fq 'variant/extensions_support=false' export_presets.cfg
 grep -Fq 'variant/thread_support=false' export_presets.cfg
 ! grep -Eq '^exclude_filter=.*art/bosses/\*' export_presets.cfg
-grep -Fq 'audio/music/bosses/*' export_presets.cfg
+! grep -Eq '^exclude_filter=.*audio/music/bosses/\*' export_presets.cfg
 printf '%s\n' '[L1] title-loop timing and seam continuity'
 python3 ../scripts/verify-title-loop-seam.py \
 	../client/public/title-video/title-loop-landscape.mp4 \

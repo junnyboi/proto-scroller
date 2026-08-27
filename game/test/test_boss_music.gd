@@ -14,6 +14,16 @@ func test_all_five_bosses_have_unique_looping_lyria_tracks() -> void:
 		assert_true((stream as AudioStreamOggVorbis).loop)
 
 
+func test_web_export_keeps_every_preloaded_boss_theme() -> void:
+	var export_presets: String = FileAccess.get_file_as_string("res://export_presets.cfg")
+	assert_false(
+		export_presets.contains("audio/music/bosses/*"),
+		"Preloaded boss tracks cannot be excluded from the Web PCK",
+	)
+	for stream: AudioStream in BossMusicDirector.TRACKS.values():
+		assert_true(FileAccess.file_exists(stream.resource_path), stream.resource_path)
+
+
 func test_one_prewarmed_player_switches_tracks_without_allocating_children() -> void:
 	var director: BossMusicDirector = _director()
 	var initial_children: int = director.get_child_count()
