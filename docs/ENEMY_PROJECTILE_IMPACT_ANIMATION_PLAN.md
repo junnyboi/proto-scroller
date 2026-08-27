@@ -1,6 +1,6 @@
 # Enemy Projectile Impact Animation Implementation Plan
 
-**Status:** Implemented; source integration and release synchronization in progress
+**Status:** Implemented and semantically merged; source push and release synchronization in progress
 **Owner:** Manus Agent 6  
 **Integration baseline:** `72e83a3`  
 **Engine:** Godot 4.7.2, GL Compatibility, non-threaded Web export
@@ -53,7 +53,7 @@ While this work was running, another session added twenty district CHOIR attack 
 
 ## Focused Regression Evidence
 
-The final canonical impact GUT file passed **6/6 tests and 258 assertions** on Godot 4.7.2. Coverage includes four atlas dimensions, ten-frame metadata, positive display and playback values, reference damage, square-root damage scaling and both clamps, canonical impact-key and audio-cue routing, diagonal orientation, direct-versus-salvo isolation, frame advancement, transparent completion/deactivation, eight-slot visual and audio capacity, four distinct imported mono PCM16 payloads, node-count stability, projectile partition and reservation parity, and clean reset. The district compatibility file passed **8/8 tests and 801 assertions**, and the preserved player machine-gun impact path passed **1/1 test and 15 assertions**. Repository-wide release certification remains intentionally skipped under the explicit project override.
+The final canonical impact GUT file passed **6/6 tests and 258 assertions** on Godot 4.7.2. Coverage includes four atlas dimensions, ten-frame metadata, positive display and playback values, reference damage, square-root damage scaling and both clamps, canonical impact-key and audio-cue routing, diagonal orientation, direct-versus-salvo isolation, frame advancement, transparent completion/deactivation, eight-slot visual and audio capacity, four distinct imported mono PCM16 payloads, node-count stability, projectile partition and reservation parity, and clean reset. The district compatibility file passed **8/8 tests and 801 assertions**, and the preserved player machine-gun impact path passed **1/1 test and 15 assertions**. After semantically merging concurrent dynamic-viewport, five-district parallax, authored destruction-debris, and package-budget work, the impact suite again passed **6/6 tests and 258 assertions**, parallax passed **3/3 tests and 49 assertions**, and the viewport expansion contract passed **1/1 test and 10 assertions**. Repository-wide release certification remains intentionally skipped under the explicit project override.
 
 ## Delivery Record
 
@@ -61,8 +61,8 @@ The final canonical impact GUT file passed **6/6 tests and 258 assertions** on G
 |---|---|
 | GPT Image 2 anchors | Completed for all four canonical projectile families |
 | Sprite/atlas production | Completed; four accepted ten-frame atlases and dark/light QA composites |
-| Concurrent feature merge | Completed against source `8501803`; district CHOIR VFX preserved |
-| Focused regression | Passed: canonical 6 tests / 258 assertions; district 8 tests / 801 assertions; machine gun 1 test / 15 assertions |
+| Concurrent feature merge | Completed; dynamic viewport, five-district parallax, destruction debris, package-budget work, and district CHOIR VFX preserved |
+| Focused regression | Passed: canonical 6 tests / 258 assertions; district 8 / 801; machine gun 1 / 15; merged parallax 3 / 49; merged viewport 1 / 10 |
 | Source commit / push | Pending final integration commit |
 | Fresh Godot Web export | Pending exact pushed revision |
 | WebDev checkpoint / deployment | Pending exact fresh payload synchronization |
