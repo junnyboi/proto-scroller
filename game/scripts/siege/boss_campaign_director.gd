@@ -22,6 +22,7 @@ var arena_lease: ArenaLease = ArenaLease.new()
 var interlock: BossSiegeInterlock = BossSiegeInterlock.new()
 var attempt_snapshot: BossAttemptSnapshot = BossAttemptSnapshot.new()
 var music_director: BossMusicDirector
+var arena_barrier: BossArenaBarrier2D
 var active_definition: BossEncounterDefinition
 var active_gate: BossGateMarker
 var attempt_failed: bool = false
@@ -43,6 +44,8 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	music_director = BossMusicDirector.new()
 	music_director.setup(_background_music_player())
 	add_child(music_director)
+	arena_barrier = BossArenaBarrier2D.new()
+	add_child(arena_barrier)
 	attempt_started.connect(music_director.play_definition)
 	attempt_retried.connect(music_director.play_definition)
 	boss_completed.connect(music_director.stop_music)
@@ -132,6 +135,8 @@ func stop() -> void:
 		siege.boss_session.stop()
 	if active_gate != null:
 		active_gate.release()
+	if arena_barrier != null:
+		arena_barrier.deactivate(siege.dependencies.robot if siege != null else null)
 	if salvage_trigger != null:
 		salvage_trigger.deactivate()
 	arena_lease.release()
@@ -248,7 +253,15 @@ func _begin_attempt(definition: BossEncounterDefinition) -> bool:
 
 
 func _start_boss_session(definition: BossEncounterDefinition) -> bool:
-	return siege.boss_session.start_definition(definition)
+	if not siege.boss_session.start_definition(definition):
+		return false
+	if not arena_barrier.activate(
+		siege.boss_session.boss.global_position,
+		siege.dependencies.robot
+	):
+		siege.boss_session.stop()
+		return false
+	return true
 
 
 func _acquire_arena_gate(
@@ -272,6 +285,8 @@ func _rollback_attempt_start() -> void:
 	attempt_snapshot.clear()
 	interlock.discard()
 	arena_lease.release()
+	if arena_barrier != null:
+		arena_barrier.deactivate(siege.dependencies.robot)
 	if active_gate != null:
 		active_gate.release()
 	active_definition = null
@@ -427,6 +442,12 @@ func _on_boss_durability_changed(_current: float, _maximum: float) -> void:
 
 
 func _on_boss_state_changed(state: StringName) -> void:
+	if state in [
+		CommandBossSession.STATE_WRECK,
+		CommandBossSession.STATE_COMPLETION_PENDING,
+		CommandBossSession.STATE_COMPLETE,
+	]:
+		arena_barrier.deactivate(siege.dependencies.robot)
 	_refresh_hud(state)
 
 

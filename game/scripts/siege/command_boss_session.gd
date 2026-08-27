@@ -35,13 +35,13 @@ var royal_finale: BossRoyalFinaleController
 var active_definition: BossEncounterDefinition
 var elapsed_seconds: float = 0.0
 var generation_token: int = 0
+var last_completed_wreck_position: Vector2 = Vector2.ZERO
 var _state_elapsed: float = 0.0
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
 var _armor_feedback_key: String = ""
 var _royal_finisher_attacks: Dictionary[int, bool] = {}
 var _royal_finisher_roots: Dictionary[int, bool] = {}
-var last_completed_wreck_position: Vector2 = Vector2.ZERO
 var last_repair_drop_count: int = 0
 
 
@@ -81,6 +81,8 @@ func start_definition(definition: BossEncounterDefinition) -> bool:
 func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	if state != STATE_IDLE and state != STATE_COMPLETE:
 		return false
+	if utility_pool.defeat_spectacle != null:
+		utility_pool.defeat_spectacle.deactivate()
 	generation_token = utility_pool.begin_generation()
 	active_definition = definition
 	dependencies.encounter_runtime.release_all()
@@ -161,6 +163,8 @@ func advance(delta: float) -> void:
 
 func stop() -> void:
 	_next_generation()
+	if utility_pool != null and utility_pool.defeat_spectacle != null:
+		utility_pool.defeat_spectacle.deactivate()
 	if _is_choir_prime():
 		dependencies.encounter_runtime.release_all()
 	elif boss != null and boss.active:
@@ -412,6 +416,10 @@ func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> v
 	if enemy == boss:
 		_capture_completion_payload()
 		dependencies.encounter_runtime.set_attack_gate(false)
+		utility_pool.defeat_spectacle.activate(
+			enemy.global_position + Vector2(0.0, -96.0),
+			dependencies.city.camera_rig
+		)
 
 
 func _capture_completion_payload() -> void:

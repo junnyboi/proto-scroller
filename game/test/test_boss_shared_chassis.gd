@@ -42,6 +42,41 @@ func test_campaign_host_is_hidden_stationary_authority_and_rig_forwards_damage()
 	assert_eq(host.velocity, Vector2(800.0, 200.0))
 
 
+func test_body_defeat_launches_full_pooled_explosion_and_firework_barrage() -> void:
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[0]
+	var spectacle: BossDefeatSpectacle2D = session.utility_pool.defeat_spectacle
+	var baseline_nodes: int = get_tree().get_node_count()
+	assert_eq(spectacle.visual_slot_count(), 22)
+	assert_eq(spectacle.particle_emitter_count(), 14)
+	assert_eq(spectacle.particle_capacity(), 548)
+	assert_eq(spectacle.audio_player_count(), 1)
+	assert_true(session.start_definition(definition))
+	var host: TankEnemy = session.boss
+	assert_true(host.receive_damage(DamageEvent.new(
+		30_101, city.robot, definition.armor, &"bullet"
+	)))
+	assert_true(host.receive_damage(DamageEvent.new(
+		30_102, city.robot, definition.health, &"impact"
+	)))
+	assert_true(spectacle.active)
+	assert_eq(spectacle.activation_count, 1)
+	assert_eq(spectacle.audio_play_count, 1)
+	assert_eq(spectacle.audio_player.bus, GameAudioBus.SFX)
+	assert_eq(spectacle.audio_player.global_position, spectacle.global_position)
+	assert_gt(city.camera_rig.impact_velocity.length(), 0.0)
+	assert_gte(spectacle.explosion_trigger_count, 1)
+	assert_true(spectacle.explosion_emitters.any(
+		func(particles: GPUParticles2D) -> bool: return particles.emitting
+	))
+	spectacle.advance(2.05)
+	assert_eq(spectacle.explosion_trigger_count, 12)
+	assert_eq(spectacle.firework_trigger_count, 10)
+	assert_eq(spectacle.post_warm_creation_count, 0)
+	assert_eq(get_tree().get_node_count(), baseline_nodes)
+	spectacle.advance(1.0)
+	assert_false(spectacle.active)
+
+
 func test_every_rig_preset_reuses_parts_sockets_and_hurt_regions_in_place() -> void:
 	var rig: BossRig2D = session.utility_pool.rig
 	var part_ids: PackedInt64Array = _node_ids(rig.parts)

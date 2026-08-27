@@ -2,22 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2fqeewdcg83p"
-path="res://.godot/imported/samaritan-15.webp-1ef5ac5fb23fad677d916e41410b5345.ctex"
+uid="uid://bbol4yb2pefhv"
+path="res://.godot/imported/boss-explosion-burst.webp-4196579120620bf3e4c52fa201ece5bc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/bosses/samaritan-15.webp"
-dest_files=["res://.godot/imported/samaritan-15.webp-1ef5ac5fb23fad677d916e41410b5345.ctex"]
+source_file="res://art/bosses/defeat_fx/boss-explosion-burst.webp"
+dest_files=["res://.godot/imported/boss-explosion-burst.webp-4196579120620bf3e4c52fa201ece5bc.ctex"]
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
-compress/lossy_quality=0.62
+compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

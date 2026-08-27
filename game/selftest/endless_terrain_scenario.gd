@@ -305,11 +305,19 @@ func _unlock_districts_through(stream: CityWorldStream, logical_index: int) -> v
 			stream.unlocked_district_index
 		]
 		stream.current_district_id = district.district_id
-		for variant: StructuralBuildingVariant in district.building_variants:
+		for encounter_index: int in range(
+			CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
+		):
+			var encounter_chunk: int = district.start_chunk + encounter_index
+			var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_for_chunk(
+				stream.run_seed,
+				encounter_chunk
+			)
 			var building_value: StructuralBuilding2D = StructuralBuilding2D.new()
 			building_value.set_meta(&"district_id", district.district_id)
 			building_value.set_meta(&"district_index", district.district_index)
 			building_value.set_meta(&"building_variant_id", variant.variant_id)
+			building_value.set_meta(&"logical_chunk", encounter_chunk)
 			stream.report_building_cleared(building_value)
 			building_value.free()
 
@@ -320,7 +328,8 @@ func _is_roster_sample(logical_index: int) -> bool:
 	var district: CityDistrictProfile = CityDistrictCatalog.district_for_chunk(logical_index)
 	return (
 		logical_index >= district.start_chunk
-		and logical_index < district.start_chunk + CityDistrictCatalog.VARIANTS_PER_DISTRICT
+		and logical_index
+		< district.start_chunk + CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT
 	)
 
 

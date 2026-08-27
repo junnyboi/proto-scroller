@@ -12,7 +12,7 @@ The reported first-boss lock was real. The screenshot shows the encounter still 
 
 The audit found additional systemic weaknesses: telegraphed attack areas were visual-only; the screen-introduction state could advance attack timers invisibly; all attack patterns were exposed from the opening second rather than escalating; one boss-support wave had been doubled despite being a stateful boss mechanic; SAMARITAN's broad fallback hurtboxes overlapped protected glass; MIMESIS advertised a hollow-center counter that did not react continuously; the Military Graft Runner did not receive its target mark; evidence payloads could be lost because wreck generation could clean up a controller before its death callback captured results; and a transient completion-save failure could leave a consumed boss behind an owned route gate.[1][2][3][4]
 
-The repaired contract is now readable across the campaign. A generated red-and-white **BOSS FIGHT** splash and synchronized announcer-impact cue introduce each attempt for approximately 1.2 seconds. The combat HUD has been reduced to the localized boss name, a yellow armor bar, and a red health bar. Every accepted boss hit flashes the complete visible rig white. Safe telegraphs transition to **magenta armed zones** that inflict one deduplicated chassis hit per activation, and introductions cannot arm attacks. Settlement Engine S-04 accepts every player damage type against armor; later bosses retain their authored charged-connection rule. Standard evidence survives the wreck callback order. Completion writes retry in place before the route state is consumed, and Royal persists its ending transaction before release.[1][2][5]
+The repaired contract is now readable across the campaign. A generated red-and-white **BOSS FIGHT** splash and synchronized announcer-impact cue introduce each attempt for approximately 1.2 seconds. The combat HUD has been reduced to the localized boss name, a yellow armor bar, and a red health bar. Every accepted boss hit flashes the complete visible rig white. Safe telegraphs transition to **magenta armed zones** that inflict one deduplicated chassis hit per activation, and introductions cannot arm attacks. Settlement Engine S-04 accepts every player damage type against armor; later bosses retain their authored charged-connection rule. One invisible player-only wall creates the arena exactly 1,000 pixels right of the live boss, then drops when the body reaches zero. That body defeat launches 12 overlapping explosions, 10 fireworks, 14 reusable emitters driving 548 particles, one heavy camera kick, and one positional carrier-derived detonation mix. Standard evidence survives the wreck callback order. Completion writes retry in place before the route state is consumed, and Royal persists its ending transaction before release.[1][2][5][10][12]
 
 ## Universal defeat sequence
 
@@ -26,7 +26,7 @@ Every campaign boss follows the same readable armor, body, and wreck structure, 
 | **Exposed body** | Use normal melee and equipped weapons while reading the telegraphs. Attacks escalate again below roughly one-third body integrity. | Remaining inside a magenta armed footprint. Pale/gold telegraphs are warnings; magenta is live damage. |
 | **Boss corpse** | The authentic animated boss freezes on its final attack frame and darkens. Strike the labeled corpse with one **fresh melee**—jab-cross or ground smash—to reduce it to rubble. The fatal attack cannot double as the finisher. | Ranged fire, autonomous weapons, and the lethal attack/root chain. Rubble completion controls rewards and progression only; it never controls route access. |
 
-The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. Line up before charging; once an attack is committed, locomotion remains locked through recovery and a recovery-phase dodge request is buffered until release. Boss attempts create no dedicated arena wall or collision layer; rear-wall and facade obstruction remain suspended, so the player can retreat, pass the boss, and reposition freely. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
+The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. Line up before charging; once an attack is committed, locomotion remains locked through recovery and a recovery-phase dodge request is buffered until release. Boss attempts suspend the ordinary rear wall and facade obstruction but create one invisible right boundary 1,000 pixels beyond the boss. The route marker and left side remain open for retreat and repositioning; the right boundary disappears as soon as the live body is defeated. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6][10]
 
 ## Boss-by-boss field guide
 
@@ -41,7 +41,7 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 | **Final third** | **Audit Beam** remains and **Foundation Cascade** adds a heavy left-side ground collapse. | Favor the right approach, dodge through a late arm, then punish the recovery. Eliminate the two support enemies if they obstruct the charging lane. |
 | **Corpse** | The S-04 atlas freezes and darkens at body death; a gold **MELEE TO SCRAP** receiver appears. | Land one fresh jab-cross or ground smash to create rubble and two 50-HP repair cells. |
 
-**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. The arena remains physically open throughout the attempt. Strike the darkened boss corpse once with a fresh melee for the completion record and repair drop.[1][3]
+**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. Use the full space left of the right arena boundary; it vanishes into the explosion-and-fireworks barrage when the body fails. Strike the darkened boss corpse once with a fresh melee for the completion record and repair drop.[1][3][10][12]
 
 ### 2. SAMARITAN-15 — The Last Evacuation
 
@@ -103,7 +103,7 @@ The implementation deliberately keeps stateful boss support singular despite glo
 
 ## Remaining high-value design opportunities
 
-The current repair makes every fight playable, damaging, phase-structured, and explainable. The shared intro splash, announcer cue, compact durability bars, and white accepted-hit flash now cover the previously missing presentation layer. A subsequent content pass could deepen spectacle without changing the stable contracts: add boss-specific hit-stun and armor-break animations; make the Business treasury slab, Entertainment control cabinet, and Military freight anchors directly attackable world receivers; add unique audio stingers for telegraph, armor connection, exposure, and finisher; and tune per-boss hazard damage after collecting real completion-time and chassis-loss telemetry. Those are enhancements, not blockers to defeating the campaign.
+The current repair makes every fight playable, damaging, phase-structured, explainable, and emphatic at defeat. The shared intro splash, announcer cue, compact durability bars, white accepted-hit flash, generated explosion/firework textures, positional detonation mix, and heavy camera kick cover the presentation arc from entrance through destruction. A subsequent content pass could deepen identity without changing the stable contracts: add boss-specific hit-stun and armor-break animations; make the Business treasury slab, Entertainment control cabinet, and Military freight anchors directly attackable world receivers; add unique per-boss telegraph and exposure stingers; and tune hazard damage after collecting real completion-time and chassis-loss telemetry. Those are enhancements, not blockers to defeating the campaign.
 
 ## Source references
 
@@ -116,4 +116,6 @@ The current repair makes every fight playable, damaging, phase-structured, and e
 [7]: ../game/scripts/siege/boss_rig_2d.gd
 [8]: ../game/scripts/siege/boss_escalation_controller.gd
 [9]: ../game/scripts/siege/boss_royal_finale_controller.gd
+[10]: ../game/scripts/siege/boss_arena_barrier_2d.gd
 [11]: ../game/scripts/ui/boss_fight_herald.gd
+[12]: ../game/scripts/siege/boss_defeat_spectacle_2d.gd

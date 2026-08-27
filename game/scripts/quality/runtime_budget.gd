@@ -52,6 +52,23 @@ const ROLE_BADGES: int = SOLDIERS + TANKS + HELICOPTERS + PROCEDURAL_ENEMIES
 const TRAIT_RUNTIMES: int = 1
 const BOSS_SESSIONS: int = 1
 const BOSS_RIGS: int = 1
+const BOSS_ARENA_BARRIERS: int = 1
+const BOSS_DEFEAT_SPECTACLES: int = 1
+const BOSS_DEFEAT_VISUAL_SLOTS: int = (
+	BossDefeatSpectacle2D.EXPLOSION_SLOT_CAPACITY
+	+ BossDefeatSpectacle2D.FIREWORK_SLOT_CAPACITY
+)
+const BOSS_DEFEAT_PARTICLE_EMITTERS: int = (
+	BossDefeatSpectacle2D.EXPLOSION_EMITTER_CAPACITY
+	+ BossDefeatSpectacle2D.FIREWORK_EMITTER_CAPACITY
+)
+const BOSS_DEFEAT_PARTICLE_CAPACITY: int = (
+	BossDefeatSpectacle2D.EXPLOSION_EMITTER_CAPACITY
+	* BossDefeatSpectacle2D.EXPLOSION_PARTICLES_PER_EMITTER
+	+ BossDefeatSpectacle2D.FIREWORK_EMITTER_CAPACITY
+	* BossDefeatSpectacle2D.FIREWORK_PARTICLES_PER_EMITTER
+)
+const BOSS_DEFEAT_AUDIO_PLAYERS: int = 1
 const BOSS_CONTROLLERS: int = 1
 const BOSS_ARENA_ADAPTERS: int = 1
 const BOSS_PYLON_PRESENTATIONS: int = BossUtilityPool.PYLON_PRESENTATION_CAPACITY
@@ -238,6 +255,21 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"trait_runtimes": 1 if city.urban_siege.trait_runtime != null else 0,
 		"boss_sessions": 1 if city.urban_siege.boss_session != null else 0,
 		"boss_rigs": _boss_utility_count(city, &"rig"),
+		"boss_arena_barriers": _boss_arena_barrier_count(city),
+		"boss_defeat_spectacles": _boss_utility_count(city, &"defeat_spectacle"),
+		"boss_defeat_visual_slots": _boss_utility_count(city, &"defeat_visual_slots"),
+		"boss_defeat_particle_emitters": _boss_utility_count(
+			city,
+			&"defeat_particle_emitters"
+		),
+		"boss_defeat_particle_capacity": _boss_utility_count(
+			city,
+			&"defeat_particle_capacity"
+		),
+		"boss_defeat_audio_players": _boss_utility_count(
+			city,
+			&"defeat_audio_players"
+		),
 		"boss_controllers": _boss_utility_count(city, &"controller"),
 		"boss_rubble_presentations": _boss_utility_count(city, &"boss_rubble"),
 		"boss_arena_adapters": _boss_utility_count(city, &"arena_adapter"),
@@ -407,6 +439,27 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "trait_runtimes", TRAIT_RUNTIMES)
 	_check_equal(errors, data, "boss_sessions", BOSS_SESSIONS)
 	_check_equal(errors, data, "boss_rigs", BOSS_RIGS)
+	_check_equal(errors, data, "boss_arena_barriers", BOSS_ARENA_BARRIERS)
+	_check_equal(errors, data, "boss_defeat_spectacles", BOSS_DEFEAT_SPECTACLES)
+	_check_equal(errors, data, "boss_defeat_visual_slots", BOSS_DEFEAT_VISUAL_SLOTS)
+	_check_equal(
+		errors,
+		data,
+		"boss_defeat_particle_emitters",
+		BOSS_DEFEAT_PARTICLE_EMITTERS
+	)
+	_check_equal(
+		errors,
+		data,
+		"boss_defeat_particle_capacity",
+		BOSS_DEFEAT_PARTICLE_CAPACITY
+	)
+	_check_equal(
+		errors,
+		data,
+		"boss_defeat_audio_players",
+		BOSS_DEFEAT_AUDIO_PLAYERS
+	)
 	_check_equal(errors, data, "boss_controllers", BOSS_CONTROLLERS)
 	_check_equal(errors, data, "boss_arena_adapters", BOSS_ARENA_ADAPTERS)
 	_check_equal(errors, data, "boss_pylon_presentations", BOSS_PYLON_PRESENTATIONS)
@@ -704,6 +757,16 @@ static func _boss_utility_count(city: CitySlice, kind: StringName) -> int:
 	match kind:
 		&"rig":
 			return pool.rig_count()
+		&"defeat_spectacle":
+			return pool.defeat_spectacle_count()
+		&"defeat_visual_slots":
+			return pool.defeat_visual_slot_count()
+		&"defeat_particle_emitters":
+			return pool.defeat_particle_emitter_count()
+		&"defeat_particle_capacity":
+			return pool.defeat_particle_capacity()
+		&"defeat_audio_players":
+			return pool.defeat_audio_player_count()
 		&"controller":
 			return pool.controller_count()
 		&"arena_adapter":
@@ -733,3 +796,9 @@ static func _boss_utility_count(city: CitySlice, kind: StringName) -> int:
 		&"reservations":
 			return pool.reservation_count()
 	return 0
+
+
+static func _boss_arena_barrier_count(city: CitySlice) -> int:
+	if city.urban_siege == null or city.urban_siege.boss_campaign == null:
+		return 0
+	return 1 if city.urban_siege.boss_campaign.arena_barrier != null else 0

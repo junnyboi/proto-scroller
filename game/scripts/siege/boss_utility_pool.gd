@@ -54,6 +54,7 @@ const CHOIR_PYLON_OFFSETS: Array[Vector2] = [
 ]
 
 var rig: BossRig2D
+var defeat_spectacle: BossDefeatSpectacle2D
 var controller: BossPhaseRuntime
 var vertical_slice: BossVerticalSliceController
 var escalation: BossEscalationController
@@ -413,6 +414,26 @@ func rig_count() -> int:
 	return 1 if rig != null else 0
 
 
+func defeat_spectacle_count() -> int:
+	return 1 if defeat_spectacle != null else 0
+
+
+func defeat_visual_slot_count() -> int:
+	return defeat_spectacle.visual_slot_count() if defeat_spectacle != null else 0
+
+
+func defeat_particle_emitter_count() -> int:
+	return defeat_spectacle.particle_emitter_count() if defeat_spectacle != null else 0
+
+
+func defeat_particle_capacity() -> int:
+	return defeat_spectacle.particle_capacity() if defeat_spectacle != null else 0
+
+
+func defeat_audio_player_count() -> int:
+	return defeat_spectacle.audio_player_count() if defeat_spectacle != null else 0
+
+
 func controller_count() -> int:
 	return 1 if controller != null else 0
 
@@ -426,6 +447,8 @@ func _prewarm() -> void:
 		return
 	rig = BossRig2D.new()
 	add_child(rig)
+	defeat_spectacle = BossDefeatSpectacle2D.new()
+	add_child(defeat_spectacle)
 	controller = BossPhaseRuntime.new()
 	controller.name = "BossBehaviorController"
 	add_child(controller)
