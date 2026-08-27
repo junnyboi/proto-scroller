@@ -346,6 +346,7 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 	var story: String = (screen.get_node("%InstructionLabel") as Label).text
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
 	var field_note: String = (screen.get_node("SemanticContract/FieldNote") as Label).text
+	var tips: String = (screen.get_node("%BriefingTipsLabel") as Label).text
 	var panel: Control = screen.get_node("SemanticContract") as Control
 	var briefing_text: String = ""
 	for label_node: Node in panel.find_children("*", "Label", true, false):
@@ -379,6 +380,11 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 		briefing_text.contains(L10n.t("title.enemy_intel"))
 		and briefing_text.contains(L10n.t("title.run_protocol")),
 		"text=%s" % [briefing_text]
+	)
+	_check(
+		"movement_melee_doctrine_present",
+		tips.count("\n") == 4 and tips.contains("←") and tips.contains("→"),
+		"tips=%s" % [tips]
 	)
 
 

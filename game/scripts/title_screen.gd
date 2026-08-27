@@ -47,6 +47,8 @@ var _audio_activation_emitted: bool = false
 @onready var briefing_layer: Control = %BriefingLayer
 @onready var briefing_backdrop: Button = %BriefingBackdrop
 @onready var briefing_toggle: Button = %BriefingToggle
+@onready var briefing_tips_panel: PanelContainer = %BriefingTipsPanel
+@onready var briefing_tips_label: Label = %BriefingTipsLabel
 @onready var initialize_button: Button = %InitializeButton
 @onready var settings_button: Button = %SettingsButton
 @onready var settings_layer: Control = %SettingsLayer
@@ -523,6 +525,10 @@ func _apply_localized_text() -> void:
 	briefing_toggle.text = L10n.t(
 		"title.briefing_close" if briefing_open else "title.briefing_available"
 	)
+	briefing_tips_label.text = L10n.t(
+		"briefing.tips_body",
+		InputBindingSettings.display_placeholders()
+	)
 	settings_button.text = L10n.t("title.settings")
 	settings_heading.text = L10n.t("title.settings_heading")
 	master_volume_label.text = L10n.t("title.master_volume")
@@ -595,6 +601,8 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 		briefing_toggle,
 		Rect2(viewport_size.x - 430.0, viewport_size.y - 72.0, 398.0, 58.0)
 	)
+	_set_rect(briefing_tips_panel, Rect2(52.0, 454.0, 674.0, 214.0))
+	briefing_tips_label.add_theme_font_size_override(&"font_size", 18)
 	_set_rect(settings_button, Rect2(viewport_size.x - 212.0, 16.0, 196.0, 48.0))
 	_set_rect(
 		settings_panel,
@@ -633,6 +641,11 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 		briefing_toggle,
 		Rect2(horizontal_center - 186.0, viewport_size.y - 90.0, 372.0, 58.0)
 	)
+	_set_rect(
+		briefing_tips_panel,
+		Rect2(horizontal_center - 268.0, 560.0, 536.0, 214.0)
+	)
+	briefing_tips_label.add_theme_font_size_override(&"font_size", 15)
 	_set_rect(settings_button, Rect2(viewport_size.x - 216.0, 20.0, 200.0, 56.0))
 	_set_rect(
 		settings_panel,

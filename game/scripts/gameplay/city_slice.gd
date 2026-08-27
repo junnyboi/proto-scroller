@@ -299,6 +299,11 @@ func _build_urban_siege() -> void:
 	urban_siege.name = "UrbanSiegeRuntime"
 	urban_siege.setup(dependencies, CONTACT_DISTRICT)
 	add_child(urban_siege)
+	gameplay_hud.field_briefing.configure(
+		urban_siege.pause_coordinator,
+		robot,
+		mobile_controls
+	)
 	encounter_director = urban_siege.director
 	if DisplayServer.get_name() != "headless":
 		urban_siege.start_run(CityWorldBuilder.initial_run_seed(_web_gameplay_smoke_requested()))

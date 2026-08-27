@@ -14,6 +14,10 @@ const DEFAULT_KEY_CODES: Dictionary = {
 	&"stomp": KEY_SPACE,
 	&"dodge": KEY_SHIFT,
 }
+const KEYBOARD_ALIASES: Dictionary = {
+	&"move_left": [KEY_LEFT],
+	&"move_right": [KEY_RIGHT],
+}
 const DEFAULT_GAMEPAD_BUTTONS: Dictionary = {
 	&"move_left": JOY_BUTTON_DPAD_LEFT,
 	&"move_right": JOY_BUTTON_DPAD_RIGHT,
@@ -60,6 +64,10 @@ static func set_keyboard_binding(
 	path: String = PREFERENCE_PATH
 ) -> bool:
 	if not ACTIONS.has(action) or keycode == KEY_NONE:
+		return false
+	if keycode == KEY_LEFT and action != &"move_left":
+		return false
+	if keycode == KEY_RIGHT and action != &"move_right":
 		return false
 	var previous_key: Key = keyboard_key(action)
 	var conflict_action: StringName = _action_for_keyboard(keycode, action)
@@ -192,6 +200,12 @@ static func _replace_keyboard_event(action: StringName, keycode: Key) -> void:
 	var replacement: InputEventKey = InputEventKey.new()
 	replacement.physical_keycode = keycode
 	InputMap.action_add_event(action, replacement)
+	for alias_key: Key in KEYBOARD_ALIASES.get(action, []):
+		if alias_key == keycode:
+			continue
+		var alias_event: InputEventKey = InputEventKey.new()
+		alias_event.physical_keycode = alias_key
+		InputMap.action_add_event(action, alias_event)
 
 
 static func _replace_gamepad_button(action: StringName, button: JoyButton) -> void:
