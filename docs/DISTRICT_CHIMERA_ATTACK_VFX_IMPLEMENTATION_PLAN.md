@@ -135,7 +135,7 @@ A package is complete only after focused evidence is recorded, the plan is updat
 | Work package | Completion | Commit / checkpoint | Focused evidence | Notes |
 |---|---|---|---|---|
 | WP0 | Completed | `ab0c2ef14c995899e97fcf3d2adb83528169c8c8` | 20 GPT Image 2 masters, 20 embedded proposal plates, 3 atlases, 60/60 nonempty cells, 478,162 runtime source bytes | Visual contact sheet and packed atlases passed the lightweight inspection; no fatal clipping, text, gore, or opaque-background defect. |
-| WP1 | Completed | Pending milestone hash | 10/10 focused tests and 736 assertions passed: 20-spec/60-region catalog, nine unique ranged skins and impacts, direct procedural firing, bounded impact cursor, four legacy projectile tests, and runtime-budget snapshot | Projectile pool remains 32 with 16/4/4/8 partitions. Added eight collisionless cosmetic impact slots inside the existing pool; they cannot deny or alter projectile delivery. Repaired a concurrent indentation defect in the firing-pulse telegraph merge that blocked Godot parsing. |
+| WP1 | Completed | `5e43a83d7c204355f40a6da248824f11f7145a0a` | 10/10 focused tests and 736 assertions passed: 20-spec/60-region catalog, nine unique ranged skins and impacts, direct procedural firing, bounded impact cursor, four legacy projectile tests, and runtime-budget snapshot | Projectile pool remains 32 with 16/4/4/8 partitions. Added eight collisionless cosmetic impact slots inside the existing pool; they cannot deny or alter projectile delivery. Repaired a concurrent indentation defect in the firing-pulse telegraph merge that blocked Godot parsing. |
 | WP2 | Pending | — | — | — |
 | WP3 | Pending | — | — | — |
 | WP4 | Pending | — | — | — |
