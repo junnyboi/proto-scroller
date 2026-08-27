@@ -4,13 +4,13 @@
 
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 
-**Runtime source total:** 5,205,290 bytes
+**Runtime source total:** 5,218,716 bytes
 
-**Measured Web PCK:** 16,724,720 bytes
+**Measured Web PCK:** 16,650,088 bytes
 
 **PCK ceiling:** 16,777,216 bytes
 
-**Remaining PCK headroom:** 52,496 bytes
+**Remaining PCK headroom:** 127,128 bytes
 
 The five canonical animated boss atlases began with **GPT Image 2** keyframes and locked-camera Veo carriers; the five instrumental themes were generated with **Lyria 3 Pro**. Concept plates and superseded static sprites remain outside the Web PCK. Runtime art is stored as transparent WebP atlases; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter.
 
@@ -28,6 +28,10 @@ The shared encounter herald uses `game/art/ui/boss_fight/boss-fight-splash.webp`
 
 The synchronized 1.18-second voiceover SFX is documented in `game/audio/voice/PROVENANCE.md`. Its industrial impact bed was extracted from a three-second image-conditioned Gemini Omni sound carrier generated from the selected GPT Image 2 typography anchor; the carrier is not shipped in the PCK.
 
+## Settlement Engine shockwave
+
+Settlement Engine S-04's three replacement attacks use `attacks/settlement-shockwave-ring.webp`, a **192×192**, **13,426-byte** alpha WebP with SHA-256 `b0757bf36568d2cd8cae88e06e6dac5d14a8a3be7cc0a01e3f2e51f9df619047`. GPT Image 2 supplied the energy detail; deterministic cleanup retained only the physical annulus. Godot scales that detail across one to three bounded, traveling road-plane pressure fronts while retaining exact telegraph, collision-band, dodge, and damage authority. Complete provenance is recorded in `attacks/PROVENANCE.md`.
+
 ## Defeat spectacle
 
 Every boss body defeat triggers one fixed-budget 2.95-second barrage: 12 timed explosion sprites, 10 timed fireworks, eight explosion particle emitters with 34 particles each, six firework emitters with 46 particles each, one positional sound player, and one camera kick. The **22 sprites, 14 emitters, and 548 particles** are prewarmed once in `BossUtilityPool`; generation cleanup never interrupts the body-to-wreck celebration, and retries stop any prior playback before reusing the same nodes.
@@ -38,7 +42,7 @@ The two particle textures were generated with **GPT Image 2**. `defeat_fx/boss-e
 
 | Artifact | Bytes | SHA-256 |
 |---|---:|---|
-| `game.html` | 17,891 | `063b08608daab86e449a23e7bb32cf3154e597c605279a4a1d2dce6715e11997` |
+| `game.html` | 17,891 | `b5f1518f5bb5a33628e8d350a075878363b76c7d6962d756c8376a0a8b9a1fed` |
 | `game.js` | 279,995 | `9b24675ee72bfd4b2427106b651ce7648e2900350f91ce6c32e2f5e23b4ed11d` |
 | `game.wasm` | 39,514,754 | `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` |
-| `game.pck` | 15,723,964 | `41cd2ffbe97c002f102c8e7c6856a1e8f417656d191d65c7da895ace3d7ecd5b` |
+| `game.pck` | 16,650,088 | `955f00db65298150adfd520fc91d95b0dd88bd002b75bf7650da16d3b71677b5` |
