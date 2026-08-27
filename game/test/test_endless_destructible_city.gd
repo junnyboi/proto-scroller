@@ -51,10 +51,13 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	await _move_to_logical_chunk(city, 0)
 	assert_eq(String(city.building.get_meta(&"stream_object_id")), "chunk:0:building")
 	assert_true(city.building.is_cell_destroyed(0, 1))
-	assert_true(city.building.ground_passage_open())
+	assert_false(city.building.ground_passage_open())
 	for row: int in range(StructuralBuilding2D.ROWS):
 		for column: int in range(StructuralBuilding2D.COLUMNS):
-			assert_true(_cell_collision(city.building, column, row).disabled)
+			assert_eq(
+				_cell_collision(city.building, column, row).disabled,
+				row == 1 and column == 0
+			)
 	var restored_partial: Destructible2D = city.building.get_cell(1, 1)
 	assert_almost_eq(restored_partial.current_health, partial_health, 0.01)
 	var restored_pattern: BuildingDamagePattern2D = restored_partial.get_node(
@@ -74,36 +77,51 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	_record_test_execution()
 
 
-func test_one_ground_breach_opens_passage_to_the_next_live_facade() -> void:
+func test_every_surviving_lower_bay_blocks_until_all_three_are_destroyed() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.encounter_runtime.release_all()
 	city.encounter_director.process_mode = Node.PROCESS_MODE_DISABLED
 	city.robot.set_physics_process(false)
-	city.robot.gravity = 0.0
+	city.world_stream.set_physics_process(false)
 	city.robot.velocity = Vector2.ZERO
-	var first_variant: StringName = city.building.current_variant_id()
-	var breached_cell: Destructible2D = city.building.get_cell(0, 1)
-	assert_true(breached_cell.receive_damage(_fatal_event(city, breached_cell, 31_050)))
+	var building: StructuralBuilding2D = city.building
+	var first_cell: Destructible2D = building.get_cell(0, 1)
+	var middle_cell: Destructible2D = building.get_cell(1, 1)
+	var last_cell: Destructible2D = building.get_cell(2, 1)
+	assert_true(first_cell.receive_damage(_fatal_event(city, first_cell, 31_050)))
 	await get_tree().physics_frame
-	assert_true(city.building.ground_passage_open())
-	assert_eq(city.world_stream.district_clear_count(), 1)
-	assert_almost_eq(
-		city.world_stream.district_exit_barrier.position.x,
-		2.0 * CityWorldStream.CHUNK_WIDTH,
-		0.01
-	)
-	for row: int in range(StructuralBuilding2D.ROWS):
-		for column: int in range(StructuralBuilding2D.COLUMNS):
-			assert_true(_cell_collision(city.building, column, row).disabled)
-	for _frame: int in range(420):
+	assert_false(building.ground_passage_open())
+	assert_eq(city.world_stream.district_clear_count(), 0)
+	assert_true(_cell_collision(building, 0, 1).disabled)
+	assert_false(_cell_collision(building, 1, 1).disabled)
+	assert_false(_cell_collision(building, 2, 1).disabled)
+	for _frame: int in range(240):
 		city.robot.physics_step(1.0, 1.0 / 60.0)
-		city.world_stream.advance_stream()
 		await get_tree().physics_frame
-	assert_eq(city.world_stream.current_logical_chunk, 1)
-	assert_ne(city.building.current_variant_id(), first_variant)
-	assert_eq(
-		city.building.current_variant_id(),
-		CityDistrictCatalog.variant_for_chunk(city.world_stream.run_seed, 1).variant_id
+	assert_gt(city.robot.global_position.x, first_cell.global_position.x)
+	assert_lt(city.robot.global_position.x, middle_cell.global_position.x)
+	assert_true(middle_cell.receive_damage(_fatal_event(city, middle_cell, 31_051)))
+	await get_tree().physics_frame
+	assert_false(building.ground_passage_open())
+	assert_eq(city.world_stream.district_clear_count(), 0)
+	assert_true(_cell_collision(building, 1, 1).disabled)
+	assert_false(_cell_collision(building, 2, 1).disabled)
+	for _frame: int in range(180):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		await get_tree().physics_frame
+	assert_gt(city.robot.global_position.x, middle_cell.global_position.x)
+	assert_lt(city.robot.global_position.x, last_cell.global_position.x)
+	assert_true(last_cell.receive_damage(_fatal_event(city, last_cell, 31_052)))
+	await get_tree().physics_frame
+	assert_true(building.ground_passage_open())
+	assert_eq(city.world_stream.district_clear_count(), 1)
+	assert_true(_cell_collision(building, 2, 1).disabled)
+	for _frame: int in range(180):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+		await get_tree().physics_frame
+	assert_gt(
+		city.robot.global_position.x,
+		last_cell.global_position.x + 40.0
 	)
 	_record_test_execution()
 

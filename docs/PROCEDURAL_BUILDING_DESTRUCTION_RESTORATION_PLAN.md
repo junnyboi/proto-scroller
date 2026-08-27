@@ -111,7 +111,7 @@ Run focused import and destruction regressions only, per the release-gate overri
 | Damage details | Destroyed cells retain dangling cables and broken plumbing; effects stay bounded and pooled |
 | All-building coverage | Every one of the 25 variants reconfigures the same six cells and produces procedural destroyed state |
 | Persistence | Destroyed state with a stored pattern restores exactly; legacy destroyed state without a pattern synthesizes a deterministic fallback |
-| Gameplay preservation | Hurtboxes/colliders disable, ground breach opens passage, support/floor/steel chains and burst/debris paths remain unchanged |
+| Gameplay preservation | Each failed cell disables only its own hurtbox/collider; passage opens after all three lower bays fail, while support/floor/steel chains and burst/debris paths remain unchanged |
 | Cleanup | Unused legacy intact/damaged art is removed; active facade, rubble, attachment, and burst assets remain |
 | Delivery | Source is pushed; fresh HTML/JS/WASM/PCK are produced; both WASM and PCK are remapped into the existing WebDev checkpoint |
 

@@ -134,9 +134,9 @@ func is_destroyed() -> bool:
 
 func ground_passage_open() -> bool:
 	for column: int in range(COLUMNS):
-		if is_cell_destroyed(column, ROWS - 1):
-			return true
-	return false
+		if not is_cell_destroyed(column, ROWS - 1):
+			return false
+	return true
 
 
 func is_chain_reaction_active() -> bool:
@@ -551,7 +551,6 @@ func _on_cell_destroyed(event: DamageEvent, column: int, row: int) -> void:
 
 
 func _refresh_ground_passage_collision() -> void:
-	var passage_open: bool = ground_passage_open()
 	for row: int in range(ROWS):
 		for column: int in range(COLUMNS):
 			var cell: Destructible2D = get_cell(column, row)
@@ -563,7 +562,7 @@ func _refresh_ground_passage_collision() -> void:
 			if collision != null:
 				collision.set_deferred(
 					"disabled",
-					passage_open or cell.is_destroyed()
+					cell.is_destroyed()
 				)
 
 

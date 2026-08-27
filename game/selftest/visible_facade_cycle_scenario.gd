@@ -107,12 +107,13 @@ func _prepare_city(city: CitySlice) -> void:
 func _open_ground_breach(building: StructuralBuilding2D) -> void:
 	var state: Dictionary = building.capture_stream_state()
 	var cells: Array = state.cells as Array
-	var ground_cell_index: int = StructuralBuilding2D.COLUMNS
-	var breached: Dictionary = cells[ground_cell_index] as Dictionary
-	breached.health = 0.0
-	breached.destroyed = true
-	breached.pristine = false
-	cells[ground_cell_index] = breached
+	for column: int in range(StructuralBuilding2D.COLUMNS):
+		var ground_cell_index: int = StructuralBuilding2D.COLUMNS + column
+		var breached: Dictionary = cells[ground_cell_index] as Dictionary
+		breached.health = 0.0
+		breached.destroyed = true
+		breached.pristine = false
+		cells[ground_cell_index] = breached
 	state.cells = cells
 	state.pristine = false
 	building.restore_stream_state(state)
