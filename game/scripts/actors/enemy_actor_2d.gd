@@ -38,6 +38,7 @@ const TELEGRAPH_REFERENCE_DAMAGE: float = 16.0
 const TELEGRAPH_MINIMUM_COLOR_INTENSITY: float = 0.72
 const TELEGRAPH_MAXIMUM_COLOR_INTENSITY: float = 1.55
 const VISUAL_CONTENT_RECT_META: StringName = &"enemy_visual_content_rect"
+const ENEMY_DAMAGE_MULTIPLIER: float = 0.85
 
 @export var max_health: float = 60.0
 
@@ -268,7 +269,7 @@ func _configure_cycle_difficulty(health_multiplier: float, attack_multiplier: fl
 
 
 func _scale_outgoing_damage(amount: float) -> float:
-	return maxf(amount, 0.0) * cycle_attack_multiplier
+	return maxf(amount, 0.0) * cycle_attack_multiplier * ENEMY_DAMAGE_MULTIPLIER
 
 
 func begin_player_attack_reaction(

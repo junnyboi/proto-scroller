@@ -1,9 +1,11 @@
 class_name StructuralMaterialProfile
 extends Resource
 
+const FACADE_HEALTH_MULTIPLIER: float = 0.75
+
 @export var material_id: StringName = &"concrete"
 @export var display_name: String = "material.concrete"
-@export var max_health: float = 95.0
+@export var max_health: float = 95.0 * FACADE_HEALTH_MULTIPLIER
 @export_range(1, 8, 1) var chunk_count: int = 3
 @export var chunk_mass_min: float = 2.0
 @export var chunk_mass_max: float = 12.0
@@ -34,7 +36,7 @@ static func glass() -> StructuralMaterialProfile:
 	var profile: StructuralMaterialProfile = StructuralMaterialProfile.new()
 	profile.material_id = &"glass"
 	profile.display_name = "material.glass"
-	profile.max_health = 45.0
+	profile.max_health = 45.0 * FACADE_HEALTH_MULTIPLIER
 	profile.chunk_count = 5
 	profile.chunk_mass_min = 0.25
 	profile.chunk_mass_max = 1.3
@@ -61,7 +63,7 @@ static func steel() -> StructuralMaterialProfile:
 	var profile: StructuralMaterialProfile = StructuralMaterialProfile.new()
 	profile.material_id = &"steel"
 	profile.display_name = "material.steel"
-	profile.max_health = 155.0
+	profile.max_health = 155.0 * FACADE_HEALTH_MULTIPLIER
 	profile.chunk_count = 2
 	profile.chunk_mass_min = 9.0
 	profile.chunk_mass_max = 24.0

@@ -205,7 +205,8 @@ func test_defeated_boss_freezes_then_next_melee_makes_rubble_and_repair_drops() 
 	)
 	assert_eq(session.last_repair_drop_count, 2)
 	assert_eq(city.urban_siege.catalysts.active_repair_pickup_count(), 2)
-	city.robot.current_health = city.robot.max_health - 100.0
+	city.robot.current_health = city.robot.max_health - 200.0
+	assert_eq(city.urban_siege.catalysts.repair_pickups[0].repair_amount, 150.0)
 	assert_true(city.urban_siege.catalysts.repair_pickups[0].try_collect(city.robot))
 	assert_almost_eq(city.robot.current_health, city.robot.max_health - 50.0, 0.001)
 
@@ -240,7 +241,7 @@ func test_district_signal_waits_until_boss_wreck_finisher() -> void:
 	assert_true(city.urban_siege.finale_pending)
 
 
-func test_late_boss_rubble_has_three_fixed_fifty_hp_drops() -> void:
+func test_late_boss_rubble_has_three_fixed_one_fifty_hp_drops() -> void:
 	assert_eq(ChassisRepairPickup2D.REPAIR_AMOUNT, 50.0)
 	assert_eq(
 		city.urban_siege.catalysts.repair_pickup_count(),
@@ -250,3 +251,6 @@ func test_late_boss_rubble_has_three_fixed_fifty_hp_drops() -> void:
 	assert_eq(session._boss_repair_drop_count(), 3)
 	assert_eq(session._spawn_boss_repair_pickups(Vector2(1200.0, 610.0), 3), 3)
 	assert_eq(city.urban_siege.catalysts.active_repair_pickup_count(), 3)
+	for pickup: ChassisRepairPickup2D in city.urban_siege.catalysts.repair_pickups:
+		if pickup.active:
+			assert_eq(pickup.repair_amount, 150.0)

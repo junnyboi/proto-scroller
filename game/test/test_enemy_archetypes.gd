@@ -16,12 +16,12 @@ const EXPECTED_FIRST_ACT: Dictionary = {
 	&"nemesis": 5, &"leviathan": 5,
 }
 const EXPECTED_BASELINE_PUNCHES: Dictionary = {
-	&"needle": 1, &"bulwark": 3, &"jackal": 1, &"lobber": 1, &"sapper": 1,
-	&"hound": 2, &"mule": 2, &"basilisk": 2, &"lancer": 2, &"static": 2,
-	&"kestrel": 2, &"rainmaker": 2, &"shrike": 2, &"cinder": 3, &"aegis": 2,
-	&"longbow": 3, &"hive": 3, &"goliath": 5, &"nemesis": 6, &"leviathan": 13,
-	&"reclaimed_breacher": 8, &"graft_runner": 2, &"choir_siren": 3,
-	&"ossuary_crawler": 3, &"seraph_carrier": 5, &"pale_engine": 9,
+	&"needle": 1, &"bulwark": 3, &"jackal": 2, &"lobber": 1, &"sapper": 1,
+	&"hound": 2, &"mule": 4, &"basilisk": 3, &"lancer": 2, &"static": 3,
+	&"kestrel": 2, &"rainmaker": 4, &"shrike": 2, &"cinder": 5, &"aegis": 4,
+	&"longbow": 6, &"hive": 3, &"goliath": 9, &"nemesis": 12, &"leviathan": 25,
+	&"reclaimed_breacher": 8, &"graft_runner": 4, &"choir_siren": 3,
+	&"ossuary_crawler": 5, &"seraph_carrier": 5, &"pale_engine": 16,
 }
 const EXPECTED_ACT_PEAK_THREAT: Array[int] = [5, 9, 12, 16, 17, 20]
 const EXPECTED_FACES_RIGHT: Dictionary[StringName, bool] = {
@@ -58,7 +58,7 @@ const GROUND_VEHICLE_IDS: Array[StringName] = [
 	&"ossuary_crawler", &"pale_engine",
 ]
 const MAX_ARMOR_LOADOUT_HEALTH: float = 1200.0
-const LATE_WAVE_MINIMUM_DPS: float = 20.0
+const LATE_WAVE_MINIMUM_DPS: float = 17.0
 
 var city: CitySlice
 var runtime: EncounterRuntime
@@ -154,6 +154,21 @@ func test_all_ground_vehicles_render_and_collide_at_exactly_double_size() -> voi
 	assert_true(EnemyArchetypeCatalog.is_ground_vehicle(&"tank"))
 	assert_false(EnemyArchetypeCatalog.is_ground_vehicle(&"soldier"))
 	assert_false(EnemyArchetypeCatalog.is_ground_vehicle(&"helicopter"))
+	var tank: TankEnemy = runtime.acquire(&"tank", Vector2(1080.0, 542.5)) as TankEnemy
+	assert_not_null(tank)
+	assert_eq(tank.max_health, 340.0)
+	runtime.release(tank)
+	for spawnable_id: StringName in EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS:
+		var expected_health_multiplier: float = (
+			EnemyArchetypeCatalog.GROUND_VEHICLE_HEALTH_MULTIPLIER
+			if EnemyArchetypeCatalog.is_ground_vehicle(spawnable_id)
+			else 1.0
+		)
+		assert_eq(
+			EnemyArchetypeCatalog.health_multiplier(spawnable_id),
+			expected_health_multiplier,
+			spawnable_id
+		)
 	for archetype_id: StringName in EnemyArchetypeCatalog.PROCEDURAL_IDS:
 		var is_ground_vehicle: bool = archetype_id in GROUND_VEHICLE_IDS
 		assert_eq(
@@ -169,6 +184,12 @@ func test_all_ground_vehicles_render_and_collide_at_exactly_double_size() -> voi
 		assert_not_null(actor, archetype_id)
 		var expected_scale: float = (
 			EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE if is_ground_vehicle else 1.0
+		)
+		assert_almost_eq(
+			actor.max_health,
+			float(profile.health) * EnemyArchetypeCatalog.health_multiplier(archetype_id),
+			0.01,
+			archetype_id
 		)
 		var rendered_size: Vector2 = actor.visual.texture.get_size() * actor.visual.scale.abs()
 		var display_bounds: Vector2 = profile.display as Vector2
@@ -313,7 +334,11 @@ func test_every_archetype_acquires_animates_telegraphs_and_releases_cleanly() ->
 		actor.set_physics_process(false)
 		assert_eq(actor.archetype_id, archetype_id)
 		assert_eq(actor.family, EnemyArchetypeCatalog.family_for(archetype_id))
-		assert_almost_eq(actor.max_health, float(profile.health), 0.01)
+		assert_almost_eq(
+			actor.max_health,
+			float(profile.health) * EnemyArchetypeCatalog.health_multiplier(archetype_id),
+			0.01
+		)
 		assert_not_null(actor.visual.texture)
 		var rest_position: Vector2 = actor.visual.position
 		var rest_rotation: float = actor.visual.rotation
@@ -440,15 +465,17 @@ func test_elite_affixes_modify_distinct_pressure_axes_and_keep_honest_warnings()
 	var brutal: ProceduralEnemy = runtime.acquire(
 		&"cinder", Vector2(1180.0, 547.0), &"", BRUTAL.trait_id
 	) as ProceduralEnemy
-	assert_almost_eq(brutal.max_health, 374.0, 0.01)
+	assert_almost_eq(brutal.max_health, 748.0, 0.01)
 	assert_almost_eq(brutal.projectile_damage_multiplier, 1.4, 0.001)
 	runtime.release(brutal)
 	var phased: ProceduralEnemy = runtime.acquire(
 		&"jackal", Vector2(1180.0, 554.0), &"", PHASED.trait_id
 	) as ProceduralEnemy
 	assert_true(phased.receive_damage(DamageEvent.new(41_001, city.robot, 60.0)))
-	assert_almost_eq(phased.current_health, 57.0, 0.01)
+	assert_almost_eq(phased.current_health, 147.0, 0.01)
 	assert_true(phased.receive_damage(DamageEvent.new(41_002, city.robot, 60.0)))
+	assert_true(phased.receive_damage(DamageEvent.new(41_003, city.robot, 60.0)))
+	assert_true(phased.receive_damage(DamageEvent.new(41_004, city.robot, 60.0)))
 	assert_true(phased.dead)
 
 
@@ -609,7 +636,7 @@ func test_every_salvo_projectile_is_reserved_or_the_attack_is_denied() -> void:
 	assert_eq(city.projectile_root.reservation_count(&"rocket"), 0)
 
 
-func test_baseline_melee_ttk_matches_role_bands_without_apex_damage_sponges() -> void:
+func test_baseline_melee_ttk_matches_rebalanced_vehicle_health() -> void:
 	var resolver: AttackResolver = AttackResolver.new()
 	add_child_autofree(resolver)
 	var punch_damage: float = resolver.jab_cross_actor_damage
@@ -640,7 +667,7 @@ func test_baseline_melee_ttk_matches_role_bands_without_apex_damage_sponges() ->
 		+ float(EXPECTED_BASELINE_PUNCHES[&"leviathan"] - 1)
 		* AttackResolver.FULL_ATTACK_SECONDS
 	)
-	assert_lt(leviathan_seconds, 27.0)
+	assert_lt(leviathan_seconds, 54.0)
 
 
 func test_late_acts_use_cross_family_waves_and_smooth_threat_peaks() -> void:
@@ -673,10 +700,10 @@ func test_late_acts_use_cross_family_waves_and_smooth_threat_peaks() -> void:
 	var maximum_armor_survival: float = (
 		MAX_ARMOR_LOADOUT_HEALTH / LATE_WAVE_MINIMUM_DPS
 	)
-	assert_lt(maximum_armor_survival, 61.0)
+	assert_lt(maximum_armor_survival, 72.0)
 	assert_gt(
 		LATE_WAVE_MINIMUM_DPS * 13.0 / MAX_ARMOR_LOADOUT_HEALTH,
-		0.20
+		0.18
 	)
 
 
@@ -730,4 +757,4 @@ func _direct_outgoing_dps(beat: DistrictBeat) -> float:
 			* salvo_multiplier
 			/ float(profile.attack_interval)
 		)
-	return total
+	return total * EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER

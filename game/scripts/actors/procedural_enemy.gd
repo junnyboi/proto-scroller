@@ -97,7 +97,10 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	family = StringName(profile.get("family", &""))
 	airborne = bool(profile.get("airborne", false))
 	visual_faces_right_by_default = bool(profile.get("faces_right", false))
-	max_health = float(profile.get("health", 60.0))
+	max_health = (
+		float(profile.get("health", 60.0))
+		* EnemyArchetypeCatalog.health_multiplier(archetype_id)
+	)
 	_base_max_health = max_health
 	move_speed = float(profile.get("speed", 90.0))
 	acceleration = float(profile.get("acceleration", 450.0))
