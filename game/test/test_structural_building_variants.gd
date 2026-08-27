@@ -197,6 +197,16 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						String(variant.variant_id)
 					)
 					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
+					var rubble: Sprite2D = cell.get_node(^"RubbleVisual") as Sprite2D
+					var rubble_width_ratio: float = float(
+						rubble.get_meta(&"terminal_debris_width_ratio")
+					)
+					assert_true(rubble.visible, String(variant.variant_id))
+					assert_gte(rubble_width_ratio, 0.52, String(variant.variant_id))
+					assert_lte(rubble_width_ratio, 0.87, String(variant.variant_id))
+					assert_gt(rubble.position.y, 0.0, String(variant.variant_id))
+					assert_lte(absf(rad_to_deg(rubble.rotation)), 1.81)
+					assert_lt(rubble.modulate.a, 0.90)
 					var hurtbox: CollisionShape2D = cell.get_node(
 						^"Hurtbox/CollisionShape2D"
 					) as CollisionShape2D

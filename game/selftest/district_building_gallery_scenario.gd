@@ -60,7 +60,7 @@ func _render_district(district: CityDistrictProfile) -> void:
 		_place_building(building, index, portrait)
 		if index == 1:
 			_apply_partial_damage(building, index)
-		_apply_hollow_cell(building)
+		_apply_hollow_cell(building, index)
 	await process_frame
 	await process_frame
 	var path: String = "%s/%s-%s.png" % [
@@ -124,13 +124,16 @@ func _apply_partial_damage(building: StructuralBuilding2D, index: int) -> void:
 	cell.receive_damage(event)
 
 
-func _apply_hollow_cell(building: StructuralBuilding2D) -> void:
+func _apply_hollow_cell(building: StructuralBuilding2D, building_index: int) -> void:
 	var state: Dictionary = building.capture_stream_state()
 	var cells: Array = state.cells as Array
-	var hollow_state: Dictionary = cells[4] as Dictionary
+	var row: int = building_index % StructuralBuilding2D.ROWS
+	var column: int = (building_index * 2) % StructuralBuilding2D.COLUMNS
+	var cell_index: int = row * StructuralBuilding2D.COLUMNS + column
+	var hollow_state: Dictionary = cells[cell_index] as Dictionary
 	hollow_state.health = 0.0
 	hollow_state.destroyed = true
-	cells[4] = hollow_state
+	cells[cell_index] = hollow_state
 	state.cells = cells
 	building.restore_stream_state(state)
 

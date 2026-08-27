@@ -53,16 +53,10 @@ func _run() -> void:
 	city.camera_rig.global_position.x = city.building.global_position.x
 	await process_frame
 
-	var targets: Array[Vector3i] = [
-		Vector3i(0, 0, 1),
-		Vector3i(0, 1, 1),
-		Vector3i(2, 1, 1),
-	]
 	var expected: Array[StringName] = [&"concrete", &"glass", &"steel"]
-	for index: int in range(targets.size()):
-		var coordinate: Vector3i = targets[index]
-		var cell: Destructible2D = city.building.get_cell(coordinate.x, coordinate.y)
-		if cell == null or cell.get_material_profile().material_id != expected[index]:
+	for index: int in range(expected.size()):
+		var cell: Destructible2D = _first_cell_with_material(city.building, expected[index])
+		if cell == null:
 			quit(1)
 			return
 		var direction: Vector2 = Vector2(1.0, -0.28 + 0.28 * float(index)).normalized()
@@ -119,6 +113,18 @@ func _run() -> void:
 		]
 	)
 	_teardown(city)
+
+
+func _first_cell_with_material(
+	building: StructuralBuilding2D,
+	material_id: StringName
+) -> Destructible2D:
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			var cell: Destructible2D = building.get_cell(column, row)
+			if cell != null and cell.get_material_profile().material_id == material_id:
+				return cell
+	return null
 
 
 func _teardown(city: CitySlice) -> void:
