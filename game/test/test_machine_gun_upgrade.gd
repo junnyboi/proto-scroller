@@ -57,7 +57,9 @@ func test_machine_gun_targets_nearest_stably_and_uses_player_partition() -> void
 		bullet,
 		tank.global_position,
 		Vector2.RIGHT,
-		&"machine_gun"
+		&"machine_gun",
+		&"",
+		bullet.damage
 	)
 	assert_eq(city.projectile_root.active_machine_gun_impact_count(), 1)
 	assert_eq(city.projectile_root.last_machine_gun_impact_position, tank.global_position)

@@ -75,6 +75,7 @@ func _build_feedback(root: Node2D) -> void:
 	impact_feedback_pool.name = "ImpactFeedbackPool"
 	impact_feedback_pool.setup(root, impact_audio_root)
 	root.add_child(impact_feedback_pool)
+	projectile_root.set_impact_feedback_pool(impact_feedback_pool)
 	hit_stop = HitStopLease.new()
 	hit_stop.name = "HitStopLease"
 	hit_stop.enabled = DisplayServer.get_name() != "headless"

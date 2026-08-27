@@ -1,8 +1,8 @@
 # Enemy Projectile Impact Animation Implementation Plan
 
-**Status:** Implemented; release synchronization in progress  
+**Status:** Implemented; source integration and release synchronization in progress
 **Owner:** Manus Agent 6  
-**Integration baseline:** `8501803ba72dce11365e833fe02d7551924e87a9`  
+**Integration baseline:** `72e83a3`  
 **Engine:** Godot 4.7.2, GL Compatibility, non-threaded Web export
 
 ## Objective
@@ -19,6 +19,14 @@ The four canonical hostile projectile families—`enemy_bullet`, `enemy_shell`, 
 | `enemy_rocket_salvo` | Tight multi-fin bloom | 60×44 | 10 / 30 FPS | 0.333 s | Four manufactured lobes around a compact hub, visually distinct from the direct rocket |
 
 Every sequence is authored for incoming local `+X`, rotates to the projectile’s actual impact direction, keeps a fixed contact pivot, and ends on a transparent tenth frame. The visual envelope does not define a blast radius. Bullets do not gain ricochet mechanics; shells and rockets do not gain splash damage, secondary hits, knockback, lingering hazards, hit-stop, or camera shake.
+
+## Damage-Reactive Presentation Scale
+
+The collision signal carries the projectile's final damage value into presentation after its existing `DamageEvent` is delivered. Each impact spec defines a family reference damage: 7 for bullets, 24 for shells, 22 for direct rockets, and 24 for salvo rockets; district-specific impacts use their merged archetype profile damage. The visual multiplier is `sqrt(actual_damage / reference_damage)`, clamped to `0.70–1.80`. This keeps ordinary family attacks near authored size, makes buffs and difficulty modifiers visibly legible, prevents low-damage shots from disappearing, and prevents extreme values from obscuring gameplay. Scale remains cosmetic and never changes collision, damage, blast radius, audio priority, or pool capacity.
+
+## Matching Projectile Impact Audio
+
+Each canonical family has a unique positional 48 kHz mono PCM16 cue between 1.0 and 1.4 seconds. The bullet uses a needle ricochet tick, the shell a dense armor-fracture crown, the direct rocket a focused wedge detonation, and the salvo rocket four rapid micro-impulses resolving into a smaller bloom. Production follows the mandated carrier workflow: a written sound brief, a GPT Image 2 anchor using the corresponding projectile and impact art, an image-conditioned video with synchronized generated audio, and deterministic audio extraction, trim, fade, mono conversion, and loudness mastering. All cues reuse the existing eight-voice `ImpactFeedbackPool`; projectile impacts add no audio nodes at runtime.
 
 ## Asset Production
 
@@ -45,7 +53,7 @@ While this work was running, another session added twenty district CHOIR attack 
 
 ## Focused Regression Evidence
 
-The final focused GUT file passed **5/5 tests and 201 assertions** on Godot 4.7.2. Coverage includes four atlas dimensions, ten-frame metadata, positive display and playback values, canonical impact-key routing, diagonal orientation, direct-versus-salvo isolation, frame advancement, transparent completion/deactivation, eight-slot fixed capacity, node-count stability, projectile partition and reservation parity, clean reset, and preservation of the player machine-gun path. Repository-wide release certification remains intentionally skipped under the explicit project override.
+The final canonical impact GUT file passed **6/6 tests and 258 assertions** on Godot 4.7.2. Coverage includes four atlas dimensions, ten-frame metadata, positive display and playback values, reference damage, square-root damage scaling and both clamps, canonical impact-key and audio-cue routing, diagonal orientation, direct-versus-salvo isolation, frame advancement, transparent completion/deactivation, eight-slot visual and audio capacity, four distinct imported mono PCM16 payloads, node-count stability, projectile partition and reservation parity, and clean reset. The district compatibility file passed **8/8 tests and 801 assertions**, and the preserved player machine-gun impact path passed **1/1 test and 15 assertions**. Repository-wide release certification remains intentionally skipped under the explicit project override.
 
 ## Delivery Record
 
@@ -54,7 +62,7 @@ The final focused GUT file passed **5/5 tests and 201 assertions** on Godot 4.7.
 | GPT Image 2 anchors | Completed for all four canonical projectile families |
 | Sprite/atlas production | Completed; four accepted ten-frame atlases and dark/light QA composites |
 | Concurrent feature merge | Completed against source `8501803`; district CHOIR VFX preserved |
-| Focused regression | Passed: 5 tests, 201 assertions |
+| Focused regression | Passed: canonical 6 tests / 258 assertions; district 8 tests / 801 assertions; machine gun 1 test / 15 assertions |
 | Source commit / push | Pending final integration commit |
 | Fresh Godot Web export | Pending exact pushed revision |
 | WebDev checkpoint / deployment | Pending exact fresh payload synchronization |
