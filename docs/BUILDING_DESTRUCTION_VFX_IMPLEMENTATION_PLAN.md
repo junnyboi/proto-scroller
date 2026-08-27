@@ -16,7 +16,7 @@ Make every structural-cell failure feel materially distinct and forceful without
 | Glass | Translucent cyan shard | Fast crystal splinters with a restrained dust mist | Wide, sharp spray with lower gravity |
 | Steel | Torn beam fragment | Orange-white sparks and dark metal flakes | Narrow directional fan with high gravity and slower heavy bodies |
 
-The authoritative physical debris remains `DebrisPool`/`DebrisBody2D`, preserving kinetic damage, collision, culling, capacity, and recycling. GPT Image 2 textures replace only the procedural presentation of concrete, glass, and steel building chunks. A new `BuildingSectionBurstPool` owns twelve prewarmed `BuildingSectionBurst2D` slots. Each slot contains fixed CPU particle emitters and a reusable flash sprite; saturation recycles the oldest active slot rather than allocating.
+The authoritative physical debris remains `DebrisPool`/`DebrisBody2D`, preserving kinetic damage, collision, culling, capacity, and recycling. GPT Image 2 textures replace only the procedural presentation of concrete, glass, and steel building chunks. A new `BuildingSectionBurstPool` owns twelve prewarmed `BuildingSectionBurst2D` slots. Each slot contains fixed CPU emitters for the directional impact fragments, a longer falling-debris cascade, and a broad dust cloud plus a reusable flash sprite; saturation recycles the oldest active slot rather than allocating.
 
 ## Work Packages
 
@@ -89,3 +89,5 @@ The runtime implementation landed in `4c81f0c4122512b9d112ee8874a07ee39e7ff877`.
 ## Post-Deployment Facade Presentation Restoration
 
 The generated concrete, glass, steel, dust, and flash assets remain active only as transient section bursts and physical macro debris. Persistent failed facade cells no longer instantiate or display `BuildingRubbleEdge2D`, a second facade shell, or any destroyed cross-section image. `BuildingDamagePattern2D` now remains visible through destruction, records fatal hits before the stage transition, alpha-clips its cavity darkening against the active facade texture, and retains final cracks, broken plumbing, and dangling wires. The shared rubble atlas remains a shallow nonblocking bed beneath the cavity rather than replacement architecture. This restoration applies automatically to all 25 district variants through the existing pooled reconfiguration path.
+
+The later severe-damage extension preserves the twelve-slot ceiling while adding a dedicated falling-debris emitter to each slot and increasing the dust emitter's lifetime, size, and material-specific particle count. Destruction still triggers the composite slot exactly once, streamed restore never replays it, and saturation still recycles without node growth.
