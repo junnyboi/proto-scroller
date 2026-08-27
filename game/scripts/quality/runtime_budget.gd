@@ -112,6 +112,7 @@ const FLOATING_ORIGIN_RUNTIMES: int = 1
 const NARRATIVE_DIRECTORS: int = 1
 const TRANSMISSION_TOASTS: int = 1
 const FACADE_REVEAL_SLOTS: int = CityWorldStream.CHUNK_CAPACITY
+const REAR_BARRIER_WARNING_OVERLAYS: int = 1
 const MAX_WEB_PCK_BYTES: int = 16 * 1024 * 1024
 
 
@@ -174,7 +175,10 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			"narrative_directors": 1 if city.project_choir_runtime.director != null else 0,
 			"transmission_toasts": 1 if city.gameplay_hud.transmission_toast != null else 0,
 			"facade_reveal_slots": city.project_choir_runtime.facade_reveal.slot_count(),
-		"streamed_buildings": city.streamed_destructibles.active_building_count(),
+			"rear_barrier_warning_overlays": (
+				1 if city.gameplay_hud.rear_barrier_warning != null else 0
+			),
+			"streamed_buildings": city.streamed_destructibles.active_building_count(),
 		"streamed_props": city.streamed_destructibles.active_prop_count(),
 		"streamed_post_warm_creations": city.streamed_destructibles.post_warm_creation_count,
 		"world_mutation_ledgers": 1 if city.streamed_destructibles.ledger != null else 0,
@@ -330,6 +334,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "narrative_directors", NARRATIVE_DIRECTORS)
 	_check_equal(errors, data, "transmission_toasts", TRANSMISSION_TOASTS)
 	_check_equal(errors, data, "facade_reveal_slots", FACADE_REVEAL_SLOTS)
+	_check_equal(
+		errors,
+		data,
+		"rear_barrier_warning_overlays",
+		REAR_BARRIER_WARNING_OVERLAYS
+	)
 	_check_equal(errors, data, "streamed_buildings", STREAMED_BUILDINGS)
 	_check_equal(errors, data, "streamed_props", STREAMED_PROPS)
 	_check_equal(errors, data, "streamed_post_warm_creations", 0)
