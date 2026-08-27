@@ -74,7 +74,7 @@ The existing four machine-gun impact slots and their behavior remain unchanged. 
 |---|---|---|---|---|
 | WP0 — Proposal and GPT Image 2 art | Completed | Canonical proposal, twenty embedded triptychs, masters, processor, three runtime atlases, provenance | 20 masters, 20 concepts, 3 atlases, 60 valid regions, visual pass, 478,162 source bytes | Commit and push documents/assets |
 | WP1 — Catalog and ranged delivery | Completed | Exact twenty-entry VFX catalog, nine custom projectile keys, explicit impact identity, eight bounded hostile impacts | Catalog/schema tests, projectile radius/speed/damage parity, pool counts and reset | Commit and push ranged layer |
-| WP2 — Actor support/melee presentation | Pending | Twenty anticipation cues plus eleven actor-only payload/completion paths | Zero projectile reservations for 11, support/melee parity, cancel/death/reuse cleanup | Commit and push actor layer |
+| WP2 — Actor support/melee presentation | Completed | Twenty anticipation cues plus eleven actor-only payload/completion paths | Zero projectile reservations for 11, support/melee parity, cancel/release/reuse cleanup | Commit and push actor layer |
 | WP3 — Focused integration and plan closure | Pending | Focused district VFX suite, gallery/report extension, provenance, final completion record | Selected GUT filters, parse, direct asset and node-count assertions | Commit and push final source |
 | WP4 — Fresh export and WebDev synchronization | Pending | Godot 4.7.2 Web export, immutable WASM/PCK remap, existing WebDev checkpoint and publish | HTML/JS/WASM/PCK existence, exact sizes/routes, PCK ≤16 MiB, public shell route | Checkpoint and deploy existing project |
 
@@ -136,6 +136,6 @@ A package is complete only after focused evidence is recorded, the plan is updat
 |---|---|---|---|---|
 | WP0 | Completed | `ab0c2ef14c995899e97fcf3d2adb83528169c8c8` | 20 GPT Image 2 masters, 20 embedded proposal plates, 3 atlases, 60/60 nonempty cells, 478,162 runtime source bytes | Visual contact sheet and packed atlases passed the lightweight inspection; no fatal clipping, text, gore, or opaque-background defect. |
 | WP1 | Completed | `5e43a83d7c204355f40a6da248824f11f7145a0a` | 10/10 focused tests and 736 assertions passed: 20-spec/60-region catalog, nine unique ranged skins and impacts, direct procedural firing, bounded impact cursor, four legacy projectile tests, and runtime-budget snapshot | Projectile pool remains 32 with 16/4/4/8 partitions. Added eight collisionless cosmetic impact slots inside the existing pool; they cannot deny or alter projectile delivery. Repaired a concurrent indentation defect in the firing-pulse telegraph merge that blocked Godot parsing. |
-| WP2 | Pending | — | — | — |
+| WP2 | Completed | Pending milestone hash | 25/25 focused tests and 1,150 assertions passed: all twenty fixed-sprite anticipations, exact 9/11 delivery split, eleven zero-projectile completions, repair/scan/choir-ring parity, old→variant→old cleanup, seven legacy emission tests, and ten Project CHOIR runtime tests | Five prewarmed presentation sprites per procedural shell remain fixed. No attack node, projectile, timer, tween, collision, status, or hazard was added for actor-only deliveries. |
 | WP3 | Pending | — | — | — |
 | WP4 | Pending | — | — | — |

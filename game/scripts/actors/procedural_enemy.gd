@@ -88,6 +88,7 @@ var _attack_vfx_id: StringName = &""
 
 
 func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> void:
+	_reset_presentation_sprites()
 	archetype_id = p_archetype_id
 	base_archetype_id = EnemyArchetypeCatalog.canonical_id(archetype_id)
 	boss_support_id = &""
@@ -353,13 +354,24 @@ func _begin_attack() -> void:
 	var damage_output: float = (
 		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier
 	)
+	var telegraph_visual_key: StringName = _attack_vfx_id
+	var telegraph_style_data: Dictionary = {}
+	if not _attack_vfx_id.is_empty():
+		telegraph_style_data = {
+			"attack_vfx_id": _attack_vfx_id,
+			"delivery": StringName(
+				EnemyAttackVfxCatalog.spec(_attack_vfx_id).get("delivery", &"")
+			),
+		}
 	if not begin_telegraph(
 		telegraph_kind,
 		anticipation_duration,
 		origin,
 		target_point,
 		damage_output,
-		presentation_variant
+		presentation_variant,
+		telegraph_visual_key,
+		telegraph_style_data
 	):
 		_cooldown = 0.2
 		return
@@ -375,11 +387,14 @@ func _begin_attack() -> void:
 	state = State.ANTICIPATE
 	_state_time = 0.0
 	_attack_kick = 1.0
+	_show_district_attack_anticipation()
 
 
 func _complete_attack() -> void:
 	_attack_sequence += 1
 	_attack_kick = 1.0
+	if not _attack_vfx_id.is_empty():
+		_reset_presentation_sprites()
 	if _complete_support_attack() or _complete_melee_attack():
 		return
 	var visual_key: StringName = EnemyAttackVfxCatalog.projectile_key(_attack_vfx_id)
@@ -403,10 +418,11 @@ func _complete_support_attack() -> bool:
 		if encounter_runtime != null:
 			encounter_runtime.apply_target_mark(MARK_DURATION)
 		finish_telegraph()
+		_show_district_completion(target.global_position if target != null else global_position)
 		return true
 	if attack_style == &"repair":
 		var repaired: EnemyActor2D = _repair_nearest_ally()
-		if repaired != null:
+		if repaired != null and _attack_vfx_id.is_empty():
 			_show_world_completion(
 				REPAIR_SUPPORT_PULSE,
 				repaired.global_position,
@@ -414,6 +430,8 @@ func _complete_support_attack() -> bool:
 				0.20
 			)
 		finish_telegraph()
+		if repaired != null:
+			_show_district_completion(repaired.global_position)
 		return true
 	if attack_style in [&"jammer_pulse", &"shield_pulse"]:
 		finish_telegraph()
@@ -423,6 +441,7 @@ func _complete_support_attack() -> bool:
 			encounter_runtime.apply_target_mark(MARK_DURATION + 1.0)
 			encounter_runtime.emit_hybrid_event(&"choir_ring", self)
 		finish_telegraph()
+		_show_district_completion(target.global_position if target != null else global_position)
 		return true
 	return _complete_carrier_attack()
 
@@ -450,8 +469,14 @@ func _complete_melee_attack() -> bool:
 		if global_position.distance_to(target.global_position) <= preferred_range + 45.0:
 			_commit_melee_damage(attack_style, 420.0)
 			committed_hit = true
-		_show_choir_contact(attack_style, committed_hit)
-		finish_telegraph()
+		if _attack_vfx_id.is_empty():
+			_show_choir_contact(attack_style, committed_hit)
+			finish_telegraph()
+		else:
+			finish_telegraph()
+			_show_district_completion(
+				target.global_position if target != null else global_position
+			)
 		return true
 	if attack_style == &"lance_thrust":
 		if global_position.distance_to(target.global_position) <= 245.0:
@@ -509,6 +534,8 @@ func _fire_spread_projectiles(extra_count: int) -> void:
 func cancel_telegraph() -> void:
 	_release_extra_projectile_reservations()
 	super.cancel_telegraph()
+	if not _attack_vfx_id.is_empty():
+		_reset_presentation_sprites()
 
 
 func deactivate() -> void:
@@ -579,7 +606,7 @@ func _repair_nearest_ally() -> EnemyActor2D:
 			best_distance = distance
 	if best != null:
 		best.current_health = minf(best.current_health + 22.0, best.max_health)
-		if best.visual != null:
+		if best.visual != null and _attack_vfx_id.is_empty():
 			best.visual.modulate = Color("9bffd1")
 			var tween: Tween = best.create_tween()
 			tween.tween_property(best.visual, "modulate", Color.WHITE, 0.2)
@@ -648,6 +675,67 @@ func _show_world_completion(
 		to_local(world_position)
 	)
 	_presentation_remaining = duration
+
+
+func _show_district_attack_anticipation() -> void:
+	if _attack_vfx_id.is_empty():
+		return
+	_reset_presentation_sprites()
+	var attack_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+		_attack_vfx_id,
+		&"attack"
+	)
+	if attack_phase.is_empty():
+		return
+	var attack_offset: Vector2 = Vector2(float(facing) * 56.0, -16.0)
+	if airborne:
+		attack_offset = Vector2(float(facing) * 50.0, 14.0)
+	var attack_sprite: Sprite2D = _configure_presentation_sprite(
+		0,
+		attack_phase.texture as Texture2D,
+		attack_phase.display_size as Vector2,
+		attack_offset,
+		Rect2(attack_phase.region as Rect2i)
+	)
+	attack_sprite.flip_h = facing < 0
+	if not EnemyAttackVfxCatalog.is_projectile_delivery(_attack_vfx_id):
+		var payload_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+			_attack_vfx_id,
+			&"projectile"
+		)
+		var payload_sprite: Sprite2D = _configure_presentation_sprite(
+			1,
+			payload_phase.texture as Texture2D,
+			payload_phase.display_size as Vector2,
+			Vector2(float(facing) * 92.0, -6.0 if not airborne else 28.0),
+			Rect2(payload_phase.region as Rect2i)
+		)
+		payload_sprite.flip_h = facing < 0
+	_presentation_remaining = maxf(
+		anticipation_duration * telegraph_multiplier,
+		MINIMUM_TELEGRAPH_SECONDS
+	)
+
+
+func _show_district_completion(world_position: Vector2) -> void:
+	if _attack_vfx_id.is_empty():
+		return
+	var completion_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+		_attack_vfx_id,
+		&"impact"
+	)
+	if completion_phase.is_empty():
+		return
+	_reset_presentation_sprites()
+	var completion: Sprite2D = _configure_presentation_sprite(
+		0,
+		completion_phase.texture as Texture2D,
+		completion_phase.display_size as Vector2,
+		to_local(world_position),
+		Rect2(completion_phase.region as Rect2i)
+	)
+	completion.flip_h = facing < 0
+	_presentation_remaining = EnemyAttackVfxCatalog.HOSTILE_IMPACT_DURATION
 
 
 func _show_lance_completion() -> void:

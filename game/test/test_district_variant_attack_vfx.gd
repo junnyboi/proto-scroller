@@ -185,6 +185,123 @@ func test_hostile_impact_cursor_wraps_without_node_growth_or_gameplay_denial() -
 	assert_eq(pool.get_child_count(), child_count)
 
 
+func test_all_twenty_variants_show_unique_fixed_sprite_anticipation() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.encounter_runtime.release_all()
+	for archetype_id: StringName in EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var enemy: ProceduralEnemy = city.encounter_runtime.acquire(
+			archetype_id,
+			Vector2(1100.0, float(profile.spawn_y))
+		) as ProceduralEnemy
+		assert_not_null(enemy, archetype_id)
+		enemy.set_physics_process(false)
+		var child_count: int = enemy.get_child_count()
+		enemy._begin_attack()
+		assert_true(enemy.is_telegraphing(), archetype_id)
+		assert_eq(
+			_visible_presentation_count(enemy),
+			1 if EnemyAttackVfxCatalog.is_projectile_delivery(archetype_id) else 2,
+			archetype_id
+		)
+		assert_eq(enemy.get_child_count(), child_count, archetype_id)
+		var snapshot: Dictionary = city.telegraph_presenter.snapshot(enemy._telegraph_id)
+		assert_eq(snapshot.get("visual_key"), archetype_id, archetype_id)
+		assert_eq(
+			(snapshot.get("style_data", {}) as Dictionary).get("attack_vfx_id"),
+			archetype_id,
+			archetype_id
+		)
+		enemy.cancel_telegraph()
+		assert_eq(_visible_presentation_count(enemy), 0, archetype_id)
+		assert_eq(city.projectile_root.reservation_count(), 0, archetype_id)
+		city.encounter_runtime.release(enemy)
+
+
+func test_actor_only_variants_complete_without_projectiles_or_mechanical_drift() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.robot.global_position = Vector2(760.0, 542.0)
+	var actor_ids: Array[StringName] = []
+	for archetype_id: StringName in EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS:
+		if not EnemyAttackVfxCatalog.is_projectile_delivery(archetype_id):
+			actor_ids.append(archetype_id)
+	assert_eq(actor_ids.size(), 11)
+	for archetype_id: StringName in actor_ids:
+		city.encounter_runtime.release_all()
+		city.projectile_root.release_all()
+		city.encounter_runtime.target_mark_remaining = 0.0
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var enemy: ProceduralEnemy = city.encounter_runtime.acquire(
+			archetype_id,
+			Vector2(910.0, float(profile.spawn_y))
+		) as ProceduralEnemy
+		assert_not_null(enemy, archetype_id)
+		enemy.set_physics_process(false)
+		var ally: ProceduralEnemy
+		if StringName(profile.attack_style) == &"repair":
+			ally = city.encounter_runtime.acquire(
+				&"bulwark",
+				Vector2(850.0, 540.0)
+			) as ProceduralEnemy
+			assert_not_null(ally, archetype_id)
+			ally.current_health = ally.max_health - 40.0
+		enemy._begin_attack()
+		assert_eq(city.projectile_root.reservation_count(), 0, archetype_id)
+		enemy._complete_attack()
+		assert_eq(city.projectile_root.active_count(), 0, archetype_id)
+		assert_eq(city.projectile_root.reservation_count(), 0, archetype_id)
+		assert_eq(_visible_presentation_count(enemy), 1, archetype_id)
+		match StringName(profile.attack_style):
+			&"repair":
+				assert_eq(ally.current_health, ally.max_health - 18.0, archetype_id)
+			&"scan":
+				assert_eq(
+					city.encounter_runtime.target_mark_remaining,
+					ProceduralEnemy.MARK_DURATION,
+					archetype_id
+				)
+			&"choir_ring":
+				assert_eq(
+					city.encounter_runtime.target_mark_remaining,
+					ProceduralEnemy.MARK_DURATION + 1.0,
+					archetype_id
+				)
+		city.encounter_runtime.release(enemy)
+		if ally != null and ally.active:
+			city.encounter_runtime.release(ally)
+
+
+func test_variant_to_legacy_reuse_clears_attack_vfx_identity_and_regions() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.encounter_runtime.release_all()
+	var variant: ProceduralEnemy = city.encounter_runtime.acquire(
+		&"intake_shepherd",
+		Vector2(1050.0, 541.0)
+	) as ProceduralEnemy
+	variant.set_physics_process(false)
+	variant._begin_attack()
+	assert_eq(_visible_presentation_count(variant), 2)
+	city.encounter_runtime.release(variant)
+	var legacy: ProceduralEnemy = city.encounter_runtime.acquire(
+		&"sapper",
+		Vector2(1050.0, 541.0)
+	) as ProceduralEnemy
+	assert_same(legacy, variant)
+	assert_eq(legacy.reset_debug_snapshot().get("attack_vfx_id"), &"")
+	for sprite: Sprite2D in legacy._presentation_sprites:
+		assert_false(sprite.visible)
+		assert_null(sprite.texture)
+		assert_false(sprite.region_enabled)
+		assert_eq(sprite.region_rect, Rect2())
+	assert_eq(city.projectile_root.reservation_count(), 0)
+
+
 func _expected_radius(kind: StringName) -> float:
 	match kind:
 		&"shell":
@@ -193,3 +310,11 @@ func _expected_radius(kind: StringName) -> float:
 			return 7.0
 		_:
 			return 5.0
+
+
+func _visible_presentation_count(enemy: ProceduralEnemy) -> int:
+	var count: int = 0
+	for sprite: Sprite2D in enemy._presentation_sprites:
+		if sprite.visible:
+			count += 1
+	return count
