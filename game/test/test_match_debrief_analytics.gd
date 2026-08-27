@@ -334,12 +334,16 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	assert_eq(String(panel.weapon_history_chart.debug_snapshot().mode), "SHARE")
 	panel.weapon_history_chart.select_index(0)
 	assert_eq(int(panel.weapon_history_chart.debug_snapshot().selected_index), 0)
-	var signal_state: Dictionary = {"callsign": ""}
-	panel.callsign_saved.connect(func(value: String) -> void: signal_state.callsign = value)
+	var signal_state: Dictionary = {"callsign": "", "count": 0}
+	panel.callsign_saved.connect(func(value: String) -> void:
+		signal_state.callsign = value
+		signal_state.count += 1
+	)
 	panel.callsign_edit.text = "Rook-7"
 	panel.callsign_save_button.pressed.emit()
 	assert_eq(store.callsign(), "Rook-7")
 	assert_eq(String(signal_state.callsign), "Rook-7")
+	assert_eq(int(signal_state.count), 1)
 	panel.set_global_state(&"online", [{
 		"rank": 1,
 		"callsign": "Rook-7",
@@ -351,11 +355,43 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	var global_state: Dictionary = panel.debug_snapshot()
 	assert_eq(String(global_state.page), "GLOBAL")
 	assert_eq(String(global_state.global_state), "online")
+	assert_eq(String(global_state.global_callsign), "Rook-7")
 	assert_eq((global_state.global_rows as PackedStringArray).size(), 1)
 	assert_true(String((global_state.global_rows as PackedStringArray)[0]).contains("Rook-7"))
+	panel.global_callsign_edit.text = "x"
+	panel.global_callsign_save_button.pressed.emit()
+	assert_eq(store.callsign(), "Rook-7")
+	assert_eq(int(signal_state.count), 1)
+	assert_eq(
+		String(panel.debug_snapshot().global_callsign_status),
+		L10n.t("debrief.callsign.too_short")
+	)
+	panel.global_callsign_edit.text = "Nova Prime"
+	panel.global_callsign_save_button.pressed.emit()
+	global_state = panel.debug_snapshot()
+	assert_eq(store.callsign(), "Nova Prime")
+	assert_eq(String(signal_state.callsign), "Nova Prime")
+	assert_eq(int(signal_state.count), 2)
+	assert_eq(String(global_state.callsign), "Nova Prime")
+	assert_eq(String(global_state.global_callsign), "Nova Prime")
+	assert_eq(
+		String(global_state.global_callsign_status),
+		L10n.t("debrief.callsign.saved")
+	)
+	assert_true(String((global_state.global_rows as PackedStringArray)[0]).contains("Nova Prime"))
+	assert_true(panel.personal_rank_label.text.contains("Nova Prime"))
+	panel.apply_responsive_layout(Vector2(1280.0, 720.0))
+	var global_landscape_state: Dictionary = panel.debug_snapshot()
+	_assert_rect_inside(global_landscape_state.global_callsign_rect, Vector2(1280.0, 720.0))
+	_assert_touch_rect(global_landscape_state.global_callsign_save_rect)
+	_assert_global_layout(panel)
 	panel.apply_responsive_layout(Vector2(720.0, 1280.0))
-	_assert_rect_inside(panel.debug_snapshot().panel_rect, Vector2(720.0, 1280.0))
-	_assert_touch_rect(panel.debug_snapshot().refresh_rect)
+	var global_portrait_state: Dictionary = panel.debug_snapshot()
+	_assert_rect_inside(global_portrait_state.panel_rect, Vector2(720.0, 1280.0))
+	_assert_rect_inside(global_portrait_state.global_callsign_rect, Vector2(720.0, 1280.0))
+	_assert_touch_rect(global_portrait_state.global_callsign_save_rect)
+	_assert_touch_rect(global_portrait_state.refresh_rect)
+	_assert_global_layout(panel)
 	_record_test_execution()
 
 
@@ -556,6 +592,17 @@ func _assert_action_group_margins(panel: MatchDebriefPanel, state: Dictionary) -
 	var retry_rect: Rect2 = state.retry_rect as Rect2
 	assert_almost_eq(page_content_rect.position.y - tabs_rect.end.y, expected_margin, 0.01)
 	assert_almost_eq(retry_rect.position.y - bottom_content_rect.end.y, expected_margin, 0.01)
+
+
+func _assert_global_layout(panel: MatchDebriefPanel) -> void:
+	var editor_end: float = (
+		panel.global_callsign_edit.position.y + panel.global_callsign_edit.size.y
+	)
+	var personal_rank_end: float = (
+		panel.personal_rank_label.position.y + panel.personal_rank_label.size.y
+	)
+	assert_lte(editor_end, panel.personal_rank_label.position.y)
+	assert_lte(personal_rank_end, panel.global_rows[0].position.y)
 
 
 func _record_test_execution() -> void:
