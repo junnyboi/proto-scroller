@@ -7,7 +7,7 @@
 
 ## Objective
 
-Convert the streamed city from unrestricted bidirectional traversal into a **forward campaign ratchet**. The robot may reposition locally, but its furthest-right logical position establishes a moving rear frontier exactly **500 pixels behind**. World chunks fully behind that frontier are culled, the resident spawn range excludes the discarded region, and an invisible collision wall prevents the robot from re-entering culled space. Spatial district progression changes from eight distance-only chunks to **five authored building clears per district**, matching the existing five-facade roster.[1] [2]
+Convert the streamed city from unrestricted bidirectional traversal into a **forward campaign ratchet**. The robot may reposition locally, but its furthest-right logical position establishes a moving rear frontier exactly **500 pixels behind**. World chunks fully behind that frontier are culled, the resident spawn range excludes the discarded region, and an invisible collision wall prevents the robot from re-entering culled space. Spatial district progression now requires **ten authored building encounters per district**: two shuffled passes through the existing five-facade roster.[1] [2]
 
 The implementation must preserve the six-slot streamed world, floating-origin stability, mutation persistence, district missions and pressure routing, boss gates, campaign progression, Web Audio fixes, Godot 4.7.2 Web export, and the existing fullscreen Manus WebDev host.[3] [4] [5]
 
@@ -21,10 +21,10 @@ The implementation must preserve the six-slot streamed world, floating-origin st
 | Contact feedback | First contact with the rear wall emits one debounced event, pulses a left-weighted red vignette, and synchronously plays a subtle carrier-derived warning plus “We can't go back now!”; held contact does not restart either channel every frame. |
 | Culling | A resident chunk is culled only after its right edge is at or behind the rear frontier. Culling hides the chunk, disables processing, and removes collision layers without deleting pooled nodes. |
 | Spawn safety | `resident_bounds()` clamps its lower bound to the rear frontier so enemies and hazards cannot spawn in discarded space. |
-| District size | Business, Residential, Entertainment, Military, and Royal each reserve seven logical chunks: five unique facades followed by two road-only handoff chunks. |
-| District clear | A clear is credited once per unique `building_variant_id` in the building’s own district. Repeated signals, restored ruins, and duplicate variants cannot inflate progress. |
+| District size | Business, Residential, Entertainment, Military, and Royal each reserve twelve logical chunks: ten shuffled facade encounters followed by two road-only handoff chunks. |
+| District clear | A clear is credited once per logical building encounter in the building’s own district. Repeated signals and restored ruins cannot inflate progress; each of the five unique facade types legitimately appears twice. |
 | District exit | An invisible eastbound gate advances one facade after each clear, then holds at the transition corridor until the boss, salvage shop, and old-skyline cull phases finish. |
-| Boss handoff | The fifth unique facade arms and starts the current district boss before any shop or destination content can appear. |
+| Boss handoff | The tenth facade encounter arms and starts the current district boss before any shop or destination content can appear. |
 | Salvage shop | Finishing the boss wreck creates one marked overlap at the defeated boss position; walking forward across it opens that district's shop. |
 | Empty corridor | Shop checkout opens two road-only chunks. Future-district buildings and props remain hidden, nonprocessing, and noncolliding while the player advances. |
 | Next district | The next district and act activate atomically only when the rear frontier has passed the right edge of every old facade. |
@@ -35,9 +35,9 @@ The implementation must preserve the six-slot streamed world, floating-origin st
 
 ### `CityWorldStream`
 
-`CityWorldStream` remains the authority for logical coordinates, resident-window reuse, and spatial district identity.[1] It gains the monotonic furthest-progress position, rear-frontier calculation, two preallocated barriers, per-district unique-clear sets, and district unlock state. Every physics update advances the floating origin as before, updates the frontier, repairs illegal rear displacement, refreshes resident chunks, applies culling only when a chunk changes state, and positions both barriers in runtime coordinates.
+`CityWorldStream` remains the authority for logical coordinates, resident-window reuse, and spatial district identity.[1] It gains the monotonic furthest-progress position, rear-frontier calculation, two preallocated barriers, per-district encounter-clear sets, and district unlock state. Every physics update advances the floating origin as before, updates the frontier, repairs illegal rear displacement, refreshes resident chunks, applies culling only when a chunk changes state, and positions both barriers in runtime coordinates.
 
-District transitions continue to emit only when the robot actually crosses into an activated destination chunk. The eastbound gate starts before the second facade, advances one chunk per accepted unique clear, and stops at the road-only handoff corridor after the fifth. `district_boss_ready` starts the matching boss; boss completion arms a world-space salvage trigger; shop checkout opens the corridor; and `post_boss_corridor_is_clear()` waits until the moving rear frontier has passed the last old facade before `complete_district_handoff()` activates the destination. This makes every required facade reachable, keeps the old skyline resident through the boss and shop, and prevents a recycled future facade from materializing on the player or over an old ruin.[4]
+District transitions continue to emit only when the robot actually crosses into an activated destination chunk. The eastbound gate starts before the second facade, advances one chunk per accepted encounter clear, and stops at the road-only handoff corridor after the tenth. `district_boss_ready` starts the matching boss; boss completion arms a world-space salvage trigger; shop checkout opens the corridor; and `post_boss_corridor_is_clear()` waits until the moving rear frontier has passed the last old facade before `complete_district_handoff()` activates the destination. This makes every required facade reachable, keeps the old skyline resident through the boss and shop, and prevents a recycled future facade from materializing on the player or over an old ruin.[4]
 
 ### `CityStreetChunk`
 
@@ -49,13 +49,13 @@ Streamed buildings receive explicit `logical_chunk` metadata during slot configu
 
 ### District Catalog and Boss Gates
 
-`CityDistrictCatalog.CHUNKS_PER_DISTRICT` is seven: five authored facade slots plus two transition-corridor slots whose pooled destructibles are deliberately suppressed.[2] Boundaries become `0–6`, `7–13`, `14–20`, `21–27`, and `28+`. Boss trigger/unlock chunks align with the fifth facade and following district start: `4/7`, `11/14`, `18/21`, `25/28`, and Royal `32`.[5]
+`CityDistrictCatalog.CHUNKS_PER_DISTRICT` is twelve: ten facade encounters—two independently shuffled passes through five authored types—plus two transition-corridor slots whose pooled destructibles are deliberately suppressed.[2] Boundaries are `0–11`, `12–23`, `24–35`, `36–47`, and `48+`. Boss trigger/unlock chunks align with the tenth facade and following district start: `9/12`, `21/24`, `33/36`, `45/48`, and Royal `57`.[5]
 
 ## Implementation Phases
 
 ### Phase 1 — Data contracts and plan lock
 
-Update the catalog’s district span, profile boundaries, progression-tier cadence, boss trigger catalog, conceptual district tables, and user-facing README. Add the new plan and declare exact constants for the 500-pixel retention distance and five unique clears.
+Update the catalog’s district span, profile boundaries, progression-tier cadence, boss trigger catalog, conceptual district tables, and user-facing README. Declare exact constants for two shuffled five-facade passes and ten logical encounter clears.
 
 **Completion:** source data and documentation agree on the five-building geography model.
 
@@ -67,9 +67,9 @@ Create the rear barrier and district exit gate once during stream initialization
 
 ### Phase 3 — Clear-driven boss handoff
 
-Attach logical chunk metadata to streamed buildings, forward destruction completion into the stream, deduplicate by district and facade ID, and arm the current district boss at five clears without activating the next district. Preserve the final Royal path.
+Attach logical chunk metadata to streamed buildings, forward destruction completion into the stream, deduplicate by district and logical encounter, and arm the current district boss at ten clears without activating the next district. Preserve the final Royal path.
 
-**Completion:** five unique clears start the boss first; neither the shop nor next-district content can appear early.
+**Completion:** ten encounter clears start the boss first; neither the shop nor next-district content can appear early.
 
 ### Phase 3B — Salvage shop and empty-corridor commit
 
@@ -79,7 +79,7 @@ Keep the boss arena resident after defeat, create one prewarmed overlap at the d
 
 ### Phase 4 — Contract tests and implementation record
 
-Replace bidirectional endless-terrain assumptions with monotonic-frontier assertions. Add focused tests for the 500-pixel wall, culling and restoration, resident spawn bounds, duplicate-clear rejection, five-clear unlock, district transition boundaries, floating-origin invariance, reset semantics, and updated boss gates. Update this plan’s implementation record after code completion.
+Replace bidirectional endless-terrain assumptions with monotonic-frontier assertions. Add focused tests for the 500-pixel wall, culling and restoration, resident spawn bounds, duplicate-clear rejection, ten-clear unlock, district transition boundaries, floating-origin invariance, reset semantics, and updated boss gates. Update this plan’s implementation record after code completion.
 
 Under the project-level release override, full release-gate certification, broad regression suites, Xvfb/browser matrices, and repeated stabilization loops are skipped unless explicitly requested. The source contracts are still updated so future verification runs exercise the new behavior.
 
@@ -97,10 +97,10 @@ Commit and push the final integrated tree to shared `main`, create a fresh Godot
 | Culling | Chunks fully behind the frontier are hidden, nonprocessing, and noncolliding; recycled chunks restore correctly. |
 | Streaming | Exactly six chunk nodes and six building slots remain allocated. |
 | Spawning | Resident lower bound never enters culled territory. |
-| Districts | Five geographic districts retain five globally unique facades each, with two additional road-only handoff chunks per district. |
-| Unlocks | Exactly five unique current-district clears arm the boss; only boss defeat, salvage-shop checkout, and old-facade culling unlock the next district. |
+| Districts | Five geographic districts retain five globally unique facade types each, display every type twice across ten shuffled encounters, and retain two road-only handoff chunks per district. |
+| Unlocks | Exactly ten current-district encounter clears arm the boss; only boss defeat, salvage-shop checkout, and old-facade culling unlock the next district. |
 | Deduplication | Duplicate destruction notifications and restored ruins do not add progress. |
-| Bosses | Bosses start immediately after each fifth facade and retain handoff ownership until the corresponding shop and corridor complete. |
+| Bosses | Bosses start immediately after each tenth facade and retain handoff ownership until the corresponding shop and corridor complete. |
 | Pop-in | Future-district buildings remain suppressed until all old facades have crossed the rear frontier. |
 | Floating origin | Logical frontier and district gates remain stable across runtime rebases. |
 | Delivery | Shared `main`, fresh Web export, immutable WebDev payloads, continuity docs, and final checkpoint identify the same revision. |
@@ -120,7 +120,7 @@ The highest risk is disabling pooled collisions without restoring mutation-sensi
 | 5 — Source/WebDev delivery | Complete | `fca74d1` / WebDev `c0da9c13` | Shared `main` updated non-force; fresh Godot 4.7.2 Web export synchronized to immutable WASM/PCK payloads and saved in the existing host checkpoint. |
 | 6 — Rear-wall warning feedback | Complete | `5b16bd9` / WebDev `82a6869a` | Debounced contact signal, prewarmed input-transparent shader vignette, HUD wiring, runtime-budget contract, fresh Godot 4.7.2 export, and existing-host synchronization delivered. |
 | 7 — Rear-wall warning audio | Complete | `66b4b21` / WebDev `4f2100a8` | GPT Image 2 anchor, generated video-carrier bed, exact `Gacrux` line, mastered 48 kHz mono cue, synchronous debounced HUD playback, fresh Godot 4.7.2 export, and combined concurrent-host checkpoint delivered. |
-| 8 — Boss/shop/corridor handoff | Complete | `dd5f25f` / WebDev `240dc289` | Each fifth facade triggers its boss first; the defeated-boss overlap opens the shop; future content remains suppressed through two road-only chunks; old facades must be culled before the next district and act activate atomically. The checkpoint also preserves concurrent district weather, progressive facade hollowing, and optimized cosmetic Web imports. |
+| 8 — Boss/shop/corridor handoff | Complete | `dd5f25f` / WebDev `240dc289` | Each tenth facade triggers its boss first; the defeated-boss overlap opens the shop; future content remains suppressed through two road-only chunks; old facades must be culled before the next district and act activate atomically. The checkpoint also preserves concurrent district weather, progressive facade hollowing, and optimized cosmetic Web imports. |
 
 ## Delivered Runtime
 
