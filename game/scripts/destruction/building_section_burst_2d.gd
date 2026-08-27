@@ -147,17 +147,17 @@ func _configure_fragments(
 	fragments.color = Color.WHITE
 	match material_id:
 		&"glass":
-			fragments.amount = 18
-			fragments.scale_amount_min = 0.055
-			fragments.scale_amount_max = 0.16
-		&"steel":
-			fragments.amount = 8
-			fragments.scale_amount_min = 0.075
-			fragments.scale_amount_max = 0.19
-		_:
 			fragments.amount = 12
-			fragments.scale_amount_min = 0.065
-			fragments.scale_amount_max = 0.20
+			fragments.scale_amount_min = 0.06
+			fragments.scale_amount_max = 0.18
+		&"steel":
+			fragments.amount = 6
+			fragments.scale_amount_min = 0.09
+			fragments.scale_amount_max = 0.22
+		_:
+			fragments.amount = 9
+			fragments.scale_amount_min = 0.08
+			fragments.scale_amount_max = 0.23
 
 
 func _configure_dust(
@@ -168,24 +168,24 @@ func _configure_dust(
 	dust.direction = Vector2(direction.x * 0.42, -0.82).normalized()
 	dust.initial_velocity_min = impact_speed * 0.12
 	dust.initial_velocity_max = impact_speed * 0.30
-	dust.scale_amount_min = 0.24
-	dust.scale_amount_max = 0.68
+	dust.scale_amount_min = 0.28
+	dust.scale_amount_max = 0.60
 	match material_id:
 		&"glass":
-			dust.amount = 7
+			dust.amount = 5
 			dust.spread = 78.0
 			dust.gravity = Vector2(0.0, 230.0)
-			dust.color = Color(0.42, 0.86, 0.94, 0.38)
+			dust.color = Color(0.42, 0.86, 0.94, 0.28)
 		&"steel":
-			dust.amount = 8
+			dust.amount = 5
 			dust.spread = 42.0
 			dust.gravity = Vector2(0.0, 680.0)
-			dust.color = Color(1.0, 0.58, 0.24, 0.62)
+			dust.color = Color(1.0, 0.58, 0.24, 0.45)
 		_:
-			dust.amount = 14
+			dust.amount = 9
 			dust.spread = 92.0
 			dust.gravity = Vector2(0.0, 210.0)
-			dust.color = Color(0.72, 0.64, 0.54, 0.72)
+			dust.color = Color(0.72, 0.64, 0.54, 0.55)
 
 
 func _configure_falling_debris(
@@ -195,27 +195,27 @@ func _configure_falling_debris(
 ) -> void:
 	falling_debris.texture = texture_for_material(material_id)
 	falling_debris.direction = Vector2(direction.x * 0.26, 0.96).normalized()
-	falling_debris.spread = 38.0
+	falling_debris.spread = 28.0
 	falling_debris.gravity = Vector2(
 		0.0,
-		(profile.particle_gravity if profile != null else 560.0) * 1.18
+		(profile.particle_gravity if profile != null else 560.0) * 1.30
 	)
-	falling_debris.initial_velocity_min = impact_speed * 0.10
-	falling_debris.initial_velocity_max = impact_speed * 0.28
+	falling_debris.initial_velocity_min = impact_speed * 0.08
+	falling_debris.initial_velocity_max = impact_speed * 0.22
 	falling_debris.color = Color(0.64, 0.58, 0.52, 0.94)
 	match material_id:
 		&"glass":
-			falling_debris.amount = 13
-			falling_debris.scale_amount_min = 0.04
-			falling_debris.scale_amount_max = 0.13
+			falling_debris.amount = 8
+			falling_debris.scale_amount_min = 0.05
+			falling_debris.scale_amount_max = 0.15
 		&"steel":
-			falling_debris.amount = 7
-			falling_debris.scale_amount_min = 0.06
-			falling_debris.scale_amount_max = 0.16
+			falling_debris.amount = 5
+			falling_debris.scale_amount_min = 0.08
+			falling_debris.scale_amount_max = 0.19
 		_:
-			falling_debris.amount = 10
-			falling_debris.scale_amount_min = 0.06
-			falling_debris.scale_amount_max = 0.18
+			falling_debris.amount = 6
+			falling_debris.scale_amount_min = 0.08
+			falling_debris.scale_amount_max = 0.22
 
 
 func _configure_flash(impact_speed: float) -> void:

@@ -19,6 +19,8 @@ const CELL_COUNT: int = COLUMNS * ROWS
 const STREAM_STATE_SCHEMA_VERSION: int = 2
 const UPPER_SUPPORT_DAMAGE_RATIO: float = 0.5
 const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.gd")
+const GROUND_RUBBLE_HEIGHT: float = 50.0
+const UPPER_RUBBLE_HEIGHT: float = 32.0
 
 @export var intact_texture: Texture2D
 @export var damaged_texture: Texture2D
@@ -300,23 +302,10 @@ func _create_rubble_sprite(
 ) -> Sprite2D:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.name = "RubbleVisual"
-	sprite.texture = rubble_texture
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sprite.region_enabled = true
 	sprite.region_filter_clip_enabled = true
-	var source_size: Vector2 = rubble_texture.get_size()
-	var source_width: float = source_size.x / float(COLUMNS)
-	sprite.region_rect = Rect2(
-		Vector2(source_width * float(column), 0.0),
-		Vector2(source_width, source_size.y)
-	)
-	var rubble_height: float = 64.0 if row == ROWS - 1 else 44.0
-	sprite.scale = Vector2(
-		_cell_size().x / source_width,
-		rubble_height / maxf(source_size.y, 1.0)
-	)
-	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
-	sprite.modulate = profile.visual_tint
+	_configure_rubble_sprite(sprite, column, row, profile)
 	return sprite
 
 
@@ -400,18 +389,46 @@ func _configure_rubble_sprite(
 		return
 	var source_size: Vector2 = rubble_texture.get_size()
 	var source_width: float = source_size.x / float(COLUMNS)
-	var rubble_height: float = 64.0 if row == ROWS - 1 else 44.0
+	var width_ratio: float = 0.82
+	var height_ratio: float = 1.0
+	var opacity: float = 0.88
+	match profile.material_id:
+		&"glass":
+			width_ratio = 0.61
+			height_ratio = 0.72
+			opacity = 0.68
+		&"steel":
+			width_ratio = 0.72
+			height_ratio = 0.86
+			opacity = 0.80
+	var seed: int = _pattern_seed_for_cell(column, row)
+	var width_phase: float = float(posmod(hash("%d:width" % seed), 997)) / 996.0
+	var height_phase: float = float(posmod(hash("%d:height" % seed), 991)) / 990.0
+	var offset_phase: float = float(posmod(hash("%d:offset" % seed), 983)) / 982.0
+	var rotation_phase: float = float(posmod(hash("%d:rotation" % seed), 977)) / 976.0
+	width_ratio = clampf(width_ratio * lerpf(0.90, 1.06, width_phase), 0.52, 0.87)
+	var base_height: float = GROUND_RUBBLE_HEIGHT if row == ROWS - 1 else UPPER_RUBBLE_HEIGHT
+	var rubble_height: float = base_height * height_ratio * lerpf(0.88, 1.08, height_phase)
+	var cell_size: Vector2 = _cell_size()
 	sprite.texture = rubble_texture
 	sprite.region_rect = Rect2(
 		Vector2(source_width * float(column), 0.0),
 		Vector2(source_width, source_size.y)
 	)
 	sprite.scale = Vector2(
-		_cell_size().x / source_width,
+		cell_size.x * width_ratio / source_width,
 		rubble_height / maxf(source_size.y, 1.0)
 	)
-	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
-	sprite.modulate = _cell_visual_tint(profile)
+	sprite.position = Vector2(
+		(offset_phase - 0.5) * cell_size.x * 0.08,
+		cell_size.y * 0.5 - rubble_height * 0.5 + 2.0
+	)
+	sprite.rotation = deg_to_rad(lerpf(-1.8, 1.8, rotation_phase))
+	var tint: Color = _cell_visual_tint(profile)
+	tint.a = opacity
+	sprite.modulate = tint
+	sprite.set_meta(&"terminal_debris_width_ratio", width_ratio)
+	sprite.set_meta(&"terminal_debris_height", rubble_height)
 
 
 func _configure_intact_collision(cell: Destructible2D, row: int) -> void:
