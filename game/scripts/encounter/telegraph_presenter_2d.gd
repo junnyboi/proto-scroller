@@ -29,7 +29,8 @@ func reserve(
 	kind: StringName,
 	origin: Vector2,
 	target: Vector2,
-	duration: float
+	duration: float,
+	damage_output: float = 0.0
 ) -> int:
 	if p_owner == null or _records.size() >= capacity:
 		denial_count += 1
@@ -44,6 +45,7 @@ func reserve(
 		"origin": origin,
 		"target": target,
 		"thickness_scale": p_owner.attack_telegraph_thickness_scale(),
+		"color_intensity": p_owner.attack_telegraph_color_intensity(damage_output),
 		"duration": maxf(duration, 0.01),
 		"remaining": maxf(duration, 0.01),
 	})
@@ -98,27 +100,38 @@ func _draw() -> void:
 		var progress: float = 1.0 - float(record.remaining) / float(record.duration)
 		var origin: Vector2 = to_local(record.origin)
 		var target: Vector2 = to_local(record.target)
-		var base_color: Color = Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56)
 		var kind: StringName = record.kind
 		var thickness_scale: float = float(record.thickness_scale)
+		var color_intensity: float = float(record.color_intensity)
+		var base_color: Color = _threat_color(
+			Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56),
+			color_intensity
+		)
 		if kind == &"shell" or kind == &"rocket":
 			var badge_size: Vector2 = Vector2.ONE * (38.0 + progress * 10.0)
 			draw_texture_rect(
 				TELEGRAPH_BADGE,
 				Rect2(target - badge_size * 0.5, badge_size),
 				false,
-				Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38)
+				_threat_color(
+					Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38),
+					color_intensity
+				)
 			)
 		if kind == &"shell":
 			draw_line(origin, target, base_color, 8.0 * thickness_scale, true)
 			draw_line(
 				origin,
 				target,
-				Color(1.0, 0.82, 0.42, 0.86),
+				_threat_color(Color(1.0, 0.82, 0.42, 0.86), color_intensity),
 				2.0 * thickness_scale,
 				true
 			)
-			draw_circle(target, 26.0 + progress * 10.0, Color(1.0, 0.28, 0.10, 0.20))
+			draw_circle(
+				target,
+				26.0 + progress * 10.0,
+				_threat_color(Color(1.0, 0.28, 0.10, 0.20), color_intensity)
+			)
 			draw_arc(
 				target,
 				31.0,
@@ -164,8 +177,29 @@ func _draw() -> void:
 			draw_line(
 				origin,
 				target,
-				Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45),
+				_threat_color(
+					Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45),
+					color_intensity
+				),
 				2.0 * thickness_scale,
 				true
 			)
 			draw_circle(origin, 5.0 + progress * 4.0, base_color)
+
+
+func _threat_color(base_color: Color, intensity: float) -> Color:
+	var normalized: float = clampf(
+		inverse_lerp(
+			EnemyActor2D.TELEGRAPH_MINIMUM_COLOR_INTENSITY,
+			EnemyActor2D.TELEGRAPH_MAXIMUM_COLOR_INTENSITY,
+			intensity
+		),
+		0.0,
+		1.0
+	)
+	return Color(
+		clampf(base_color.r * intensity, 0.0, 1.0),
+		clampf(base_color.g * intensity, 0.0, 1.0),
+		clampf(base_color.b * intensity, 0.0, 1.0),
+		clampf(base_color.a * lerpf(0.78, 1.15, normalized), 0.0, 1.0)
+	)
