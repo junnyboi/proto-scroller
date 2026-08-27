@@ -11,6 +11,14 @@ const RECOVERY_SECONDS: float = 0.75
 const TELEGRAPH_FRAME_RANGE: Vector2i = Vector2i(0, 3)
 const ACTIVE_FRAME_RANGE: Vector2i = Vector2i(3, 5)
 const RECOVERY_FRAME_RANGE: Vector2i = Vector2i(5, 8)
+const SOURCE_DENSITY_SCALE: int = 2
+const EXPECTED_CELL_SIZES: Dictionary[StringName, Vector2i] = {
+	&"SETTLEMENT_ENGINE": Vector2i(628, 390),
+	&"SAMARITAN": Vector2i(692, 418),
+	&"MIMESIS": Vector2i(744, 374),
+	&"CANTOR_PALE_ENGINE": Vector2i(720, 424),
+	&"CHOIR_PRIME": Vector2i(768, 432),
+}
 
 const SETTLEMENT_ATLAS: Texture2D = preload(
 	"res://art/bosses/animated/settlement-engine-s04-atlas.webp"
@@ -86,4 +94,14 @@ static func validation_errors() -> Array[String]:
 		var size: Vector2 = texture.get_size()
 		if int(size.x) % COLUMN_COUNT != 0 or int(size.y) % ROW_COUNT != 0:
 			errors.append("%s atlas grid is not %dx%d" % [preset, COLUMN_COUNT, ROW_COUNT])
+			continue
+		var cell_size := Vector2i(
+			int(size.x) / COLUMN_COUNT,
+			int(size.y) / ROW_COUNT
+		)
+		if cell_size != EXPECTED_CELL_SIZES[preset]:
+			errors.append(
+				"%s atlas cell is %s, expected 2x cell %s"
+				% [preset, cell_size, EXPECTED_CELL_SIZES[preset]]
+			)
 	return errors

@@ -4,7 +4,7 @@
 
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 
-**Runtime source total:** 5,218,716 bytes
+**Runtime source total:** 20,017,608 bytes
 
 **Measured Web PCK:** 16,650,088 bytes
 
@@ -12,15 +12,15 @@
 
 **Remaining PCK headroom:** 127,128 bytes
 
-The five canonical animated boss atlases began with **GPT Image 2** keyframes and locked-camera Veo carriers; the five instrumental themes were generated with **Lyria 3 Pro**. Concept plates and superseded static sprites remain outside the Web PCK. Runtime art is stored as transparent WebP atlases; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter.
+The five canonical animated boss atlases began with **GPT Image 2** 2560×1440 keyframes and locked-camera 1280×720 Veo carriers; the five instrumental themes were generated with **Lyria 3 Pro**. Every atlas cell is exactly twice its predecessor in both axes while the on-screen display envelope remains unchanged. Concept plates and generation masters remain outside the Web PCK. Runtime art is stored as transparent high-quality WebP atlases; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter.
 
 | Boss | Runtime art | Art bytes | Art SHA-256 | Runtime music | Music bytes | Duration | Music SHA-256 |
 |---|---|---:|---|---|---:|---:|---|
-| SETTLEMENT ENGINE S-04 | `animated/settlement-engine-s04-atlas.webp` | 439,630 | `14af061156d309f4bbeeafdb033949b00748ee6b6b5bbe0a212e1b3398c4ca5a` | `settlement-engine-s04.ogg` | 216,798 | 43.00 s | `cbcb96809a9668955ff8e7fd6f21c7d8af9ea82aee99b624775d5b4c97532570` |
-| SAMARITAN-15 | `animated/samaritan-15-atlas.webp` | 552,632 | `370bea81cdf2aa3f8ee8661df807adaf59610996a17e095b137cd24b8ac70bfc` | `samaritan-15.ogg` | 315,495 | 66.20 s | `958eafe78d7edd0f52a4571b991bee3ba50d0ce3e86a4ba4d7b8e6841311a5bd` |
-| MIMESIS-04 | `animated/mimesis-04-atlas.webp` | 644,320 | `335280889d0933bc92ff55e0f45ffe34bc392850b9c6d8a22d0a85f71a32fadf` | `mimesis-04.ogg` | 228,550 | 41.90 s | `10aab4fbbe104a2bcb44d05634737c1724d8cabde6f85ae9cd1028fd3d0d8539` |
-| CANTOR-31 / PALE ENGINE | `animated/cantor-31-atlas.webp` | 546,330 | `c2ac2aac49798f5846631f80794bb74f628572b4fde1ff99b3d7d588875e9f0f` | `cantor-31.ogg` | 354,924 | 66.80 s | `25870516f678a4766333284b84be06f3e7cb83c6684dfdf8549103c5890e5a0a` |
-| CHOIR PRIME | `animated/choir-prime-atlas.webp` | 774,062 | `18896e73917006c19168ee17e833e2b379aa9d40d0dc246f62d35cef5c8088bb` | `choir-prime.ogg` | 199,916 | 44.10 s | `db3b3ad6d71421c6d88323f58ac04e619e8fa94a616d93fb56b9381054f95ed3` |
+| SETTLEMENT ENGINE S-04 | `animated/settlement-engine-s04-atlas.webp` | 2,919,740 | `fdc743acd7cdd381084444ec03fc4a0cacf1aae0c335b64d23a35359d7a98d16` | `settlement-engine-s04.ogg` | 216,798 | 43.00 s | `cbcb96809a9668955ff8e7fd6f21c7d8af9ea82aee99b624775d5b4c97532570` |
+| SAMARITAN-15 | `animated/samaritan-15-atlas.webp` | 3,269,904 | `aeba07697d7a12987f92fdbb0d901ec39e5c4b8e37fed07c0d5795d6cf479a19` | `samaritan-15.ogg` | 315,495 | 66.20 s | `958eafe78d7edd0f52a4571b991bee3ba50d0ce3e86a4ba4d7b8e6841311a5bd` |
+| MIMESIS-04 | `animated/mimesis-04-atlas.webp` | 4,020,566 | `4bcb21658e081f85395b2fde76b94fb0c3e86c370bc7cb8c67d2bd7f5b12e975` | `mimesis-04.ogg` | 228,550 | 41.90 s | `10aab4fbbe104a2bcb44d05634737c1724d8cabde6f85ae9cd1028fd3d0d8539` |
+| CANTOR-31 / PALE ENGINE | `animated/cantor-31-atlas.webp` | 3,216,424 | `0490f2c784cae6bf08d1394591cc1453ca1f54a2563576055fe5c3b3cb1d0822` | `cantor-31.ogg` | 354,924 | 66.80 s | `25870516f678a4766333284b84be06f3e7cb83c6684dfdf8549103c5890e5a0a` |
+| CHOIR PRIME | `animated/choir-prime-atlas.webp` | 4,329,232 | `efb37efbe92cf9648fe638af5ed5189b8390a1a4ccf095df6bcc5c42002efce8` | `choir-prime.ogg` | 199,916 | 44.10 s | `db3b3ad6d71421c6d88323f58ac04e619e8fa94a616d93fb56b9381054f95ed3` |
 
 ## Encounter splash
 

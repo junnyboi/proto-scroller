@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 
-**Status:** In progress
+**Status:** 2× atlas regeneration implemented; release synchronization pending
 
 **Engine:** Godot 4.7.2-stable, GL Compatibility, non-threaded Web export
 
@@ -12,13 +12,13 @@
 
 ## Objective
 
-Replace the five campaign bosses’ static presentation sprites with video-derived animated sprites while preserving the existing Project CHOIR identity, fixed combat authority, responsive landscape/portrait behavior, no-post-warm-allocation architecture, and Web package discipline. Every boss receives **east- and west-facing `moving` and `attacking` states**. Animation remains cosmetic: the hidden `TankEnemy`, existing hurt regions, `BossAttackArea2D` footprints, controller clocks, damage events, support pools, wreck policy, and campaign transactions remain authoritative.
+Replace the five campaign bosses’ static presentation sprites with video-derived animated sprites and regenerate every runtime frame at **twice its prior linear resolution** while preserving the existing Project CHOIR identity, fixed combat authority, responsive landscape/portrait behavior, no-post-warm-allocation architecture, and Web package discipline. Every boss receives **east- and west-facing `moving` and `attacking` states**. Animation remains cosmetic: the hidden `TankEnemy`, existing hurt regions, `BossAttackArea2D` footprints, controller clocks, damage events, support pools, wreck policy, and campaign transactions remain authoritative.
 
 The feature uses the project-mandated video-to-sprites workflow. GPT Image 2 creates reference-faithful chroma keyframes; locked-camera, audio-disabled image-conditioned videos supply motion; deterministic processing extracts keyed frames; and Godot consumes compact atlases through the existing prewarmed `BossRig2D`.[1] [2]
 
 ## Inspected Baseline
 
-The concept index, runtime manifest, static sprites, shared boss implementation plan, boss rig, and three controller families were inspected before production.[3] [4] [5] Each existing boss is a 512×384 transparent WebP shown by `BossRig2D` as one fitted `Sprite2D`, with a separate weak-point part and fixed sockets/hurt regions. The visible rig currently has no animation clock and does not inherit the hidden host’s facing.
+The concept index, runtime manifest, prior animated atlases, shared boss implementation plan, boss rig, and three controller families were inspected before regeneration.[3] [4] [5] The superseded atlases used cells from 314×195 through 384×216. Their runtime grid, row order, stage timing, display envelope, weak-point part, sockets, and hurt regions were retained; only the source-pixel density and reference-faithful visual masters changed.
 
 | Boss | Current silhouette | Signature attack selected for the shared attack state | Direction rule |
 |---|---|---|---|
@@ -41,7 +41,7 @@ The runtime requires twenty sequences. Fourteen source carriers are generated be
 | CHOIR Prime | E/W × moving/attacking = 4 | 0 | 4 |
 | **Total** | **14** | **6** | **20** |
 
-Every carrier uses a flat hot-pink `#FF00FF` background selected by the video-to-sprites contrast tool, one full-body boss, a locked orthographic-style side view, zero camera motion, constant scale, fixed ground origin, no particles, no shadows, no duplicate subject, no text, and no audio. First and last keyframes are identical for loop closure. The gameplay-optimized extraction profile is **eight frames per sequence at a 6 FPS moving-loop rate**, processed within a 384×216 ceiling. The attack state uses the same eight ordered frames but maps them to the authoritative 0.85-second telegraph, 0.55-second active, and 0.75-second recovery intervals rather than running an independent damage clock.
+Every carrier uses a flat hot-pink `#FF00FF` background selected by the video-to-sprites contrast tool, one full-body boss, a locked orthographic-style side view, zero camera motion, constant scale, fixed ground origin, no particles, no shadows, no duplicate subject, no text, and no audio. First and last keyframes are identical for loop closure. The 2× extraction profile is **eight frames per sequence at a 6 FPS moving-loop rate**, processed at the carriers’ full 1280×720 resolution. A deterministic chroma-decontamination and bottom-center normalization pass then produces cells exactly twice the prior width and height. The attack state uses the same eight ordered frames but maps them to the authoritative 0.85-second telegraph, 0.55-second active, and 0.75-second recovery intervals rather than running an independent damage clock.
 
 ## Boss Motion Briefs
 
@@ -67,7 +67,7 @@ The moving state is a floor-anchored breathing-engine loop rather than walking: 
 
 ## Asset Layout
 
-Generation masters remain outside the source repository at `/home/ubuntu/proto-scroller-art-masters/boss-sprites/`. Each boss folder stores approved chroma anchors, MP4 carriers, extracted transparent frames, per-sequence sheets/manifests, and the lossless consolidated atlas master. The repository stores only runtime atlases, compact runtime metadata, import settings, provenance, and the implementation plan:
+Generation masters remain outside the source repository at `/home/ubuntu/proto-scroller-art-masters/boss-sprites-2x/`. Each boss folder stores approved 2560×1440 chroma anchors, 1280×720 MP4 carriers, extracted transparent frames, per-sequence sheets/manifests, high-resolution consolidated masters, exact 2× runtime atlases, build scripts, and review evidence. The repository stores only runtime atlases, compact runtime metadata, import settings, provenance, and the implementation plan:
 
 ```text
 game/art/bosses/animated/
@@ -79,7 +79,7 @@ game/art/bosses/animated/
   ANIMATION_ASSET_MANIFEST.md
 ```
 
-Each atlas contains four contiguous eight-frame sequences in this order: `E_moving`, `W_moving`, `E_attacking`, `W_attacking`. Eight columns produce one row per sequence and four rows per boss. Cells share one bottom-center anchor and include transparent padding, allowing one stable `Sprite2D.region_rect` envelope per boss. Godot imports runtime atlases as filtered lossy Web textures without mipmaps; lossless masters and videos remain outside the PCK.
+Each atlas contains four contiguous eight-frame sequences in this order: `E_moving`, `W_moving`, `E_attacking`, `W_attacking`. Eight columns produce one row per sequence and four rows per boss. Cells share one bottom-center anchor and include transparent padding, allowing one stable `Sprite2D.region_rect` envelope per boss. Every cell is exactly 2× its predecessor in both axes, providing four times the source pixels at identical on-screen dimensions. Godot imports runtime atlases as filtered high-quality lossy Web textures without mipmaps; masters and videos remain outside the PCK.
 
 ## Runtime Architecture
 
@@ -120,7 +120,7 @@ One subsequent fresh player melee, either jab-cross or ground smash, immediately
 | Mechanical stability | Region rendering affects only `_presentation_root`; hurt regions and sockets never flip or move. |
 | Portrait parity | The current portrait presentation scale remains; frame cells retain the same bottom-center origin and 520×390 display envelope. |
 | Retry determinism | Restored controller stage immediately selects the corresponding attack frame range. No independent callback survives generation cleanup. |
-| Web package budget | Use eight frames, 384×216 processing, one compressed atlas per boss, and exclude generation masters from source/export. Optimize only presentation imports if the fresh PCK exceeds the current ceiling. |
+| Web package budget | Use eight frames, one high-quality compressed atlas per boss, and exclude generation masters from source/export. The deliberate 2× fidelity increase supersedes the former 384×216/PCK-ceiling optimization; exported payload size is measured and recorded rather than silently downscaling the requested art. |
 | Static fallback | Existing five static sprites remain source-controlled as identity references and rollback assets but are removed from runtime preload paths. |
 
 ## Work Packages
@@ -135,7 +135,7 @@ Generate seven GPT Image 2 chroma anchors: E/W for S-04, E for the three mirror-
 
 ### WP3 — Extraction and atlas packing
 
-Process every carrier into eight transparent WebP frames. Derive west sequences only for SAMARITAN, MIMESIS, and CANTOR. Pack one four-sequence atlas per boss, emit JSON manifests, inspect the five final atlases, and copy only runtime atlases plus provenance into the repository.
+Process every carrier into eight transparent WebP frames at 1280×720. Derive west sequences only for SAMARITAN, MIMESIS, and CANTOR. Pack one four-sequence master per boss, remove chroma spill, normalize to cells exactly twice the prior dimensions, emit manifests, inspect all direction/state rows, and copy only high-quality runtime atlases plus provenance into the repository.
 
 ### WP4 — Godot runtime integration
 
@@ -150,6 +150,7 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 | Layer | Acceptance requirement |
 |---|---|
 | Coverage | Five bosses each expose E/W `moving` and `attacking` sequences. |
+| Resolution | Every runtime cell is exactly 2× the prior width and height while retaining the same 520×390 display envelope. |
 | Identity | Concept-specific silhouette, palette, body modules, and signature asymmetry remain stable. |
 | Camera/key | Carriers use a locked camera, constant scale, fixed origin, flat `#FF00FF`, no audio, and no extra subjects. |
 | Runtime | One prewarmed rig sprite renders one region from one boss atlas; no combat-time node allocation occurs. |
@@ -170,6 +171,7 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 | WP4 — Godot integration | Complete | `a89ab7b` | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
 | WP5 — Export and WebDev | Complete | Source `bb106f0`; checkpoint `f0eb7790` | Final Godot 4.7.2 Web export uploaded as fresh immutable WASM/PCK and synchronized into the existing fullscreen WebDev host. |
 | WP6 — Defeated pose, rubble, and repairs | Complete | Source `430f4d0`; checkpoint `e2eec3aa` | The full defeat spectacle hands off to a frozen, darkened final atlas frame; one fresh melee creates prewarmed rubble and releases two or three fixed 50-HP pickups from the expanded fixed pool. |
+| WP7 — 2× atlas regeneration | Implemented | Pending source/release revision | Seven fresh GPT Image 2 anchors, fourteen fresh audio-disabled Veo carriers, twenty full-resolution keyed sequences, five exact 2× runtime atlases, high-quality imports, catalog geometry validation, and representative visual inspection. |
 
 ## References
 

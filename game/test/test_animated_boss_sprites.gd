@@ -16,6 +16,16 @@ func test_animation_catalog_covers_all_five_bosses() -> void:
 		assert_not_null(texture, "%s has an animation atlas" % preset)
 		assert_eq(int(texture.get_size().x) % BossAnimationCatalog.COLUMN_COUNT, 0)
 		assert_eq(int(texture.get_size().y) % BossAnimationCatalog.ROW_COUNT, 0)
+		var cell_size := Vector2i(
+			int(texture.get_size().x) / BossAnimationCatalog.COLUMN_COUNT,
+			int(texture.get_size().y) / BossAnimationCatalog.ROW_COUNT
+		)
+		assert_eq(
+			cell_size,
+			BossAnimationCatalog.EXPECTED_CELL_SIZES[preset],
+			"%s uses an exact 2x source cell" % preset
+		)
+	assert_eq(BossAnimationCatalog.SOURCE_DENSITY_SCALE, 2)
 
 
 func test_all_direction_and_state_sequences_have_stable_rows() -> void:
