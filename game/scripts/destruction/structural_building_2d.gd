@@ -23,7 +23,7 @@ const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.g
 @export var intact_texture: Texture2D
 @export var damaged_texture: Texture2D
 @export var rubble_texture: Texture2D
-@export var display_size: Vector2 = Vector2(500.0, 445.0)
+@export var display_size: Vector2 = Vector2(600.0, 534.0)
 @export var collision_layer_value: int = 0
 @export var collision_mask_value: int = 0
 @export var hurtbox_layer_value: int = 0

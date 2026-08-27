@@ -1,6 +1,33 @@
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+const BASE_FACADE_SIZES: Dictionary[StringName, Vector2] = {
+	&"business_mercy_exchange_annex": Vector2(500.0, 445.0),
+	&"business_helix_clearinghouse_spine": Vector2(390.0, 520.0),
+	&"business_orison_custody_vault": Vector2(590.0, 360.0),
+	&"business_vanta_compliance_tribunal": Vector2(500.0, 455.0),
+	&"business_crown_reserve_treasury": Vector2(570.0, 500.0),
+	&"residential_emberpot_canteen_house": Vector2(410.0, 340.0),
+	&"residential_bluewire_laundry_walkup": Vector2(430.0, 405.0),
+	&"residential_rainvault_cooperative": Vector2(500.0, 445.0),
+	&"residential_sixfold_balcony_court": Vector2(480.0, 390.0),
+	&"residential_nightglass_mutual_clinic": Vector2(450.0, 355.0),
+	&"entertainment_voltage_chapel": Vector2(420.0, 360.0),
+	&"entertainment_orpheum_vanta": Vector2(540.0, 410.0),
+	&"entertainment_halcyon_stack_hotel": Vector2(470.0, 500.0),
+	&"entertainment_prism_crown_revue": Vector2(610.0, 390.0),
+	&"entertainment_house_of_static": Vector2(570.0, 500.0),
+	&"military_ordnance_transload_bastion": Vector2(620.0, 350.0),
+	&"military_revetment_armory_stack": Vector2(390.0, 330.0),
+	&"military_aegis_signal_citadel": Vector2(420.0, 500.0),
+	&"military_manticore_repair_gantry": Vector2(650.0, 390.0),
+	&"military_prefect_war_keep": Vector2(560.0, 500.0),
+	&"royal_laureate_processional_gate": Vector2(540.0, 400.0),
+	&"royal_aurelian_conservatory": Vector2(620.0, 400.0),
+	&"royal_tribunal_nine_seals": Vector2(650.0, 470.0),
+	&"royal_ministry_privilege_spire": Vector2(420.0, 540.0),
+	&"royal_palace_last_sovereign": Vector2(680.0, 540.0),
+}
 
 
 func _hollow_progress(pattern: BuildingDamagePattern2D) -> float:
@@ -13,6 +40,27 @@ func _hollow_extents(pattern: BuildingDamagePattern2D) -> Vector2:
 
 func _region_uv_rect(pattern: BuildingDamagePattern2D) -> Vector4:
 	return pattern.cavity_material().get_shader_parameter("region_uv_rect") as Vector4
+
+
+func test_all_twenty_five_facades_are_exactly_twenty_percent_larger() -> void:
+	assert_almost_eq(CityDistrictCatalog.FACADE_SIZE_SCALE, 1.2, 0.0001)
+	var checked_variants: int = 0
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		for variant: StructuralBuildingVariant in district.building_variants:
+			var base_size: Vector2 = BASE_FACADE_SIZES.get(
+				variant.variant_id,
+				Vector2.ZERO
+			) as Vector2
+			assert_ne(base_size, Vector2.ZERO, String(variant.variant_id))
+			assert_eq(
+				variant.display_size,
+				base_size * CityDistrictCatalog.FACADE_SIZE_SCALE,
+				String(variant.variant_id)
+			)
+			assert_lt(variant.display_size.x, CityStreetChunk.CHUNK_WIDTH)
+			checked_variants += 1
+	assert_eq(checked_variants, CityDistrictCatalog.BUILDING_VARIANT_COUNT)
+	assert_eq(BASE_FACADE_SIZES.size(), CityDistrictCatalog.BUILDING_VARIANT_COUNT)
 
 
 func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
