@@ -39,10 +39,24 @@ func test_gate_lease_uses_six_existing_chunks_and_one_landmark() -> void:
 	assert_eq(city.world_stream.active_chunk_count(), CityWorldStream.CHUNK_CAPACITY)
 	assert_eq(city.streamed_destructibles.active_building_count(), CityWorldStream.CHUNK_CAPACITY)
 	assert_eq(campaign.arena_lease.landmark_instance_count(), 1)
+	var arena_building: StructuralBuilding2D = campaign.arena_lease.arena_building
+	assert_true(arena_building.encounter_suppressed)
+	assert_false(arena_building.visible)
+	await get_tree().physics_frame
+	for row: int in range(StructuralBuilding2D.ROWS):
+		for column: int in range(StructuralBuilding2D.COLUMNS):
+			var cell: Destructible2D = arena_building.get_cell(column, row)
+			var collision: CollisionShape2D = cell.get_node_or_null(
+				^"IntactBody/CollisionShape2D"
+			) as CollisionShape2D
+			assert_true(collision.disabled)
 	assert_eq(city.world_stream.post_warm_creation_count, 0)
 	assert_eq(city.streamed_destructibles.post_warm_creation_count, 0)
 	for index: int in range(baseline_ids.size()):
 		assert_eq(city.streamed_destructibles.buildings[index].get_instance_id(), baseline_ids[index])
+	campaign.stop()
+	assert_false(arena_building.encounter_suppressed)
+	assert_true(arena_building.visible)
 
 
 func test_origin_rebase_keeps_gate_and_arena_anchors_aligned() -> void:

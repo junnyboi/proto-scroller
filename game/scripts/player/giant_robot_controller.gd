@@ -151,7 +151,10 @@ func _physics_process(delta: float) -> void:
 func receive_damage(event: DamageEvent) -> bool:
 	if event == null or event.amount <= 0.0 or _combat_disabled:
 		return false
-	if _invulnerable_remaining > 0.0:
+	if (
+		_invulnerable_remaining > 0.0
+		and event.effect_flags & DamageEvent.FLAG_UNBLOCKABLE == 0
+	):
 		invulnerable_rejection_count += 1
 		return false
 	if _is_friendly_damage(event):

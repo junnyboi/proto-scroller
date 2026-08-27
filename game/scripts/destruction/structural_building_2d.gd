@@ -34,6 +34,7 @@ var last_chain_reaction_kind: StringName = &""
 var chain_reaction_count: int = 0
 var active_variant: StructuralBuildingVariant
 var active_variant_id: StringName = &"legacy"
+var encounter_suppressed: bool = false
 var _cells: Array[Destructible2D] = []
 var _destroyed_cells: int = 0
 var _last_destruction_event: DamageEvent
@@ -137,6 +138,18 @@ func ground_passage_open() -> bool:
 		if not is_cell_destroyed(column, ROWS - 1):
 			return false
 	return true
+
+
+func set_encounter_suppressed(suppressed: bool) -> void:
+	encounter_suppressed = suppressed
+	visible = not suppressed
+	_refresh_ground_passage_collision()
+	for cell: Destructible2D in _cells:
+		var hurtbox: CollisionShape2D = cell.get_node_or_null(
+			^"Hurtbox/CollisionShape2D"
+		) as CollisionShape2D
+		if hurtbox != null:
+			hurtbox.set_deferred("disabled", suppressed or cell.is_destroyed())
 
 
 func is_chain_reaction_active() -> bool:
@@ -562,7 +575,7 @@ func _refresh_ground_passage_collision() -> void:
 			if collision != null:
 				collision.set_deferred(
 					"disabled",
-					cell.is_destroyed()
+					encounter_suppressed or cell.is_destroyed()
 				)
 
 

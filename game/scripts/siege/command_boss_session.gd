@@ -36,13 +36,13 @@ var active_definition: BossEncounterDefinition
 var elapsed_seconds: float = 0.0
 var generation_token: int = 0
 var last_completed_wreck_position: Vector2 = Vector2.ZERO
+var last_repair_drop_count: int = 0
 var _state_elapsed: float = 0.0
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
 var _armor_feedback_key: String = ""
 var _royal_finisher_attacks: Dictionary[int, bool] = {}
 var _royal_finisher_roots: Dictionary[int, bool] = {}
-var last_repair_drop_count: int = 0
 
 
 func setup(p_dependencies: UrbanSiegeDependencies) -> void:
@@ -90,6 +90,8 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		Vector2(0.0, 551.0),
 		&"AHEAD"
 	)
+	if definition != null and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+		spawn_position.y = BossRig2D.SETTLEMENT_ROAD_CONTACT_Y
 	var resident_bounds: Vector2 = dependencies.city.world_stream.resident_bounds()
 	spawn_position.x = clampf(
 		maxf(spawn_position.x, dependencies.robot.global_position.x + 900.0),

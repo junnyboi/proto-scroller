@@ -118,6 +118,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.boss_markers, 8)
 	assert_eq(snapshot.boss_lane_damage_areas, 3)
 	assert_eq(snapshot.boss_line_areas, 2)
+	assert_eq(snapshot.boss_radial_shockwaves, RuntimeBudget.BOSS_RADIAL_SHOCKWAVES)
 	assert_eq(snapshot.boss_collapse_listeners, 2)
 	assert_eq(snapshot.boss_pod_visuals, 4)
 	assert_eq(snapshot.boss_reclamation_anchors, 3)

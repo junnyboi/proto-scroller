@@ -13,6 +13,7 @@ enum PresentationRole {
 	LANE_PLATE,
 	LINE_BEAM,
 	ECHO_PRESENTATION,
+	RADIAL_SHOCKWAVE,
 }
 
 const ROBOT_LAYER: int = 1 << 1
@@ -30,6 +31,7 @@ var footprint_size: Vector2 = Vector2(192.0, 96.0)
 var attack_id: StringName = &""
 var activation_attack_id: int = 0
 var damage_amount: float = DEFAULT_DAMAGE
+var radial_age: float = 0.0
 
 var _damage_target: GiantRobotController
 var _damaged_target_ids: Dictionary[int, bool] = {}
@@ -55,8 +57,18 @@ func configure_footprint(
 	if _is_echo_attack():
 		presentation_role = PresentationRole.ECHO_PRESENTATION
 	var collision: CollisionShape2D = get_node(^"Collision") as CollisionShape2D
-	var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
-	rectangle.size = footprint_size
+	if presentation_role == PresentationRole.RADIAL_SHOCKWAVE:
+		var circle: CircleShape2D = collision.shape as CircleShape2D
+		if circle == null:
+			circle = CircleShape2D.new()
+			collision.shape = circle
+		circle.radius = maxf(footprint_size.x, footprint_size.y) * 0.5
+	else:
+		var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+		if rectangle == null:
+			rectangle = RectangleShape2D.new()
+			collision.shape = rectangle
+		rectangle.size = footprint_size
 	var armed: bool = (
 		visual_state == VisualState.ARMED
 		and presentation_role != PresentationRole.ECHO_PRESENTATION
@@ -72,7 +84,12 @@ func configure_footprint(
 		activation_attack_id = _next_activation_attack_id
 		_next_activation_attack_id += 1
 		_damaged_target_ids.clear()
+		radial_age = 0.0
 		call_deferred(&"_damage_current_overlaps")
+	set_process(
+		presentation_role == PresentationRole.RADIAL_SHOCKWAVE
+		and visual_state != VisualState.HIDDEN
+	)
 	queue_redraw()
 
 
@@ -111,6 +128,8 @@ func contains_world_point(world_point: Vector2) -> bool:
 	):
 		return false
 	var local_point: Vector2 = to_local(world_point)
+	if presentation_role == PresentationRole.RADIAL_SHOCKWAVE:
+		return local_point.length() <= maxf(footprint_size.x, footprint_size.y) * 0.5
 	return (
 		absf(local_point.x) <= footprint_size.x * 0.5
 		and absf(local_point.y) <= footprint_size.y * 0.5
@@ -137,13 +156,19 @@ func try_damage_body(body: Node) -> bool:
 		activation_attack_id,
 		self,
 		damage_amount,
-		&"boss_hazard",
+		&"boss_unblockable_shockwave"
+		if presentation_role == PresentationRole.RADIAL_SHOCKWAVE
+		else &"boss_hazard",
 		robot.global_position,
 		direction,
 		0.0,
 		activation_attack_id,
 		0,
-		DamageEvent.FLAG_HAZARD
+		DamageEvent.FLAG_HAZARD | (
+			DamageEvent.FLAG_UNBLOCKABLE
+			if presentation_role == PresentationRole.RADIAL_SHOCKWAVE
+			else DamageEvent.FLAG_NONE
+		)
 	))
 	if accepted:
 		_damaged_target_ids[target_id] = true
@@ -161,12 +186,22 @@ func _on_body_entered(body: Node2D) -> void:
 	try_damage_body(body)
 
 
+func _process(delta: float) -> void:
+	if presentation_role != PresentationRole.RADIAL_SHOCKWAVE or not visible:
+		return
+	radial_age += delta
+	queue_redraw()
+
+
 func _is_echo_attack() -> bool:
 	return String(attack_id).begins_with("ECHO_")
 
 
 func _draw() -> void:
 	if visual_state == VisualState.HIDDEN:
+		return
+	if presentation_role == PresentationRole.RADIAL_SHOCKWAVE:
+		_draw_radial_shockwave()
 		return
 	var rectangle: Rect2 = Rect2(-footprint_size * 0.5, footprint_size)
 	var texture: Texture2D = authored_texture()
@@ -191,6 +226,36 @@ func _draw() -> void:
 			draw_line(
 				Vector2(stripe_x, rectangle.position.y),
 				Vector2(stripe_x + 32.0, rectangle.end.y),
-				Color(1.0, 0.72, 0.16, 0.82),
-				3.0
-			)
+					Color(1.0, 0.72, 0.16, 0.82),
+					3.0
+				)
+
+
+func _draw_radial_shockwave() -> void:
+	var radius: float = maxf(footprint_size.x, footprint_size.y) * 0.5
+	var armed: bool = visual_state == VisualState.ARMED
+	var pulse: float = fmod(radial_age * (2.8 if armed else 1.2), 1.0)
+	var core_color: Color = (
+		Color(1.0, 0.20, 0.08, 0.24)
+		if armed
+		else Color(1.0, 0.72, 0.14, 0.10)
+	)
+	var edge_color: Color = (
+		Color(1.0, 0.94, 0.82, 0.98)
+		if armed
+		else Color(1.0, 0.70, 0.12, 0.88)
+	)
+	draw_circle(Vector2.ZERO, radius, core_color)
+	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 72, edge_color, 7.0 if armed else 4.0)
+	for ring_index: int in range(3):
+		var ring_ratio: float = fmod(pulse + float(ring_index) / 3.0, 1.0)
+		var ring_radius: float = lerpf(radius * 0.18, radius, ring_ratio)
+		draw_arc(
+			Vector2.ZERO,
+			ring_radius,
+			0.0,
+			TAU,
+			64,
+			Color(edge_color, (1.0 - ring_ratio) * (0.72 if armed else 0.38)),
+			5.0 if armed else 2.5
+		)

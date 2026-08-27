@@ -170,18 +170,13 @@ static func _ensure_catalog() -> void:
 			&"SETTLEMENT_ENGINE",
 			{
 				&"markers": 3,
-				&"lane_damage_areas": 2,
-				&"line_areas": 1,
+				&"radial_shockwaves": 1,
 				&"collapse_listeners": 1,
 				&"wreck_receivers": 1,
 			},
-			{&"procedural_infantry": 2},
+			{&"procedural_infantry": 8},
 			[
-				&"SETTLEMENT_SWEEP",
-				&"DOUBLE_ENTRY_BARRAGE",
-				&"FORECLOSURE_STAMP",
-				&"AUDIT_BEAM",
-				&"FOUNDATION_CASCADE",
+				&"FIDUCIARY_SHOCKWAVE",
 			]
 		),
 				_make_definition(

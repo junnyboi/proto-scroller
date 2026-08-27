@@ -16,6 +16,7 @@ enum UtilityPresentationRole {
 const MARKER_CAPACITY: int = 8
 const LANE_DAMAGE_AREA_CAPACITY: int = 3
 const LINE_AREA_CAPACITY: int = 2
+const RADIAL_SHOCKWAVE_CAPACITY: int = 1
 const COLLAPSE_LISTENER_CAPACITY: int = 2
 const POD_VISUAL_CAPACITY: int = 4
 const RECLAMATION_ANCHOR_CAPACITY: int = 3
@@ -64,6 +65,7 @@ var markers: Array[Marker2D] = []
 var marker_presentations: Array[Sprite2D] = []
 var lane_damage_areas: Array[BossAttackArea2D] = []
 var line_areas: Array[BossAttackArea2D] = []
+var radial_shockwave: BossAttackArea2D
 var collapse_listeners: Array[Node] = []
 var pod_visuals: Array[BossPodVisual2D] = []
 var reclamation_anchor_records: Array[Node2D] = []
@@ -94,6 +96,7 @@ static func utility_capacities() -> Dictionary[StringName, int]:
 		&"markers": MARKER_CAPACITY,
 		&"lane_damage_areas": LANE_DAMAGE_AREA_CAPACITY,
 		&"line_areas": LINE_AREA_CAPACITY,
+		&"radial_shockwaves": RADIAL_SHOCKWAVE_CAPACITY,
 		&"collapse_listeners": COLLAPSE_LISTENER_CAPACITY,
 		&"pod_visuals": POD_VISUAL_CAPACITY,
 		&"reclamation_anchors": RECLAMATION_ANCHOR_CAPACITY,
@@ -203,7 +206,12 @@ func restore_reservation_state(state: Dictionary) -> void:
 
 
 func area_count() -> int:
-	return lane_damage_areas.size() + line_areas.size() + wreck_receivers.size()
+	return (
+		lane_damage_areas.size()
+		+ line_areas.size()
+		+ int(radial_shockwave != null)
+		+ wreck_receivers.size()
+	)
 
 
 func marker_count() -> int:
@@ -363,6 +371,8 @@ func configure_runtime(
 	escalation.setup(self, encounter_runtime)
 	for area: BossAttackArea2D in lane_damage_areas + line_areas:
 		area.setup_damage_target(encounter_runtime.robot)
+	if radial_shockwave != null:
+		radial_shockwave.setup_damage_target(encounter_runtime.robot)
 
 
 func configure_wreck_receivers(
@@ -493,6 +503,10 @@ func _prewarm() -> void:
 			"LineArea%02d" % index,
 			BossAttackArea2D.PresentationRole.LINE_BEAM
 		))
+	radial_shockwave = _make_area(
+		"RadialShockwave",
+		BossAttackArea2D.PresentationRole.RADIAL_SHOCKWAVE
+	)
 	for index: int in range(COLLAPSE_LISTENER_CAPACITY):
 		var listener: Node = Node.new()
 		listener.name = "CollapseListener%02d" % index
