@@ -131,7 +131,7 @@ This section will be updated after each work package with commit IDs, focused ch
 | Work package | Completion | Commit / checkpoint | Focused evidence | Notes |
 |---|---|---|---|---|
 | WP0 | Completed | `88e2fe9d480bd2929942c4289853add7320f9f27` | 20 proposal concepts, 20 GPT Image 2 masters, 20 transparent runtime sprites; runtime PNG total 2,831,759 bytes; visual contact sheet inspected | Proposal embeds every concept; source masters remain outside `game/`; runtime derivatives are 320–448 pixels maximum dimension. |
-| WP1 | Completed | WP1 source commit recorded after integration | Focused catalog filters: 3/3 tests and 632 assertions passed; Godot 4.7.2 imported all 20 textures without catalog or spawn-entry parse errors | Base behavior-signature uniqueness remains scoped to the original 26; overlays intentionally reuse those behaviors. The inherited isolated Reclaimed Breacher TTK expectation remains outside WP1 and was not altered. |
+| WP1 | Completed | `124990d992f619b47f092aae22983a5e6021a28f` | Focused catalog filters: 3/3 tests and 632 assertions passed; Godot 4.7.2 imported all 20 textures without catalog or spawn-entry parse errors | Base behavior-signature uniqueness remains scoped to the original 26; overlays intentionally reuse those behaviors. The inherited isolated Reclaimed Breacher TTK expectation remains outside WP1 and was not altered. |
 | WP2 | Pending | — | — | — |
 | WP3 | Pending | — | — | — |
 | WP4 | Pending | — | — | — |
