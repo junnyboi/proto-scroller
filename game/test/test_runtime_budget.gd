@@ -62,6 +62,10 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 		RuntimeBudget.WEATHER_PARTICLE_CAPACITY
 	)
 	assert_eq(snapshot.weather_post_warm_creations, 0)
+	assert_eq(snapshot.sky_life_runtimes, RuntimeBudget.SKY_LIFE_RUNTIMES)
+	assert_eq(snapshot.sky_life_bands, RuntimeBudget.SKY_LIFE_BANDS)
+	assert_eq(snapshot.sky_life_sprites, RuntimeBudget.SKY_LIFE_SPRITES)
+	assert_eq(snapshot.sky_life_post_warm_creations, 0)
 	assert_eq(snapshot.narrative_directors, RuntimeBudget.NARRATIVE_DIRECTORS)
 	assert_eq(snapshot.transmission_toasts, RuntimeBudget.TRANSMISSION_TOASTS)
 	assert_eq(snapshot.facade_reveal_slots, RuntimeBudget.FACADE_REVEAL_SLOTS)
