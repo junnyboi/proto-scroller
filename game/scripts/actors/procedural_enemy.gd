@@ -296,7 +296,16 @@ func _begin_attack() -> void:
 		&"shock_brace", &"marked_leap", &"choir_ring", &"drop_lunge", &"incubation_drop",
 	]:
 		telegraph_kind = &"support"
-	if not begin_telegraph(telegraph_kind, anticipation_duration, origin, target_point):
+	var damage_output: float = (
+		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier
+	)
+	if not begin_telegraph(
+		telegraph_kind,
+		anticipation_duration,
+		origin,
+		target_point,
+		damage_output
+	):
 		_cooldown = 0.2
 		return
 	var extra_shots: int = 0

@@ -32,6 +32,9 @@ const SURVIVING_MELEE_KNOCKBACK_MULTIPLIER: float = 5.0
 const TELEGRAPH_REFERENCE_SPAN: float = 96.0
 const TELEGRAPH_MINIMUM_THICKNESS_SCALE: float = 0.85
 const TELEGRAPH_MAXIMUM_THICKNESS_SCALE: float = 2.40
+const TELEGRAPH_REFERENCE_DAMAGE: float = 16.0
+const TELEGRAPH_MINIMUM_COLOR_INTENSITY: float = 0.72
+const TELEGRAPH_MAXIMUM_COLOR_INTENSITY: float = 1.55
 
 @export var max_health: float = 60.0
 
@@ -475,7 +478,8 @@ func begin_telegraph(
 	kind: StringName,
 	duration: float,
 	origin: Vector2,
-	target_point: Vector2
+	target_point: Vector2,
+	damage_output: float = 0.0
 ) -> bool:
 	if not attack_gate_enabled or telegraph_presenter == null or _telegraph_id != 0:
 		return false
@@ -492,7 +496,8 @@ func begin_telegraph(
 		kind,
 		attack_telegraph_origin(),
 		target_point,
-		adjusted_duration
+		adjusted_duration,
+		damage_output
 	)
 	if _telegraph_id == 0:
 		if projectile_pool != null and _projectile_reservation_id != 0:
@@ -528,6 +533,15 @@ func attack_telegraph_thickness_scale() -> float:
 		sqrt(rendered_span / TELEGRAPH_REFERENCE_SPAN),
 		TELEGRAPH_MINIMUM_THICKNESS_SCALE,
 		TELEGRAPH_MAXIMUM_THICKNESS_SCALE
+	)
+
+
+func attack_telegraph_color_intensity(damage_output: float) -> float:
+	var effective_damage: float = _scale_outgoing_damage(damage_output)
+	return clampf(
+		sqrt(effective_damage / TELEGRAPH_REFERENCE_DAMAGE),
+		TELEGRAPH_MINIMUM_COLOR_INTENSITY,
+		TELEGRAPH_MAXIMUM_COLOR_INTENSITY
 	)
 
 
