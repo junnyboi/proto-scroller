@@ -64,8 +64,8 @@ func test_legacy_amount_policy_still_accepts_one_oversized_jab_cross() -> void:
 	assert_almost_eq(session.boss.boss_armor, 0.0, 0.001)
 
 
-func test_campaign_policy_requires_three_distinct_full_charge_fixed_steps() -> void:
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[0]
+func test_later_campaign_policy_requires_three_distinct_full_charge_fixed_steps() -> void:
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[1]
 	assert_true(session.start_definition(definition))
 	var boss: TankEnemy = session.boss
 	assert_eq(boss.boss_armor_policy, EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP)
@@ -97,8 +97,8 @@ func test_campaign_policy_requires_three_distinct_full_charge_fixed_steps() -> v
 	assert_almost_eq(boss.current_health, definition.health - 40.0, 0.001)
 
 
-func test_campaign_armor_rejections_provide_exact_input_feedback() -> void:
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[0]
+func test_later_campaign_armor_rejections_provide_exact_input_feedback() -> void:
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[1]
 	assert_true(session.start_definition(definition))
 	var rig: BossRig2D = session.utility_pool.rig
 	assert_false(rig.receive_damage(DamageEvent.new(

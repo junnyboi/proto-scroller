@@ -22,6 +22,12 @@ The five boss silhouettes were generated with **GPT Image 2** and the five instr
 | CANTOR-31 / PALE ENGINE | `cantor-31.webp` | 56,750 | `da58a783d57cc396688b454daab7b55bc1b1be42ee9139426d6775f161264d3c` | `cantor-31.ogg` | 354,924 | 66.80 s | `25870516f678a4766333284b84be06f3e7cb83c6684dfdf8549103c5890e5a0a` |
 | CHOIR PRIME | `choir-prime.webp` | 59,882 | `53f4bd855074d7677dc0f92f588cc99172550530cfc938bf3be6601734056376` | `choir-prime.ogg` | 199,916 | 44.10 s | `db3b3ad6d71421c6d88323f58ac04e619e8fa94a616d93fb56b9381054f95ed3` |
 
+## Encounter splash
+
+The shared encounter herald uses `game/art/ui/boss_fight/boss-fight-splash.webp`, a 1,344×576 transparent GPT Image 2 typography asset containing only the exact words **BOSS FIGHT**. The runtime file is 295,302 bytes with SHA-256 `893be721d4b59a440c2293bad2d9ab1421a253eeed66938f506129659ca8b4b0`. Its original generated alternatives and lossless masters remain outside the source repository under `/home/ubuntu/proto-scroller-art-masters/boss-fight/`.
+
+The synchronized 1.18-second voiceover SFX is documented in `game/audio/voice/PROVENANCE.md`. Its industrial impact bed was extracted from a three-second image-conditioned Gemini Omni sound carrier generated from the selected GPT Image 2 typography anchor; the carrier is not shipped in the PCK.
+
 ## Export Evidence
 
 | Artifact | Bytes | SHA-256 |

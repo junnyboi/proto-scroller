@@ -29,8 +29,14 @@ func test_campaign_host_is_hidden_stationary_authority_and_rig_forwards_damage()
 	assert_eq(rig.active_part_count, 2)
 	assert_eq(rig.active_hurt_region_count, BossRig2D.HURT_REGION_CAPACITY)
 	var armor_before: float = host.boss_armor
-	assert_true(rig.receive_damage(_charged_event(3001, 3001)))
-	assert_almost_eq(host.boss_armor, armor_before - 110.0, 0.001)
+	assert_true(rig.receive_damage(DamageEvent.new(
+		3001, city.robot, 40.0, &"bullet"
+	)))
+	assert_almost_eq(host.boss_armor, armor_before - 40.0, 0.001)
+	assert_eq(rig.damage_flash_count, 1)
+	assert_eq(rig._presentation_root.modulate, Color(4.0, 4.0, 4.0, 1.0))
+	await get_tree().create_timer(0.15).timeout
+	assert_eq(rig._presentation_root.modulate, Color.WHITE)
 	host.velocity = Vector2(800.0, 200.0)
 	await get_tree().physics_frame
 	assert_eq(host.velocity, Vector2(800.0, 200.0))
@@ -189,8 +195,9 @@ func test_campaign_hazards_do_not_advance_or_arm_during_screen() -> void:
 func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_root() -> void:
 	assert_true(session.start_definition(BossCampaignCatalog.definitions()[0]))
 	var host: TankEnemy = session.boss
-	for index: int in range(3):
-		assert_true(host.receive_damage(_charged_event(3100 + index, 3100 + index)))
+	assert_true(host.receive_damage(DamageEvent.new(
+		3100, city.robot, session.active_definition.armor, &"rocket"
+	)))
 	var fatal: DamageEvent = DamageEvent.new(
 		3200,
 		city.robot,
