@@ -159,9 +159,9 @@ Merge concurrent shared-main work semantically, push the completed feature to `m
 |---|---|---|---|
 | WP1 — Reference lock and plan | Complete | `86fa1a5` | Five references and current static sprites inspected; 14-carrier/20-sequence matrix selected and pushed before generation. |
 | WP2 — Anchors and carriers | Complete | External masters | Seven GPT Image 2 anchors and fourteen 4-second locked Veo 3.1 carriers; 720p and audio disabled. |
-| WP3 — Extraction and atlases | Complete | Implementation commit pending | Twenty eight-frame sequences packed into five 32-frame lossless masters and five compact runtime atlases; visual inspection recorded externally. |
-| WP4 — Godot integration | Complete | Implementation commit pending | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
-| WP5 — Export and WebDev | Pending | Pending | Fresh runtime payloads and checkpoint. |
+| WP3 — Extraction and atlases | Complete | `a89ab7b` | Twenty eight-frame sequences packed into five 32-frame lossless masters and five compact runtime atlases; visual inspection recorded externally. |
+| WP4 — Godot integration | Complete | `a89ab7b` | Catalog, prewarmed region playback, player-relative facing, controller-stage wiring, lifecycle reset, and contract coverage implemented. |
+| WP5 — Export and WebDev | Complete | Source `bb106f0`; checkpoint `f0eb7790` | Final Godot 4.7.2 Web export uploaded as fresh immutable WASM/PCK and synchronized into the existing fullscreen WebDev host. |
 
 ## References
 
