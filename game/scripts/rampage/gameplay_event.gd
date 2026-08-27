@@ -26,6 +26,7 @@ const AIR_DEBRIS_HIT: StringName = &"AIR_DEBRIS_HIT"
 const CELL_BREACH: StringName = &"CELL_BREACH"
 const CHAIN_COLLAPSE: StringName = &"CHAIN_COLLAPSE"
 const CATALYST_TRIGGER: StringName = &"CATALYST_TRIGGER"
+const POWER_BOX_SCRAP: StringName = &"POWER_BOX_SCRAP"
 const SHOCKWAVE_CUE: StringName = &"GROUND_SMASH_SHOCKWAVE"
 const ENEMY_KILL: StringName = &"ENEMY_KILL"
 
