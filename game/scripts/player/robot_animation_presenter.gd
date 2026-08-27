@@ -22,6 +22,8 @@ const ATTACK_IMPACT_VOLUME_DB: float = (
 	ATTACK_IMPACT_BASE_VOLUME_DB + ATTACK_IMPACT_GAIN_DB
 	+ ATTACK_IMPACT_REDUCTION_DB
 )
+const MELEE_IMPACT_VOLUME_VARIATION_DB: float = 0.55
+const MAX_MECHANICS_VOLUME_VARIATION_DB: float = 2.0
 const CRITICAL_SMOKE_OFFSET: Vector2 = Vector2(28.0, -42.0)
 const CHARGE_PARTICLE_OFFSET: Vector2 = Vector2(0.0, 34.0)
 const CHARGE_PARTICLE_CAPACITY: int = 56
@@ -109,6 +111,7 @@ var audio_drop_count: int = 0
 var audio_preemption_count: int = 0
 var last_preempted_priority: int = AudioVoicePriority.UNUSED
 var last_audio_cue: StringName = &""
+var last_audio_volume_db: float = 0.0
 var last_completed_attack_frame: int = -1
 var completed_full_attack_count: int = 0
 var charging: bool = false
@@ -424,14 +427,16 @@ func _on_attack_committed(mode: int, attack_id: int) -> void:
 			GROUND_SLAM_IMPACT_SFX,
 			&"ground_slam_impact",
 			ATTACK_IMPACT_VOLUME_DB,
-			1.0
+			1.0,
+			MELEE_IMPACT_VOLUME_VARIATION_DB
 		)
 	else:
 		_play_mechanics(
 			DOUBLE_PUNCH_IMPACT_SFX,
 			&"double_punch_impact",
 			ATTACK_IMPACT_VOLUME_DB,
-			1.0
+			1.0,
+			MELEE_IMPACT_VOLUME_VARIATION_DB
 		)
 
 
@@ -874,7 +879,8 @@ func _play_mechanics(
 	stream: AudioStream,
 	cue: StringName,
 	volume_db: float,
-	pitch_scale: float
+	pitch_scale: float,
+	volume_variation_db: float = 0.0
 ) -> void:
 	if stream == null or _audio_players.is_empty():
 		return
@@ -886,13 +892,18 @@ func _play_mechanics(
 	player.stop()
 	player.stream = stream
 	player.global_position = robot.global_position if robot != null else Vector2.ZERO
-	player.volume_db = volume_db
+	player.volume_db = volume_db + (
+		0.0
+		if is_zero_approx(volume_variation_db)
+		else volume_delta_for_sample(randf(), volume_variation_db)
+	)
 	player.pitch_scale = pitch_scale
 	_voice_started_order += 1
 	AudioVoicePriority.stamp(player, priority, _voice_started_order)
 	player.play()
 	audio_play_count += 1
 	last_audio_cue = cue
+	last_audio_volume_db = player.volume_db
 	if cue == &"walk_footstep":
 		footstep_play_count += 1
 	elif cue in [&"ground_slam_impact", &"double_punch_impact"]:
@@ -900,9 +911,20 @@ func _play_mechanics(
 	elif cue == &"photon_full_hit":
 		pass
 	else:
-		servo_play_count += 1
-		if cue == &"dash_warp":
-			dash_warp_sfx_play_count += 1
+			servo_play_count += 1
+			if cue == &"dash_warp":
+				dash_warp_sfx_play_count += 1
+
+
+static func volume_delta_for_sample(random_sample: float, variation_db: float) -> float:
+	var bounded_variation_db: float = clampf(
+		absf(variation_db), 0.0, MAX_MECHANICS_VOLUME_VARIATION_DB
+	)
+	return lerpf(
+		-bounded_variation_db,
+		bounded_variation_db,
+		clampf(random_sample, 0.0, 1.0)
+	)
 
 
 func _acquire_audio_voice(priority: int) -> AudioStreamPlayer2D:

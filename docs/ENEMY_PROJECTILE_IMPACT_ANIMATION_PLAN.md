@@ -30,6 +30,8 @@ Each canonical family has a unique positional 48 kHz mono PCM16 source master be
 
 Every canonical and district projectile impact applies an independent random pitch multiplier in the deliberately narrow **0.965×–1.035×** range. The optional variation is injected only by `ProjectilePool`, so unrelated UI, upgrade, structural, and lifecycle cues retain exact authored pitch. `ImpactFeedbackPool` clamps any caller-provided variation to an absolute maximum of eight percent as a defensive contract, resets reused voices, and exposes the last selected pitch for telemetry and focused regression coverage.
 
+Projectile impacts also receive an independent **±0.45 dB** loudness delta around each family’s authored mix level. The player’s ground-slam and double-punch impact cues use a similarly restrained **±0.55 dB** delta inside `RobotAnimationPresenter`; footsteps, servos, windups, dash, charge, voice, UI, power-box, music, and all other mechanics cues remain exact. Both shared helpers clamp optional future variation to **±2.0 dB**, and reused voices are assigned an explicit fresh volume on every playback.
+
 ## Asset Production
 
 GPT Image 2 produced the four approved impact anchors from the matching projectile bodies. The shell and direct-rocket sequences use preserved image-conditioned, zero-camera-motion video-to-sprites output. The bullet and salvo sequences were deterministically reconstructed from their accepted GPT Image 2 anchors after a sandbox reset removed their intermediate carriers: fixed-origin scale and opacity stages preserve the generated artwork without introducing procedural replacement art.
@@ -55,7 +57,7 @@ While this work was running, another session added twenty district CHOIR attack 
 
 ## Focused Regression Evidence
 
-The final canonical impact GUT file passed **6/6 tests and 266 assertions** on Godot 4.7.2. Coverage includes four atlas dimensions, ten-frame metadata, positive display and playback values, reference damage, square-root damage scaling and both clamps, canonical impact-key and audio-cue routing, tight `0.965×–1.035×` runtime pitch selection plus the eight-percent defensive clamp, diagonal orientation, direct-versus-salvo isolation, frame advancement, transparent completion/deactivation, eight-slot visual and audio capacity, four distinct imported mono QOA payloads backed by PCM16 masters, node-count stability, projectile partition and reservation parity, and clean reset. The district compatibility file passed **8/8 tests and 801 assertions**, and the preserved player machine-gun impact path passed **1/1 test and 15 assertions**. Earlier semantic-merge checks retained parallax at **3/3 tests and 49 assertions** and viewport expansion at **1/1 test and 10 assertions**. Repository-wide release certification remains intentionally skipped under the explicit project override.
+The final canonical impact GUT file passed **6/6 tests and 274 assertions** on Godot 4.7.2. Coverage includes four atlas dimensions, ten-frame metadata, positive display and playback values, reference damage, square-root damage scaling and both clamps, canonical impact-key and audio-cue routing, tight `0.965×–1.035×` runtime pitch selection, `±0.45 dB` runtime volume selection, defensive pitch and volume clamps, diagonal orientation, direct-versus-salvo isolation, frame advancement, transparent completion/deactivation, eight-slot visual and audio capacity, four distinct imported mono QOA payloads backed by PCM16 masters, node-count stability, projectile partition and reservation parity, and clean reset. The focused player mechanics test passed **1/1 test and 82 assertions**, including both `±0.55 dB` melee-impact paths and their defensive clamp. The district compatibility file previously passed **8/8 tests and 801 assertions**, and the preserved player machine-gun impact path passed **1/1 test and 15 assertions**. Earlier semantic-merge checks retained parallax at **3/3 tests and 49 assertions** and viewport expansion at **1/1 test and 10 assertions**. Repository-wide release certification remains intentionally skipped under the explicit project override.
 
 ## Delivery Record
 
@@ -64,7 +66,7 @@ The final canonical impact GUT file passed **6/6 tests and 266 assertions** on G
 | GPT Image 2 anchors | Completed for all four canonical projectile families |
 | Sprite/atlas production | Completed; four accepted ten-frame atlases and dark/light QA composites |
 | Concurrent feature merge | Completed; dynamic viewport, five-district parallax, destruction debris, package-budget work, and district CHOIR VFX preserved |
-| Focused regression | Passed: canonical 6 tests / 266 assertions; district 8 / 801; machine gun 1 / 15; merged parallax 3 / 49; merged viewport 1 / 10 |
+| Focused regression | Passed: canonical impact 6 tests / 274 assertions; player mechanics 1 / 82; district 8 / 801; machine gun 1 / 15; merged parallax 3 / 49; merged viewport 1 / 10 |
 | Source commit / push | Pending final integration commit |
 | Fresh Godot Web export | Pending exact pushed revision |
 | WebDev checkpoint / deployment | Pending exact fresh payload synchronization |
