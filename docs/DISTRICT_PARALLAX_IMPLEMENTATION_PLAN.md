@@ -1,7 +1,7 @@
 # District Parallax Background Implementation Plan
 
 **Author:** Manus AI  
-**Status:** In progress  
+**Status:** Completed
 **Target branch:** `main`  
 **Engine:** Godot 4.7.2-stable
 
@@ -63,9 +63,11 @@ Per project directive, repository-wide release-gate certification, full regressi
 | Phase | Status | Evidence |
 |---|---|---|
 | Phase 1 | Completed | Commit `42a7070`; five 2688×1152 GPT Image 2 concepts and five 1344×576 WebP derivatives with SHA-256 provenance manifest |
-| Phase 2 | In progress | Fixed four-band, two-sky-sprite runtime implemented locally; focused verification pending post-merge rerun |
-| Phase 3 | In progress | Spatial signal and New Game+ reset integration implemented locally; focused verification pending post-merge rerun |
-| Phase 4 | Pending | — |
+| Phase 2 | Completed | Commit `91b9218`; four fixed bands, two prewarmed panorama sprites, five stable texture/tint profiles, 850 ms crossfade, zero node growth |
+| Phase 3 | Completed | Commit `91b9218`; canonical spatial signal forwarding, initial Business identity, New Game+ Business reset, and floating-origin compensation |
+| Phase 4 | Completed | Final shared-main candidate `99ef53c`; focused 3/3 tests with 49 assertions; fresh 39,514,754-byte WASM and 18,915,512-byte PCK prepared for existing WebDev synchronization |
+
+The final direct export produced WASM SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` and PCK SHA-256 `201c105fd2f6cb0b58591238b2eaceafd53b1629db4c74ce9cd116865f7ea05a`. The PCK is above the formerly enforced 16 MiB certification threshold because the project’s explicit release-gate override disables that gate; the immutable WebDev payload route remains supported.
 
 ## References
 

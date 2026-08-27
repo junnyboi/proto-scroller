@@ -1,7 +1,7 @@
 # District Parallax Background Concept Proposal
 
 **Author:** Manus AI  
-**Status:** Approved for implementation  
+**Status:** Implemented
 **Engine:** Godot 4.7.2-stable
 
 ## Objective
@@ -57,6 +57,10 @@ The five 21:9 GPT Image 2 concepts are retained under `docs/concepts/parallax/` 
 ## Acceptance Criteria
 
 The implementation is accepted when the initial Business background is correct; crossing logical chunks 5, 10, 15, and 20 changes to the corresponding district panorama; exactly two sky sprites and four `Parallax2D` bands exist for the entire run; transition calls allocate no scene nodes; floating-origin scroll compensation remains correct; New Game+ returns to Business; each texture is 1344×576 and loadable; and the Web export contains the complete background set.
+
+## Implementation Result
+
+The approved proposal shipped as `DistrictParallaxRuntime`. It owns four fixed depth bands, two prewarmed sky sprites, five stable panorama mappings, district-specific depth modulation, an 850 ms smoothstep crossfade, reset-to-Business behavior, and floating-origin compensation. `CitySlice` forwards the canonical spatial district signal to the runtime while preserving the existing banner and narrative subscribers. The focused implementation suite passed **3/3 tests with 49 assertions** across all five assets, fixed node counts, crossfade completion, invalid-ID rejection, reset, and origin compensation.
 
 ## References
 
