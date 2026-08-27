@@ -473,11 +473,12 @@ func _update_global_page() -> void:
 	var display_entries: Array[Dictionary] = _global_entries
 	if display_entries.is_empty() and profile_store != null:
 		display_entries = profile_store.local_leaderboard(GLOBAL_ROW_COUNT)
+	var show_rows: bool = current_page == Page.GLOBAL
 	for index: int in range(global_rows.size()):
 		var row: Label = global_rows[index]
-		row.visible = index < display_entries.size()
+		row.visible = show_rows and index < display_entries.size()
 		row.text = _ranking_row(display_entries[index]) if row.visible else ""
-	if display_entries.is_empty():
+	if display_entries.is_empty() and show_rows:
 		global_rows[0].visible = true
 		global_rows[0].text = L10n.t("debrief.global.empty")
 	personal_rank_label.text = (
