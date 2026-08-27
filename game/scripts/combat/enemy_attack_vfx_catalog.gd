@@ -38,6 +38,8 @@ const CANONICAL_IMPACT_SPECS: Dictionary = {
 		"display_size": Vector2(44.0, 32.0),
 		"pivot_normalized": Vector2(0.68, 0.5),
 		"tint": Color.WHITE,
+		"reference_damage": 7.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_BULLET_IMPACT,
 	},
 	&"enemy_shell_impact": {
 		"visual_key": &"enemy_shell_impact",
@@ -49,6 +51,8 @@ const CANONICAL_IMPACT_SPECS: Dictionary = {
 		"display_size": Vector2(64.0, 48.0),
 		"pivot_normalized": Vector2(0.65, 0.5),
 		"tint": Color.WHITE,
+		"reference_damage": 24.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_SHELL_IMPACT,
 	},
 	&"enemy_rocket_direct_impact": {
 		"visual_key": &"enemy_rocket_direct_impact",
@@ -60,6 +64,8 @@ const CANONICAL_IMPACT_SPECS: Dictionary = {
 		"display_size": Vector2(84.0, 56.0),
 		"pivot_normalized": Vector2(0.78, 0.5),
 		"tint": Color.WHITE,
+		"reference_damage": 22.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_ROCKET_DIRECT_IMPACT,
 	},
 	&"enemy_rocket_salvo_impact": {
 		"visual_key": &"enemy_rocket_salvo_impact",
@@ -71,6 +77,8 @@ const CANONICAL_IMPACT_SPECS: Dictionary = {
 		"display_size": Vector2(60.0, 44.0),
 		"pivot_normalized": Vector2(0.5, 0.5),
 		"tint": Color.WHITE,
+		"reference_damage": 24.0,
+		"audio_cue": AudioCueRegistry.Cue.ENEMY_ROCKET_SALVO_IMPACT,
 	},
 }
 
@@ -341,6 +349,11 @@ static func _build_cached_specs() -> void:
 			"damage_kind": StringName(item.kind),
 		}
 		var impact_phase: Dictionary = phase_spec(archetype_id, &"impact")
+		var damage_kind: StringName = StringName(item.kind)
+		var reference_damage: float = maxf(
+			float(EnemyArchetypeCatalog.profile(archetype_id).get("damage", 1.0)),
+			1.0
+		)
 		_impact_specs[hit_key] = {
 			"texture": impact_phase.texture,
 			"region": impact_phase.region,
@@ -348,6 +361,8 @@ static func _build_cached_specs() -> void:
 			"lifetime": HOSTILE_IMPACT_DURATION,
 			"tint": Color.WHITE,
 			"visual_key": hit_key,
+			"reference_damage": reference_damage,
+			"audio_cue": _audio_cue_for_kind(damage_kind),
 		}
 
 
@@ -402,3 +417,13 @@ static func _radius_for_kind(kind: StringName) -> float:
 			return 7.0
 		_:
 			return 5.0
+
+
+static func _audio_cue_for_kind(kind: StringName) -> AudioCueRegistry.Cue:
+	match kind:
+		&"shell":
+			return AudioCueRegistry.Cue.ENEMY_SHELL_IMPACT
+		&"rocket":
+			return AudioCueRegistry.Cue.ENEMY_ROCKET_DIRECT_IMPACT
+		_:
+			return AudioCueRegistry.Cue.ENEMY_BULLET_IMPACT

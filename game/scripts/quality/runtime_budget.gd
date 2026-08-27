@@ -21,6 +21,7 @@ const SHELLS: int = 4
 const ROCKETS: int = 4
 const PLAYER_BULLETS: int = 8
 const STRUCTURAL_DEBRIS: int = 24
+const BUILDING_SECTION_BURST_SLOTS: int = 12
 const STREAMED_BUILDINGS: int = CityWorldStream.CHUNK_CAPACITY
 const STREAMED_PROPS: int = CityWorldStream.CHUNK_CAPACITY * 2
 const WORLD_MUTATION_LEDGERS: int = 1
@@ -137,6 +138,8 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			city.debris_pool.active_count() + city.debris_pool.available_count()
 		),
 		"structural_debris_peak": city.debris_pool.peak_active_count,
+		"building_section_burst_slots": city.building_section_burst_pool.slot_count(),
+		"building_section_burst_peak": city.building_section_burst_pool.peak_active_count,
 		"building_damage_patterns": _building_damage_pattern_count(city),
 		"enemy_scrap_total": (
 			city.enemy_scrap_pool.active_count() + city.enemy_scrap_pool.available_count()

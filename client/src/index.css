@@ -30,16 +30,16 @@ body {
 .game-host {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
   width: 100vw;
   width: 100dvw;
   height: 100vh;
   height: 100dvh;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
   overflow: hidden;
   background: #000;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .title-poster-backdrop,
@@ -76,17 +76,21 @@ body.title-backdrop-active .title-video-backdrop.is-ready {
 }
 
 .game-canvas {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 2;
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
   min-width: 0;
   min-height: 0;
+  max-width: none;
+  max-height: none;
   border: 0;
   outline: 0;
   opacity: 0;
-  object-fit: contain;
   touch-action: none;
 }
 

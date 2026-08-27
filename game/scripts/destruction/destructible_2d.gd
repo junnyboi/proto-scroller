@@ -11,6 +11,7 @@ signal destroyed(event: DamageEvent)
 @export var chunk_spread_degrees: float = 38.0
 @export var chunk_impulse_scale: float = 1.0
 @export var debris_pool_path: NodePath
+@export var section_burst_pool_path: NodePath
 @export var intact_visual_path: NodePath
 @export var damaged_visual_path: NodePath
 @export var rubble_visual_path: NodePath
@@ -24,6 +25,9 @@ var _destroyed: bool = false
 var _seen_attacks: Dictionary[int, bool] = {}
 
 @onready var _debris_pool: DebrisPool = get_node_or_null(debris_pool_path) as DebrisPool
+@onready var _section_burst_pool: BuildingSectionBurstPool = (
+	get_node_or_null(section_burst_pool_path) as BuildingSectionBurstPool
+)
 @onready var _intact_visual: CanvasItem = get_node_or_null(intact_visual_path) as CanvasItem
 @onready var _damaged_visual: CanvasItem = get_node_or_null(damaged_visual_path) as CanvasItem
 @onready var _rubble_visual: CanvasItem = get_node_or_null(rubble_visual_path) as CanvasItem
@@ -105,6 +109,7 @@ func _break(event: DamageEvent) -> void:
 		return
 	_destroyed = true
 	_apply_stage(false, true)
+	_release_section_burst(event)
 	_release_chunks(event)
 	destroyed.emit(event)
 
@@ -202,6 +207,23 @@ func _release_chunks(event: DamageEvent) -> void:
 			facet_color
 		)
 		_debris_pool.arm_kinetic_debris(debris, event)
+
+
+func _release_section_burst(event: DamageEvent) -> void:
+	if _section_burst_pool == null or event == null:
+		return
+	var profile: StructuralMaterialProfile = material_profile
+	if profile == null:
+		profile = StructuralMaterialProfile.concrete()
+	var origin: Vector2 = event.hit_position
+	if event.damage_type in [&"floor_chain", &"steel_support_chain", &"support_failure"]:
+		origin = global_position
+	_section_burst_pool.spawn(
+		origin,
+		event.direction,
+		maxf(event.impulse_per_mass, 260.0),
+		profile
+	)
 
 
 func configure_material_profile(profile: StructuralMaterialProfile) -> void:

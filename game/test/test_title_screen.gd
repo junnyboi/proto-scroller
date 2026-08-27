@@ -388,8 +388,11 @@ func test_generated_art_contract_replaces_procedural_rendering() -> void:
 	var shell_source: String = FileAccess.get_file_as_string(
 		"res://../scripts/patch-title-video-shell.mjs"
 	)
-	assert_true(shell_source.contains("fullscreen canvas resize policy"))
+	assert_true(shell_source.contains("dynamic canvas resize policy"))
 	assert_true(shell_source.contains("canvasResizePolicy\":2"))
+	assert_true(shell_source.contains("width: 100dvw"))
+	assert_true(shell_source.contains("height: 100dvh"))
+	assert_true(shell_source.contains("max-width: none"))
 	for runtime_source: String in [host_source, shell_source]:
 		assert_true(runtime_source.contains("title-loop-landscape.mp4"))
 		assert_true(runtime_source.contains("title-loop-portrait.mp4"))

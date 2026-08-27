@@ -75,7 +75,7 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 		AudioCueRegistry.POWER_BOX_DETONATION_SFX as AudioStreamWAV
 	)
 	assert_eq(detonation_stream.mix_rate, 48000)
-	assert_eq(detonation_stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_eq(detonation_stream.format, AudioStreamWAV.FORMAT_QOA)
 	assert_false(detonation_stream.stereo)
 	assert_between(detonation_stream.get_length(), 1.45, 1.55)
 	assert_eq(

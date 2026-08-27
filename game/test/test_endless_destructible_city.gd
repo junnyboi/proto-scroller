@@ -176,6 +176,7 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	assert_true(upper_pattern.visible)
 	assert_gt(upper_pattern.crack_count(), 0)
 	assert_eq(edge.exposed_edge_count(), 3)
+	assert_eq(edge.exposed_edge_mask(), Vector4(1.0, 1.0, 0.0, 1.0))
 	assert_eq(edge.active_shell_count(), 1)
 	assert_false(edge.is_edge_exposed(BuildingRubbleEdge2D.Edge.BOTTOM))
 	assert_true(edge.visible)
@@ -202,6 +203,7 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	assert_almost_eq(BuildingRubbleEdge2D.HOLE_HALF_EXTENTS.x, 0.34, 0.0001)
 	assert_almost_eq(BuildingRubbleEdge2D.HOLE_HALF_EXTENTS.y, 0.38, 0.0001)
 	assert_eq(edge.cutout_parameter(&"ground_open"), 1.0)
+	assert_eq(edge.cutout_parameter(&"exposed_edges"), edge.exposed_edge_mask())
 	var texture_size: Vector2 = intact_sprite.texture.get_size()
 	assert_eq(
 		edge.cutout_parameter(&"atlas_region_uv"),
@@ -217,7 +219,9 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	assert_not_null(cutout_material)
 	assert_not_null(cutout_material.shader)
 	assert_true(cutout_material.shader.code.contains("discard"))
-	assert_true(cutout_material.shader.code.contains("facade.a <= 0.01"))
+	assert_true(cutout_material.shader.code.contains("facade.a <= 0.04"))
+	assert_true(cutout_material.shader.code.contains("exposed_edges"))
+	assert_true(cutout_material.shader.code.contains("top_shell"))
 	_record_test_execution()
 
 

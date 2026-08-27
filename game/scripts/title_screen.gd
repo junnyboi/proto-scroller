@@ -571,42 +571,78 @@ func _refresh_control_copy() -> void:
 
 
 func _apply_responsive_layout() -> void:
-	if is_portrait_layout():
-		_apply_portrait_layout()
-	else:
-		_apply_landscape_layout()
 	var viewport_size: Vector2 = get_viewport_rect().size
+	if is_portrait_layout():
+		_apply_portrait_layout(viewport_size)
+	else:
+		_apply_landscape_layout(viewport_size)
 	if campaign_panel != null:
 		campaign_panel.apply_responsive_layout(viewport_size)
 	if dossier_codex != null:
 		dossier_codex.apply_responsive_layout(viewport_size)
 
 
-func _apply_landscape_layout() -> void:
+func _apply_landscape_layout(viewport_size: Vector2) -> void:
+	var vertical_offset: float = maxf(0.0, (viewport_size.y - 720.0) * 0.5)
 	background_art.texture = LANDSCAPE_ART
 	briefing_art.texture = _briefing_texture(false)
-	_set_rect(%TitleLabel, Rect2(52.0, 246.0, 680.0, 78.0))
-	_set_rect(%InstructionLabel, Rect2(52.0, 326.0, 740.0, 72.0))
-	_set_rect(initialize_button, Rect2(52.0, 412.0, 360.0, 80.0))
-	_set_rect(language_selector, Rect2(52.0, 512.0, 282.0, 48.0))
-	_set_rect($StatusRail, Rect2(52.0, 570.0, 760.0, 74.0))
-	_set_rect(briefing_toggle, Rect2(850.0, 648.0, 398.0, 58.0))
-	_set_rect(settings_button, Rect2(1068.0, 16.0, 196.0, 48.0))
-	_set_rect(settings_panel, Rect2(330.0, 100.0, 620.0, 520.0))
+	_set_rect(%TitleLabel, Rect2(52.0, 246.0 + vertical_offset, 680.0, 78.0))
+	_set_rect(%InstructionLabel, Rect2(52.0, 326.0 + vertical_offset, 740.0, 72.0))
+	_set_rect(initialize_button, Rect2(52.0, 412.0 + vertical_offset, 360.0, 80.0))
+	_set_rect(language_selector, Rect2(52.0, 512.0 + vertical_offset, 282.0, 48.0))
+	_set_rect($StatusRail, Rect2(52.0, 570.0 + vertical_offset, 760.0, 74.0))
+	_set_rect(
+		briefing_toggle,
+		Rect2(viewport_size.x - 430.0, viewport_size.y - 72.0, 398.0, 58.0)
+	)
+	_set_rect(settings_button, Rect2(viewport_size.x - 212.0, 16.0, 196.0, 48.0))
+	_set_rect(
+		settings_panel,
+		Rect2(
+			(viewport_size.x - 620.0) * 0.5,
+			100.0 + vertical_offset,
+			620.0,
+			520.0
+		)
+	)
 	_set_font_sizes(24, 56, 24)
 
 
-func _apply_portrait_layout() -> void:
+func _apply_portrait_layout(viewport_size: Vector2) -> void:
+	var horizontal_center: float = viewport_size.x * 0.5
+	var vertical_offset: float = maxf(0.0, (viewport_size.y - 1280.0) * 0.5)
 	background_art.texture = PORTRAIT_ART
 	briefing_art.texture = _briefing_texture(true)
-	_set_rect(%TitleLabel, Rect2(56.0, 88.0, 608.0, 82.0))
-	_set_rect(%InstructionLabel, Rect2(56.0, 174.0, 608.0, 110.0))
-	_set_rect(initialize_button, Rect2(104.0, 790.0, 512.0, 100.0))
-	_set_rect(language_selector, Rect2(174.0, 920.0, 372.0, 52.0))
-	_set_rect($StatusRail, Rect2(54.0, 992.0, 612.0, 160.0))
-	_set_rect(briefing_toggle, Rect2(174.0, 1190.0, 372.0, 58.0))
-	_set_rect(settings_button, Rect2(504.0, 20.0, 200.0, 56.0))
-	_set_rect(settings_panel, Rect2(54.0, 300.0, 612.0, 610.0))
+	_set_rect(%TitleLabel, Rect2(horizontal_center - 304.0, 88.0, 608.0, 82.0))
+	_set_rect(
+		%InstructionLabel, Rect2(horizontal_center - 304.0, 174.0, 608.0, 110.0)
+	)
+	_set_rect(
+		initialize_button,
+		Rect2(horizontal_center - 256.0, 790.0 + vertical_offset, 512.0, 100.0)
+	)
+	_set_rect(
+		language_selector,
+		Rect2(horizontal_center - 186.0, 920.0 + vertical_offset, 372.0, 52.0)
+	)
+	_set_rect(
+		$StatusRail,
+		Rect2(horizontal_center - 306.0, 992.0 + vertical_offset, 612.0, 160.0)
+	)
+	_set_rect(
+		briefing_toggle,
+		Rect2(horizontal_center - 186.0, viewport_size.y - 90.0, 372.0, 58.0)
+	)
+	_set_rect(settings_button, Rect2(viewport_size.x - 216.0, 20.0, 200.0, 56.0))
+	_set_rect(
+		settings_panel,
+		Rect2(
+			horizontal_center - 306.0,
+			300.0 + vertical_offset,
+			612.0,
+			610.0
+		)
+	)
 	_set_font_sizes(24, 48, 24)
 
 

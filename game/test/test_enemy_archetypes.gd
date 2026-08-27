@@ -203,6 +203,87 @@ func test_all_ground_vehicles_render_and_collide_at_exactly_double_size() -> voi
 		runtime.release(actor)
 
 
+func test_surviving_ground_vehicles_resist_player_attack_knockback() -> void:
+	var tank: EnemyActor2D = runtime.acquire(&"tank", Vector2(1080.0, 542.5))
+	var soldier: EnemyActor2D = runtime.acquire(&"soldier", Vector2(920.0, 542.5))
+	assert_not_null(tank)
+	assert_not_null(soldier)
+	tank.set_physics_process(false)
+	soldier.set_physics_process(false)
+	var impulse_per_mass: float = 100.0
+	assert_true(tank.receive_damage(DamageEvent.new(
+		73_001,
+		city.robot,
+		1.0,
+		&"jab_cross",
+		tank.global_position,
+		Vector2.RIGHT,
+		impulse_per_mass
+	)))
+	assert_true(soldier.receive_damage(DamageEvent.new(
+		73_002,
+		city.robot,
+		1.0,
+		&"jab_cross",
+		soldier.global_position,
+		Vector2.RIGHT,
+		impulse_per_mass
+	)))
+	assert_almost_eq(tank.velocity.x, 28.0, 0.01)
+	assert_almost_eq(soldier.velocity.x, 140.0, 0.01)
+	assert_almost_eq(
+		tank.velocity.x / soldier.velocity.x,
+		0.20,
+		0.001
+	)
+	tank.velocity = Vector2.ZERO
+	soldier.velocity = Vector2.ZERO
+	assert_true(tank.receive_damage(DamageEvent.new(
+		73_003,
+		city.robot,
+		1.0,
+		&"missile",
+		tank.global_position,
+		Vector2.RIGHT,
+		impulse_per_mass
+	)))
+	assert_true(soldier.receive_damage(DamageEvent.new(
+		73_004,
+		city.robot,
+		1.0,
+		&"missile",
+		soldier.global_position,
+		Vector2.RIGHT,
+		impulse_per_mass
+	)))
+	assert_almost_eq(tank.velocity.x, 3.6, 0.01)
+	assert_almost_eq(soldier.velocity.x, 18.0, 0.01)
+	tank.velocity = Vector2.ZERO
+	assert_true(tank.receive_damage(DamageEvent.new(
+		73_005,
+		soldier,
+		1.0,
+		&"impact",
+		tank.global_position,
+		Vector2.RIGHT,
+		impulse_per_mass
+	)))
+	assert_almost_eq(tank.velocity.x, 18.0, 0.01)
+	var lethal_event: DamageEvent = DamageEvent.new(
+		73_006,
+		city.robot,
+		tank.current_health,
+		&"jab_cross",
+		tank.global_position,
+		Vector2.RIGHT,
+		impulse_per_mass
+	)
+	assert_true(tank.receive_damage(lethal_event))
+	assert_true(tank.dead)
+	assert_eq(tank.velocity, Vector2.ZERO)
+	assert_eq(tank.last_player_knockback_attack_id, lethal_event.attack_id)
+
+
 func test_project_choir_hybrids_reuse_existing_families_and_production_art() -> void:
 	var expected_families: Dictionary[StringName, StringName] = {
 		&"reclaimed_breacher": &"infantry",

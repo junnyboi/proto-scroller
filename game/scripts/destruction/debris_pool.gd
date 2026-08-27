@@ -17,6 +17,7 @@ signal ground_impact_accepted(
 @export_range(1, 128, 1) var capacity: int = 48
 @export var cull_margin: Vector2 = Vector2(192.0, 160.0)
 @export_range(0.02, 1.0, 0.02) var cull_interval: float = 0.10
+@export var use_generated_visuals: bool = true
 
 var recycle_count: int = 0
 var offscreen_recycle_count: int = 0
@@ -82,7 +83,8 @@ func acquire(
 		body_size,
 		material_id,
 		primary_color,
-		facet_color
+		facet_color,
+		use_generated_visuals
 	)
 	return body
 
