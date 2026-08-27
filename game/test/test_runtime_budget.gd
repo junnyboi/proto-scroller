@@ -116,6 +116,7 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.boss_pod_visuals, 4)
 	assert_eq(snapshot.boss_reclamation_anchors, 3)
 	assert_eq(snapshot.boss_wreck_receivers, 2)
+	assert_eq(snapshot.boss_rubble_presentations, 1)
 	assert_eq(snapshot.boss_post_warm_creations, 0)
 	assert_eq(snapshot.boss_reservations, 0)
 	assert_false(snapshot.has("player_strike_flashes"))

@@ -40,7 +40,7 @@ const RARE_TAG_ROWS: int = 3
 const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
 const ACTIVE_CATALYSTS: int = 2
-const REPAIR_PICKUP_SLOTS: int = CATALYST_SLOTS
+const REPAIR_PICKUP_SLOTS: int = CatalystRuntime.REPAIR_PICKUP_CAPACITY
 const ACTOR_RESERVATIONS: int = 18
 const PENDING_BEAT_RECORDS: int = 48
 const CATALYST_QUERY_RESULTS: int = 12
@@ -63,6 +63,7 @@ const BOSS_COLLAPSE_LISTENERS: int = BossUtilityPool.COLLAPSE_LISTENER_CAPACITY
 const BOSS_POD_VISUALS: int = BossUtilityPool.POD_VISUAL_CAPACITY
 const BOSS_RECLAMATION_ANCHORS: int = BossUtilityPool.RECLAMATION_ANCHOR_CAPACITY
 const BOSS_WRECK_RECEIVERS: int = BossUtilityPool.WRECK_RECEIVER_CAPACITY
+const BOSS_RUBBLE_PRESENTATIONS: int = 1
 const CAUSAL_RECORDS: int = CausalChainTracker.MAX_RECORDS
 const DISTRICT_RECIPES: int = 3
 const RUN_CONTRACTS: int = 3
@@ -238,6 +239,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"boss_sessions": 1 if city.urban_siege.boss_session != null else 0,
 		"boss_rigs": _boss_utility_count(city, &"rig"),
 		"boss_controllers": _boss_utility_count(city, &"controller"),
+		"boss_rubble_presentations": _boss_utility_count(city, &"boss_rubble"),
 		"boss_arena_adapters": _boss_utility_count(city, &"arena_adapter"),
 		"boss_pylon_presentations": _boss_utility_count(city, &"pylons"),
 		"boss_projection_slots": _boss_utility_count(city, &"projections"),
@@ -416,6 +418,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "boss_pod_visuals", BOSS_POD_VISUALS)
 	_check_equal(errors, data, "boss_reclamation_anchors", BOSS_RECLAMATION_ANCHORS)
 	_check_equal(errors, data, "boss_wreck_receivers", BOSS_WRECK_RECEIVERS)
+	_check_equal(
+		errors,
+		data,
+		"boss_rubble_presentations",
+		BOSS_RUBBLE_PRESENTATIONS
+	)
 	_check_equal(errors, data, "boss_post_warm_creations", 0)
 	_check_equal(errors, data, "boss_reservations", 0)
 	_check_equal(errors, data, "district_recipes", DISTRICT_RECIPES)
@@ -718,6 +726,8 @@ static func _boss_utility_count(city: CitySlice, kind: StringName) -> int:
 			return pool.reclamation_anchor_count()
 		&"wreck_receivers":
 			return pool.wreck_receiver_count()
+		&"boss_rubble":
+			return pool.boss_rubble_count()
 		&"post_warm_creations":
 			return pool.post_warm_creation_count
 		&"reservations":

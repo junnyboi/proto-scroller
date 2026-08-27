@@ -158,7 +158,7 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	assert_eq(catalysts.active_repair_pickup_count(), 1)
 	city.robot.current_health = city.robot.max_health - 100.0
 	assert_true(pickup.try_collect(city.robot))
-	assert_almost_eq(city.robot.current_health, city.robot.max_health - 60.0, 0.001)
+	assert_almost_eq(city.robot.current_health, city.robot.max_health - 50.0, 0.001)
 	assert_false(pickup.active)
 	assert_eq(catalysts.active_repair_pickup_count(), 0)
 	await get_tree().create_timer(0.5).timeout

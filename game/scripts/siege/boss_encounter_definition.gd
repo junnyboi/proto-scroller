@@ -47,7 +47,7 @@ const DEFAULT_GROUND_SMASH_RADIUS: float = 96.0
 @export var voice_caption_keys: Dictionary = {}
 
 @export_group("Completion")
-@export var wreck_mode: StringName = &"FRESH_GROUND_SMASH"
+@export var wreck_mode: StringName = &"FRESH_MELEE"
 @export var outcome_policy: StringName = &"STANDARD"
 @export var outcomes: PackedInt32Array = PackedInt32Array()
 @export var portrait_socket_overrides: Dictionary = {}

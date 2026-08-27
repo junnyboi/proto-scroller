@@ -174,7 +174,7 @@ func test_repeated_legacy_and_campaign_start_stop_loops_do_not_grow_runtime() ->
 	assert_eq(after.boss_reservations, 0)
 
 
-func test_wreck_requires_ground_smash_and_completes_in_target_window() -> void:
+func test_defeated_boss_freezes_then_next_melee_makes_rubble_and_repair_drops() -> void:
 	assert_true(session.start())
 	session.advance(50.0)
 	var boss: TankEnemy = session.boss
@@ -187,15 +187,27 @@ func test_wreck_requires_ground_smash_and_completes_in_target_window() -> void:
 	assert_eq(session.state, CommandBossSession.STATE_WRECK)
 	assert_not_null(session.boss_wreck)
 	assert_eq(city.enemy_remains_factory.active_count(), 1)
-	assert_false(session.boss_wreck.receive_damage(DamageEvent.new(
-		1102, city.robot, 999.0, &"jab_cross"
-	)))
+	var defeated_pose: Dictionary = session.utility_pool.rig.animation_signature()
+	assert_true(defeated_pose.defeated)
+	assert_eq(defeated_pose.frame, BossAnimationCatalog.FRAME_COUNT - 1)
+	assert_eq(defeated_pose.modulate, BossRig2D.DEFEATED_MODULATE)
+	assert_false(session.boss_wreck.get_node(^"WreckVisual").visible)
 	assert_true(session.boss_wreck.receive_damage(DamageEvent.new(
-		1103, city.robot, 999.0, &"ground_smash"
+		1102, city.robot, 1.0, &"jab_cross"
 	)))
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 	assert_between(session.elapsed_seconds, 45.0, 75.0)
 	assert_eq(city.enemy_remains_factory.total_count(), RuntimeBudget.WRECKS)
+	assert_true(session.utility_pool.boss_rubble_record.visible)
+	assert_eq(
+		int(session.utility_pool.boss_rubble_record.get_meta(&"presentation_role")),
+		BossUtilityPool.UtilityPresentationRole.RUBBLE_BED
+	)
+	assert_eq(session.last_repair_drop_count, 2)
+	assert_eq(city.urban_siege.catalysts.active_repair_pickup_count(), 2)
+	city.robot.current_health = city.robot.max_health - 100.0
+	assert_true(city.urban_siege.catalysts.repair_pickups[0].try_collect(city.robot))
+	assert_almost_eq(city.robot.current_health, city.robot.max_health - 50.0, 0.001)
 
 
 func test_district_signal_waits_until_boss_wreck_finisher() -> void:
@@ -226,3 +238,15 @@ func test_district_signal_waits_until_boss_wreck_finisher() -> void:
 	))
 	assert_signal_emitted(city.urban_siege, "district_completed")
 	assert_true(city.urban_siege.finale_pending)
+
+
+func test_late_boss_rubble_has_three_fixed_fifty_hp_drops() -> void:
+	assert_eq(ChassisRepairPickup2D.REPAIR_AMOUNT, 50.0)
+	assert_eq(
+		city.urban_siege.catalysts.repair_pickup_count(),
+		CatalystRuntime.REPAIR_PICKUP_CAPACITY
+	)
+	assert_true(session.start_definition(BossCampaignCatalog.definitions()[2]))
+	assert_eq(session._boss_repair_drop_count(), 3)
+	assert_eq(session._spawn_boss_repair_pickups(Vector2(1200.0, 610.0), 3), 3)
+	assert_eq(city.urban_siege.catalysts.active_repair_pickup_count(), 3)

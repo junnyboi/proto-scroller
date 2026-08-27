@@ -360,7 +360,7 @@ static func _make_definition(
 		&"echo": "boss.%s.echo" % String(boss_id).to_lower(),
 		&"veyr": "boss.%s.veyr" % String(boss_id).to_lower(),
 	}
-	definition_value.wreck_mode = &"FRESH_GROUND_SMASH"
+	definition_value.wreck_mode = &"FRESH_MELEE"
 	definition_value.outcome_policy = (
 		&"ROYAL_THREE_OUTCOME" if boss_id == &"CHOIR_PRIME" else &"STANDARD_PURGE"
 	)

@@ -75,3 +75,24 @@ func test_moving_loop_and_attack_stage_reset_are_deterministic() -> void:
 	assert_eq(rig.animation_signature().frame, 4)
 	rig.play_attacking(&"RECOVERY", &"E")
 	assert_eq(rig.animation_signature().frame, 5)
+
+
+func test_defeated_pose_freezes_final_attack_frame_and_darkens_rig() -> void:
+	var rig := BossRig2D.new()
+	add_child_autofree(rig)
+	var definition := BossEncounterDefinition.new()
+	definition.rig_preset = &"MIMESIS"
+	var host := TankEnemy.new()
+	add_child_autofree(host)
+	assert_true(rig.configure(definition, host))
+	rig.freeze_defeated(Vector2(940.0, 580.0), &"W")
+	var signature: Dictionary = rig.animation_signature()
+	assert_true(signature.defeated)
+	assert_eq(signature.state, BossRig2D.STATE_ATTACKING)
+	assert_eq(signature.stage, &"RECOVERY")
+	assert_eq(signature.direction, &"W")
+	assert_eq(signature.frame, BossAnimationCatalog.FRAME_COUNT - 1)
+	assert_eq(signature.modulate, BossRig2D.DEFEATED_MODULATE)
+	rig.advance_animation(10.0)
+	rig.play_moving(&"E")
+	assert_eq(rig.animation_signature(), signature)

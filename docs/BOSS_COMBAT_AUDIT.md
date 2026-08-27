@@ -24,7 +24,7 @@ Every campaign boss follows the same readable armor, body, and wreck structure, 
 |---|---|---|
 | **Armored** | Against **Settlement Engine S-04**, use any melee or equipped weapon: every accepted damage type chips the yellow armor bar by its actual damage. Against bosses 2–5, reach at least 70% movement speed, line up with the glowing gold core, then hold **Space/SMASH for the full 2.0 seconds** and release; repeat for three accepted connections. | Only the four later bosses reject standing smashes, taps, and ranged armor damage. Their corrective feedback remains available through combat presentation, not the compact durability HUD. |
 | **Exposed body** | Use normal melee and equipped weapons while reading the telegraphs. Attacks escalate again below roughly one-third body integrity. | Remaining inside a magenta armed footprint. Pale/gold telegraphs are warnings; magenta is live damage. |
-| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Hitting the wreck away from its receiver. The finisher controls rewards and progression only; it never controls route access. |
+| **Boss corpse** | The authentic animated boss freezes on its final attack frame and darkens. Strike the labeled corpse with one **fresh melee**—jab-cross or ground smash—to reduce it to rubble. The fatal attack cannot double as the finisher. | Ranged fire, autonomous weapons, and the lethal attack/root chain. Rubble completion controls rewards and progression only; it never controls route access. |
 
 The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. Line up before charging; once an attack is committed, locomotion remains locked through recovery and a recovery-phase dodge request is buffered until release. Boss attempts create no dedicated arena wall or collision layer; rear-wall and facade obstruction remain suspended, so the player can retreat, pass the boss, and reposition freely. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
 
@@ -39,9 +39,9 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 | **Armored** | **Settlement Sweep** covers asymmetric left and right ground zones. **Double-Entry Barrage** attacks both outer approaches and, after recovery, deploys one Bulwark and one Sapper. | Use any melee or equipped weapon. Ground smash, tap jab-cross, bullets, shells, rockets, and impact damage all reduce armor by their actual accepted amount. Attack during the open interval and watch the yellow bar. |
 | **Exposed** | **Foreclosure Stamp** attacks the center. **Audit Beam** creates a long horizontal beam above the road. | Stay near an edge during Stamp; change vertical/road position relative to the thin beam; attack during recovery. |
 | **Final third** | **Audit Beam** remains and **Foundation Cascade** adds a heavy left-side ground collapse. | Favor the right approach, dodge through a late arm, then punish the recovery. Eliminate the two support enemies if they obstruct the charging lane. |
-| **Finisher** | A visible gold **GROUND SMASH** receiver appears on the wreck. | Ground-smash the labeled receiver. This is the previously missing route-completion step. |
+| **Corpse** | The S-04 atlas freezes and darkens at body death; a gold **MELEE TO SCRAP** receiver appears. | Land one fresh jab-cross or ground smash to create rubble and two 50-HP repair cells. |
 
-**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. The arena remains physically open throughout the attempt. Ground-smash the labeled wreck target for the completion record.[1][3]
+**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. The arena remains physically open throughout the attempt. Strike the darkened boss corpse once with a fresh melee for the completion record and repair drop.[1][3]
 
 ### 2. SAMARITAN-15 — The Last Evacuation
 
@@ -52,7 +52,7 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 | **Armored** | **Triage Sweep** attacks the two outer lanes. **Pressure Sentence** fires a thin horizontal beam and can deploy one Reclaimed Breacher during recovery. | Use the center gap during Triage, then land three moving full-charge core hits. Kill the Breacher rather than letting it occupy the charging route. |
 | **Exposed** | Triage remains. **Extraction Clamp** targets one side pod. | Damage the exposed chassis while avoiding the pod glass. Mechanical boss hurtboxes have been narrowed and separated from all protected glass rectangles. |
 | **Final third** | **Blackout Harvest** arms two of three road lanes while one dry lane rotates each cycle; Pressure Sentence and Extraction Clamp remain. Blackout can deploy at most one live Graft Runner. | Identify the dry lane before magenta activation, move into it, and destroy the Runner before resuming body damage. |
-| **Finisher** | A visible ground-smash receiver appears on the wreck. Surviving pods are rescued automatically when the body is defeated. | Use the labeled finisher. Optional pod loss affects the record, not route completion. |
+| **Corpse** | The SAMARITAN atlas freezes and darkens; surviving pods are rescued automatically at body defeat. | Use one fresh melee on the labeled corpse to create rubble and two 50-HP repair cells. Optional pod loss affects the record, not route completion. |
 
 **How to take it down:** Break armor with the universal three-hit charge sequence, fight from the dry lane, and prioritize Breacher/Runner support when it blocks movement. The body is always directly damageable after armor breaks; the captive glass is no longer part of the fallback body target.[1][7]
 
@@ -65,7 +65,7 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 | **Armored** | **Dead-Air Sweep** paints a left-biased line. **Memory Blocking** closes both side lanes and later deploys a single Needle-class CHOIR Siren. | Use the open side or center and land three moving full-charge core hits. Cyan history images are presentation-only. |
 | **Exposed** | **Armed Afterimage** turns one recorded position magenta and damaging. Dead-Air Sweep and Memory Blocking remain. | Track the magenta afterimage rather than the cyan memory trail. Do not dodge away from harmless cyan echoes. |
 | **Final third** | Armed Afterimage alternates with the long **Encore Impact** beam. If the Siren ring is active, one weapon can be paused. | Enter the 118-pixel hollow center to immediately restore the paused weapon; leaving the center reapplies the single-weapon lock while the ring remains active. Direct movement and melee controls are never disabled. |
-| **Finisher** | A visible ground-smash receiver appears. The STAGE continuity payload is captured before controller cleanup. | Finish the wreck normally; the evidence result now survives callback ordering. |
+| **Corpse** | The MIMESIS atlas freezes and darkens. The STAGE continuity payload is captured before controller cleanup. | Use one fresh melee to create rubble and three 50-HP repair cells; the evidence result survives callback ordering. |
 
 **How to take it down:** Learn the color language: **cyan is memory, magenta is damage**. Break armor at speed, use the hollow center when the Siren jams a weapon, and attack the exposed chassis between Armed Afterimage and Encore windows.[2][8]
 
@@ -78,7 +78,7 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 | **Armored** | **Suture Salvo** arms two of three lanes and leaves one dry lane. | Move to the visible dry lane and release the full-charge core hit from there. Repeat three times. |
 | **Exposed** | Suture Salvo remains. **Dispatch Harness** deploys one Graft Runner and applies the target mark required by its attack logic. A freight anchor is recorded only after successful deployment. | Destroy the marked Runner first; no false dispatch telegraph appears if the pool cannot supply it. Resume body damage during recovery. |
 | **Final third** | **Pale Reclamation** consumes at most three finite freight anchors into capped ablative records. **Compression Psalm** combines a long beam with a left ground zone. | Deny space around visible anchors, use the right side against Compression Psalm, and keep moving between dry-lane changes. The decorative Seraph projections are not extra enemies. |
-| **Finisher** | A visible ground-smash receiver appears. The ARSENAL export payload remains intact through the wreck transition. | Ground-smash the receiver and let the transaction commit before advancing. |
+| **Corpse** | The CANTOR atlas freezes and darkens. The ARSENAL export payload remains intact through the corpse transition. | Use one fresh melee to create rubble and three 50-HP repair cells, then let the transaction commit before advancing. |
 
 **How to take it down:** Treat dry lanes as the primary navigation puzzle, kill the marked Runner, then pressure the exposed chassis. Reclamation is finite and capped; surviving long enough does not produce infinite armor or enemies.[2][8]
 
@@ -91,9 +91,9 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 | **Armored** | **Ledger / Settlement Sweep** covers a left-biased ground zone. **Nursery / Braced Shock** attacks the center. | Use the remembered Business/Nursery spacing and land the universal three moving full-charge core hits. |
 | **Exposed** | **Stage / Armed Ring** creates a wide central footprint. **Arsenal / Production Lanes** arms two lanes and rotates the dry lane. | Respect magenta Stage pressure and move to the dry Arsenal lane before attacking the body. |
 | **Final third** | Arsenal remains and **Crown / Radial Verdict** adds a long horizontal verdict beam. All large composition echoes remain non-colliding presentation. | Avoid reading the large echo art as hitboxes; only the magenta authored pressure zones can damage the robot. |
-| **Outcome wreck** | The wreck exposes a red **PURGE** receiver and a cyan **DISENTANGLE** receiver. Ineligible Disentangle is visibly warned. | Ground-smash PURGE once for the safe ending. Eligible DISENTANGLE requires five distinct fresh ground-smash roots; repeated or fatal attack roots are rejected. Royal ending persistence completes before the gate is released. |
+| **Outcome corpse** | CHOIR Prime freezes on its final atlas frame and darkens while exposing red **PURGE** and cyan **DISENTANGLE** receivers. Ineligible Disentangle remains visibly warned. | One fresh jab-cross or ground smash on the chosen receiver commits PURGE, eligible DISENTANGLE, or ASCENSION FAILURE, then creates rubble and three 50-HP repair cells. The fatal chain remains rejected. |
 
-**How to take it down:** Apply everything learned in the earlier fights, break armor, destroy the exposed Sovereign core, then choose a clearly labeled receiver. PURGE always remains available. DISENTANGLE is evidence-dependent, never times out, and now requires a genuinely fresh smash for every severance step.[1][9]
+**How to take it down:** Apply everything learned in the earlier fights, break armor, destroy the exposed Sovereign core, then choose a clearly labeled receiver. PURGE always remains available. DISENTANGLE remains evidence-dependent, but the selected ending and rubble conversion now commit together on one genuinely fresh melee.[1][9]
 
 ## Fun and fairness assessment
 

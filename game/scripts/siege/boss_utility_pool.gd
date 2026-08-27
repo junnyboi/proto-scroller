@@ -22,6 +22,7 @@ const RECLAMATION_ANCHOR_CAPACITY: int = 3
 const PYLON_PRESENTATION_CAPACITY: int = 5
 const PROJECTION_SLOT_CAPACITY: int = 4
 const WRECK_RECEIVER_CAPACITY: int = 2
+const BOSS_RUBBLE_DISPLAY_SIZE: Vector2 = Vector2(460.0, 150.0)
 const MIMESIS_AFTERIMAGE_TEXTURE: Texture2D = preload(
 	"res://art/siege/mimesis-armed-afterimage.png"
 )
@@ -70,6 +71,7 @@ var projection_slots: Array[Node2D] = []
 var wreck_receivers: Array[BossWreckReceiver2D] = []
 var default_wreck_receiver: BossWreckReceiver2D
 var royal_outcome_receiver: BossWreckReceiver2D
+var boss_rubble_record: Node2D
 var generation_token: int = 0
 var post_warm_creation_count: int = 0
 var warmed: bool = false
@@ -102,6 +104,12 @@ static func utility_capacities() -> Dictionary[StringName, int]:
 
 func begin_generation() -> int:
 	_cleanup_current_generation()
+	generation_token += 1
+	return generation_token
+
+
+func begin_wreck_generation() -> int:
+	_cleanup_current_generation(true)
 	generation_token += 1
 	return generation_token
 
@@ -320,6 +328,31 @@ func wreck_receiver_count() -> int:
 	return wreck_receivers.size()
 
 
+func boss_rubble_count() -> int:
+	return 1 if boss_rubble_record != null else 0
+
+
+func present_boss_rubble(world_position: Vector2) -> bool:
+	if boss_rubble_record == null:
+		return false
+	boss_rubble_record.global_position = world_position
+	if not configure_utility_presentation(
+		boss_rubble_record,
+		UtilityPresentationRole.RUBBLE_BED
+	):
+		return false
+	var sprite: Sprite2D = boss_rubble_record.get_child(0) as Sprite2D
+	var texture_size: Vector2 = sprite.texture.get_size()
+	sprite.scale = Vector2(
+		BOSS_RUBBLE_DISPLAY_SIZE.x / maxf(texture_size.x, 1.0),
+		BOSS_RUBBLE_DISPLAY_SIZE.y / maxf(texture_size.y, 1.0)
+	)
+	sprite.position.y = -BOSS_RUBBLE_DISPLAY_SIZE.y * 0.5
+	sprite.modulate = BossRig2D.DEFEATED_MODULATE
+	boss_rubble_record.visible = true
+	return true
+
+
 func configure_runtime(
 	encounter_runtime: EncounterRuntime,
 	projectile_pool: ProjectilePool
@@ -460,6 +493,8 @@ func _prewarm() -> void:
 	default_wreck_receiver = _make_wreck_receiver("DefaultWreckReceiver")
 	royal_outcome_receiver = _make_wreck_receiver("RoyalOutcomeReceiver")
 	wreck_receivers.assign([default_wreck_receiver, royal_outcome_receiver])
+	boss_rubble_record = _make_visual_record("BossRubblePresentation", self)
+	boss_rubble_record.z_index = 25
 	warmed = true
 	_deactivate_records()
 
@@ -519,17 +554,18 @@ func _make_wreck_receiver(area_name: String) -> BossWreckReceiver2D:
 	return receiver
 
 
-func _cleanup_current_generation() -> void:
+func _cleanup_current_generation(preserve_rig: bool = false) -> void:
 	for callback: Callable in _cleanup_callbacks:
 		if callback.is_valid():
 			callback.call()
 	_cleanup_callbacks.clear()
 	cancel_all_reservations()
-	_deactivate_records()
+	_deactivate_records(preserve_rig)
 
 
-func _deactivate_records() -> void:
-	rig.deactivate()
+func _deactivate_records(preserve_rig: bool = false) -> void:
+	if not preserve_rig:
+		rig.deactivate()
 	motion_echo_recorder.deactivate()
 	arena_adapter.unbind()
 	for record: Node2D in pylon_presentations:
@@ -541,6 +577,8 @@ func _deactivate_records() -> void:
 		record.visible = false
 	for record: Node2D in reclamation_anchor_records:
 		_reset_utility_presentation(record)
+	if boss_rubble_record != null:
+		_reset_utility_presentation(boss_rubble_record)
 	for receiver: BossWreckReceiver2D in wreck_receivers:
 		receiver.deactivate()
 	for area: BossAttackArea2D in lane_damage_areas + line_areas:

@@ -192,7 +192,7 @@ func test_campaign_hazards_do_not_advance_or_arm_during_screen() -> void:
 	assert_eq(slice.attack_stage, &"ACTIVE")
 
 
-func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_root() -> void:
+func test_wreck_rejects_fatal_chain_and_ranged_damage_then_accepts_fresh_melee() -> void:
 	assert_true(session.start_definition(BossCampaignCatalog.definitions()[0]))
 	var host: TankEnemy = session.boss
 	assert_true(host.receive_damage(DamageEvent.new(
@@ -211,14 +211,15 @@ func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_ro
 	assert_true(host.receive_damage(fatal))
 	var wreck: EnemyWreck2D = session.boss_wreck
 	assert_not_null(wreck)
-	assert_true(wreck.finisher_requires_ground_smash)
+	assert_false(wreck.finisher_requires_ground_smash)
+	assert_eq(wreck.finisher_damage_types, PackedStringArray(["jab_cross", "ground_smash"]))
 	assert_false(wreck.receive_damage(DamageEvent.new(
 		3200, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 4000
 	)))
 	assert_false(wreck.receive_damage(DamageEvent.new(
 		3201, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 3199
 	)))
-	for kind: StringName in [&"jab_cross", &"bullet", &"shell", &"rocket", &"impact"]:
+	for kind: StringName in [&"bullet", &"shell", &"rocket", &"impact"]:
 		assert_false(wreck.receive_damage(DamageEvent.new(
 			3300 + kind.hash() % 100,
 			city.robot,
@@ -230,7 +231,7 @@ func test_wreck_rejects_fatal_attack_chain_and_non_smashes_then_accepts_fresh_ro
 			4300 + kind.hash() % 100
 		)))
 	assert_true(wreck.receive_damage(DamageEvent.new(
-		3400, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 4400
+		3400, city.robot, 1.0, &"jab_cross", Vector2.ZERO, Vector2.RIGHT, 0.0, 4400
 	)))
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 
