@@ -8,6 +8,7 @@ enum Cue {
 	UPGRADE_CONFIRM,
 	SHOP_PURCHASE,
 	SHOP_REPAIR,
+	POWER_BOX_DETONATION,
 }
 
 const OVERDRIVE_ACTIVATION_SFX: AudioStream = preload(
@@ -24,6 +25,9 @@ const SHOP_PURCHASE_SFX: AudioStream = preload(
 )
 const SHOP_REPAIR_SFX: AudioStream = preload(
 	"res://audio/sfx/shop/shop_repair.wav"
+)
+const POWER_BOX_DETONATION_SFX: AudioStream = preload(
+	"res://audio/sfx/city/power_box_detonation.wav"
 )
 const PROFILES: Dictionary = {
 	Cue.OVERDRIVE_ACTIVATION: {
@@ -60,6 +64,13 @@ const PROFILES: Dictionary = {
 		&"bus": &"UI",
 		&"volume_db": 0.0,
 		&"priority": AudioVoicePriority.MAJOR,
+	},
+	Cue.POWER_BOX_DETONATION: {
+		&"id": &"power_box_detonation",
+		&"stream": POWER_BOX_DETONATION_SFX,
+		&"bus": &"SFX",
+		&"volume_db": -2.0,
+		&"priority": AudioVoicePriority.SIGNATURE,
 	},
 }
 

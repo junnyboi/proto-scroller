@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name CityWorldStream
 extends Node2D
 
@@ -31,7 +32,7 @@ const BEHIND_CHUNKS: int = 2
 const AHEAD_CHUNKS: int = 3
 const PROGRESSION_CHUNKS_PER_TIER: int = CityDistrictCatalog.CHUNKS_PER_DISTRICT
 const MAX_PROGRESSION_TIER: int = 4
-const LEFT_RETENTION_DISTANCE: float = 500.0
+const LEFT_RETENTION_DISTANCE: float = 1000.0
 const DISTRICT_BUILDINGS_REQUIRED: int = CityDistrictCatalog.VARIANTS_PER_DISTRICT
 const BARRIER_WIDTH: float = 48.0
 const BARRIER_HEIGHT: float = 1200.0
@@ -39,6 +40,7 @@ const ROBOT_BARRIER_CLEARANCE: float = 72.0
 const FRONTIER_CULL_STEP: float = 64.0
 const CHUNK_CONTENT_OVERHANG: float = 384.0
 const REAR_CONTACT_TOLERANCE: float = 12.0
+const REAR_BARRIER_LAYER: int = 1 << 11
 const CHUNK_SCRIPT: Script = preload("res://scripts/world/city_street_chunk.gd")
 
 var robot: GiantRobotController
@@ -389,14 +391,23 @@ func _update_rear_frontier(robot_logical_x: float) -> void:
 
 
 func _build_progression_barriers() -> void:
-	rear_barrier = _make_progression_barrier("RearFrontierBarrier")
-	district_exit_barrier = _make_progression_barrier("DistrictExitBarrier")
+	rear_barrier = _make_progression_barrier(
+		"RearFrontierBarrier",
+		REAR_BARRIER_LAYER
+	)
+	district_exit_barrier = _make_progression_barrier(
+		"DistrictExitBarrier",
+		CityStreetChunk.WORLD_LAYER
+	)
 
 
-func _make_progression_barrier(barrier_name: String) -> StaticBody2D:
+func _make_progression_barrier(
+	barrier_name: String,
+	barrier_layer: int
+) -> StaticBody2D:
 	var barrier: StaticBody2D = StaticBody2D.new()
 	barrier.name = barrier_name
-	barrier.collision_layer = CityStreetChunk.WORLD_LAYER
+	barrier.collision_layer = barrier_layer
 	barrier.collision_mask = CityStreetChunk.ROBOT_LAYER
 	var collision: CollisionShape2D = CollisionShape2D.new()
 	collision.name = "Collision"

@@ -23,6 +23,7 @@ var pulse_count: int = 0
 var power_box_scrap_burst_count: int = 0
 var power_box_scrap_piece_count: int = 0
 var power_box_finish_score_count: int = 0
+var power_box_detonation_sfx_count: int = 0
 var _next_pulse_attack_id: int = 1_000_000
 
 
@@ -129,9 +130,21 @@ func _on_catalyst_fully_destroyed(prop: DestructibleProp2D, event: DamageEvent) 
 		return
 	if catalyst.profile.catalyst_id != &"TRANSFORMER":
 		return
+	_play_power_box_detonation(catalyst.global_position)
 	_release_power_box_scrap(catalyst, event)
 	var awarded_score: int = _award_power_box_finish(catalyst, event)
 	power_box_obliterated.emit(catalyst, awarded_score)
+
+
+func _play_power_box_detonation(origin: Vector2) -> void:
+	if dependencies == null or dependencies.impact_feedback_pool == null:
+		return
+	var player: AudioStreamPlayer2D = dependencies.impact_feedback_pool.play_cue(
+		AudioCueRegistry.Cue.POWER_BOX_DETONATION,
+		origin
+	)
+	if player != null:
+		power_box_detonation_sfx_count += 1
 
 
 func _release_power_box_scrap(catalyst: Catalyst2D, event: DamageEvent) -> void:

@@ -47,6 +47,50 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 	assert_eq(configured_count, CityDistrictCatalog.BUILDING_VARIANT_COUNT)
 
 
+func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> void:
+	var bootstrap: StructuralBuildingVariant = CityDistrictCatalog.districts()[0].building_variants[0]
+	var building: StructuralBuilding2D = StructuralBuilding2D.new()
+	building.intact_texture = bootstrap.intact_texture
+	building.damaged_texture = bootstrap.damaged_texture
+	building.rubble_texture = bootstrap.rubble_texture
+	building.display_size = bootstrap.display_size
+	add_child_autofree(building)
+	await get_tree().process_frame
+	var checked_variants: int = 0
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		for variant: StructuralBuildingVariant in district.building_variants:
+			assert_true(building.apply_variant(variant))
+			var source_image: Image = variant.intact_texture.get_image()
+			assert_not_null(source_image)
+			assert_ne(source_image.detect_alpha(), Image.ALPHA_NONE, String(variant.variant_id))
+			for row: int in range(StructuralBuilding2D.ROWS):
+				for column: int in range(StructuralBuilding2D.COLUMNS):
+					assert_true(building.apply_variant(variant))
+					var cell: Destructible2D = building.get_cell(column, row)
+					var event: DamageEvent = DamageEvent.new(
+						950_000 + checked_variants * 10 + row * 3 + column,
+						null,
+						cell.max_health + 1.0,
+						&"variant_section_probe",
+						cell.global_position,
+						Vector2.RIGHT,
+						0.0
+					)
+					assert_true(cell.receive_damage(event), "%s[%d,%d]" % [
+						variant.variant_id,
+						column,
+						row,
+					])
+					await get_tree().physics_frame
+					assert_true(cell.is_destroyed())
+					var hurtbox: CollisionShape2D = cell.get_node(
+						^"Hurtbox/CollisionShape2D"
+					) as CollisionShape2D
+					assert_true(hurtbox.disabled)
+			checked_variants += 1
+	assert_eq(checked_variants, CityDistrictCatalog.BUILDING_VARIANT_COUNT)
+
+
 func test_stream_runtime_applies_variants_outside_assertions() -> void:
 	var source: String = FileAccess.get_file_as_string(
 		"res://scripts/world/streamed_destructible_runtime.gd"

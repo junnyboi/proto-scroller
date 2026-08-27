@@ -16,6 +16,7 @@ signal destroyed(event: DamageEvent)
 @export var rubble_visual_path: NodePath
 @export var intact_collision_path: NodePath
 @export var rubble_collision_path: NodePath
+@export var hurtbox_collision_path: NodePath
 
 var current_health: float
 var material_profile: StructuralMaterialProfile
@@ -31,6 +32,9 @@ var _seen_attacks: Dictionary[int, bool] = {}
 )
 @onready var _rubble_collision: CollisionShape2D = (
 	get_node_or_null(rubble_collision_path) as CollisionShape2D
+)
+@onready var _hurtbox_collision: CollisionShape2D = (
+	get_node_or_null(hurtbox_collision_path) as CollisionShape2D
 )
 
 
@@ -121,6 +125,8 @@ func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
 		_intact_collision.set_deferred("disabled", show_rubble)
 	if _rubble_collision != null:
 		_rubble_collision.set_deferred("disabled", not show_rubble)
+	if _hurtbox_collision != null:
+		_hurtbox_collision.set_deferred("disabled", show_rubble)
 
 
 func _release_chunks(event: DamageEvent) -> void:

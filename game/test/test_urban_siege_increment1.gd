@@ -71,6 +71,17 @@ func test_damage_event_lineage_survives_scaled_derivative() -> void:
 
 func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	var catalysts: CatalystRuntime = city.urban_siege.catalysts
+	var detonation_stream: AudioStreamWAV = (
+		AudioCueRegistry.POWER_BOX_DETONATION_SFX as AudioStreamWAV
+	)
+	assert_eq(detonation_stream.mix_rate, 48000)
+	assert_eq(detonation_stream.format, AudioStreamWAV.FORMAT_16_BITS)
+	assert_false(detonation_stream.stereo)
+	assert_between(detonation_stream.get_length(), 1.45, 1.55)
+	assert_eq(
+		int(AudioCueRegistry.profile(AudioCueRegistry.Cue.POWER_BOX_DETONATION).priority),
+		AudioVoicePriority.SIGNATURE
+	)
 	assert_eq(catalysts.total_count(), 2)
 	assert_eq(catalysts.repair_pickup_count(), RuntimeBudget.REPAIR_PICKUP_SLOTS)
 	var transformer: Catalyst2D = catalysts.activate(0, TRANSFORMER, Vector2(1100.0, 590.0))
@@ -105,6 +116,7 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	assert_eq(pickup.global_position, transformer.global_position + Vector2(0.0, -96.0))
 	var score_before_finish: int = city.rampage_session.current_score()
 	var debris_before_finish: int = city.debris_pool.active_count()
+	var cue_count_before_finish: int = city.impact_feedback_pool.cue_play_count
 	var finishing_event: DamageEvent = DamageEvent.new(
 		903,
 		city.robot,
@@ -127,6 +139,12 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	assert_eq(transformer.trigger_count, 1)
 	assert_eq(catalysts.power_box_scrap_burst_count, 1)
 	assert_eq(catalysts.power_box_scrap_piece_count, CatalystRuntime.POWER_BOX_SCRAP_PIECES)
+	assert_eq(catalysts.power_box_detonation_sfx_count, 1)
+	assert_eq(city.impact_feedback_pool.cue_play_count, cue_count_before_finish + 1)
+	assert_eq(
+		city.impact_feedback_pool.last_cue,
+		AudioCueRegistry.Cue.POWER_BOX_DETONATION
+	)
 	assert_eq(
 		city.debris_pool.active_count(),
 		debris_before_finish + CatalystRuntime.POWER_BOX_SCRAP_PIECES

@@ -7,6 +7,7 @@ const EPSILON: float = 0.5
 func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> void:
 	var city: CitySlice = await _spawn_city()
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
+	assert_eq(CityWorldStream.LEFT_RETENTION_DISTANCE, 1000.0)
 	assert_eq(city.world_stream.active_chunk_count(), CityWorldStream.CHUNK_CAPACITY)
 	for logical_index: int in range(0, 49):
 		_move_to_logical_chunk(city, logical_index)
@@ -66,6 +67,43 @@ func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> vo
 			<= city.world_stream.rear_frontier_logical_x
 		):
 			assert_true(chunk.culled)
+	_record_test_execution()
+
+
+func test_rear_frontier_collision_is_player_only() -> void:
+	var city: CitySlice = await _spawn_city()
+	var stream: CityWorldStream = city.world_stream
+	assert_eq(CityWorldStream.LEFT_RETENTION_DISTANCE, 1000.0)
+	assert_almost_eq(
+		stream.rear_frontier_logical_x,
+		stream.furthest_progress_logical_x - 1000.0,
+		EPSILON
+	)
+	assert_eq(stream.rear_barrier.collision_layer, CityWorldStream.REAR_BARRIER_LAYER)
+	assert_eq(stream.rear_barrier.collision_mask, CityStreetChunk.ROBOT_LAYER)
+	assert_ne(city.robot.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	for actor: EnemyActor2D in city.encounter_runtime.all_actors():
+		assert_eq(actor.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_eq(city.car.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_eq(city.streetlamp.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	var passer: CharacterBody2D = CharacterBody2D.new()
+	passer.name = "RearBarrierNonPlayerProbe"
+	passer.collision_layer = CityStreetChunk.ENEMY_LAYER
+	passer.collision_mask = CityStreetChunk.WORLD_LAYER
+	passer.motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	var shape_node: CollisionShape2D = CollisionShape2D.new()
+	var shape: RectangleShape2D = RectangleShape2D.new()
+	shape.size = Vector2(32.0, 32.0)
+	shape_node.shape = shape
+	passer.add_child(shape_node)
+	city.add_child(passer)
+	passer.global_position = Vector2(stream.rear_frontier_runtime_x() + 96.0, 180.0)
+	await get_tree().physics_frame
+	for _step: int in range(12):
+		passer.velocity = Vector2(-1200.0, 0.0)
+		passer.move_and_slide()
+		await get_tree().physics_frame
+	assert_lt(passer.global_position.x, stream.rear_frontier_runtime_x() - 40.0)
 	_record_test_execution()
 
 
