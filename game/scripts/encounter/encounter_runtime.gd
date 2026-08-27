@@ -32,6 +32,7 @@ const SOLDIER_TEXTURE: Texture2D = preload("res://art/city/enemies/soldier.png")
 const TANK_TEXTURE: Texture2D = preload("res://art/city/enemies/tank.png")
 const HELICOPTER_TEXTURE: Texture2D = preload("res://art/city/enemies/helicopter.png")
 const SOLDIER_RENDER_HEIGHT_PIXELS: float = 108.0
+const VISIBLE_ALPHA_THRESHOLD: int = 8
 const MARK_DAMAGE_MULTIPLIER: float = 1.15
 const STATIC_INTERVAL_MULTIPLIER: float = 0.82
 const AEGIS_DAMAGE_MULTIPLIER: float = 0.65
@@ -54,6 +55,7 @@ var target_mark_remaining: float = 0.0
 var elite_spawn_effect_pool: EliteSpawnEffectPool
 var cycle_health_multiplier: float = 1.0
 var cycle_attack_multiplier: float = 1.0
+static var _visual_content_rect_cache: Dictionary[String, Rect2] = {}
 
 
 func setup(
@@ -406,14 +408,14 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	var fit: float = minf(display_size.x / texture_size.x, display_size.y / texture_size.y)
 	visual.scale = Vector2.ONE * fit
 	visual.position = Vector2.ZERO
+	_cache_visual_content_rect(visual, texture)
 	if not enemy.airborne:
-		var rendered_height: float = texture_size.y * fit
 		var baseline_y: float = (
 			LAND_BASELINE_Y
 			if EnemyArchetypeCatalog.is_human_enemy(kind)
 			else LAND_VEHICLE_BASELINE_Y
 		)
-		visual.position.y = baseline_y - authored_y - rendered_height * 0.5
+		_align_visual_bottom(visual, authored_y, baseline_y)
 	enemy._visual_rest_position = visual.position
 	enemy._visual_rest_scale = visual.scale
 	enemy.collision_layer = ENEMY_LAYER
@@ -442,12 +444,12 @@ func _configure_actor_nodes(
 	enemy.collision_mask = 0 if kind == &"helicopter" else WORLD_LAYER | DEBRIS_LAYER
 	var visual: Sprite2D = CityWorldBuilder.fit_sprite(texture, display_size)
 	visual.name = "Visual"
+	_cache_visual_content_rect(visual, texture)
 	if kind != &"helicopter":
-		var rendered_height: float = texture.get_size().y * absf(visual.scale.y)
 		var baseline_y: float = (
 			LAND_VEHICLE_BASELINE_Y if kind == &"tank" else LAND_BASELINE_Y
 		)
-		visual.position.y = baseline_y - authored_y - rendered_height * 0.5
+		_align_visual_bottom(visual, authored_y, baseline_y)
 		enemy.movement_bounce_enabled = true
 		if kind == &"soldier":
 			enemy.bounce_height = 5.5
@@ -476,6 +478,55 @@ func _configure_actor_nodes(
 	hurt_shape.shape = hurt_rectangle
 	hurtbox.add_child(hurt_shape)
 	enemy.add_child(hurtbox)
+
+
+func _cache_visual_content_rect(visual: Sprite2D, texture: Texture2D) -> void:
+	visual.set_meta(
+		EnemyActor2D.VISUAL_CONTENT_RECT_META,
+		_visible_content_rect(texture)
+	)
+
+
+func _visible_content_rect(texture: Texture2D) -> Rect2:
+	var cache_key: String = texture.resource_path
+	if cache_key.is_empty():
+		cache_key = str(texture.get_instance_id())
+	if _visual_content_rect_cache.has(cache_key):
+		return _visual_content_rect_cache[cache_key]
+	var texture_size: Vector2 = texture.get_size()
+	var content_rect: Rect2 = Rect2(-texture_size * 0.5, texture_size)
+	var image: Image = texture.get_image()
+	if image != null and not image.is_empty():
+		image.convert(Image.FORMAT_RGBA8)
+		var data: PackedByteArray = image.get_data()
+		var width: int = image.get_width()
+		var height: int = image.get_height()
+		var minimum: Vector2i = Vector2i(width, height)
+		var maximum: Vector2i = Vector2i(-1, -1)
+		for pixel_index: int in range(width * height):
+			if int(data[pixel_index * 4 + 3]) <= VISIBLE_ALPHA_THRESHOLD:
+				continue
+			var point: Vector2i = Vector2i(
+				pixel_index % width,
+				floori(float(pixel_index) / float(width))
+			)
+			minimum = minimum.min(point)
+			maximum = maximum.max(point)
+		if maximum.x >= minimum.x and maximum.y >= minimum.y:
+			content_rect = Rect2(
+				Vector2(minimum) - texture_size * 0.5,
+				Vector2(maximum - minimum + Vector2i.ONE)
+			)
+	_visual_content_rect_cache[cache_key] = content_rect
+	return content_rect
+
+
+func _align_visual_bottom(visual: Sprite2D, authored_y: float, baseline_y: float) -> void:
+	var content_rect: Rect2 = visual.get_meta(
+		EnemyActor2D.VISUAL_CONTENT_RECT_META,
+		Rect2(-visual.texture.get_size() * 0.5, visual.texture.get_size())
+	)
+	visual.position.y = baseline_y - authored_y - content_rect.end.y * absf(visual.scale.y)
 
 
 func _configure_actor_contract(enemy: EnemyActor2D) -> void:
