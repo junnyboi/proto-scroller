@@ -53,14 +53,6 @@ func acquire(p_definition: BossEncounterDefinition) -> bool:
 	if buildings.size() != CityWorldStream.CHUNK_CAPACITY or arena_building == null:
 		_fail_acquire()
 		return false
-	if not destructibles.bind_landmark_for_chunk(
-		world_stream.chunk_for_logical(definition.arena_logical_chunk),
-		definition.arena_landmark_variant_id
-	):
-		_fail_acquire()
-		return false
-	if definition.boss_id == &"SETTLEMENT_ENGINE_S04":
-		arena_building.set_encounter_suppressed(true)
 	_refresh_cached_anchors()
 	active = true
 	generation += 1
@@ -71,53 +63,6 @@ func release() -> void:
 	if active and world_stream != null:
 		world_stream.end_resident_lease(self)
 	_clear()
-
-
-func capture_structural_state() -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if not active:
-		return result
-	for index: int in range(buildings.size()):
-		var building: StructuralBuilding2D = buildings[index]
-		result.append({
-			"logical_chunk": chunks[index].logical_index,
-			"building_instance_id": building.get_instance_id(),
-			"variant_id": building.current_variant_id(),
-			"state": building.capture_stream_state(),
-		})
-	return result
-
-
-func restore_structural_state(states: Array[Dictionary]) -> bool:
-	if not active or states.size() != CityWorldStream.CHUNK_CAPACITY:
-		return false
-	for record: Dictionary in states:
-		var logical_chunk: int = int(
-			record.get("logical_chunk", CityStreetChunk.UNUSED_INDEX)
-		)
-		var variant_id: StringName = StringName(record.get("variant_id", &""))
-		var state: Dictionary = record.get("state", {}) as Dictionary
-		var resident_chunk: CityStreetChunk = world_stream.chunk_for_logical(logical_chunk)
-		var building: StructuralBuilding2D = destructibles.building_for_chunk(resident_chunk)
-		if building == null:
-			var persisted_state: Dictionary = state.duplicate(true)
-			persisted_state.pristine = false
-			destructibles.ledger.store(
-				destructibles.ledger.make_object_id(logical_chunk, &"building"),
-				persisted_state
-			)
-			continue
-		if building.current_variant_id() != variant_id:
-			var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_by_id(
-				variant_id
-			)
-			if variant == null or not building.apply_variant(variant):
-				return false
-			building.set_meta(&"building_variant_id", variant_id)
-			building.restore_stream_state(state)
-			if building == arena_building and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
-				building.set_encounter_suppressed(true)
-	return true
 
 
 func resident_count() -> int:
@@ -153,8 +98,6 @@ func _fail_acquire() -> void:
 
 
 func _clear() -> void:
-	if arena_building != null:
-		arena_building.set_encounter_suppressed(false)
 	active = false
 	definition = null
 	arena_building = null

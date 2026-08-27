@@ -85,7 +85,6 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		utility_pool.defeat_spectacle.deactivate()
 	generation_token = utility_pool.begin_generation()
 	active_definition = definition
-	dependencies.encounter_runtime.release_all()
 	var spawn_position: Vector2 = dependencies.encounter_runtime.resolve_spawn_position(
 		Vector2(0.0, 551.0),
 		&"AHEAD"
@@ -138,7 +137,7 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	_royal_finisher_roots.clear()
 	_apply_pending_attempt_restore()
 	_set_state(STATE_SCREEN)
-	dependencies.encounter_runtime.set_attack_gate(false)
+	boss.set_attack_gate(false)
 	armor_changed.emit(boss.boss_armor, boss.boss_max_armor)
 	return true
 
@@ -159,7 +158,8 @@ func advance(delta: float) -> void:
 		SCREEN_DURATION if active_definition == null else active_definition.screen_seconds
 	)
 	if state == STATE_SCREEN and _state_elapsed >= screen_duration:
-		dependencies.encounter_runtime.set_attack_gate(true)
+		if boss != null:
+			boss.set_attack_gate(true)
 		_set_state(STATE_BARRAGE)
 
 
@@ -167,9 +167,7 @@ func stop() -> void:
 	_next_generation()
 	if utility_pool != null and utility_pool.defeat_spectacle != null:
 		utility_pool.defeat_spectacle.deactivate()
-	if _is_choir_prime():
-		dependencies.encounter_runtime.release_all()
-	elif boss != null and boss.active:
+	if boss != null and boss.active:
 		dependencies.encounter_runtime.release(boss)
 	if boss_wreck != null:
 		dependencies.remains_factory.release_wreck(boss_wreck)
@@ -368,16 +366,7 @@ func _configure_campaign_runtime() -> void:
 	)
 	utility_pool.rig.configure(active_definition, boss, portrait)
 	boss.set_hidden_authority(true)
-	var campaign: BossCampaignDirector = (
-		dependencies.city.urban_siege.boss_campaign
-		if dependencies.city != null and dependencies.city.urban_siege != null
-		else null
-	)
-	if campaign != null and campaign.arena_lease.active:
-		utility_pool.arena_adapter.bind(
-			campaign.arena_lease.arena_building,
-			active_definition
-		)
+	utility_pool.arena_adapter.unbind()
 	if not active_definition.phases.is_empty():
 		utility_pool.controller.begin_phase(
 			active_definition.phases[0],
@@ -417,7 +406,7 @@ func _is_choir_prime() -> bool:
 func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> void:
 	if enemy == boss:
 		_capture_completion_payload()
-		dependencies.encounter_runtime.set_attack_gate(false)
+		boss.set_attack_gate(false)
 		utility_pool.defeat_spectacle.activate(
 			enemy.global_position + Vector2(0.0, -96.0),
 			dependencies.city.camera_rig

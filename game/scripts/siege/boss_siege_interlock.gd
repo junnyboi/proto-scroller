@@ -2,14 +2,6 @@ class_name BossSiegeInterlock
 extends RefCounted
 
 const RECOVERY_SECONDS: float = 1.0
-const CANCELLED_EFFECT_FLAGS: int = (
-	DamageEvent.FLAG_CATALYST
-	| DamageEvent.FLAG_DIRECTIVE_AFTERSHOCK
-	| DamageEvent.FLAG_DIRECTIVE_SKYBREAKER
-	| DamageEvent.FLAG_VOLATILE
-	| DamageEvent.FLAG_HAZARD
-)
-
 var siege: UrbanSiegeRuntime
 var owned: bool = false
 var captured_state: Dictionary = {}
@@ -29,25 +21,7 @@ func acquire() -> bool:
 	}
 	owned = true
 	siege.set_boss_gate_owned(true)
-	clear_competing_combat()
 	return true
-
-
-func clear_competing_combat() -> void:
-	if not owned or siege == null:
-		return
-	var dependencies: UrbanSiegeDependencies = siege.dependencies
-	for enemy: EnemyActor2D in dependencies.encounter_runtime.all_actors():
-		if enemy != siege.boss_session.boss:
-			dependencies.encounter_runtime.release(enemy)
-	dependencies.telegraphs.cancel_all()
-	dependencies.projectile_pool.release_hostile(dependencies.robot)
-	if dependencies.destruction_director != null:
-		dependencies.destruction_director.cancel_effect_flags(CANCELLED_EFFECT_FLAGS)
-	siege.hazards.release_all()
-	siege.catalysts.deactivate_all()
-	siege.trait_runtime.reset_all()
-	siege.withdraw_directive_for_boss()
 
 
 func resume_after_success() -> bool:

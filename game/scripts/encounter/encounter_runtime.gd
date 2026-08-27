@@ -35,6 +35,7 @@ const TANK_TEXTURE: Texture2D = preload("res://art/city/enemies/tank.png")
 const HELICOPTER_TEXTURE: Texture2D = preload("res://art/city/enemies/helicopter.png")
 const SOLDIER_RENDER_HEIGHT_PIXELS: float = 108.0
 const VISIBLE_ALPHA_THRESHOLD: int = 8
+const COMMAND_TANK_SLOT: int = RuntimeBudget.TANKS - 1
 const MARK_DAMAGE_MULTIPLIER: float = 1.15
 const STATIC_INTERVAL_MULTIPLIER: float = 0.82
 const AEGIS_DAMAGE_MULTIPLIER: float = 0.65
@@ -132,7 +133,7 @@ func acquire(
 ) -> EnemyActor2D:
 	if not EnemyArchetypeCatalog.is_valid_kind(kind):
 		return null
-	for enemy: EnemyActor2D in _pool_for_kind(kind):
+	for enemy: EnemyActor2D in _pool_for_acquisition(kind, role_id, trait_id):
 		if enemy.active:
 			continue
 		if enemy is ProceduralEnemy:
@@ -569,6 +570,24 @@ func _pool_for_kind(kind: StringName) -> Array[EnemyActor2D]:
 	else:
 		actors = _pool_for_family(EnemyArchetypeCatalog.family_for(kind))
 	return actors
+
+
+func _pool_for_acquisition(
+	kind: StringName,
+	role_id: StringName,
+	trait_id: StringName
+) -> Array[EnemyActor2D]:
+	var actors: Array[EnemyActor2D] = _pool_for_kind(kind)
+	if kind != &"tank":
+		return actors
+	var command_requested: bool = role_id == &"ANCHOR_TANK" or trait_id == &"COMMAND"
+	var candidates: Array[EnemyActor2D] = []
+	if command_requested:
+		candidates.append(tanks[COMMAND_TANK_SLOT])
+		return candidates
+	for index: int in range(COMMAND_TANK_SLOT):
+		candidates.append(tanks[index])
+	return candidates
 
 
 func _pool_for_family(family: StringName) -> Array[EnemyActor2D]:
