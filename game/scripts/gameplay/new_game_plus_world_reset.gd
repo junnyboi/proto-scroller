@@ -17,7 +17,7 @@ static func execute(city: CitySlice) -> void:
 	city.impact_feedback_pool.reset_runtime_state()
 	city.robot.velocity = Vector2.ZERO
 	city.robot.global_position = CityWorldBuilder.ROBOT_START_POSITION
-	CityWorldBuilder.reset_parallax(city)
+	CityWorldBuilder.reset_environment(city)
 	city.world_stream.reset_stream(city.urban_siege.run_seed)
 	city.streamed_destructibles.reset_run(city.urban_siege.run_seed)
 	city._refresh_primary_destructibles()

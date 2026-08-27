@@ -21,6 +21,9 @@ const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
 const DISTRICT_PARALLAX_SCRIPT: Script = preload(
 	"res://scripts/world/district_parallax_runtime.gd"
 )
+const DISTRICT_WEATHER_SCRIPT: Script = preload(
+	"res://scripts/world/district_weather_runtime.gd"
+)
 const ROBOT_ATLAS: Texture2D = preload(
 	"res://art/robot/grunt/grunt_horizontal_atlas.png"
 )
@@ -35,6 +38,20 @@ static func build_environment(parent: Node2D) -> void:
 	)
 	backdrop.name = "ParallaxCity"
 	parent.add_child(backdrop)
+	var weather: DistrictWeatherRuntime = (
+		DISTRICT_WEATHER_SCRIPT.new() as DistrictWeatherRuntime
+	)
+	weather.name = "DistrictWeather"
+	parent.add_child(weather)
+
+
+static func transition_environment(parent: Node2D, district_id: StringName) -> bool:
+	var parallax_changed: bool = transition_parallax(parent, district_id)
+	var weather: DistrictWeatherRuntime = _weather(parent)
+	var weather_changed: bool = (
+		weather.transition_to(district_id) if weather != null else false
+	)
+	return parallax_changed or weather_changed
 
 
 static func transition_parallax(parent: Node2D, district_id: StringName) -> bool:
@@ -52,6 +69,13 @@ static func reset_parallax(parent: Node2D) -> void:
 	var backdrop: DistrictParallaxRuntime = _parallax(parent)
 	if backdrop != null:
 		backdrop.reset_to_business()
+
+
+static func reset_environment(parent: Node2D) -> void:
+	reset_parallax(parent)
+	var weather: DistrictWeatherRuntime = _weather(parent)
+	if weather != null:
+		weather.reset_to_business()
 
 
 static func initial_run_seed(deterministic: bool) -> int:
@@ -163,3 +187,7 @@ static func fit_sprite(texture: Texture2D, display_size: Vector2) -> Sprite2D:
 
 static func _parallax(parent: Node2D) -> DistrictParallaxRuntime:
 	return parent.get_node_or_null(^"ParallaxCity") as DistrictParallaxRuntime
+
+
+static func _weather(parent: Node2D) -> DistrictWeatherRuntime:
+	return parent.get_node_or_null(^"DistrictWeather") as DistrictWeatherRuntime
