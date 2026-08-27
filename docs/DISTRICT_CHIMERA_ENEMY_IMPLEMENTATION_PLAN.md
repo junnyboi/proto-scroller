@@ -130,7 +130,7 @@ This section will be updated after each work package with commit IDs, focused ch
 
 | Work package | Completion | Commit / checkpoint | Focused evidence | Notes |
 |---|---|---|---|---|
-| WP0 | Completed | WP0 source commit recorded after integration | 20 proposal concepts, 20 GPT Image 2 masters, 20 transparent runtime sprites; runtime PNG total 2,831,759 bytes; visual contact sheet inspected | Proposal embeds every concept; source masters remain outside `game/`; runtime derivatives are 320–448 pixels maximum dimension. |
+| WP0 | Completed | `88e2fe9d480bd2929942c4289853add7320f9f27` | 20 proposal concepts, 20 GPT Image 2 masters, 20 transparent runtime sprites; runtime PNG total 2,831,759 bytes; visual contact sheet inspected | Proposal embeds every concept; source masters remain outside `game/`; runtime derivatives are 320–448 pixels maximum dimension. |
 | WP1 | Pending | — | — | — |
 | WP2 | Pending | — | — | — |
 | WP3 | Pending | — | — | — |
