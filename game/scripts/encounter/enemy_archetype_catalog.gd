@@ -8,6 +8,9 @@ const HUMAN_KINDS: Array[StringName] = [
 const HUMAN_SPAWN_MULTIPLIER: int = 2
 const HUMAN_RENDER_HEIGHT_PIXELS: float = 108.0
 const GROUND_VEHICLE_SCALE: float = 2.0
+const VEHICLE_WEIGHT_NONE: StringName = &""
+const VEHICLE_WEIGHT_LIGHT: StringName = &"light"
+const VEHICLE_WEIGHT_HEAVY: StringName = &"heavy"
 const RANDOM_AFFIXES: Array[StringName] = [&"BLITZ", &"BRUTAL", &"PHASED"]
 const PROCEDURAL_IDS: Array[StringName] = [
 	&"needle", &"bulwark", &"jackal", &"lobber", &"sapper",
@@ -638,6 +641,16 @@ static func is_ground_vehicle(kind: StringName) -> bool:
 	return (
 		not bool(profile_value.get("airborne", false))
 		and StringName(profile_value.get("remains", &"")) == &"vehicle"
+	)
+
+
+static func vehicle_weight_class(kind: StringName) -> StringName:
+	if not is_ground_vehicle(kind):
+		return VEHICLE_WEIGHT_NONE
+	return (
+		VEHICLE_WEIGHT_LIGHT
+		if family_for(kind) == &"light"
+		else VEHICLE_WEIGHT_HEAVY
 	)
 
 
