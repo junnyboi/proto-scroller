@@ -112,6 +112,7 @@ func _validate_damage(errors: PackedStringArray) -> void:
 	if armor_policy not in [
 		EnemyActor2D.ArmorPolicy.LEGACY_AMOUNT_BASED,
 		EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP,
+		EnemyActor2D.ArmorPolicy.ALL_DAMAGE,
 	]:
 		errors.append("invalid armor policy for %s" % boss_id)
 	if (

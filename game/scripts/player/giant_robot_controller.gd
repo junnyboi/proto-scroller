@@ -26,6 +26,7 @@ enum LocomotionState {
 	IDLE,
 	WALK,
 	TURN,
+	ATTACK_LOCKED,
 	DODGE,
 }
 
@@ -99,6 +100,7 @@ var _attack_id: int = 0
 var _was_on_floor: bool = false
 var _pre_move_vertical_speed: float = 0.0
 var _combat_disabled: bool = false
+var _attack_locked: bool = false
 var _dodge_remaining: float = 0.0
 var _invulnerable_remaining: float = 0.0
 var _dodge_recovery_remaining: float = 0.0
@@ -200,6 +202,9 @@ func physics_step(input_axis: float, delta: float) -> void:
 	_tap_window_remaining = maxf(_tap_window_remaining - delta, 0.0)
 	if is_zero_approx(_tap_window_remaining):
 		_last_tap_direction = 0
+	if attack_controller != null and attack_controller.is_charging():
+		velocity = Vector2.ZERO
+		return
 	_was_on_floor = is_on_floor()
 	_pre_move_vertical_speed = velocity.y
 	_apply_gravity(delta)
@@ -231,7 +236,10 @@ func physics_step(input_axis: float, delta: float) -> void:
 		return
 	if _dodge_recovery_remaining > 0.0:
 		_dodge_recovery_remaining = maxf(_dodge_recovery_remaining - delta, 0.0)
-	_update_locomotion(clampf(input_axis, -1.0, 1.0), delta)
+	if locomotion_state != LocomotionState.ATTACK_LOCKED:
+		_update_locomotion(clampf(input_axis, -1.0, 1.0), delta)
+	else:
+		velocity.x = 0.0
 	move_and_slide()
 	_resolve_landing_impact()
 
@@ -308,6 +316,17 @@ func set_attack_controller(controller: ContextualAttackController) -> void:
 	attack_controller = controller
 
 
+func _set_attack_locked(locked: bool) -> void:
+	_attack_locked = locked
+	if locomotion_state == LocomotionState.DODGE:
+		return
+	if locked:
+		velocity.x = 0.0
+	_set_locomotion_state(
+		LocomotionState.ATTACK_LOCKED if locked else LocomotionState.IDLE
+	)
+
+
 func _register_move_tap(direction: int) -> bool:
 	var normalized_direction: int = clampi(direction, -1, 1)
 	if normalized_direction == 0:
@@ -340,7 +359,8 @@ func _clear_move_tap() -> void:
 
 func _start_dodge(direction: int = 0) -> bool:
 	if (
-		_dodge_recovery_remaining > 0.0
+		_attack_locked
+		or _dodge_recovery_remaining > 0.0
 		or not dodge_ready
 	):
 		return false

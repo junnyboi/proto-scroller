@@ -4,6 +4,7 @@ extends Node
 signal attack_started(spec: AttackSpec)
 signal attack_active(spec: AttackSpec)
 signal attack_finished(spec: AttackSpec)
+signal dodge_buffered(attack_id: int, direction: int)
 signal charge_started(spec: AttackSpec)
 signal charge_updated(spec: AttackSpec, duration: float, progress: float, multiplier: float)
 signal charge_released(spec: AttackSpec, duration: float, multiplier: float)
@@ -30,12 +31,14 @@ var directive_session: DirectiveSession
 var kinetic_field_runtime: KineticFieldRuntime
 var shop_upgrade_runtime: WeaponShopUpgradeRuntime
 var phase: Phase = Phase.READY
+var buffered_dodge_count: int = 0
 var _robot: GiantRobotController
 var _visual_root: Node2D
 var _rest_position: Vector2
 var _rest_scale: Vector2 = Vector2.ONE
 var _rest_rotation: float = 0.0
 var _busy: bool = false
+var _buffered_dodge_direction: int = 0
 var _charging: bool = false
 var _charge_duration: float = 0.0
 var _last_full_charge_hit_attack_id: int = 0
@@ -166,7 +169,9 @@ func begin_charge() -> int:
 	_charging = true
 	_charge_duration = 0.0
 	_last_full_charge_hit_attack_id = 0
+	_buffered_dodge_direction = 0
 	phase = Phase.CHARGING
+	_robot._set_attack_locked(true)
 	_robot.notify_attack_selected(current_spec.mode, current_spec.attack_id)
 	attack_started.emit(current_spec)
 	charge_started.emit(current_spec)
@@ -223,8 +228,12 @@ func request_dodge(direction: int) -> bool:
 		return false
 	if not _busy:
 		return _robot._start_dodge(normalized_direction)
-	cancel_attack()
-	return _robot._start_dodge(normalized_direction)
+	if phase != Phase.RECOVERY or _buffered_dodge_direction != 0:
+		return false
+	_buffered_dodge_direction = normalized_direction
+	buffered_dodge_count += 1
+	dodge_buffered.emit(current_spec.attack_id, normalized_direction)
+	return true
 
 
 func is_busy() -> bool:
@@ -237,7 +246,10 @@ func cancel_attack() -> void:
 	_busy = false
 	_charging = false
 	_charge_duration = 0.0
+	_buffered_dodge_direction = 0
 	phase = Phase.READY
+	if _robot != null:
+		_robot._set_attack_locked(false)
 	_restore_pose()
 	if cancelled_spec != null:
 		attack_cancelled.emit(cancelled_spec)
@@ -253,6 +265,7 @@ func _run_attack(spec: AttackSpec) -> void:
 	phase = Phase.ACTIVE
 	_apply_active_pose(spec)
 	if spec.is_ground_smash():
+		_robot.velocity.x = 0.0
 		_robot.execute_ground_smash(
 			spec.attack_id,
 			spec.actor_damage,
@@ -261,6 +274,7 @@ func _run_attack(spec: AttackSpec) -> void:
 			spec.hit_size.x * 0.5
 		)
 	else:
+		_robot.velocity.x = 0.0
 		jab_cross_impact.resolve(spec, _robot)
 	if directive_session != null:
 		directive_session.attack_active(spec)
@@ -281,7 +295,12 @@ func _run_attack(spec: AttackSpec) -> void:
 	_busy = false
 	_charge_duration = 0.0
 	phase = Phase.READY
+	_robot._set_attack_locked(false)
 	attack_finished.emit(spec)
+	if _buffered_dodge_direction != 0:
+		var dodge_direction: int = _buffered_dodge_direction
+		_buffered_dodge_direction = 0
+		_robot._start_dodge(dodge_direction)
 
 func _apply_windup_pose(spec: AttackSpec) -> void:
 	if _visual_root == null:

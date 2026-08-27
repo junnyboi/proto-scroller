@@ -12,36 +12,36 @@ The reported first-boss lock was real. The screenshot shows the encounter still 
 
 The audit found additional systemic weaknesses: telegraphed attack areas were visual-only; the screen-introduction state could advance attack timers invisibly; all attack patterns were exposed from the opening second rather than escalating; one boss-support wave had been doubled despite being a stateful boss mechanic; SAMARITAN's broad fallback hurtboxes overlapped protected glass; MIMESIS advertised a hollow-center counter that did not react continuously; the Military Graft Runner did not receive its target mark; evidence payloads could be lost because wreck generation could clean up a controller before its death callback captured results; and a transient completion-save failure could leave a consumed boss behind an owned route gate.[1][2][3][4]
 
-The repaired contract is now consistent across the campaign. Safe telegraphs transition to **magenta armed zones** that inflict one deduplicated chassis hit per activation. Boss introductions cannot arm attacks. Armor, exposed-body, and wreck states have different attack sets. Rejected armor hits immediately explain the exact input. Gold armor targets and mandatory wreck receivers are visible. Standard evidence survives the wreck callback order. Completion writes retry in place before the gate is consumed, and Royal persists its ending transaction before release.[1][2][5]
+The repaired contract is now readable across the campaign. A generated red-and-white **BOSS FIGHT** splash and synchronized announcer-impact cue introduce each attempt for approximately 1.2 seconds. The combat HUD has been reduced to the localized boss name, a yellow armor bar, and a red health bar. Every accepted boss hit flashes the complete visible rig white. Safe telegraphs transition to **magenta armed zones** that inflict one deduplicated chassis hit per activation, and introductions cannot arm attacks. Settlement Engine S-04 accepts every player damage type against armor; later bosses retain their authored charged-connection rule. Standard evidence survives the wreck callback order. Completion writes retry in place before the route state is consumed, and Royal persists its ending transaction before release.[1][2][5]
 
 ## Universal defeat sequence
 
 > **Keyboard:** Move with **A/D**, hold **Space** for the charge attack, and dodge with **Shift**. On touch devices, use the floating movement joystick, **SMASH**, and **DASH**.
 
-Every campaign boss follows the same readable three-stage structure.
+Every campaign boss follows the same readable armor, body, and wreck structure, with one deliberate opening-boss exception.
 
 | Stage | Required player action | What does not work |
 |---|---|---|
-| **Armored** | Reach at least 70% movement speed, press and hold **Space/SMASH for the full 2.0 seconds**, then release the moving jab-cross into the glowing gold core. Repeat for **three accepted connections**. | Standing ground smashes, tap attacks, and ranged weapons cannot break armor. The HUD now explains which requirement was missed. |
+| **Armored** | Against **Settlement Engine S-04**, use any melee or equipped weapon: every accepted damage type chips the yellow armor bar by its actual damage. Against bosses 2–5, reach at least 70% movement speed, line up with the glowing gold core, then hold **Space/SMASH for the full 2.0 seconds** and release; repeat for three accepted connections. | Only the four later bosses reject standing smashes, taps, and ranged armor damage. Their corrective feedback remains available through combat presentation, not the compact durability HUD. |
 | **Exposed body** | Use normal melee and equipped weapons while reading the telegraphs. Attacks escalate again below roughly one-third body integrity. | Remaining inside a magenta armed footprint. Pale/gold telegraphs are warnings; magenta is live damage. |
-| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Hitting the wreck away from its receiver. The finisher controls rewards and progression only; the route marker is always collisionless. |
+| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Hitting the wreck away from its receiver. The finisher controls rewards and progression only; the right arena wall has already disappeared when body health reached zero. |
 
-The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. It is the intended answer when an armed lane closes after the player has already committed to a charge. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
+The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. Line up before charging; once an attack is committed, locomotion remains locked through recovery and a recovery-phase dodge request is buffered until release. During the fight, one invisible wall sits exactly 1,000 pixels right of the boss to prevent leaving forward; rear-wall and facade obstruction remain suspended, so the player can retreat and reposition. The wall drops on body defeat rather than waiting for the finisher. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
 
 ## Boss-by-boss field guide
 
 ### 1. Settlement Engine S-04 — The Fiduciary Saint
 
-**Identity:** A lane-control tutorial boss that teaches the universal armor input before layering support pressure.
+**Identity:** A lane-control tutorial boss with forgiving universal armor damage before later encounters introduce stricter connection mechanics.
 
 | Phase | Abilities and attack pattern | Counterplay |
 |---|---|---|
-| **Armored** | **Settlement Sweep** covers asymmetric left and right ground zones. **Double-Entry Barrage** attacks both outer approaches and, after recovery, deploys one Bulwark and one Sapper. | Accelerate through the open interval, begin the two-second charge while already moving, and release into the gold core. Do not stop in order to start the charge; a stationary press selects ground smash instead. |
+| **Armored** | **Settlement Sweep** covers asymmetric left and right ground zones. **Double-Entry Barrage** attacks both outer approaches and, after recovery, deploys one Bulwark and one Sapper. | Use any melee or equipped weapon. Ground smash, tap jab-cross, bullets, shells, rockets, and impact damage all reduce armor by their actual accepted amount. Attack during the open interval and watch the yellow bar. |
 | **Exposed** | **Foreclosure Stamp** attacks the center. **Audit Beam** creates a long horizontal beam above the road. | Stay near an edge during Stamp; change vertical/road position relative to the thin beam; attack during recovery. |
 | **Final third** | **Audit Beam** remains and **Foundation Cascade** adds a heavy left-side ground collapse. | Favor the right approach, dodge through a late arm, then punish the recovery. Eliminate the two support enemies if they obstruct the charging lane. |
 | **Finisher** | A visible gold **GROUND SMASH** receiver appears on the wreck. | Ground-smash the labeled receiver. This is the previously missing route-completion step. |
 
-**How to take it down:** Hold A or D until the robot is moving quickly, press and hold Space for two seconds, and release into the core. Do this three times. Then use any normal damage source against the exposed body. When it falls, ground-smash the labeled wreck target for the completion record. You may pass, retreat, and return at every stage.[1][3]
+**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. The invisible east arena boundary remains 1,000 pixels right of the boss until body health reaches zero; it then drops immediately. Ground-smash the labeled wreck target for the completion record.[1][3]
 
 ### 2. SAMARITAN-15 — The Last Evacuation
 
@@ -97,13 +97,13 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. I
 
 ## Fun and fairness assessment
 
-The campaign now has a coherent learning curve instead of five differently decorated target dummies. Settlement teaches movement-charge timing and lane recovery. SAMARITAN adds protection pressure and rotating sanctuary. MIMESIS tests visual discrimination and spatial counterplay to a weapon jam. CANTOR adds marked pursuit and finite area denial. CHOIR Prime recombines those rules, then ends with a legible consequential choice. The same visual grammar is consistent throughout: **gold is the armor objective, pale/gold is warning, magenta is armed damage, cyan is memory or Disentangle, and labeled circles are finishers**.
+The campaign now has a coherent learning curve instead of five differently decorated target dummies. Settlement teaches lane recovery and clearly visible durability while accepting the player's entire arsenal. SAMARITAN introduces the stricter movement-charge armor lesson, then adds protection pressure and rotating sanctuary. MIMESIS tests visual discrimination and spatial counterplay to a weapon jam. CANTOR adds marked pursuit and finite area denial. CHOIR Prime recombines those rules, then ends with a legible consequential choice. The visual grammar remains consistent: **yellow is armor durability, red is body health, white flash means accepted damage, pale/gold is warning, magenta is armed damage, cyan is memory or Disentangle, and labeled circles are finishers**.
 
 The implementation deliberately keeps stateful boss support singular despite global 2× enemy density. This preserves readable boss mechanics while ordinary authored waves remain doubled. Each attack uses a bounded pooled area, supports are capped, phase transitions are health-driven, and no encounter requires the player to destroy optional evidence to open the route.
 
 ## Remaining high-value design opportunities
 
-The current repair makes every fight playable, damaging, phase-structured, and explainable. A subsequent content pass could deepen spectacle without changing the now-stable contracts: add boss-specific hit-stun and armor-break animations; make the Business treasury slab, Entertainment control cabinet, and Military freight anchors directly attackable world receivers; add unique audio stingers for telegraph, armor connection, exposure, and finisher; and tune per-boss hazard damage after collecting real completion-time and chassis-loss telemetry. Those are enhancements, not blockers to defeating the campaign.
+The current repair makes every fight playable, damaging, phase-structured, and explainable. The shared intro splash, announcer cue, compact durability bars, and white accepted-hit flash now cover the previously missing presentation layer. A subsequent content pass could deepen spectacle without changing the stable contracts: add boss-specific hit-stun and armor-break animations; make the Business treasury slab, Entertainment control cabinet, and Military freight anchors directly attackable world receivers; add unique audio stingers for telegraph, armor connection, exposure, and finisher; and tune per-boss hazard damage after collecting real completion-time and chassis-loss telemetry. Those are enhancements, not blockers to defeating the campaign.
 
 ## Source references
 
@@ -116,3 +116,5 @@ The current repair makes every fight playable, damaging, phase-structured, and e
 [7]: ../game/scripts/siege/boss_rig_2d.gd
 [8]: ../game/scripts/siege/boss_escalation_controller.gd
 [9]: ../game/scripts/siege/boss_royal_finale_controller.gd
+[10]: ../game/scripts/siege/boss_arena_barrier_2d.gd
+[11]: ../game/scripts/ui/boss_fight_herald.gd

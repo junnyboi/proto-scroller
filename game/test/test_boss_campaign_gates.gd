@@ -51,10 +51,12 @@ func test_origin_rebase_keeps_gate_and_arena_anchors_aligned() -> void:
 	await _trigger(city, definition)
 	var gate_before: Vector2 = campaign.active_gate.cached_world_anchor
 	var anchor_before: Vector2 = campaign.arena_lease.cached_building_anchors[0]
+	var barrier_before: Vector2 = campaign.arena_barrier.global_position
 	var offset: Vector2 = Vector2(-CityWorldStream.CHUNK_WIDTH * 32.0, 0.0)
 	city.world_stream.origin_shift_requested.emit(offset, 32)
 	assert_eq(campaign.active_gate.cached_world_anchor, gate_before + offset)
 	assert_eq(campaign.arena_lease.cached_building_anchors[0], anchor_before + offset)
+	assert_eq(campaign.arena_barrier.global_position, barrier_before + offset)
 
 
 func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
@@ -89,6 +91,17 @@ func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 	assert_true(city.robot.can_request_attack())
 	assert_false(siege.is_simulation_paused())
 	assert_true(campaign.active_gate.blocker_collision.disabled)
+	assert_true(city.world_stream._rear_barrier_collision.disabled)
+	assert_eq(city.robot.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_eq(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
+	assert_true(campaign.arena_barrier.active)
+	assert_false(campaign.arena_barrier.collision.disabled)
+	assert_ne(city.robot.collision_mask & BossArenaBarrier2D.COLLISION_LAYER, 0)
+	assert_almost_eq(
+		campaign.arena_barrier.global_position.x,
+		siege.boss_session.boss.global_position.x + BossArenaBarrier2D.OFFSET_FROM_BOSS_X,
+		0.001
+	)
 	city.robot.set_physics_process(false)
 	city.robot.collision_mask = 0
 	city.robot.gravity = 0.0
@@ -125,6 +138,39 @@ func test_active_boss_lease_allows_streaming_past_arena_and_back() -> void:
 	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
 
 
+func test_invisible_right_barrier_blocks_at_1000_pixels_then_drops_on_defeat() -> void:
+	var city: CitySlice = await _spawn_city()
+	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
+	await _trigger(city, definition)
+	var barrier_x: float = campaign.arena_barrier.global_position.x
+	var boss_x: float = city.urban_siege.boss_session.boss.global_position.x
+	assert_almost_eq(barrier_x - boss_x, 1000.0, 0.001)
+	city.robot.collision_mask = BossArenaBarrier2D.COLLISION_LAYER
+	await get_tree().physics_frame
+	city.robot.global_position = Vector2(
+		barrier_x - 200.0, campaign.arena_barrier.global_position.y
+	)
+	var collision: KinematicCollision2D = city.robot.move_and_collide(Vector2(400.0, 0.0))
+	assert_not_null(collision)
+	assert_lt(city.robot.global_position.x, barrier_x)
+	var boss: TankEnemy = city.urban_siege.boss_session.boss
+	assert_true(boss.receive_damage(DamageEvent.new(
+		83_001, city.robot, definition.armor, &"shell"
+	)))
+	assert_true(boss.receive_damage(DamageEvent.new(
+		83_002, city.robot, definition.health, &"impact"
+	)))
+	await get_tree().physics_frame
+	assert_false(campaign.arena_barrier.active)
+	assert_true(campaign.arena_barrier.collision.disabled)
+	city.robot.global_position = Vector2(
+		barrier_x - 200.0, campaign.arena_barrier.global_position.y
+	)
+	assert_null(city.robot.move_and_collide(Vector2(400.0, 0.0)))
+	assert_gt(city.robot.global_position.x, barrier_x)
+
+
 func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 	var city: CitySlice = await _spawn_city()
 	var siege: UrbanSiegeRuntime = city.urban_siege
@@ -137,14 +183,18 @@ func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	var boss: TankEnemy = siege.boss_session.boss
-	for attack_id: int in range(81_001, 81_004):
-		assert_true(boss.receive_damage(_full_charge(city, attack_id, 999.0)))
 	assert_true(boss.receive_damage(DamageEvent.new(
-		81_004, city.robot, definition.health, &"impact"
+		81_001, city.robot, definition.armor, &"bullet"
+	)))
+	assert_true(boss.receive_damage(DamageEvent.new(
+		81_002, city.robot, definition.health, &"impact"
 	)))
 	assert_not_null(siege.boss_session.boss_wreck)
+	assert_false(campaign.arena_barrier.active)
+	assert_true(campaign.arena_barrier.collision.disabled)
+	assert_eq(city.robot.collision_mask & BossArenaBarrier2D.COLLISION_LAYER, 0)
 	siege.boss_session.boss_wreck.receive_damage(
-		DamageEvent.new(81_005, city.robot, 999.0, &"ground_smash")
+		DamageEvent.new(81_003, city.robot, 999.0, &"ground_smash")
 	)
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SALVAGE)
 	assert_true(director.is_suspended_for_boss())
@@ -171,14 +221,15 @@ func test_completion_write_failure_retains_gate_then_retries_idempotently() -> v
 	var store: CampaignProgressStore = city.project_choir_runtime.campaign_progress
 	store.fault_injection = CampaignProgressStore.FAIL_BEFORE_WRITE
 	var session: CommandBossSession = city.urban_siege.boss_session
-	for attack_id: int in range(82_001, 82_004):
-		assert_true(session.boss.receive_damage(_full_charge(city, attack_id, 999.0)))
 	assert_true(session.boss.receive_damage(DamageEvent.new(
-		82_004, city.robot, definition.health, &"impact"
+		82_001, city.robot, definition.armor, &"ground_smash"
+	)))
+	assert_true(session.boss.receive_damage(DamageEvent.new(
+		82_002, city.robot, definition.health, &"impact"
 	)))
 	assert_true(session.utility_pool.default_wreck_receiver.receive_damage(
 		DamageEvent.new(
-			82_005,
+			82_003,
 			city.robot,
 			999.0,
 			&"ground_smash",
@@ -210,6 +261,12 @@ func test_stop_and_reset_clear_campaign_and_siege_suspension() -> void:
 	assert_false(campaign.interlock.is_owned())
 	assert_false(city.urban_siege.director.is_suspended_for_boss())
 	assert_false(city.world_stream.resident_lease_active())
+	assert_false(campaign.arena_barrier.active)
+	assert_true(campaign.arena_barrier.collision.disabled)
+	assert_eq(city.robot.collision_mask & BossArenaBarrier2D.COLLISION_LAYER, 0)
+	assert_false(city.world_stream._rear_barrier_collision.disabled)
+	assert_ne(city.robot.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_ne(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
 	await _trigger(city, definition)
 	campaign.reset_run()
 	assert_false(campaign.owns_combat())
@@ -217,17 +274,42 @@ func test_stop_and_reset_clear_campaign_and_siege_suspension() -> void:
 	assert_eq(campaign.gate_for_trigger(4).trigger_count, 0)
 
 
-func test_campaign_hud_uses_localized_name_phase_durability_and_evidence() -> void:
+func test_campaign_hud_uses_only_localized_name_and_two_durability_bars() -> void:
 	var city: CitySlice = await _spawn_city()
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	var text: String = city.gameplay_hud.boss_label.text
+	assert_true(city.gameplay_hud.boss_panel.visible)
 	assert_true(city.gameplay_hud.boss_label.visible)
-	assert_true(text.contains(L10n.t(definition.display_name_key)))
-	assert_true(text.contains(L10n.t("boss.state.screen")))
-	assert_true(text.contains("100%"))
-	assert_eq(text.count("100%"), 2)
-	assert_true(text.contains(L10n.t("boss.archive.preserved")))
+	assert_eq(text, L10n.t(definition.display_name_key))
+	assert_false(text.contains("//"))
+	assert_false(text.contains("100%"))
+	assert_eq(city.gameplay_hud.boss_armor_fill.color, Color("f4c542"))
+	assert_eq(city.gameplay_hud.boss_health_fill.color, Color("e3313f"))
+	assert_almost_eq(
+		city.gameplay_hud.boss_armor_fill.size.x,
+		city.gameplay_hud.boss_armor_track.size.x,
+		0.001
+	)
+	assert_almost_eq(
+		city.gameplay_hud.boss_health_fill.size.x,
+		city.gameplay_hud.boss_health_track.size.x,
+		0.001
+	)
+
+
+func test_boss_fight_herald_uses_generated_splash_and_plays_once_per_start() -> void:
+	var city: CitySlice = await _spawn_city()
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
+	await _trigger(city, definition)
+	var herald: BossFightHerald = city.gameplay_hud.boss_fight_herald
+	assert_true(herald.visible)
+	assert_eq(herald.presentation_count, 1)
+	assert_eq(herald.audio_play_count, 1)
+	assert_eq(herald.splash.texture, BossFightHerald.SPLASH)
+	assert_eq(herald.voice_player.stream, BossFightHerald.VOICE)
+	await get_tree().create_timer(BossFightHerald.PRESENTATION_SECONDS + 0.1).timeout
+	assert_false(herald.visible)
 
 
 func _spawn_city() -> CitySlice:

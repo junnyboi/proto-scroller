@@ -37,10 +37,12 @@ var animation_direction: StringName = DIRECTION_EAST
 var animation_stage: StringName = &"TELEGRAPH"
 var animation_frame: int = 0
 var animation_elapsed: float = 0.0
+var damage_flash_count: int = 0
 
 var _presentation_root: Node2D
 var _socket_root: Node2D
 var _socket_indices: Dictionary[StringName, int] = {}
+var _damage_flash_tween: Tween
 
 
 func _init() -> void:
@@ -78,6 +80,7 @@ func deactivate() -> void:
 	animation_stage = &"TELEGRAPH"
 	animation_frame = 0
 	animation_elapsed = 0.0
+	_cancel_damage_flash()
 	visible = false
 	for part: Sprite2D in parts:
 		part.visible = false
@@ -96,6 +99,8 @@ func receive_damage(event: DamageEvent) -> bool:
 	if host == null or not is_instance_valid(host):
 		return false
 	var accepted: bool = host.receive_damage(event)
+	if accepted:
+		_flash_damage()
 	damage_forwarded.emit(event, accepted)
 	return accepted
 
@@ -310,6 +315,32 @@ func set_armor_target_active(active: bool) -> void:
 	var weak_point: Sprite2D = parts[1]
 	weak_point.visible = active
 	weak_point.modulate = Color(1.0, 0.78, 0.18, 1.0) if active else Color.WHITE
+
+
+func _flash_damage() -> void:
+	_cancel_damage_flash()
+	damage_flash_count += 1
+	_presentation_root.modulate = Color(4.0, 4.0, 4.0, 1.0)
+	_damage_flash_tween = create_tween()
+	_damage_flash_tween.tween_property(
+		_presentation_root,
+		"modulate",
+		Color.WHITE,
+		0.11
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_damage_flash_tween.finished.connect(_on_damage_flash_finished)
+
+
+func _cancel_damage_flash() -> void:
+	if _damage_flash_tween != null and _damage_flash_tween.is_valid():
+		_damage_flash_tween.kill()
+	_damage_flash_tween = null
+	if _presentation_root != null:
+		_presentation_root.modulate = Color.WHITE
+
+
+func _on_damage_flash_finished() -> void:
+	_damage_flash_tween = null
 
 
 func _configure_hurt_regions(preset: StringName) -> void:

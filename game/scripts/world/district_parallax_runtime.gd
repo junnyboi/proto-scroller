@@ -3,7 +3,7 @@ extends Node2D
 
 const BUSINESS: StringName = &"BUSINESS"
 const CROSSFADE_SECONDS: float = 0.85
-const REPEAT_SIZE: Vector2 = Vector2(1344.0, 0.0)
+const DEPTH_REPEAT_SIZE: Vector2 = Vector2(1344.0, 0.0)
 const REPEAT_TIMES: int = 3
 const SKY_SCROLL_SCALE: Vector2 = Vector2(0.05, 1.0)
 const FAR_SCROLL_SCALE: Vector2 = Vector2(0.18, 1.0)
@@ -28,6 +28,12 @@ const ROYAL_PANORAMA: Texture2D = preload(
 const FAR_TEXTURE: Texture2D = preload("res://art/city/parallax/far_skyline.png")
 const INFRA_TEXTURE: Texture2D = preload("res://art/city/parallax/infrastructure.png")
 const NEAR_TEXTURE: Texture2D = preload("res://art/city/parallax/near_buildings.png")
+const SEAMLESS_PANORAMA_SHADER: Shader = preload(
+	"res://shaders/seamless_panorama.gdshader"
+)
+const SKY_LIFE_SCRIPT: Script = preload(
+	"res://scripts/world/district_sky_life_runtime.gd"
+)
 
 const DISTRICT_TEXTURES: Dictionary = {
 	&"BUSINESS": BUSINESS_PANORAMA,
@@ -55,17 +61,21 @@ var _sky_sprites: Array[Sprite2D] = []
 var _depth_sprites: Array[Sprite2D] = []
 var _depth_start_colors: Array[Color] = []
 var _depth_target_colors: Array[Color] = []
+var _ungraded_depth_colors: Array[Color] = []
+var _sky_life: DistrictSkyLifeRuntime
 
 
 func _ready() -> void:
 	_build_fixed_bands()
 	_apply_immediate(BUSINESS)
-	set_process(false)
+	set_process(true)
 
 
 func _process(delta: float) -> void:
+	if _sky_life != null:
+		_sky_life.advance(delta)
 	if not _transitioning:
-		set_process(false)
+		_apply_environment_style()
 		return
 	_transition_elapsed += delta
 	var weight: float = clampf(_transition_elapsed / CROSSFADE_SECONDS, 0.0, 1.0)
@@ -74,10 +84,13 @@ func _process(delta: float) -> void:
 	_sky_sprites[_active_sky_index].modulate.a = 1.0 - eased
 	_sky_sprites[next_index].modulate.a = eased
 	for index: int in range(_depth_sprites.size()):
-		_depth_sprites[index].modulate = _depth_start_colors[index].lerp(
+		_ungraded_depth_colors[index] = _depth_start_colors[index].lerp(
 			_depth_target_colors[index],
 			eased
 		)
+	if _sky_life != null:
+		_sky_life.set_district_transition_weight(eased)
+	_apply_environment_style()
 	if weight >= 1.0:
 		_finish_transition()
 
@@ -102,13 +115,14 @@ func transition_to(district_id: StringName, immediate: bool = false) -> bool:
 	_depth_target_colors.clear()
 	var target_tints: Array = DEPTH_TINTS[district_id] as Array
 	for index: int in range(_depth_sprites.size()):
-		_depth_start_colors.append(_depth_sprites[index].modulate)
+		_depth_start_colors.append(_ungraded_depth_colors[index])
 		_depth_target_colors.append(target_tints[index] as Color)
+	if _sky_life != null:
+		_sky_life.begin_district_transition(current_district_id, district_id)
 	target_district_id = district_id
 	_transition_elapsed = 0.0
 	_transitioning = true
 	transition_count += 1
-	set_process(true)
 	return true
 
 
@@ -117,6 +131,8 @@ func reset_to_business() -> void:
 		var band: Parallax2D = child as Parallax2D
 		if band != null:
 			band.scroll_offset = Vector2.ZERO
+	if _sky_life != null:
+		_sky_life.reset_to_business()
 	_apply_immediate(BUSINESS)
 
 
@@ -125,6 +141,8 @@ func compensate_origin(offset: Vector2) -> void:
 		var band: Parallax2D = child as Parallax2D
 		if band != null:
 			band.scroll_offset += offset * band.scroll_scale
+	if _sky_life != null:
+		_sky_life.compensate_origin(offset)
 
 
 func active_texture() -> Texture2D:
@@ -147,29 +165,82 @@ func is_transitioning() -> bool:
 	return _transitioning
 
 
+func panorama_repeat_width() -> float:
+	var sky: Parallax2D = get_node_or_null(^"Sky") as Parallax2D
+	return sky.repeat_size.x if sky != null else 0.0
+
+
+func sky_life_runtime() -> DistrictSkyLifeRuntime:
+	return _sky_life
+
+
+func set_time_phase(phase: float) -> void:
+	if _sky_life == null:
+		return
+	_sky_life.set_time_phase(phase)
+	_apply_environment_style()
+
+
+func time_phase() -> float:
+	return _sky_life.time_phase if _sky_life != null else 0.0
+
+
 func _build_fixed_bands() -> void:
-	var sky: Parallax2D = _create_band("Sky", SKY_SCROLL_SCALE, -50)
+	var panorama_repeat: Vector2 = Vector2(
+		float(BUSINESS_PANORAMA.get_width()),
+		0.0
+	)
+	var sky: Parallax2D = _create_band(
+		"Sky",
+		SKY_SCROLL_SCALE,
+		-50,
+		panorama_repeat
+	)
 	for index: int in range(2):
 		var sprite: Sprite2D = _create_sprite(BUSINESS_PANORAMA, 0.0)
+		var material: ShaderMaterial = ShaderMaterial.new()
+		material.shader = SEAMLESS_PANORAMA_SHADER
+		sprite.material = material
 		sprite.name = "DistrictPanorama%d" % index
 		sprite.visible = index == 0
 		sky.add_child(sprite)
 		_sky_sprites.append(sprite)
-	var far: Parallax2D = _create_band("FarSkyline", FAR_SCROLL_SCALE, -40)
+	var far: Parallax2D = _create_band(
+		"FarSkyline",
+		FAR_SCROLL_SCALE,
+		-40,
+		DEPTH_REPEAT_SIZE
+	)
 	_depth_sprites.append(_add_depth_sprite(far, FAR_TEXTURE, 85.0))
 	var infrastructure: Parallax2D = _create_band(
-		"Infrastructure", INFRA_SCROLL_SCALE, -30
+		"Infrastructure",
+		INFRA_SCROLL_SCALE,
+		-30,
+		DEPTH_REPEAT_SIZE
 	)
 	_depth_sprites.append(_add_depth_sprite(infrastructure, INFRA_TEXTURE, 95.0))
-	var near: Parallax2D = _create_band("NearBuildings", NEAR_SCROLL_SCALE, -20)
+	var near: Parallax2D = _create_band(
+		"NearBuildings",
+		NEAR_SCROLL_SCALE,
+		-20,
+		DEPTH_REPEAT_SIZE
+	)
 	_depth_sprites.append(_add_depth_sprite(near, NEAR_TEXTURE, 116.0))
+	_sky_life = SKY_LIFE_SCRIPT.new() as DistrictSkyLifeRuntime
+	_sky_life.name = "DistrictSkyLife"
+	add_child(_sky_life)
 
 
-func _create_band(band_name: String, scroll_scale: Vector2, z_value: int) -> Parallax2D:
+func _create_band(
+	band_name: String,
+	scroll_scale: Vector2,
+	z_value: int,
+	repeat_size: Vector2
+) -> Parallax2D:
 	var band: Parallax2D = Parallax2D.new()
 	band.name = band_name
 	band.scroll_scale = scroll_scale
-	band.repeat_size = REPEAT_SIZE
+	band.repeat_size = repeat_size
 	band.repeat_times = REPEAT_TIMES
 	band.z_index = z_value
 	add_child(band)
@@ -200,15 +271,18 @@ func _apply_immediate(district_id: StringName) -> void:
 	_sky_sprites[inactive_index].visible = false
 	_sky_sprites[inactive_index].modulate = Color(1.0, 1.0, 1.0, 0.0)
 	var tints: Array = DEPTH_TINTS[district_id] as Array
+	_ungraded_depth_colors.clear()
 	for index: int in range(_depth_sprites.size()):
-		_depth_sprites[index].modulate = tints[index] as Color
+		_ungraded_depth_colors.append(tints[index] as Color)
+	if _sky_life != null:
+		_sky_life.apply_district(district_id)
+	_apply_environment_style()
 	current_district_id = district_id
 	target_district_id = district_id
 	_transition_elapsed = 0.0
 	_transitioning = false
 	_depth_start_colors.clear()
 	_depth_target_colors.clear()
-	set_process(false)
 
 
 func _finish_transition() -> void:
@@ -220,4 +294,30 @@ func _finish_transition() -> void:
 	_sky_sprites[previous_index].modulate = Color(1.0, 1.0, 1.0, 0.0)
 	current_district_id = target_district_id
 	_transitioning = false
-	set_process(false)
+	if _sky_life != null:
+		_sky_life.finish_district_transition()
+	_apply_environment_style()
+
+
+func _apply_environment_style() -> void:
+	if _sky_life == null:
+		return
+	var grade: Color = _sky_life.district_grade()
+	var cycle_tint: Color = _sky_life.cycle_tint()
+	var brightness: float = _sky_life.cycle_brightness()
+	var saturation: float = (
+		_sky_life.district_saturation() * _sky_life.cycle_saturation()
+	)
+	for sprite: Sprite2D in _sky_sprites:
+		var material: ShaderMaterial = sprite.material as ShaderMaterial
+		material.set_shader_parameter(&"district_grade", grade)
+		material.set_shader_parameter(&"cycle_tint", cycle_tint)
+		material.set_shader_parameter(&"cycle_brightness", brightness)
+		material.set_shader_parameter(&"cycle_saturation", saturation)
+	for index: int in range(_depth_sprites.size()):
+		var color: Color = _ungraded_depth_colors[index] * grade * cycle_tint
+		color.r *= brightness
+		color.g *= brightness
+		color.b *= brightness
+		color.a = _ungraded_depth_colors[index].a
+		_depth_sprites[index].modulate = color

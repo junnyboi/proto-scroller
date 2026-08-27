@@ -53,9 +53,19 @@ func test_business_phases_all_five_attacks_and_bounds_one_time_support() -> void
 func test_business_boss_has_complete_damage_and_visible_finisher_path() -> void:
 	_start(&"SETTLEMENT_ENGINE_S04")
 	var attack_id: int = 91_000
-	while session.boss.boss_armor > 0.0:
-		assert_true(session.boss.receive_damage(_charged_event(attack_id)))
+	for damage_type: StringName in [
+		&"jab_cross", &"ground_smash", &"bullet", &"shell", &"rocket", &"impact",
+	]:
+		var armor_before: float = session.boss.boss_armor
+		assert_true(session.boss.receive_damage(DamageEvent.new(
+			attack_id, city.robot, 10.0, damage_type
+		)))
+		assert_almost_eq(session.boss.boss_armor, armor_before - 10.0, 0.001)
 		attack_id += 1
+	assert_true(session.boss.receive_damage(DamageEvent.new(
+		attack_id, city.robot, session.boss.boss_armor, &"bullet"
+	)))
+	attack_id += 1
 	assert_eq(session.state, CommandBossSession.STATE_EXPOSED)
 	assert_true(session.boss.receive_damage(_charged_event(attack_id)))
 	attack_id += 1

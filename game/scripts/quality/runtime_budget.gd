@@ -114,6 +114,9 @@ const FLOATING_ORIGIN_RUNTIMES: int = 1
 const WEATHER_RUNTIMES: int = 1
 const WEATHER_SURFACES: int = 1
 const WEATHER_PARTICLE_CAPACITY: int = DistrictWeatherSurface.PARTICLE_CAPACITY
+const SKY_LIFE_RUNTIMES: int = 1
+const SKY_LIFE_BANDS: int = 2
+const SKY_LIFE_SPRITES: int = 3
 const NARRATIVE_DIRECTORS: int = 1
 const TRANSMISSION_TOASTS: int = 1
 const FACADE_REVEAL_SLOTS: int = CityWorldStream.CHUNK_CAPACITY
@@ -144,6 +147,7 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"building_section_burst_slots": city.building_section_burst_pool.slot_count(),
 		"building_section_burst_peak": city.building_section_burst_pool.peak_active_count,
 		"building_damage_patterns": _building_damage_pattern_count(city),
+		"building_severe_damage_fx": _building_severe_damage_fx_count(city),
 		"enemy_scrap_total": (
 			city.enemy_scrap_pool.active_count() + city.enemy_scrap_pool.available_count()
 		),
@@ -184,6 +188,10 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			"weather_surfaces": _weather_surface_count(city),
 			"weather_particle_capacity": WEATHER_PARTICLE_CAPACITY,
 			"weather_post_warm_creations": _weather_post_warm_creations(city),
+			"sky_life_runtimes": _sky_life_runtime_count(city),
+			"sky_life_bands": _sky_life_band_count(city),
+			"sky_life_sprites": _sky_life_sprite_count(city),
+			"sky_life_post_warm_creations": _sky_life_post_warm_creations(city),
 			"narrative_directors": 1 if city.project_choir_runtime.director != null else 0,
 			"transmission_toasts": 1 if city.gameplay_hud.transmission_toast != null else 0,
 			"facade_reveal_slots": city.project_choir_runtime.facade_reveal.slot_count(),
@@ -318,6 +326,12 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	)
 	_check_equal(errors, data, "hostile_projectile_total", BULLETS + SHELLS + ROCKETS)
 	_check_equal(errors, data, "player_bullet_total", PLAYER_BULLETS)
+	_check_equal(
+		errors,
+		data,
+		"building_severe_damage_fx",
+		BUILDING_DAMAGE_PATTERNS
+	)
 	_check_equal(errors, data, "structural_debris_total", STRUCTURAL_DEBRIS)
 	_check_equal(errors, data, "building_damage_patterns", BUILDING_DAMAGE_PATTERNS)
 	_check_equal(errors, data, "enemy_scrap_total", ENEMY_SCRAP)
@@ -356,6 +370,10 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		WEATHER_PARTICLE_CAPACITY
 	)
 	_check_equal(errors, data, "weather_post_warm_creations", 0)
+	_check_equal(errors, data, "sky_life_runtimes", SKY_LIFE_RUNTIMES)
+	_check_equal(errors, data, "sky_life_bands", SKY_LIFE_BANDS)
+	_check_equal(errors, data, "sky_life_sprites", SKY_LIFE_SPRITES)
+	_check_equal(errors, data, "sky_life_post_warm_creations", 0)
 	_check_equal(errors, data, "narrative_directors", NARRATIVE_DIRECTORS)
 	_check_equal(errors, data, "transmission_toasts", TRANSMISSION_TOASTS)
 	_check_equal(errors, data, "facade_reveal_slots", FACADE_REVEAL_SLOTS)
@@ -539,6 +557,32 @@ static func _weather_post_warm_creations(city: CitySlice) -> int:
 	return weather.post_warm_creation_count if weather != null else 0
 
 
+static func _sky_life_runtime(city: CitySlice) -> DistrictSkyLifeRuntime:
+	var parallax: DistrictParallaxRuntime = city.get_node_or_null(
+		^"ParallaxCity"
+	) as DistrictParallaxRuntime
+	return parallax.sky_life_runtime() if parallax != null else null
+
+
+static func _sky_life_runtime_count(city: CitySlice) -> int:
+	return 1 if _sky_life_runtime(city) != null else 0
+
+
+static func _sky_life_band_count(city: CitySlice) -> int:
+	var life: DistrictSkyLifeRuntime = _sky_life_runtime(city)
+	return life.band_count() if life != null else 0
+
+
+static func _sky_life_sprite_count(city: CitySlice) -> int:
+	var life: DistrictSkyLifeRuntime = _sky_life_runtime(city)
+	return life.sprite_count() if life != null else 0
+
+
+static func _sky_life_post_warm_creations(city: CitySlice) -> int:
+	var life: DistrictSkyLifeRuntime = _sky_life_runtime(city)
+	return life.post_warm_creation_count if life != null else 0
+
+
 static func _count_nodes(root: Node) -> int:
 	var count: int = 1
 	for child: Node in root.get_children():
@@ -553,6 +597,22 @@ static func _building_damage_pattern_count(city: CitySlice) -> int:
 			for column: int in range(StructuralBuilding2D.COLUMNS):
 				var cell: Destructible2D = building.get_cell(column, row)
 				if cell.get_node_or_null(^"DamagedVisual") is BuildingDamagePattern2D:
+					count += 1
+	return count
+
+
+static func _building_severe_damage_fx_count(city: CitySlice) -> int:
+	var count: int = 0
+	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
+		for row: int in range(StructuralBuilding2D.ROWS):
+			for column: int in range(StructuralBuilding2D.COLUMNS):
+				var cell: Destructible2D = building.get_cell(column, row)
+				var pattern: BuildingDamagePattern2D = cell.get_node_or_null(
+					^"DamagedVisual"
+				) as BuildingDamagePattern2D
+				if pattern != null and pattern.get_node_or_null(
+					^"SevereDamageFx"
+				) is BuildingSevereDamageFx2D:
 					count += 1
 	return count
 

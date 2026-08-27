@@ -1,6 +1,6 @@
 # Procedural Building Destruction Restoration Plan
 
-**Status:** WP7 implementation in progress
+**Status:** WP7 implemented; fresh Web release pending
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export  
 **Target branch:** `main`  
 **Applies to:** all 25 district facade variants through the six-instance streamed building pool
@@ -140,3 +140,11 @@ Progress is captured with the mutation state and reconstructed from authoritativ
 The implementation was merged with concurrent projectile-impact work and pushed as source `172fa284e23f0620ea741a283b3e47438588e5a1`. Its fresh Godot 4.7.2 Web export produced a **39,514,754-byte WASM** with SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` and a **16,108,216-byte PCK** with SHA-256 `038a25b7b362b3d6171ccc15cf1a8f28cdc6115596693ad8476103d5afdcc78b`.
 
 After compatible district-weather work landed concurrently, the combined runtime was re-exported from `9013239bef6a2090c0fec61f1b5428c1fcf8fb66` and its generated shell was preserved at `7a45ca0beadc94dd8dac9d544daf781ae901c08c`. The existing `proto-scroller` WebDev project now maps `/manus-storage/game-7a45ca0_8223db74.wasm` and `/manus-storage/game-7a45ca0_9d4cb6df.pck` while preserving the fullscreen dynamic iframe, responsive title scheduler, local worklets, database leaderboard, repaired bosses, projectile-impact variation, and district weather. The final PCK is 16,121,152 bytes with SHA-256 `e5b93ac52b62c0e6e4dfeeb14fe34619c0d2d48d65f39015964f2f5f994fc49e`; the release is sealed at checkpoint `54e49118`.
+
+WP7 now adds one fixed `BuildingSevereDamageFx2D` child to every prewarmed damage pattern. At 62% cumulative damage it begins rendering additive interior glow, animated flame tongues, rising embers, and deterministic intermittent electrical arcs; terminal failure maximizes the fire while retaining residual arc activity. No texture or node is created when damage occurs, and `RuntimeBudget` requires the severe-effect count to equal the existing fixed building-damage-pattern count.
+
+The cavity shader now persists one of four attack profiles. Jab/cross and punch shockwaves widen and flatten the cavity with a directional side tear; missiles and rockets use a rounded crater with denser radial chips; ground smashes shift the hollow downward and widen the lower breach; chain and legacy damage remain generic. The selected profile and direction survive stream capture/restore and reset to generic during pooled reuse.
+
+Each of the twelve existing `BuildingSectionBurst2D` slots now includes a dedicated long-lived falling-debris emitter. Its dust emitter was expanded into a broader cloud while preserving material-specific concrete, glass, and steel counts, gravity, color, and scale. Destruction restarts fragments, falling debris, dust, and flash exactly once and still recycles the oldest fixed slot under saturation.
+
+Nine focused Godot 4.7.2 tests passed with **283 assertions** across the new profile/VFX contract, existing material-aware section bursts, and the complete runtime-budget retry/saturation suite. Repository-wide release certification remains intentionally skipped under the project override.

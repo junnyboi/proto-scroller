@@ -22,16 +22,17 @@ var arena_lease: ArenaLease = ArenaLease.new()
 var interlock: BossSiegeInterlock = BossSiegeInterlock.new()
 var attempt_snapshot: BossAttemptSnapshot = BossAttemptSnapshot.new()
 var music_director: BossMusicDirector
+var arena_barrier: BossArenaBarrier2D
 var active_definition: BossEncounterDefinition
 var active_gate: BossGateMarker
 var attempt_failed: bool = false
 var completion_pending: bool = false
-var _completion_retry_elapsed: float = 0.0
-var _triggered_ids: Dictionary[StringName, bool] = {}
-var _completed_ids: Dictionary[StringName, bool] = {}
 var salvage_trigger: BossSalvageTrigger2D
 var handoff_state: StringName = HANDOFF_NONE
 var pending_finale_outcome: int = -1
+var _completion_retry_elapsed: float = 0.0
+var _triggered_ids: Dictionary[StringName, bool] = {}
+var _completed_ids: Dictionary[StringName, bool] = {}
 
 
 func setup(p_siege: UrbanSiegeRuntime) -> void:
@@ -43,6 +44,8 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	music_director = BossMusicDirector.new()
 	music_director.setup(_background_music_player())
 	add_child(music_director)
+	arena_barrier = BossArenaBarrier2D.new()
+	add_child(arena_barrier)
 	attempt_started.connect(music_director.play_definition)
 	attempt_retried.connect(music_director.play_definition)
 	boss_completed.connect(music_director.stop_music)
@@ -55,7 +58,7 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 		add_child(marker)
 		gates.append(marker)
 	siege.boss_session.completed.connect(_on_boss_completed)
-	siege.boss_session.state_changed.connect(_refresh_hud)
+	siege.boss_session.state_changed.connect(_on_boss_state_changed)
 	siege.boss_session.armor_changed.connect(_on_boss_durability_changed)
 	siege.boss_session.body_changed.connect(_on_boss_durability_changed)
 	siege.boss_session.feedback_changed.connect(_on_slice_feedback_changed)
@@ -132,6 +135,8 @@ func stop() -> void:
 		siege.boss_session.stop()
 	if active_gate != null:
 		active_gate.release()
+	if arena_barrier != null:
+		arena_barrier.deactivate(siege.dependencies.robot if siege != null else null)
 	if salvage_trigger != null:
 		salvage_trigger.deactivate()
 	arena_lease.release()
@@ -189,9 +194,10 @@ func retry_attempt() -> bool:
 	city.game_over_active = false
 	city.mobile_controls.set_controls_enabled(true)
 	city.gameplay_hud.hide_terminal_overlay()
-	if not siege.boss_session.start_definition(definition):
+	if not _start_boss_session(definition):
 		attempt_failed = true
 		return false
+	siege.dependencies.gameplay_hud.show_boss_fight()
 	attempt_retried.emit(definition)
 	attempt_started.emit(definition)
 	return true
@@ -217,15 +223,8 @@ func _begin_attempt(definition: BossEncounterDefinition) -> bool:
 		)
 	):
 		return false
-	var gate: BossGateMarker = gate_for_trigger(definition.trigger_chunk)
-	if gate == null or not arena_lease.acquire(definition):
-		return false
-	var gate_anchor: Vector2 = Vector2(
-		world_stream.runtime_x_for_logical_index(gate.gate_chunk()) - GATE_INSET,
-		0.0
-	)
-	if not gate.acquire(gate_anchor):
-		arena_lease.release()
+	var gate: BossGateMarker = _acquire_arena_gate(definition)
+	if gate == null:
 		return false
 	active_definition = definition
 	active_gate = gate
@@ -243,13 +242,42 @@ func _begin_attempt(definition: BossEncounterDefinition) -> bool:
 	):
 		_rollback_attempt_start()
 		return false
-	if not siege.boss_session.start_definition(definition):
+	if not _start_boss_session(definition):
 		_rollback_attempt_start()
 		return false
 	_refresh_hud()
+	siege.dependencies.gameplay_hud.show_boss_fight()
 	gate_triggered.emit(definition, gate)
 	attempt_started.emit(definition)
 	return true
+
+
+func _start_boss_session(definition: BossEncounterDefinition) -> bool:
+	if not siege.boss_session.start_definition(definition):
+		return false
+	if not arena_barrier.activate(
+		siege.boss_session.boss.global_position,
+		siege.dependencies.robot
+	):
+		siege.boss_session.stop()
+		return false
+	return true
+
+
+func _acquire_arena_gate(
+	definition: BossEncounterDefinition
+) -> BossGateMarker:
+	var gate: BossGateMarker = gate_for_trigger(definition.trigger_chunk)
+	if gate == null or not arena_lease.acquire(definition):
+		return null
+	var gate_anchor: Vector2 = Vector2(
+		world_stream.runtime_x_for_logical_index(gate.gate_chunk()) - GATE_INSET,
+		0.0
+	)
+	if not gate.acquire(gate_anchor):
+		arena_lease.release()
+		return null
+	return gate
 
 
 func _rollback_attempt_start() -> void:
@@ -257,6 +285,8 @@ func _rollback_attempt_start() -> void:
 	attempt_snapshot.clear()
 	interlock.discard()
 	arena_lease.release()
+	if arena_barrier != null:
+		arena_barrier.deactivate(siege.dependencies.robot)
 	if active_gate != null:
 		active_gate.release()
 	active_definition = null
@@ -409,6 +439,16 @@ func _refresh_hud(_state: StringName = &"") -> void:
 
 func _on_boss_durability_changed(_current: float, _maximum: float) -> void:
 	_refresh_hud()
+
+
+func _on_boss_state_changed(state: StringName) -> void:
+	if state in [
+		CommandBossSession.STATE_WRECK,
+		CommandBossSession.STATE_COMPLETION_PENDING,
+		CommandBossSession.STATE_COMPLETE,
+	]:
+		arena_barrier.deactivate(siege.dependencies.robot)
+	_refresh_hud(state)
 
 
 func _on_slice_feedback_changed(_first: Variant = null, _second: Variant = null) -> void:

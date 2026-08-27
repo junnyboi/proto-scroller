@@ -286,6 +286,9 @@ static func _ensure_catalog() -> void:
 			PackedVector2Array([Vector2(-128.0, 0.0), Vector2(128.0, 0.0)])
 			),
 		]
+	var first_boss: BossEncounterDefinition = _definitions.front()
+	first_boss.armor_policy = EnemyActor2D.ArmorPolicy.ALL_DAMAGE
+	first_boss.armor_damage_type = &"all"
 	var finale: BossEncounterDefinition = _definitions.back()
 	finale.armor = 330.0
 	finale.armor_fixed_step = 110.0

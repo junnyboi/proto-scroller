@@ -60,7 +60,13 @@ var upgrade_choice_overlay: UpgradeChoiceOverlay
 var weapon_status_strip: WeaponStatusStrip
 var first_run_tutorial: FirstRunCombatTutorial
 var transmission_toast: TransmissionToast
+var boss_panel: ColorRect
 var boss_label: Label
+var boss_armor_track: ColorRect
+var boss_armor_fill: ColorRect
+var boss_health_track: ColorRect
+var boss_health_fill: ColorRect
+var boss_fight_herald: BossFightHerald
 var game_over_overlay: Control
 var overlay_title: Label
 var overlay_summary: Label
@@ -96,6 +102,8 @@ var _displayed_overdrive_seconds: String = ""
 var _campaign_dossier_count: int = 0
 var _continuity_generation: int = 0
 var _rear_barrier_warning_remaining: float = 0.0
+var _boss_armor_ratio: float = 0.0
+var _boss_health_ratio: float = 0.0
 
 
 func setup(
@@ -121,6 +129,7 @@ func _ready() -> void:
 	_build_directive_choice_overlay()
 	_build_upgrade_ui()
 	_build_boss_status()
+	_build_boss_fight_herald()
 	_build_combo_herald()
 	_build_transmission_toast()
 	_build_first_run_tutorial()
@@ -342,14 +351,13 @@ func set_boss_status(
 	if state == &"IDLE" or state == &"COMPLETE":
 		hide_boss_status()
 		return
-	boss_label.visible = true
-	var ratio: int = roundi(clampf(current / maxf(maximum, 1.0), 0.0, 1.0) * 100.0)
-	var state_key: String = "boss.state.%s" % String(state).to_lower()
-	var key: String = "hud.choir_prime_status" if boss_id == &"CHOIR_PRIME" else "hud.command_status"
-	boss_label.text = L10n.t(key, {
-		"state": L10n.t(state_key),
-		"ratio": "%03d" % ratio,
-	})
+	_set_boss_status_visibility(true)
+	boss_label.text = (
+		L10n.t("boss.choir_prime.name")
+		if boss_id == &"CHOIR_PRIME"
+		else L10n.t("boss.command_unit.name")
+	)
+	_set_boss_bar_ratios(0.0, current / maxf(maximum, 1.0))
 
 
 func set_campaign_boss_status(
@@ -359,32 +367,49 @@ func set_campaign_boss_status(
 	armor_maximum: float,
 	body: float,
 	body_maximum: float,
-	evidence_id: StringName,
-	live_feedback: Dictionary = {}
+	_evidence_id: StringName,
+	_live_feedback: Dictionary = {}
 ) -> void:
 	if definition == null or state == &"IDLE" or state == &"COMPLETE":
 		hide_boss_status()
 		return
-	boss_label.visible = true
-	boss_label.text = L10n.t("hud.campaign_boss_status", {
-		"name": L10n.t(definition.display_name_key),
-		"phase": L10n.t("boss.state.%s" % String(state).to_lower()),
-		"armor": "%03d" % roundi(clampf(armor / maxf(armor_maximum, 1.0), 0.0, 1.0) * 100.0),
-		"body": "%03d" % roundi(clampf(body / maxf(body_maximum, 1.0), 0.0, 1.0) * 100.0),
-		"objective": String(live_feedback.get(
-			"objective", L10n.t("boss.objective.finish")
-		)),
-		"evidence": String(live_feedback.get(
-			"consequence",
-			L10n.t("boss.evidence.%s" % String(evidence_id).to_lower())
-		)),
-		"attack": String(live_feedback.get("attack", L10n.t("boss.attack.none"))),
-	})
+	_set_boss_status_visibility(true)
+	boss_label.text = L10n.t(definition.display_name_key)
+	_set_boss_bar_ratios(
+		armor / maxf(armor_maximum, 1.0),
+		body / maxf(body_maximum, 1.0)
+	)
 
 
 func hide_boss_status() -> void:
-	if boss_label != null:
-		boss_label.visible = false
+	_set_boss_status_visibility(false)
+
+
+func show_boss_fight() -> void:
+	if boss_fight_herald != null:
+		boss_fight_herald.present()
+
+
+func _set_boss_bar_ratios(armor_ratio: float, health_ratio: float) -> void:
+	_boss_armor_ratio = clampf(armor_ratio, 0.0, 1.0)
+	_boss_health_ratio = clampf(health_ratio, 0.0, 1.0)
+	if boss_armor_fill != null and boss_armor_track != null:
+		boss_armor_fill.size.x = boss_armor_track.size.x * _boss_armor_ratio
+	if boss_health_fill != null and boss_health_track != null:
+		boss_health_fill.size.x = boss_health_track.size.x * _boss_health_ratio
+
+
+func _set_boss_status_visibility(should_show: bool) -> void:
+	for control: Control in [
+		boss_panel,
+		boss_label,
+		boss_armor_track,
+		boss_armor_fill,
+		boss_health_track,
+		boss_health_fill,
+	]:
+		if control != null:
+			control.visible = should_show
 
 
 func show_directive_result(
@@ -773,15 +798,62 @@ func _build_upgrade_ui() -> void:
 
 
 func _build_boss_status() -> void:
+	boss_panel = ColorRect.new()
+	boss_panel.name = "BossStatusPanel"
+	boss_panel.position = Vector2(400.0, 142.0)
+	boss_panel.size = Vector2(660.0, 88.0)
+	boss_panel.color = Color(0.015, 0.02, 0.028, 0.82)
+	boss_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_panel.visible = false
+	add_child(boss_panel)
 	boss_label = Label.new()
 	boss_label.name = "BossStatus"
-	boss_label.position = Vector2(400.0, 146.0)
-	boss_label.size = Vector2(660.0, 58.0)
+	boss_label.position = Vector2(416.0, 146.0)
+	boss_label.size = Vector2(628.0, 30.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	boss_label.add_theme_font_size_override(&"font_size", 21)
-	boss_label.modulate = Color("ff8c64")
+	boss_label.add_theme_font_size_override(&"font_size", 20)
+	boss_label.add_theme_constant_override(&"outline_size", 5)
+	boss_label.add_theme_color_override(&"font_outline_color", Color(0.0, 0.0, 0.0, 0.95))
+	boss_label.modulate = Color.WHITE
 	boss_label.visible = false
 	add_child(boss_label)
+	boss_armor_track = ColorRect.new()
+	boss_armor_track.name = "BossArmorTrack"
+	boss_armor_track.position = Vector2(416.0, 181.0)
+	boss_armor_track.size = Vector2(628.0, 12.0)
+	boss_armor_track.color = Color(0.10, 0.09, 0.04, 0.94)
+	boss_armor_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_armor_track.visible = false
+	add_child(boss_armor_track)
+	boss_armor_fill = ColorRect.new()
+	boss_armor_fill.name = "BossArmorFill"
+	boss_armor_fill.position = boss_armor_track.position
+	boss_armor_fill.size = boss_armor_track.size
+	boss_armor_fill.color = Color("f4c542")
+	boss_armor_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_armor_fill.visible = false
+	add_child(boss_armor_fill)
+	boss_health_track = ColorRect.new()
+	boss_health_track.name = "BossHealthTrack"
+	boss_health_track.position = Vector2(416.0, 199.0)
+	boss_health_track.size = Vector2(628.0, 18.0)
+	boss_health_track.color = Color(0.11, 0.02, 0.025, 0.96)
+	boss_health_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_health_track.visible = false
+	add_child(boss_health_track)
+	boss_health_fill = ColorRect.new()
+	boss_health_fill.name = "BossHealthFill"
+	boss_health_fill.position = boss_health_track.position
+	boss_health_fill.size = boss_health_track.size
+	boss_health_fill.color = Color("e3313f")
+	boss_health_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_health_fill.visible = false
+	add_child(boss_health_fill)
+
+
+func _build_boss_fight_herald() -> void:
+	boss_fight_herald = BossFightHerald.new()
+	add_child(boss_fight_herald)
 
 
 func _build_transmission_toast() -> void:
@@ -926,6 +998,8 @@ func _apply_responsive_layout() -> void:
 		transmission_toast.apply_responsive_layout(viewport_size)
 	if combo_herald != null:
 		combo_herald.apply_responsive_layout(viewport_size)
+	if boss_fight_herald != null:
+		boss_fight_herald.apply_responsive_layout(viewport_size)
 	if match_debrief != null:
 		match_debrief.apply_responsive_layout(viewport_size)
 
@@ -987,10 +1061,20 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	siege_progress.set_compact(false)
 	siege_progress.apply_width(500.0)
 	directive_card.position = Vector2(viewport_size.x - 472.0, 382.0)
-	boss_label.position = Vector2(viewport_size.x * 0.5 - 330.0, 146.0)
-	boss_label.size = Vector2(660.0, 58.0)
+	var boss_x: float = viewport_size.x * 0.5 - 330.0
+	boss_panel.position = Vector2(boss_x, 142.0)
+	boss_panel.size = Vector2(660.0, 88.0)
+	boss_label.position = Vector2(boss_x + 16.0, 146.0)
+	boss_label.size = Vector2(628.0, 30.0)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	boss_label.add_theme_font_size_override(&"font_size", 18)
+	boss_label.add_theme_font_size_override(&"font_size", 20)
+	boss_armor_track.position = Vector2(boss_x + 16.0, 181.0)
+	boss_armor_track.size = Vector2(628.0, 12.0)
+	boss_health_track.position = Vector2(boss_x + 16.0, 199.0)
+	boss_health_track.size = Vector2(628.0, 18.0)
+	boss_armor_fill.position = boss_armor_track.position
+	boss_health_fill.position = boss_health_track.position
+	_set_boss_bar_ratios(_boss_armor_ratio, _boss_health_ratio)
 	_apply_landscape_terminal_layout(viewport_size)
 
 
@@ -1047,10 +1131,21 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	siege_progress.set_compact(true)
 	siege_progress.apply_width(panel_width)
 	directive_card.position = Vector2(18.0, viewport_size.y - 338.0)
-	boss_label.position = Vector2(0.0, 226.0)
-	boss_label.size = Vector2(panel_width, 42.0)
-	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	boss_label.add_theme_font_size_override(&"font_size", 10)
+	var boss_width: float = minf(viewport_size.x - 24.0, 440.0)
+	var boss_x: float = (viewport_size.x - boss_width) * 0.5
+	boss_panel.position = Vector2(boss_x, 210.0)
+	boss_panel.size = Vector2(boss_width, 66.0)
+	boss_label.position = Vector2(boss_x + 10.0, 212.0)
+	boss_label.size = Vector2(boss_width - 20.0, 22.0)
+	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_label.add_theme_font_size_override(&"font_size", 13)
+	boss_armor_track.position = Vector2(boss_x + 10.0, 239.0)
+	boss_armor_track.size = Vector2(boss_width - 20.0, 8.0)
+	boss_health_track.position = Vector2(boss_x + 10.0, 253.0)
+	boss_health_track.size = Vector2(boss_width - 20.0, 13.0)
+	boss_armor_fill.position = boss_armor_track.position
+	boss_health_fill.position = boss_health_track.position
+	_set_boss_bar_ratios(_boss_armor_ratio, _boss_health_ratio)
 	_apply_portrait_terminal_layout(viewport_size)
 
 

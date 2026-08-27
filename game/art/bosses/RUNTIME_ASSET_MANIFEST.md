@@ -4,13 +4,13 @@
 
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 
-**Runtime source total:** 1,571,351 bytes
+**Runtime source total:** 1,980,011 bytes
 
-**Measured Web PCK:** 11,504,828 bytes
+**Measured Web PCK:** 15,723,964 bytes
 
 **PCK ceiling:** 16,777,216 bytes
 
-**Remaining PCK headroom:** 5,272,388 bytes
+**Remaining PCK headroom:** 1,053,252 bytes
 
 The five boss silhouettes were generated with **GPT Image 2** and the five instrumental themes with **Lyria 3 Pro**. Concept plates remain documentation-only. Runtime art is stored as trimmed transparent WebP; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter.
 
@@ -22,11 +22,17 @@ The five boss silhouettes were generated with **GPT Image 2** and the five instr
 | CANTOR-31 / PALE ENGINE | `cantor-31.webp` | 56,750 | `da58a783d57cc396688b454daab7b55bc1b1be42ee9139426d6775f161264d3c` | `cantor-31.ogg` | 354,924 | 66.80 s | `25870516f678a4766333284b84be06f3e7cb83c6684dfdf8549103c5890e5a0a` |
 | CHOIR PRIME | `choir-prime.webp` | 59,882 | `53f4bd855074d7677dc0f92f588cc99172550530cfc938bf3be6601734056376` | `choir-prime.ogg` | 199,916 | 44.10 s | `db3b3ad6d71421c6d88323f58ac04e619e8fa94a616d93fb56b9381054f95ed3` |
 
+## Encounter splash
+
+The shared encounter herald uses `game/art/ui/boss_fight/boss-fight-splash.webp`, a 1,344×576 transparent GPT Image 2 typography asset containing only the exact words **BOSS FIGHT**. The runtime file is 295,302 bytes with SHA-256 `893be721d4b59a440c2293bad2d9ab1421a253eeed66938f506129659ca8b4b0`. Its original generated alternatives and lossless masters remain outside the source repository under `/home/ubuntu/proto-scroller-art-masters/boss-fight/`.
+
+The synchronized 1.18-second voiceover SFX is documented in `game/audio/voice/PROVENANCE.md`. Its industrial impact bed was extracted from a three-second image-conditioned Gemini Omni sound carrier generated from the selected GPT Image 2 typography anchor; the carrier is not shipped in the PCK.
+
 ## Export Evidence
 
 | Artifact | Bytes | SHA-256 |
 |---|---:|---|
-| `game.html` | 5,439 | `2ddf42055e4c5aaeb014251a09eb9e21d3ff658998a9c1ffefe9eb3ef7b77c3f` |
-| `game.js` | 279,815 | `33c94cb3175f3333b82e2a3be5e8e86f77986f0aa2042b1631f6367a4e5bb6ba` |
+| `game.html` | 17,891 | `063b08608daab86e449a23e7bb32cf3154e597c605279a4a1d2dce6715e11997` |
+| `game.js` | 279,995 | `9b24675ee72bfd4b2427106b651ce7648e2900350f91ce6c32e2f5e23b4ed11d` |
 | `game.wasm` | 39,514,754 | `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` |
-| `game.pck` | 11,504,828 | `109a6d8f85980ff8e99720baa226401a4f5830a7a34a927cd635a40060fa429c` |
+| `game.pck` | 15,723,964 | `41cd2ffbe97c002f102c8e7c6856a1e8f417656d191d65c7da895ace3d7ecd5b` |

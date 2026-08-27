@@ -1,6 +1,13 @@
 class_name BuildingDamagePattern2D
 extends Node2D
 
+enum ImpactProfile {
+	GENERIC,
+	PUNCH,
+	MISSILE,
+	GROUND_SLAM,
+}
+
 const CONTOUR_POINTS: int = 16
 const BASE_CRACK_COUNT: int = 5
 const EDGE_MARGIN: float = 8.0
@@ -33,6 +40,8 @@ uniform float hollow_progress = 0.0;
 uniform vec2 hollow_center_uv = vec2(0.5, 0.56);
 uniform vec2 hollow_extents_uv = vec2(0.0);
 uniform float hollow_seed = 0.0;
+uniform int impact_profile = 0;
+uniform float impact_direction = 1.0;
 uniform vec4 region_uv_rect = vec4(0.0, 0.0, 1.0, 1.0);
 
 void fragment() {
@@ -43,12 +52,27 @@ void fragment() {
 	if (hollow_progress > 0.0001) {
 		vec2 cell_uv = (UV - region_uv_rect.xy) / max(region_uv_rect.zw, vec2(0.0001));
 		vec2 extents = max(hollow_extents_uv, vec2(0.0001));
+		if (impact_profile == 1) {
+			extents *= vec2(1.20, 0.72);
+		} else if (impact_profile == 2) {
+			extents *= vec2(0.96, 1.06);
+		} else if (impact_profile == 3) {
+			extents *= vec2(1.28, 0.68);
+		}
 		vec2 delta = cell_uv - hollow_center_uv;
 		float angle = atan(delta.y, delta.x);
 		float coarse = sin(angle * 5.0 + hollow_seed * 19.0);
 		float chips = sin(angle * 11.0 - hollow_seed * 31.0);
 		float notches = step(0.70, sin(angle * 17.0 + hollow_seed * 43.0));
 		float boundary = 1.0 + coarse * 0.075 + chips * 0.035 - notches * 0.055;
+		if (impact_profile == 1) {
+			float side = delta.x / extents.x * impact_direction;
+			boundary += smoothstep(-0.18, 0.94, side) * 0.16;
+		} else if (impact_profile == 2) {
+			boundary += sin(angle * 23.0 + hollow_seed * 67.0) * 0.052;
+		} else if (impact_profile == 3) {
+			boundary += smoothstep(0.52, 0.94, cell_uv.y) * 0.16;
+		}
 		float lower_breach = smoothstep(0.72, 1.0, hollow_progress)
 			* smoothstep(0.58, 0.92, cell_uv.y)
 			* (1.0 - smoothstep(0.68, 0.96, abs(delta.x) / extents.x));
@@ -78,12 +102,15 @@ var _cracks: Array[PackedVector2Array] = []
 var _patch: Polygon2D
 var _cable_detail: BuildingDamageAttachment2D
 var _pipe_detail: BuildingDamageAttachment2D
+var _severe_fx: BuildingSevereDamageFx2D
 var _detail_mask: int = 0
 var _cavity_material: ShaderMaterial
 var _facade_sprite: Sprite2D
 var _visual_tint: Color = Color.WHITE
 var _destroyed_stage: bool = false
 var _hollow_progress: float = 0.0
+var _impact_profile: ImpactProfile = ImpactProfile.GENERIC
+var _impact_direction: float = 1.0
 
 
 func configure(
@@ -120,6 +147,10 @@ func configure(
 		PIPE_TEXTURE,
 		PIPE_DISPLAY_SIZE
 	)
+	_severe_fx = BuildingSevereDamageFx2D.new()
+	_severe_fx.name = "SevereDamageFx"
+	_severe_fx.configure(_cell_size, _pattern_seed)
+	add_child(_severe_fx)
 	visible = false
 
 
@@ -143,6 +174,8 @@ func reconfigure(
 		_cable_detail.configure_seed(_pattern_seed)
 	if _pipe_detail != null:
 		_pipe_detail.configure_seed(_pattern_seed)
+	if _severe_fx != null:
+		_severe_fx.configure(_cell_size, _pattern_seed)
 	reset_pattern()
 	visible = false
 
@@ -170,6 +203,8 @@ func record_damage(event: DamageEvent, health_ratio: float) -> void:
 		^ int(roundf(event.hit_position.y * 31.0))
 	)
 	var severity: float = clampf(1.0 - health_ratio, 0.0, 1.0)
+	_impact_profile = _impact_profile_for_damage_type(event.damage_type)
+	_impact_direction = -1.0 if event.direction.x < 0.0 else 1.0
 	_set_hollow_progress(severity)
 	_generate(local_hit, severity, event_seed)
 	_emit_attachment_effects(event, severity)
@@ -194,6 +229,7 @@ func set_destroyed_stage(value: bool) -> void:
 	if value and not _contour.is_empty():
 		_apply_detail_mask(CABLE_DETAIL_BIT | PIPE_DETAIL_BIT, _contour_center())
 	_update_hollow_material()
+	_update_severe_fx()
 
 
 func is_destroyed_stage() -> bool:
@@ -277,10 +313,14 @@ func reset_pattern() -> void:
 	_detail_mask = 0
 	_destroyed_stage = false
 	_hollow_progress = 0.0
+	_impact_profile = ImpactProfile.GENERIC
+	_impact_direction = 1.0
 	if _patch != null:
 		_patch.polygon = PackedVector2Array()
 		_patch.uv = PackedVector2Array()
 	_update_hollow_material()
+	if _severe_fx != null:
+		_severe_fx.reset_effect()
 	cull_damage_details()
 	queue_redraw()
 
@@ -294,6 +334,8 @@ func capture_stream_state() -> Dictionary:
 		"cracks": cracks,
 		"detail_mask": _detail_mask,
 		"hollow_progress": _hollow_progress,
+		"impact_profile": int(_impact_profile),
+		"impact_direction": _impact_direction,
 	}
 
 
@@ -307,6 +349,12 @@ func restore_stream_state(state: Dictionary) -> void:
 		_cracks.append((crack_value as PackedVector2Array).duplicate())
 	_patch.polygon = _contour
 	_patch.uv = _texture_uvs(_contour)
+	_impact_profile = clampi(
+		int(state.get("impact_profile", ImpactProfile.GENERIC)),
+		ImpactProfile.GENERIC,
+		ImpactProfile.GROUND_SLAM
+	)
+	_impact_direction = -1.0 if float(state.get("impact_direction", 1.0)) < 0.0 else 1.0
 	_set_hollow_progress(float(state.get("hollow_progress", 0.0)))
 	_apply_detail_mask(
 		int(state.get("detail_mask", 0)),
@@ -385,6 +433,7 @@ func _generate(_impact_center: Vector2, severity: float, event_seed: int) -> voi
 func _set_hollow_progress(value: float) -> void:
 	_hollow_progress = clampf(value, 0.0, 1.0)
 	_update_hollow_material()
+	_update_severe_fx()
 
 
 func _update_hollow_material() -> void:
@@ -401,7 +450,7 @@ func _update_hollow_material() -> void:
 	_cavity_material.set_shader_parameter("hollow_progress", _hollow_progress)
 	_cavity_material.set_shader_parameter(
 		"hollow_center_uv",
-		Vector2(0.5, HOLLOW_CENTER_Y)
+		Vector2(0.5, _hollow_center_y_for_profile())
 	)
 	_cavity_material.set_shader_parameter(
 		"hollow_extents_uv",
@@ -411,7 +460,14 @@ func _update_hollow_material() -> void:
 		"hollow_seed",
 		float(posmod(_pattern_seed, 997)) / 997.0
 	)
+	_cavity_material.set_shader_parameter("impact_profile", int(_impact_profile))
+	_cavity_material.set_shader_parameter("impact_direction", _impact_direction)
 	_cavity_material.set_shader_parameter("darken_strength", darken_strength)
+
+
+func _update_severe_fx() -> void:
+	if _severe_fx != null:
+		_severe_fx.set_damage_state(_hollow_progress, _destroyed_stage)
 
 
 func _hollow_extents_for_progress(eased_progress: float) -> Vector2:
@@ -429,7 +485,31 @@ func _hollow_extents_for_progress(eased_progress: float) -> Vector2:
 
 
 func _hollow_center_local() -> Vector2:
-	return Vector2(0.0, (_cell_size.y * HOLLOW_CENTER_Y) - _cell_size.y * 0.5)
+	return Vector2(
+		0.0,
+		(_cell_size.y * _hollow_center_y_for_profile()) - _cell_size.y * 0.5
+	)
+
+
+func _hollow_center_y_for_profile() -> float:
+	match _impact_profile:
+		ImpactProfile.PUNCH:
+			return 0.54
+		ImpactProfile.MISSILE:
+			return 0.52
+		ImpactProfile.GROUND_SLAM:
+			return 0.68
+	return HOLLOW_CENTER_Y
+
+
+func _impact_profile_for_damage_type(damage_type: StringName) -> ImpactProfile:
+	if damage_type in [&"jab_cross", &"punch_shockwave"]:
+		return ImpactProfile.PUNCH
+	if damage_type in [&"missile", &"rocket"]:
+		return ImpactProfile.MISSILE
+	if damage_type == &"ground_smash":
+		return ImpactProfile.GROUND_SLAM
+	return ImpactProfile.GENERIC
 
 
 func _smooth_progress(value: float) -> float:
