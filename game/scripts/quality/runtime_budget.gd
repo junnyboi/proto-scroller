@@ -85,6 +85,7 @@ const DIRECTIONAL_SHOCKWAVE_SLOTS: int = DirectionalPunchShockwaveRuntime.CAPACI
 const PLAYER_ARSENALS: int = 1
 const WEAPON_DRONES: int = 19
 const MACHINE_GUN_IMPACT_SLOTS: int = ProjectilePool.MACHINE_GUN_IMPACT_CAPACITY
+const HOSTILE_IMPACT_SLOTS: int = ProjectilePool.HOSTILE_IMPACT_CAPACITY
 const LASER_BEAM_SLOTS: int = 2
 const ANTI_AIR_IMPACT_SLOTS: int = PlayerLaserWeapon.IMPACT_CAPACITY
 const FLAME_VISUAL_SLOTS: int = 6
@@ -271,9 +272,10 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			if city.upgrade_assembler.get_node_or_null(^"PlayerArsenalRuntime") != null
 			else 0
 		),
-		"weapon_drones": _weapon_drone_count(city),
-		"machine_gun_impact_slots": city.projectile_root.machine_gun_impacts.size(),
-		"laser_beam_slots": PlayerLaserWeapon.BEAM_CAPACITY,
+			"weapon_drones": _weapon_drone_count(city),
+			"machine_gun_impact_slots": city.projectile_root.machine_gun_impacts.size(),
+			"hostile_impact_slots": city.projectile_root.hostile_impacts.size(),
+			"laser_beam_slots": PlayerLaserWeapon.BEAM_CAPACITY,
 		"anti_air_impact_slots": _anti_air_impact_slot_count(city),
 		"flame_visual_slots": FlamethrowerRuntime.FLAME_CAPACITY,
 		"scorch_visual_slots": FlamethrowerRuntime.SCORCH_CAPACITY,
@@ -426,6 +428,7 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 		"machine_gun_impact_slots",
 		MACHINE_GUN_IMPACT_SLOTS
 	)
+	_check_equal(errors, data, "hostile_impact_slots", HOSTILE_IMPACT_SLOTS)
 	_check_equal(errors, data, "laser_beam_slots", LASER_BEAM_SLOTS)
 	_check_equal(errors, data, "anti_air_impact_slots", ANTI_AIR_IMPACT_SLOTS)
 	_check_equal(errors, data, "flame_visual_slots", FLAME_VISUAL_SLOTS)

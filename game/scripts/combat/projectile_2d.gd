@@ -6,7 +6,8 @@ signal impact_requested(
 	projectile: Projectile2D,
 	world_position: Vector2,
 	direction: Vector2,
-	kind: StringName
+	kind: StringName,
+	impact_key: StringName
 )
 
 const MACHINE_GUN_ROUND_TEXTURE: Texture2D = preload(
@@ -22,6 +23,7 @@ var projectile_color: Color = Color("ffb45e")
 var projectile_radius: float = 5.0
 var damage_type: StringName = &"projectile"
 var visual_key: StringName = &""
+var impact_key: StringName = &""
 var active: bool = false
 var _attack_id: int
 var _root_attack_id: int
@@ -75,6 +77,9 @@ func activate(
 		if not p_visual_key.is_empty()
 		else ProjectileVisualCatalog.default_key(kind)
 	)
+	impact_key = StringName(
+		ProjectileVisualCatalog.spec(visual_key).get("impact_key", &"")
+	)
 	if kind == &"shell":
 		projectile_radius = 9.0
 		projectile_color = Color("ff7d3e")
@@ -121,6 +126,7 @@ func deactivate() -> void:
 	source = null
 	lifetime = 2.5
 	visual_key = &""
+	impact_key = &""
 	projectile_color = Color("ffb45e")
 	projectile_radius = 5.0
 	damage_type = &"projectile"
@@ -140,7 +146,13 @@ func _physics_process(delta: float) -> void:
 		return
 	var hit_position: Vector2 = collision.get_position()
 	_deliver_damage(collision.get_collider() as Object, hit_position)
-	impact_requested.emit(self, hit_position, velocity.normalized(), damage_type)
+	impact_requested.emit(
+		self,
+		hit_position,
+		velocity.normalized(),
+		damage_type,
+		impact_key
+	)
 	recycle_requested.emit(self)
 
 
@@ -157,17 +169,25 @@ func _draw() -> void:
 	if not visual_spec.is_empty():
 		var texture: Texture2D = visual_spec.get("texture") as Texture2D
 		var display_size: Vector2 = visual_spec.get("display_size", Vector2.ZERO)
+		var region: Rect2i = visual_spec.get("region", Rect2i())
 		if texture != null and display_size.x > 0.0 and display_size.y > 0.0:
 			draw_set_transform(
 				Vector2.ZERO,
 				visual_angle(),
 				Vector2.ONE
 			)
-			draw_texture_rect(
-				texture,
-				Rect2(-display_size * 0.5, display_size),
-				false
-			)
+			if region.size == Vector2i.ZERO:
+				draw_texture_rect(
+					texture,
+					Rect2(-display_size * 0.5, display_size),
+					false
+				)
+			else:
+				draw_texture_rect_region(
+					texture,
+					Rect2(-display_size * 0.5, display_size),
+					Rect2(region)
+				)
 			return
 	var trail: float = maxf(14.0, projectile_radius * 3.0)
 	var backward: Vector2 = -velocity.normalized() * trail

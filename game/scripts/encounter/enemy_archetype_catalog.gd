@@ -56,12 +56,14 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"texture": "res://art/city/enemies/archetypes/27-covenant-warden.png",
 		"faces_right": false, "health": 125.0, "threat": 1, "xp": 700,
 		"district_id": &"BUSINESS", "district_weight": 8,
+		"attack_vfx_id": &"covenant_warden",
 	},
 	&"mercy_recovery_cart": {
 		"base_archetype_id": &"jackal", "display_name": "MERCY RECOVERY CART",
 		"texture": "res://art/city/enemies/archetypes/28-mercy-recovery-cart.png",
 		"faces_right": false, "health": 100.0, "threat": 2, "xp": 950,
 		"district_id": &"BUSINESS", "district_weight": 6,
+		"attack_vfx_id": &"mercy_recovery_cart",
 	},
 	&"testament_kite": {
 		"base_archetype_id": &"needle", "display_name": "TESTAMENT KITE",
@@ -70,6 +72,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(104.0, 104.0), "spawn_y": 175.0,
 		"health": 45.0, "threat": 1, "xp": 420,
 		"district_id": &"BUSINESS", "district_weight": 5,
+		"attack_vfx_id": &"testament_kite",
 		"variant_tags": [&"marker"],
 	},
 	&"receivership_ambulance": {
@@ -81,6 +84,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"behavior": &"support", "movement_style": &"apc_roll",
 		"attack_style": &"repair", "damage": 0.0, "threat": 3, "xp": 1900,
 		"district_id": &"BUSINESS", "district_weight": 3,
+		"attack_vfx_id": &"receivership_ambulance",
 		"variant_tags": [&"healer"],
 	},
 	&"intake_shepherd": {
@@ -89,7 +93,8 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"faces_right": false, "display": Vector2(125.0, 108.0),
 		"collision": Vector2(48.0, 98.0), "health": 145.0,
 		"threat": 2, "xp": 1250, "district_id": &"RESIDENTIAL",
-		"district_weight": 13, "variant_tags": [&"healer"],
+		"district_weight": 13, "attack_vfx_id": &"intake_shepherd",
+		"variant_tags": [&"healer"],
 	},
 	&"evacuation_litter": {
 		"base_archetype_id": &"jackal", "display_name": "EVACUATION LITTER",
@@ -99,7 +104,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"health": 190.0, "projectile_speed": 0.0, "damage": 18.0,
 		"anticipation": 0.52, "attack_style": &"shock_brace",
 		"threat": 2, "xp": 1800, "district_id": &"RESIDENTIAL",
-		"district_weight": 11,
+		"district_weight": 11, "attack_vfx_id": &"evacuation_litter",
 	},
 	&"rainvault_pressure_ward": {
 		"base_archetype_id": &"basilisk", "display_name": "RAINVAULT PRESSURE WARD",
@@ -108,6 +113,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(220.0, 90.0), "health": 255.0,
 		"damage": 19.0, "threat": 3, "xp": 2200,
 		"district_id": &"RESIDENTIAL", "district_weight": 8,
+		"attack_vfx_id": &"rainvault_pressure_ward",
 		"variant_tags": [&"artillery"],
 	},
 	&"balcony_recall_beacon": {
@@ -117,6 +123,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(104.0, 132.0), "spawn_y": 205.0,
 		"health": 90.0, "threat": 1, "xp": 800,
 		"district_id": &"RESIDENTIAL", "district_weight": 10,
+		"attack_vfx_id": &"balcony_recall_beacon",
 		"variant_tags": [&"marker"],
 	},
 	&"memorial_usher": {
@@ -125,7 +132,8 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"faces_right": false, "display": Vector2(125.0, 108.0),
 		"collision": Vector2(48.0, 98.0), "health": 135.0,
 		"threat": 2, "xp": 1400, "district_id": &"ENTERTAINMENT",
-		"district_weight": 11, "variant_tags": [&"healer"],
+		"district_weight": 11, "attack_vfx_id": &"memorial_usher",
+		"variant_tags": [&"healer"],
 	},
 	&"glassback_double": {
 		"base_archetype_id": &"ossuary_crawler", "display_name": "GLASSBACK DOUBLE",
@@ -138,13 +146,14 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"anticipation": 0.40, "behavior": &"ground_pass",
 		"movement_style": &"wheel_sprint", "attack_style": &"turret_burst",
 		"threat": 3, "xp": 2400, "district_id": &"ENTERTAINMENT",
-		"district_weight": 10,
+		"district_weight": 10, "attack_vfx_id": &"glassback_double",
 	},
 	&"recall_lantern": {
 		"base_archetype_id": &"choir_siren", "display_name": "RECALL LANTERN",
 		"texture": "res://art/city/enemies/archetypes/37-recall-lantern.png",
 		"faces_right": false, "health": 280.0, "threat": 4, "xp": 4000,
 		"district_id": &"ENTERTAINMENT", "district_weight": 8,
+		"attack_vfx_id": &"recall_lantern",
 		"variant_tags": [&"marker"],
 	},
 	&"marquee_anesthetist": {
@@ -154,6 +163,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(220.0, 90.0), "health": 275.0,
 		"damage": 24.0, "threat": 4, "xp": 3300,
 		"district_id": &"ENTERTAINMENT", "district_weight": 6,
+		"attack_vfx_id": &"marquee_anesthetist",
 		"variant_tags": [&"artillery"],
 	},
 	&"suture_marshal": {
@@ -162,7 +172,8 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"faces_right": false, "display": Vector2(125.0, 108.0),
 		"collision": Vector2(48.0, 98.0), "health": 240.0,
 		"threat": 3, "xp": 2500, "district_id": &"MILITARY",
-		"district_weight": 8, "variant_tags": [&"healer"],
+		"district_weight": 8, "attack_vfx_id": &"suture_marshal",
+		"variant_tags": [&"healer"],
 	},
 	&"mercy_raker": {
 		"base_archetype_id": &"jackal", "display_name": "MERCY RAKER",
@@ -171,6 +182,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(202.0, 74.0), "health": 285.0,
 		"damage": 10.0, "threat": 4, "xp": 3600,
 		"district_id": &"MILITARY", "district_weight": 7,
+		"attack_vfx_id": &"mercy_raker",
 	},
 	&"revetment_ward": {
 		"base_archetype_id": &"cinder", "display_name": "REVETMENT WARD",
@@ -179,6 +191,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(230.0, 88.0), "health": 390.0,
 		"damage": 20.0, "threat": 5, "xp": 4400,
 		"district_id": &"MILITARY", "district_weight": 5,
+		"attack_vfx_id": &"revetment_ward",
 	},
 	&"triage_kite": {
 		"base_archetype_id": &"kestrel", "display_name": "TRIAGE KITE",
@@ -187,6 +200,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(225.0, 78.0), "health": 275.0,
 		"damage": 22.0, "threat": 4, "xp": 4200,
 		"district_id": &"MILITARY", "district_weight": 6,
+		"attack_vfx_id": &"triage_kite",
 		"variant_tags": [&"bomber"],
 	},
 	&"privy_chirurgeon": {
@@ -195,7 +209,8 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"faces_right": false, "display": Vector2(125.0, 108.0),
 		"collision": Vector2(48.0, 98.0), "health": 175.0,
 		"threat": 2, "xp": 2600, "district_id": &"ROYAL",
-		"district_weight": 8, "variant_tags": [&"healer"],
+		"district_weight": 8, "attack_vfx_id": &"privy_chirurgeon",
+		"variant_tags": [&"healer"],
 	},
 	&"laureate_courser": {
 		"base_archetype_id": &"ossuary_crawler", "display_name": "LAUREATE COURSER",
@@ -204,6 +219,7 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"collision": Vector2(190.0, 76.0), "health": 285.0,
 		"behavior": &"ground_pass", "threat": 4, "xp": 4700,
 		"district_id": &"ROYAL", "district_weight": 7,
+		"attack_vfx_id": &"laureate_courser",
 	},
 	&"ninefold_witness": {
 		"base_archetype_id": &"choir_siren", "display_name": "NINEFOLD WITNESS",
@@ -211,7 +227,8 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"faces_right": false, "display": Vector2(205.0, 190.0),
 		"collision": Vector2(132.0, 150.0), "health": 360.0,
 		"threat": 5, "xp": 6200, "district_id": &"ROYAL",
-		"district_weight": 5, "variant_tags": [&"marker"],
+		"district_weight": 5, "attack_vfx_id": &"ninefold_witness",
+		"variant_tags": [&"marker"],
 	},
 	&"regency_conservator": {
 		"base_archetype_id": &"basilisk", "display_name": "REGENCY CONSERVATOR",
@@ -221,7 +238,8 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"preferred_range": 720.0, "minimum_range": 450.0,
 		"attack_interval": 3.0, "anticipation": 1.0, "damage": 30.0,
 		"threat": 5, "xp": 6500, "district_id": &"ROYAL",
-		"district_weight": 4, "variant_tags": [&"artillery"],
+		"district_weight": 4, "attack_vfx_id": &"regency_conservator",
+		"variant_tags": [&"artillery"],
 	},
 }
 
@@ -661,9 +679,17 @@ static func validation_errors() -> PackedStringArray:
 		for archetype_id: StringName in district_variants:
 			if district_for_variant(archetype_id) != district_id:
 				errors.append("District mismatch for %s" % archetype_id)
-			var base_archetype_id: StringName = canonical_id(archetype_id)
-			if not PROFILES.has(base_archetype_id):
-				errors.append("Missing base archetype for %s" % archetype_id)
-			elif family_for(archetype_id) != family_for(base_archetype_id):
-				errors.append("Family override is not allowed for %s" % archetype_id)
+				var base_archetype_id: StringName = canonical_id(archetype_id)
+				if not PROFILES.has(base_archetype_id):
+					errors.append("Missing base archetype for %s" % archetype_id)
+				elif family_for(archetype_id) != family_for(base_archetype_id):
+					errors.append("Family override is not allowed for %s" % archetype_id)
+				var flattened: Dictionary = profile(archetype_id)
+				var attack_vfx_id: StringName = StringName(
+					flattened.get("attack_vfx_id", &"")
+				)
+				if attack_vfx_id != archetype_id:
+					errors.append("Attack VFX identity mismatch for %s" % archetype_id)
+				elif not EnemyAttackVfxCatalog.has(attack_vfx_id):
+					errors.append("Missing attack VFX catalog entry for %s" % archetype_id)
 	return errors

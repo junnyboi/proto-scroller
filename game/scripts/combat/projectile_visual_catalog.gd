@@ -49,11 +49,15 @@ const SPECS: Dictionary = {
 
 
 static func has(visual_key: StringName) -> bool:
-	return SPECS.has(visual_key)
+	return SPECS.has(visual_key) or not (
+		EnemyAttackVfxCatalog.projectile_spec_for_key(visual_key).is_empty()
+	)
 
 
 static func spec(visual_key: StringName) -> Dictionary:
-	return SPECS.get(visual_key, {})
+	if SPECS.has(visual_key):
+		return SPECS[visual_key] as Dictionary
+	return EnemyAttackVfxCatalog.projectile_spec_for_key(visual_key)
 
 
 static func default_key(damage_type: StringName) -> StringName:
@@ -69,11 +73,17 @@ static func default_key(damage_type: StringName) -> StringName:
 
 
 static func debug_validate() -> bool:
+	var visual_keys: Array[StringName] = []
 	for visual_key: StringName in SPECS:
+		visual_keys.append(visual_key)
+	for archetype_id: StringName in EnemyAttackVfxCatalog.RANGED_IDS:
+		visual_keys.append(EnemyAttackVfxCatalog.projectile_key(archetype_id))
+	for visual_key: StringName in visual_keys:
 		var item: Dictionary = spec(visual_key)
 		var texture: Texture2D = item.get("texture") as Texture2D
 		var source_size: Vector2i = item.get("source_size", Vector2i.ZERO)
 		var display_size: Vector2 = item.get("display_size", Vector2.ZERO)
+		var region: Rect2i = item.get("region", Rect2i())
 		var radius: float = float(item.get("collision_radius_contract", 0.0))
 		if texture == null or Vector2i(texture.get_size()) != source_size:
 			return false
@@ -81,6 +91,11 @@ static func debug_validate() -> bool:
 			return false
 		if display_size.x <= 0.0 or display_size.y <= 0.0:
 			return false
+		if region.size != Vector2i.ZERO:
+			if region.position.x < 0 or region.position.y < 0:
+				return false
+			if region.end.x > source_size.x or region.end.y > source_size.y:
+				return false
 		if not is_equal_approx(radius, _expected_collision_radius(visual_key)):
 			return false
 	return true
@@ -95,4 +110,12 @@ static func _expected_collision_radius(visual_key: StringName) -> float:
 		ENEMY_ROCKET_DIRECT, ENEMY_ROCKET_SALVO:
 			return 7.0
 		_:
+			var item: Dictionary = EnemyAttackVfxCatalog.projectile_spec_for_key(visual_key)
+			match StringName(item.get("damage_kind", &"")):
+				&"shell":
+					return 9.0
+				&"rocket":
+					return 7.0
+				&"bullet":
+					return 5.0
 			return 0.0

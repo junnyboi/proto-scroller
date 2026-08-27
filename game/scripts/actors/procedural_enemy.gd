@@ -84,6 +84,7 @@ var _lane_y: float = 190.0
 var _extra_projectile_reservations: Array[int] = []
 var _presentation_sprites: Array[Sprite2D] = []
 var _presentation_remaining: float = 0.0
+var _attack_vfx_id: StringName = &""
 
 
 func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> void:
@@ -114,6 +115,7 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	xp_value = int(profile.get("xp", 500))
 	threat_cost = int(profile.get("threat", 1))
 	remains_family = StringName(profile.get("remains", &"vehicle"))
+	_attack_vfx_id = StringName(profile.get("attack_vfx_id", &""))
 	_lane_y = float(profile.get("spawn_y", 190.0))
 	maximum_ablative_armor = float(profile.get("ablative_armor", 0.0))
 	ablative_armor = maximum_ablative_armor
@@ -380,11 +382,9 @@ func _complete_attack() -> void:
 	_attack_kick = 1.0
 	if _complete_support_attack() or _complete_melee_attack():
 		return
-	var visual_key: StringName = (
-		ProjectileVisualCatalog.ENEMY_ROCKET_SALVO
-		if attack_style in [&"pod_salvo", &"fortress_barrage"]
-		else &""
-	)
+	var visual_key: StringName = EnemyAttackVfxCatalog.projectile_key(_attack_vfx_id)
+	if visual_key.is_empty() and attack_style in [&"pod_salvo", &"fortress_barrage"]:
+		visual_key = ProjectileVisualCatalog.ENEMY_ROCKET_SALVO
 	var first: Projectile2D = fire_telegraphed_projectile(
 		projectile_speed,
 		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier,
@@ -889,6 +889,7 @@ func reset_debug_snapshot() -> Dictionary:
 		"attack_sequence": _attack_sequence,
 		"ablative_armor": ablative_armor,
 		"extra_projectile_reservations": _extra_projectile_reservations.size(),
+		"attack_vfx_id": _attack_vfx_id,
 		"is_telegraphing": is_telegraphing(),
 		"visual_position": visual.position if visual != null else Vector2.ZERO,
 		"visual_scale": visual.scale if visual != null else Vector2.ONE,

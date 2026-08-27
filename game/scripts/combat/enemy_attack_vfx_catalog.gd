@@ -1,0 +1,342 @@
+class_name EnemyAttackVfxCatalog
+extends RefCounted
+
+const PROJECTILE_ATLAS: Texture2D = preload(
+	"res://art/city/enemies/choir-attacks/district-projectile-vfx.webp"
+)
+const IMPACT_ATLAS: Texture2D = preload(
+	"res://art/city/enemies/choir-attacks/district-impact-vfx.webp"
+)
+const ATTACK_ATLAS: Texture2D = preload(
+	"res://art/city/enemies/choir-attacks/district-attack-vfx.webp"
+)
+const ATLAS_SIZE: Vector2i = Vector2i(960, 768)
+const CELL_SIZE: Vector2i = Vector2i(192, 192)
+const COLUMNS: int = 5
+const HOSTILE_IMPACT_DURATION: float = 0.24
+
+const RANGED_IDS: Array[StringName] = [
+	&"covenant_warden",
+	&"mercy_recovery_cart",
+	&"rainvault_pressure_ward",
+	&"glassback_double",
+	&"marquee_anesthetist",
+	&"mercy_raker",
+	&"revetment_ward",
+	&"triage_kite",
+	&"regency_conservator",
+]
+
+const SPECS: Dictionary = {
+	&"covenant_warden": {
+		"index": 0, "delivery": &"projectile", "kind": &"bullet",
+		"projectile_key": &"choir_covenant_warden_shot",
+		"impact_key": &"choir_covenant_warden_impact",
+		"projectile_display": Vector2(42.0, 16.0),
+		"impact_display": Vector2(104.0, 92.0),
+		"attack_display": Vector2(132.0, 108.0),
+	},
+	&"mercy_recovery_cart": {
+		"index": 1, "delivery": &"projectile", "kind": &"bullet",
+		"projectile_key": &"choir_mercy_recovery_cart_shot",
+		"impact_key": &"choir_mercy_recovery_cart_impact",
+		"projectile_display": Vector2(40.0, 16.0),
+		"impact_display": Vector2(102.0, 102.0),
+		"attack_display": Vector2(118.0, 96.0),
+	},
+	&"testament_kite": {
+		"index": 2, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(68.0, 84.0),
+		"impact_display": Vector2(112.0, 112.0),
+		"attack_display": Vector2(116.0, 128.0),
+	},
+	&"receivership_ambulance": {
+		"index": 3, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(88.0, 80.0),
+		"impact_display": Vector2(118.0, 100.0),
+		"attack_display": Vector2(126.0, 112.0),
+	},
+	&"intake_shepherd": {
+		"index": 4, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(58.0, 92.0),
+		"impact_display": Vector2(104.0, 112.0),
+		"attack_display": Vector2(108.0, 124.0),
+	},
+	&"evacuation_litter": {
+		"index": 5, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(110.0, 72.0),
+		"impact_display": Vector2(150.0, 104.0),
+		"attack_display": Vector2(152.0, 104.0),
+	},
+	&"rainvault_pressure_ward": {
+		"index": 6, "delivery": &"projectile", "kind": &"shell",
+		"projectile_key": &"choir_rainvault_pressure_ward_shot",
+		"impact_key": &"choir_rainvault_pressure_ward_impact",
+		"projectile_display": Vector2(50.0, 24.0),
+		"impact_display": Vector2(132.0, 124.0),
+		"attack_display": Vector2(142.0, 128.0),
+	},
+	&"balcony_recall_beacon": {
+		"index": 7, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(54.0, 92.0),
+		"impact_display": Vector2(116.0, 116.0),
+		"attack_display": Vector2(112.0, 138.0),
+	},
+	&"memorial_usher": {
+		"index": 8, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(58.0, 96.0),
+		"impact_display": Vector2(118.0, 118.0),
+		"attack_display": Vector2(106.0, 126.0),
+	},
+	&"glassback_double": {
+		"index": 9, "delivery": &"projectile", "kind": &"bullet",
+		"projectile_key": &"choir_glassback_double_shot",
+		"impact_key": &"choir_glassback_double_impact",
+		"projectile_display": Vector2(44.0, 18.0),
+		"impact_display": Vector2(116.0, 104.0),
+		"attack_display": Vector2(136.0, 104.0),
+	},
+	&"recall_lantern": {
+		"index": 10, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(88.0, 88.0),
+		"impact_display": Vector2(148.0, 148.0),
+		"attack_display": Vector2(142.0, 142.0),
+	},
+	&"marquee_anesthetist": {
+		"index": 11, "delivery": &"projectile", "kind": &"shell",
+		"projectile_key": &"choir_marquee_anesthetist_shot",
+		"impact_key": &"choir_marquee_anesthetist_impact",
+		"projectile_display": Vector2(52.0, 26.0),
+		"impact_display": Vector2(140.0, 124.0),
+		"attack_display": Vector2(142.0, 132.0),
+	},
+	&"suture_marshal": {
+		"index": 12, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(58.0, 96.0),
+		"impact_display": Vector2(112.0, 112.0),
+		"attack_display": Vector2(112.0, 126.0),
+	},
+	&"mercy_raker": {
+		"index": 13, "delivery": &"projectile", "kind": &"bullet",
+		"projectile_key": &"choir_mercy_raker_shot",
+		"impact_key": &"choir_mercy_raker_impact",
+		"projectile_display": Vector2(44.0, 18.0),
+		"impact_display": Vector2(112.0, 104.0),
+		"attack_display": Vector2(136.0, 104.0),
+	},
+	&"revetment_ward": {
+		"index": 14, "delivery": &"projectile", "kind": &"shell",
+		"projectile_key": &"choir_revetment_ward_shot",
+		"impact_key": &"choir_revetment_ward_impact",
+		"projectile_display": Vector2(52.0, 26.0),
+		"impact_display": Vector2(144.0, 126.0),
+		"attack_display": Vector2(154.0, 128.0),
+	},
+	&"triage_kite": {
+		"index": 15, "delivery": &"projectile", "kind": &"rocket",
+		"projectile_key": &"choir_triage_kite_shot",
+		"impact_key": &"choir_triage_kite_impact",
+		"projectile_display": Vector2(52.0, 22.0),
+		"impact_display": Vector2(138.0, 128.0),
+		"attack_display": Vector2(146.0, 126.0),
+	},
+	&"privy_chirurgeon": {
+		"index": 16, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(58.0, 98.0),
+		"impact_display": Vector2(118.0, 118.0),
+		"attack_display": Vector2(112.0, 132.0),
+	},
+	&"laureate_courser": {
+		"index": 17, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(112.0, 72.0),
+		"impact_display": Vector2(150.0, 110.0),
+		"attack_display": Vector2(152.0, 110.0),
+	},
+	&"ninefold_witness": {
+		"index": 18, "delivery": &"actor", "kind": &"support",
+		"projectile_display": Vector2(94.0, 94.0),
+		"impact_display": Vector2(154.0, 154.0),
+		"attack_display": Vector2(150.0, 150.0),
+	},
+	&"regency_conservator": {
+		"index": 19, "delivery": &"projectile", "kind": &"shell",
+		"projectile_key": &"choir_regency_conservator_shot",
+		"impact_key": &"choir_regency_conservator_impact",
+		"projectile_display": Vector2(56.0, 28.0),
+		"impact_display": Vector2(154.0, 140.0),
+		"attack_display": Vector2(158.0, 140.0),
+	},
+}
+
+static var _projectile_specs: Dictionary = {}
+static var _impact_specs: Dictionary = {}
+
+
+static func has(archetype_id: StringName) -> bool:
+	return SPECS.has(archetype_id)
+
+
+static func spec(archetype_id: StringName) -> Dictionary:
+	return SPECS.get(archetype_id, {})
+
+
+static func is_projectile_delivery(archetype_id: StringName) -> bool:
+	return StringName(spec(archetype_id).get("delivery", &"")) == &"projectile"
+
+
+static func projectile_key(archetype_id: StringName) -> StringName:
+	return StringName(spec(archetype_id).get("projectile_key", &""))
+
+
+static func impact_key(archetype_id: StringName) -> StringName:
+	return StringName(spec(archetype_id).get("impact_key", &""))
+
+
+static func phase_spec(archetype_id: StringName, phase: StringName) -> Dictionary:
+	var item: Dictionary = spec(archetype_id)
+	if item.is_empty() or not phase in [&"projectile", &"impact", &"attack"]:
+		return {}
+	var texture: Texture2D = PROJECTILE_ATLAS
+	if phase == &"impact":
+		texture = IMPACT_ATLAS
+	elif phase == &"attack":
+		texture = ATTACK_ATLAS
+	return {
+		"texture": texture,
+		"region": _region_for_index(int(item.get("index", -1))),
+		"display_size": item.get("%s_display" % phase, Vector2.ZERO),
+	}
+
+
+static func projectile_spec_for_key(visual_key: StringName) -> Dictionary:
+	_build_cached_specs()
+	return _projectile_specs.get(visual_key, {})
+
+
+static func impact_spec_for_key(visual_key: StringName) -> Dictionary:
+	_build_cached_specs()
+	return _impact_specs.get(visual_key, {})
+
+
+static func validation_errors() -> PackedStringArray:
+	var errors: PackedStringArray = []
+	if SPECS.size() != 20:
+		errors.append("Expected exactly 20 district attack VFX specs")
+	var expected: Dictionary[StringName, bool] = {}
+	for archetype_id: StringName in EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS:
+		expected[archetype_id] = true
+		if not SPECS.has(archetype_id):
+			errors.append("Missing district attack VFX spec: %s" % archetype_id)
+	for archetype_id: StringName in SPECS:
+		if not expected.has(archetype_id):
+			errors.append("Unexpected district attack VFX spec: %s" % archetype_id)
+		_validate_item(archetype_id, SPECS[archetype_id] as Dictionary, errors)
+	if RANGED_IDS.size() != 9:
+		errors.append("Expected exactly nine ranged district attack VFX specs")
+	var projectile_count: int = 0
+	var actor_count: int = 0
+	var projectile_keys: Dictionary[StringName, bool] = {}
+	var impact_keys: Dictionary[StringName, bool] = {}
+	for archetype_id: StringName in SPECS:
+		var item: Dictionary = SPECS[archetype_id] as Dictionary
+		if is_projectile_delivery(archetype_id):
+			projectile_count += 1
+			var shot_key: StringName = StringName(item.get("projectile_key", &""))
+			var hit_key: StringName = StringName(item.get("impact_key", &""))
+			if projectile_keys.has(shot_key):
+				errors.append("Duplicate projectile VFX key: %s" % shot_key)
+			if impact_keys.has(hit_key):
+				errors.append("Duplicate impact VFX key: %s" % hit_key)
+			projectile_keys[shot_key] = true
+			impact_keys[hit_key] = true
+		else:
+			actor_count += 1
+			if not StringName(item.get("projectile_key", &"")).is_empty():
+				errors.append("Actor-only VFX has projectile key: %s" % archetype_id)
+			if not StringName(item.get("impact_key", &"")).is_empty():
+				errors.append("Actor-only VFX has impact key: %s" % archetype_id)
+	if projectile_count != 9 or actor_count != 11:
+		errors.append("Expected 9 projectile and 11 actor attack VFX specs")
+	return errors
+
+
+static func _build_cached_specs() -> void:
+	if not _projectile_specs.is_empty():
+		return
+	for archetype_id: StringName in RANGED_IDS:
+		var item: Dictionary = spec(archetype_id)
+		var shot_key: StringName = StringName(item.projectile_key)
+		var hit_key: StringName = StringName(item.impact_key)
+		var projectile_phase: Dictionary = phase_spec(archetype_id, &"projectile")
+		_projectile_specs[shot_key] = {
+			"texture": projectile_phase.texture,
+			"region": projectile_phase.region,
+			"source_size": ATLAS_SIZE,
+			"display_size": projectile_phase.display_size,
+			"collision_radius_contract": _radius_for_kind(StringName(item.kind)),
+			"canonical_angle": 0.0,
+			"trail_mode": ProjectileVisualCatalog.TrailMode.NONE,
+			"impact_key": hit_key,
+			"damage_kind": StringName(item.kind),
+		}
+		var impact_phase: Dictionary = phase_spec(archetype_id, &"impact")
+		_impact_specs[hit_key] = {
+			"texture": impact_phase.texture,
+			"region": impact_phase.region,
+			"display_size": impact_phase.display_size,
+			"lifetime": HOSTILE_IMPACT_DURATION,
+			"tint": Color.WHITE,
+		}
+
+
+static func _validate_item(
+	archetype_id: StringName,
+	item: Dictionary,
+	errors: PackedStringArray
+) -> void:
+	var item_index: int = int(item.get("index", -1))
+	if item_index < 0 or item_index >= 20:
+		errors.append("Invalid atlas index for %s" % archetype_id)
+	var region: Rect2i = _region_for_index(item_index)
+	if region.position.x < 0 or region.position.y < 0:
+		errors.append("Invalid atlas region for %s" % archetype_id)
+	if region.end.x > ATLAS_SIZE.x or region.end.y > ATLAS_SIZE.y:
+		errors.append("Atlas region outside bounds for %s" % archetype_id)
+	for phase: StringName in [&"projectile", &"impact", &"attack"]:
+		var display_size: Vector2 = item.get("%s_display" % phase, Vector2.ZERO)
+		if display_size.x <= 0.0 or display_size.y <= 0.0:
+			errors.append("Invalid %s display size for %s" % [phase, archetype_id])
+	var expected_index: int = EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS.find(archetype_id)
+	if item_index != expected_index:
+		errors.append("Atlas order mismatch for %s" % archetype_id)
+	if is_projectile_delivery(archetype_id):
+		if not archetype_id in RANGED_IDS:
+			errors.append("Projectile delivery missing ranged classification: %s" % archetype_id)
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		if StringName(item.get("kind", &"")) != StringName(profile.get("projectile_kind", &"")):
+			errors.append("Projectile kind mismatch for %s" % archetype_id)
+		if StringName(item.get("projectile_key", &"")).is_empty():
+			errors.append("Missing projectile key for %s" % archetype_id)
+		if StringName(item.get("impact_key", &"")).is_empty():
+			errors.append("Missing impact key for %s" % archetype_id)
+
+
+static func _region_for_index(index: int) -> Rect2i:
+	if index < 0:
+		return Rect2i(-1, -1, 0, 0)
+	return Rect2i(
+		(index % COLUMNS) * CELL_SIZE.x,
+		(index / COLUMNS) * CELL_SIZE.y,
+		CELL_SIZE.x,
+		CELL_SIZE.y
+	)
+
+
+static func _radius_for_kind(kind: StringName) -> float:
+	match kind:
+		&"shell":
+			return 9.0
+		&"rocket":
+			return 7.0
+		_:
+			return 5.0

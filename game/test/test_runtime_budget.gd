@@ -81,6 +81,8 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.player_arsenals, 1)
 	assert_eq(snapshot.weapon_drones, 19)
 	assert_eq(snapshot.machine_gun_impact_slots, 4)
+	assert_eq(snapshot.hostile_impact_slots, RuntimeBudget.HOSTILE_IMPACT_SLOTS)
+	assert_eq(snapshot.hostile_impact_slots, 8)
 	assert_eq(snapshot.laser_beam_slots, 2)
 	assert_eq(snapshot.anti_air_impact_slots, 5)
 	assert_eq(snapshot.flame_visual_slots, 6)
