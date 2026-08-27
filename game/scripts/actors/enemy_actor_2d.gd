@@ -30,7 +30,8 @@ enum BossDamageResult {
 
 const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
 const SURVIVING_MELEE_KNOCKBACK_MULTIPLIER: float = 5.0
-const SURVIVING_PLAYER_VEHICLE_KNOCKBACK_MULTIPLIER: float = 0.20
+const SURVIVING_PLAYER_LIGHT_VEHICLE_KNOCKBACK_MULTIPLIER: float = 0.45
+const SURVIVING_PLAYER_HEAVY_VEHICLE_KNOCKBACK_MULTIPLIER: float = 0.12
 const TELEGRAPH_REFERENCE_SPAN: float = 96.0
 const TELEGRAPH_MINIMUM_THICKNESS_SCALE: float = 0.85
 const TELEGRAPH_MAXIMUM_THICKNESS_SCALE: float = 2.40
@@ -184,12 +185,12 @@ func receive_damage(event: DamageEvent) -> bool:
 	var knockback_scale: float = 0.28 if melee_hit else 0.18
 	if melee_hit and current_health > 0.0:
 		knockback_scale *= SURVIVING_MELEE_KNOCKBACK_MULTIPLIER
-	if (
-		current_health > 0.0
-		and accepted_event.source is GiantRobotController
-		and _is_ground_vehicle()
-	):
-		knockback_scale *= SURVIVING_PLAYER_VEHICLE_KNOCKBACK_MULTIPLIER
+	if current_health > 0.0 and accepted_event.source is GiantRobotController:
+		var vehicle_weight: StringName = _ground_vehicle_weight_class()
+		if vehicle_weight == EnemyArchetypeCatalog.VEHICLE_WEIGHT_LIGHT:
+			knockback_scale *= SURVIVING_PLAYER_LIGHT_VEHICLE_KNOCKBACK_MULTIPLIER
+		elif vehicle_weight == EnemyArchetypeCatalog.VEHICLE_WEIGHT_HEAVY:
+			knockback_scale *= SURVIVING_PLAYER_HEAVY_VEHICLE_KNOCKBACK_MULTIPLIER
 	velocity += accepted_event.direction * accepted_event.impulse_per_mass * knockback_scale
 	if accepted_event.damage_type in [&"jab_cross", &"ground_smash"]:
 		last_player_knockback_attack_id = accepted_event.attack_id
@@ -206,15 +207,15 @@ func _transform_incoming_damage(event: DamageEvent) -> DamageEvent:
 	return event
 
 
-func _is_ground_vehicle() -> bool:
+func _ground_vehicle_weight_class() -> StringName:
 	if self is TankEnemy:
-		return true
+		return EnemyArchetypeCatalog.VEHICLE_WEIGHT_HEAVY
 	if self is ProceduralEnemy:
-		return EnemyArchetypeCatalog.is_ground_vehicle(
+		return EnemyArchetypeCatalog.vehicle_weight_class(
 			(self as ProceduralEnemy).archetype_id
 		)
 	var archetype_id: StringName = StringName(get_meta(&"enemy_archetype", &""))
-	return EnemyArchetypeCatalog.is_ground_vehicle(archetype_id)
+	return EnemyArchetypeCatalog.vehicle_weight_class(archetype_id)
 
 
 func _receive_boss_armor_damage(event: DamageEvent) -> BossDamageResult:

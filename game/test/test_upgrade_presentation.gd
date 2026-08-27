@@ -3,7 +3,7 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
-func test_destruction_adds_one_visual_counterpart_per_baseline_unit_only() -> void:
+func test_destruction_adds_two_visual_counterparts_per_baseline_unit_only() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -15,13 +15,13 @@ func test_destruction_adds_one_visual_counterpart_per_baseline_unit_only() -> vo
 	var physical_before: int = city.debris_pool.active_count()
 	var event: GameplayEvent = _debris_event(1, 4, &"concrete")
 	assert_true(city.rampage_session.publish(event))
-	assert_eq(runtime.field.active_count(), 4)
+	assert_eq(runtime.field.active_count(), 8)
 	assert_true(runtime.field.is_processing())
-	assert_eq(runtime.visual_spawn_count, 4)
+	assert_eq(runtime.visual_spawn_count, 8)
 	assert_eq(city.debris_pool.active_count(), physical_before)
 	var node_count: int = int(RuntimeBudget.snapshot(city).node_count)
 	runtime.call(&"_on_event_published", event)
-	assert_eq(runtime.field.active_count(), 4)
+	assert_eq(runtime.field.active_count(), 8)
 	assert_eq(int(RuntimeBudget.snapshot(city).node_count), node_count)
 	runtime.set_paused(true)
 	assert_false(runtime.field.is_processing())
@@ -48,8 +48,8 @@ func test_cosmetic_debris_saturates_at_64_and_recycles_without_growth() -> void:
 			_debris_event(1000 + index, 1, &"glass" if index < 40 else &"steel")
 		))
 	assert_eq(runtime.field.active_count(), 64)
-	assert_eq(runtime.visual_spawn_count, 80)
-	assert_eq(runtime.field.recycle_count, 16)
+	assert_eq(runtime.visual_spawn_count, 160)
+	assert_eq(runtime.field.recycle_count, 96)
 	assert_eq(int(RuntimeBudget.snapshot(city).node_count), node_count)
 	assert_eq(city.debris_pool.active_count(), 0)
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())

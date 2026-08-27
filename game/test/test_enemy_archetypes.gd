@@ -137,6 +137,11 @@ func test_district_variant_profiles_flatten_valid_base_contracts_and_compact_art
 			archetype_id
 		)
 		assert_eq(
+			EnemyArchetypeCatalog.vehicle_weight_class(archetype_id),
+			EnemyArchetypeCatalog.vehicle_weight_class(canonical_id),
+			archetype_id
+		)
+		assert_eq(
 			EnemyArchetypeCatalog.is_airborne(archetype_id),
 			EnemyArchetypeCatalog.is_airborne(canonical_id),
 			archetype_id
@@ -177,6 +182,18 @@ func test_all_ground_vehicles_render_and_collide_at_exactly_double_size() -> voi
 			archetype_id
 		)
 		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		var expected_weight: StringName = EnemyArchetypeCatalog.VEHICLE_WEIGHT_NONE
+		if is_ground_vehicle:
+			expected_weight = (
+				EnemyArchetypeCatalog.VEHICLE_WEIGHT_LIGHT
+				if StringName(profile.family) == &"light"
+				else EnemyArchetypeCatalog.VEHICLE_WEIGHT_HEAVY
+			)
+		assert_eq(
+			EnemyArchetypeCatalog.vehicle_weight_class(archetype_id),
+			expected_weight,
+			archetype_id
+		)
 		var actor: ProceduralEnemy = runtime.acquire(
 			archetype_id,
 			Vector2(1080.0, float(profile.spawn_y))
@@ -224,85 +241,148 @@ func test_all_ground_vehicles_render_and_collide_at_exactly_double_size() -> voi
 		runtime.release(actor)
 
 
-func test_surviving_ground_vehicles_resist_player_attack_knockback() -> void:
-	var tank: EnemyActor2D = runtime.acquire(&"tank", Vector2(1080.0, 542.5))
+func test_every_land_enemy_uses_one_road_center_lane_in_every_district() -> void:
+	assert_eq(
+		EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
+		CityStreetChunk.ROAD_DIVIDER_Y - 10.0
+	)
+	var kinds: Array[StringName] = [&"soldier", &"tank", &"helicopter"]
+	kinds.append_array(EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS)
+	var land_count: int = 0
+	var air_count: int = 0
+	for kind: StringName in kinds:
+		var requested_position: Vector2 = Vector2(1080.0, 120.0)
+		var actor: EnemyActor2D = runtime.acquire(kind, requested_position)
+		assert_not_null(actor, kind)
+		if EnemyArchetypeCatalog.is_airborne(kind):
+			assert_eq(actor.global_position.y, requested_position.y, kind)
+			air_count += 1
+		else:
+			var body: RectangleShape2D = (
+				actor.get_node(^"CollisionShape2D").shape as RectangleShape2D
+			)
+			var expected_origin_y: float = (
+				CityStreetChunk.ROAD_COLLISION_SURFACE_Y - body.size.y * 0.5
+			)
+			assert_almost_eq(actor.global_position.y, expected_origin_y, 0.01, kind)
+			var content_rect: Rect2 = actor.visual.get_meta(
+				EnemyActor2D.VISUAL_CONTENT_RECT_META
+			)
+			var visible_bottom_y: float = actor.visual.to_global(
+				Vector2(content_rect.get_center().x, content_rect.end.y)
+			).y
+			assert_almost_eq(
+				visible_bottom_y,
+				EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
+				0.01,
+				kind
+			)
+			await get_tree().physics_frame
+			assert_almost_eq(
+				actor.global_position.y,
+				expected_origin_y,
+				0.5,
+				"%s remains grounded" % kind
+			)
+			land_count += 1
+		runtime.release(actor)
+	assert_gt(land_count, 0)
+	assert_gt(air_count, 0)
+
+
+func test_vehicle_weight_tiers_resist_live_hits_but_wrecks_launch() -> void:
+	var heavy_vehicle: EnemyActor2D = runtime.acquire(&"tank", Vector2(1080.0, 542.5))
+	var light_vehicle: EnemyActor2D = runtime.acquire(&"jackal", Vector2(1240.0, 554.0))
 	var soldier: EnemyActor2D = runtime.acquire(&"soldier", Vector2(920.0, 542.5))
-	assert_not_null(tank)
+	assert_not_null(heavy_vehicle)
+	assert_not_null(light_vehicle)
 	assert_not_null(soldier)
-	tank.set_physics_process(false)
+	heavy_vehicle.set_physics_process(false)
+	light_vehicle.set_physics_process(false)
 	soldier.set_physics_process(false)
 	var impulse_per_mass: float = 100.0
-	assert_true(tank.receive_damage(DamageEvent.new(
-		73_001,
-		city.robot,
-		1.0,
-		&"jab_cross",
-		tank.global_position,
-		Vector2.RIGHT,
-		impulse_per_mass
+	assert_true(heavy_vehicle.receive_damage(DamageEvent.new(
+		73_001, city.robot, 1.0, &"jab_cross", heavy_vehicle.global_position,
+		Vector2.RIGHT, impulse_per_mass
+	)))
+	assert_true(light_vehicle.receive_damage(DamageEvent.new(
+		73_002, city.robot, 1.0, &"jab_cross", light_vehicle.global_position,
+		Vector2.RIGHT, impulse_per_mass
 	)))
 	assert_true(soldier.receive_damage(DamageEvent.new(
-		73_002,
-		city.robot,
-		1.0,
-		&"jab_cross",
-		soldier.global_position,
-		Vector2.RIGHT,
-		impulse_per_mass
+		73_003, city.robot, 1.0, &"jab_cross", soldier.global_position,
+		Vector2.RIGHT, impulse_per_mass
 	)))
-	assert_almost_eq(tank.velocity.x, 28.0, 0.01)
+	assert_almost_eq(heavy_vehicle.velocity.x, 16.8, 0.01)
+	assert_almost_eq(light_vehicle.velocity.x, 63.0, 0.01)
 	assert_almost_eq(soldier.velocity.x, 140.0, 0.01)
 	assert_almost_eq(
-		tank.velocity.x / soldier.velocity.x,
-		0.20,
+		light_vehicle.velocity.x / soldier.velocity.x,
+		EnemyActor2D.SURVIVING_PLAYER_LIGHT_VEHICLE_KNOCKBACK_MULTIPLIER,
 		0.001
 	)
-	tank.velocity = Vector2.ZERO
+	assert_almost_eq(
+		heavy_vehicle.velocity.x / soldier.velocity.x,
+		EnemyActor2D.SURVIVING_PLAYER_HEAVY_VEHICLE_KNOCKBACK_MULTIPLIER,
+		0.001
+	)
+	var light_live_melee_velocity: float = light_vehicle.velocity.x
+	var heavy_live_melee_velocity: float = heavy_vehicle.velocity.x
+	heavy_vehicle.velocity = Vector2.ZERO
+	light_vehicle.velocity = Vector2.ZERO
 	soldier.velocity = Vector2.ZERO
-	assert_true(tank.receive_damage(DamageEvent.new(
-		73_003,
-		city.robot,
-		1.0,
-		&"missile",
-		tank.global_position,
-		Vector2.RIGHT,
-		impulse_per_mass
+	assert_true(heavy_vehicle.receive_damage(DamageEvent.new(
+		73_004, city.robot, 1.0, &"missile", heavy_vehicle.global_position,
+		Vector2.RIGHT, impulse_per_mass
+	)))
+	assert_true(light_vehicle.receive_damage(DamageEvent.new(
+		73_005, city.robot, 1.0, &"missile", light_vehicle.global_position,
+		Vector2.RIGHT, impulse_per_mass
 	)))
 	assert_true(soldier.receive_damage(DamageEvent.new(
-		73_004,
-		city.robot,
-		1.0,
-		&"missile",
-		soldier.global_position,
-		Vector2.RIGHT,
-		impulse_per_mass
+		73_006, city.robot, 1.0, &"missile", soldier.global_position,
+		Vector2.RIGHT, impulse_per_mass
 	)))
-	assert_almost_eq(tank.velocity.x, 3.6, 0.01)
+	assert_almost_eq(heavy_vehicle.velocity.x, 2.16, 0.01)
+	assert_almost_eq(light_vehicle.velocity.x, 8.1, 0.01)
 	assert_almost_eq(soldier.velocity.x, 18.0, 0.01)
-	tank.velocity = Vector2.ZERO
-	assert_true(tank.receive_damage(DamageEvent.new(
-		73_005,
-		soldier,
-		1.0,
-		&"impact",
-		tank.global_position,
-		Vector2.RIGHT,
-		impulse_per_mass
+	heavy_vehicle.velocity = Vector2.ZERO
+	assert_true(heavy_vehicle.receive_damage(DamageEvent.new(
+		73_007, soldier, 1.0, &"impact", heavy_vehicle.global_position,
+		Vector2.RIGHT, impulse_per_mass
 	)))
-	assert_almost_eq(tank.velocity.x, 18.0, 0.01)
+	assert_almost_eq(heavy_vehicle.velocity.x, 18.0, 0.01)
 	var lethal_event: DamageEvent = DamageEvent.new(
-		73_006,
-		city.robot,
-		tank.current_health,
-		&"jab_cross",
-		tank.global_position,
-		Vector2.RIGHT,
-		impulse_per_mass
+		73_008, city.robot, heavy_vehicle.current_health, &"jab_cross",
+		heavy_vehicle.global_position, Vector2.RIGHT, impulse_per_mass
 	)
-	assert_true(tank.receive_damage(lethal_event))
-	assert_true(tank.dead)
-	assert_eq(tank.velocity, Vector2.ZERO)
-	assert_eq(tank.last_player_knockback_attack_id, lethal_event.attack_id)
+	assert_true(heavy_vehicle.receive_damage(lethal_event))
+	assert_true(heavy_vehicle.dead)
+	assert_eq(heavy_vehicle.velocity, Vector2.ZERO)
+	assert_eq(heavy_vehicle.last_player_knockback_attack_id, lethal_event.attack_id)
+	await get_tree().process_frame
+	var wreck: EnemyWreck2D = city.tank_wreck
+	assert_not_null(wreck)
+	await get_tree().physics_frame
+	wreck.linear_velocity = Vector2.ZERO
+	wreck.angular_velocity = 0.0
+	wreck.sleeping = false
+	assert_true(wreck.receive_damage(DamageEvent.new(
+		73_009, city.robot, 1.0, &"missile", wreck.global_position,
+		Vector2.RIGHT, impulse_per_mass
+	)))
+	await get_tree().physics_frame
+	assert_between(wreck.linear_velocity.x, 100.0, 110.0)
+	assert_gt(wreck.linear_velocity.x, light_live_melee_velocity)
+	assert_gt(wreck.linear_velocity.x, heavy_live_melee_velocity * 6.0)
+	wreck.linear_velocity = Vector2.ZERO
+	wreck.angular_velocity = 0.0
+	assert_true(wreck.receive_damage(DamageEvent.new(
+		73_010, soldier, 1.0, &"impact", wreck.global_position,
+		Vector2.RIGHT, impulse_per_mass
+	)))
+	await get_tree().physics_frame
+	assert_between(wreck.linear_velocity.x, 28.0, 32.0)
 
 
 func test_project_choir_hybrids_reuse_existing_families_and_production_art() -> void:

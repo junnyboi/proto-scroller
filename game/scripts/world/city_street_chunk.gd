@@ -10,6 +10,10 @@ const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
+const ROAD_COLLISION_SURFACE_Y: float = 590.0
+const ROAD_DIVIDER_Y: float = 694.0
+const LAND_ENEMY_VISUAL_BASELINE_Y: float = ROAD_DIVIDER_Y - 10.0
+const GROUND_COLLISION_HEIGHT: float = 70.0
 const UNUSED_INDEX: int = -2_147_483_648
 
 var logical_index: int = UNUSED_INDEX
@@ -49,8 +53,8 @@ func configure(blueprint: CityChunkBlueprint, runtime_x: float) -> void:
 		var segment_x: float = blueprint.lane_phase + float(mark_index) * 336.0
 		lane_marks[mark_index].default_color = lane_color
 		lane_marks[mark_index].points = PackedVector2Array([
-			Vector2(segment_x, 694.0),
-			Vector2(segment_x + 170.0, 694.0),
+			Vector2(segment_x, ROAD_DIVIDER_Y),
+			Vector2(segment_x + 170.0, ROAD_DIVIDER_Y),
 		])
 	visible = true
 
@@ -95,8 +99,8 @@ func _build_visuals() -> void:
 	road_surface.name = "RoadSurface"
 	road_surface.z_index = -10
 	road_surface.polygon = PackedVector2Array([
-		Vector2(0.0, 590.0),
-		Vector2(CHUNK_WIDTH + 1.0, 590.0),
+		Vector2(0.0, ROAD_COLLISION_SURFACE_Y),
+		Vector2(CHUNK_WIDTH + 1.0, ROAD_COLLISION_SURFACE_Y),
 		Vector2(CHUNK_WIDTH + 1.0, 760.0),
 		Vector2(0.0, 760.0),
 	])
@@ -124,8 +128,8 @@ func _build_visuals() -> void:
 	curb.width = 8.0
 	curb.default_color = Color("8f8175")
 	curb.points = PackedVector2Array([
-		Vector2(0.0, 590.0),
-		Vector2(CHUNK_WIDTH + 1.0, 590.0),
+		Vector2(0.0, ROAD_COLLISION_SURFACE_Y),
+		Vector2(CHUNK_WIDTH + 1.0, ROAD_COLLISION_SURFACE_Y),
 	])
 	curb.z_index = -9
 	add_child(curb)
@@ -136,7 +140,7 @@ func _build_collision() -> void:
 		"Ground",
 		WORLD_LAYER,
 		ROBOT_LAYER | ENEMY_LAYER | PROP_LAYER | DEBRIS_LAYER,
-		625.0
+		ROAD_COLLISION_SURFACE_Y + GROUND_COLLISION_HEIGHT * 0.5
 	)
 	remains_ground = _make_ground(
 		"RemainsGround",
@@ -159,7 +163,7 @@ func _make_ground(
 	body.position = Vector2(CHUNK_WIDTH * 0.5, y_position)
 	var collision: CollisionShape2D = CollisionShape2D.new()
 	var rectangle: RectangleShape2D = RectangleShape2D.new()
-	rectangle.size = Vector2(CHUNK_WIDTH + 4.0, 70.0)
+	rectangle.size = Vector2(CHUNK_WIDTH + 4.0, GROUND_COLLISION_HEIGHT)
 	collision.shape = rectangle
 	body.add_child(collision)
 	add_child(body)

@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name EncounterRuntime
 extends Node2D
 
@@ -19,8 +20,9 @@ const ROBOT_LAYER: int = 1 << 1
 const BUILDING_LAYER: int = 1 << 3
 const HURTBOX_LAYER: int = 1 << 6
 const DEBRIS_LAYER: int = 1 << 8
-const LAND_BASELINE_Y: float = 655.0
-const LAND_VEHICLE_BASELINE_Y: float = 684.0
+const LAND_ENEMY_VISUAL_BASELINE_Y: float = (
+	CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y
+)
 const SOLDIER_SCRIPT: Script = preload("res://scripts/actors/soldier.gd")
 const TANK_SCRIPT: Script = preload("res://scripts/actors/tank.gd")
 const HELICOPTER_SCRIPT: Script = preload("res://scripts/actors/helicopter.gd")
@@ -37,6 +39,7 @@ const MARK_DAMAGE_MULTIPLIER: float = 1.15
 const STATIC_INTERVAL_MULTIPLIER: float = 0.82
 const AEGIS_DAMAGE_MULTIPLIER: float = 0.65
 const AEGIS_RADIUS: float = 560.0
+static var _visual_content_rect_cache: Dictionary[String, Rect2] = {}
 
 var robot: GiantRobotController
 var telegraphs: TelegraphPresenter2D
@@ -55,7 +58,6 @@ var target_mark_remaining: float = 0.0
 var elite_spawn_effect_pool: EliteSpawnEffectPool
 var cycle_health_multiplier: float = 1.0
 var cycle_attack_multiplier: float = 1.0
-static var _visual_content_rect_cache: Dictionary[String, Rect2] = {}
 
 
 func setup(
@@ -135,7 +137,7 @@ func acquire(
 			continue
 		if enemy is ProceduralEnemy:
 			_configure_procedural_shell(enemy as ProceduralEnemy, kind)
-		enemy.activate(spawn_position, robot)
+		enemy.activate(_resolve_spawn_lane(enemy, kind, spawn_position), robot)
 		var accepted_trait: StringName = trait_id
 		if trait_id == &"COMMAND" and _has_active_command():
 			accepted_trait = &""
@@ -329,7 +331,6 @@ func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
 	var texture: Texture2D
 	var display_size: Vector2
 	var collision_size: Vector2
-	var authored_y: float = 542.5
 	if kind == &"soldier":
 		enemy = SOLDIER_SCRIPT.new() as SoldierEnemy
 		texture = SOLDIER_TEXTURE
@@ -343,13 +344,12 @@ func _create_enemy(kind: StringName, index: int) -> EnemyActor2D:
 		texture = TANK_TEXTURE
 		display_size = Vector2(235.0, 100.0) * EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE
 		collision_size = Vector2(220.0, 78.0) * EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE
-		authored_y = 551.0
 	else:
 		enemy = HELICOPTER_SCRIPT.new() as HelicopterEnemy
 		texture = HELICOPTER_TEXTURE
 		display_size = Vector2(235.0, 72.0)
 		collision_size = Vector2(210.0, 58.0)
-	_configure_actor_nodes(enemy, kind, texture, display_size, collision_size, authored_y)
+	_configure_actor_nodes(enemy, kind, texture, display_size, collision_size)
 	enemy.name = "%sPool%02d" % [kind.capitalize(), index]
 	add_child(enemy)
 	enemy.deactivate()
@@ -400,7 +400,6 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	var presentation_scale: float = EnemyArchetypeCatalog.presentation_scale(kind)
 	display_size *= presentation_scale
 	collision_size *= presentation_scale
-	var authored_y: float = float(profile.spawn_y)
 	var visual: Sprite2D = enemy.get_node(^"Visual") as Sprite2D
 	visual.texture = texture
 	visual.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -410,12 +409,11 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	visual.position = Vector2.ZERO
 	_cache_visual_content_rect(visual, texture)
 	if not enemy.airborne:
-		var baseline_y: float = (
-			LAND_BASELINE_Y
-			if EnemyArchetypeCatalog.is_human_enemy(kind)
-			else LAND_VEHICLE_BASELINE_Y
+		_align_visual_bottom(
+			visual,
+			_land_actor_origin_y(collision_size.y),
+			LAND_ENEMY_VISUAL_BASELINE_Y
 		)
-		_align_visual_bottom(visual, authored_y, baseline_y)
 	enemy._visual_rest_position = visual.position
 	enemy._visual_rest_scale = visual.scale
 	enemy.collision_layer = ENEMY_LAYER
@@ -437,8 +435,7 @@ func _configure_actor_nodes(
 	kind: StringName,
 	texture: Texture2D,
 	display_size: Vector2,
-	collision_size: Vector2,
-	authored_y: float
+	collision_size: Vector2
 ) -> void:
 	_configure_actor_contract(enemy)
 	enemy.collision_mask = 0 if kind == &"helicopter" else WORLD_LAYER | DEBRIS_LAYER
@@ -446,10 +443,11 @@ func _configure_actor_nodes(
 	visual.name = "Visual"
 	_cache_visual_content_rect(visual, texture)
 	if kind != &"helicopter":
-		var baseline_y: float = (
-			LAND_VEHICLE_BASELINE_Y if kind == &"tank" else LAND_BASELINE_Y
+		_align_visual_bottom(
+			visual,
+			_land_actor_origin_y(collision_size.y),
+			LAND_ENEMY_VISUAL_BASELINE_Y
 		)
-		_align_visual_bottom(visual, authored_y, baseline_y)
 		enemy.movement_bounce_enabled = true
 		if kind == &"soldier":
 			enemy.bounce_height = 5.5
@@ -527,6 +525,26 @@ func _align_visual_bottom(visual: Sprite2D, authored_y: float, baseline_y: float
 		Rect2(-visual.texture.get_size() * 0.5, visual.texture.get_size())
 	)
 	visual.position.y = baseline_y - authored_y - content_rect.end.y * absf(visual.scale.y)
+
+
+func _resolve_spawn_lane(
+	enemy: EnemyActor2D,
+	kind: StringName,
+	requested_position: Vector2
+) -> Vector2:
+	if EnemyArchetypeCatalog.is_airborne(kind):
+		return requested_position
+	var collision: CollisionShape2D = enemy.get_node_or_null(
+		^"CollisionShape2D"
+	) as CollisionShape2D
+	if collision == null or not collision.shape is RectangleShape2D:
+		return requested_position
+	var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+	return Vector2(requested_position.x, _land_actor_origin_y(rectangle.size.y))
+
+
+func _land_actor_origin_y(collision_height: float) -> float:
+	return CityStreetChunk.ROAD_COLLISION_SURFACE_Y - collision_height * 0.5
 
 
 func _configure_actor_contract(enemy: EnemyActor2D) -> void:
