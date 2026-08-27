@@ -74,7 +74,13 @@ func test_five_testimonies_serialize_one_mechanic_and_noncolliding_echo() -> voi
 			assert_eq(royal.active_composition_echo_count(), 1)
 			assert_between(royal.composition_marker_count(), 1, BossUtilityPool.MARKER_CAPACITY)
 			assert_eq(royal.echo_collision_count(), 0)
-			assert_eq(royal.live_support_count(), 0)
+			assert_between(
+				royal.live_support_count(),
+				0,
+				BossRoyalFinaleController.ROYAL_REINFORCEMENT_CAP
+			)
+			for reinforcement_id: StringName in royal.reinforcement_ids():
+				assert_has(BossRoyalFinaleController.ROYAL_REINFORCEMENTS, reinforcement_id)
 			assert_false(royal.player_motion_history_recorded())
 			royal.advance(BossRoyalFinaleController.TELEGRAPH_SECONDS)
 			royal.advance(BossRoyalFinaleController.ACTIVE_SECONDS)
@@ -161,6 +167,44 @@ func test_mid_attempt_retry_restores_pylons_attack_and_single_grammar() -> void:
 	assert_eq(royal.active_mechanic, expected_mechanic)
 	assert_eq(royal.active_mechanic_count(), 1)
 	assert_eq(royal.active_composition_echo_count(), 1)
+	assert_eq(royal.live_support_count(), 0)
+
+
+func test_choir_prime_crown_canon_and_royal_support_stop_before_wreck() -> void:
+	_start_royal()
+	assert_eq(session.utility_pool.rig.scale, Vector2.ONE * 1.5)
+	assert_almost_eq(
+		session.boss.global_position.y,
+		BossRig2D.road_contact_y_for_preset(&"CHOIR_PRIME"),
+		0.001
+	)
+	var planned: Dictionary = royal.projectile_signature()
+	assert_eq(planned.kind, &"rocket")
+	assert_eq(planned.visual_key, ProjectileVisualCatalog.ENEMY_ROCKET_DIRECT)
+	assert_eq(planned.planned, 2)
+	assert_almost_eq(planned.presentation_scale, 1.5, 0.001)
+	assert_eq(city.projectile_root.reservation_count(&"rocket"), 2)
+	royal.advance(BossRoyalFinaleController.TELEGRAPH_SECONDS)
+	assert_eq(city.projectile_root.active_count(&"rocket"), 1)
+	royal.advance(0.23)
+	assert_eq(city.projectile_root.active_count(&"rocket"), 2)
+	for projectile: Projectile2D in city.projectile_root._active_order:
+		if projectile.damage_type == &"rocket":
+			assert_eq(projectile.source, session.boss)
+			assert_almost_eq(projectile.presentation_scale, 1.5, 0.001)
+	royal.set_combat_state(CommandBossSession.STATE_BARRAGE, 1.0)
+	for _index: int in range(BossRoyalFinaleController.ROYAL_REINFORCEMENT_CAP):
+		royal.advance(BossRoyalFinaleController.ROYAL_REINFORCEMENT_SECONDS)
+	assert_eq(
+		royal.reinforcement_ids(),
+		BossRoyalFinaleController.ROYAL_REINFORCEMENTS.slice(
+			0, BossRoyalFinaleController.ROYAL_REINFORCEMENT_CAP
+		)
+	)
+	royal.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.0)
+	assert_eq(royal.live_support_count(), 0)
+	assert_eq(city.projectile_root.active_count(&"rocket"), 0)
+	royal.advance(BossRoyalFinaleController.ROYAL_REINFORCEMENT_SECONDS * 2.0)
 	assert_eq(royal.live_support_count(), 0)
 
 

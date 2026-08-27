@@ -78,6 +78,19 @@ const SEVERANCE_RECEIVER_OFFSETS: Array[Vector2] = [
 	Vector2(160.0, -18.0), Vector2(190.0, -54.0), Vector2(220.0, -18.0),
 	Vector2(190.0, 18.0), Vector2(160.0, 18.0),
 ]
+const CROWN_CANON_PROJECTILE_SCALE: float = 1.5
+const CROWN_CANON_PROJECTILE_SPEED: float = 900.0
+const CROWN_CANON_PROJECTILE_DAMAGE: float = 44.0
+const CROWN_CANON_SOCKETS: Array[StringName] = [&"LEFT_EMITTER", &"RIGHT_EMITTER"]
+const CROWN_CANON_DELAYS: Array[float] = [0.0, 0.22]
+const ROYAL_REINFORCEMENT_CAP: int = 2
+const ROYAL_REINFORCEMENT_SECONDS: float = 1.15
+const ROYAL_REINFORCEMENTS: Array[StringName] = [
+	&"privy_chirurgeon",
+	&"laureate_courser",
+	&"ninefold_witness",
+	&"regency_conservator",
+]
 
 var utility_pool: BossUtilityPool
 var encounter_runtime: EncounterRuntime
@@ -103,6 +116,10 @@ var severance_completed: int = 0
 var severance_loop_count: int = 0
 var severance_window_remaining: float = 0.0
 var crown_transaction_committed: bool = false
+var boss_volley: BossProjectileVolley = BossProjectileVolley.new()
+var _reinforcement_actors: Array[EnemyActor2D] = []
+var _reinforcement_elapsed: float = 0.0
+var _reinforcement_cursor: int = 0
 var _preserve_state_on_cleanup: bool = false
 
 
@@ -130,6 +147,7 @@ func start(
 	generation_token = token
 	center = world_center
 	orientation_portrait = portrait
+	boss_volley.setup(encounter_runtime, utility_pool.rig, utility_pool.rig.host)
 	combat_state = CommandBossSession.STATE_SCREEN
 	body_health_ratio = 1.0
 	_configure_pylons()
@@ -139,6 +157,8 @@ func start(
 
 
 func deactivate() -> void:
+	boss_volley.cancel()
+	_release_reinforcements()
 	active_definition = null
 	generation_token = 0
 	elapsed_seconds = 0.0
@@ -159,6 +179,8 @@ func deactivate() -> void:
 	severance_loop_count = 0
 	severance_window_remaining = 0.0
 	crown_transaction_committed = false
+	_reinforcement_elapsed = 0.0
+	_reinforcement_cursor = 0
 	if utility_pool != null:
 		_hide_pressure()
 		utility_pool.hide_royal_echo_presentations()
@@ -169,6 +191,8 @@ func advance(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 	attack_elapsed += delta
+	boss_volley.advance(delta)
+	_advance_reinforcements(delta)
 	if severance_active:
 		severance_window_remaining = maxf(severance_window_remaining - delta, 0.0)
 		if is_zero_approx(severance_window_remaining):
@@ -181,10 +205,13 @@ func advance(delta: float) -> void:
 		attack_elapsed -= TELEGRAPH_SECONDS
 		attack_stage = &"ACTIVE"
 		_set_mechanic_state(BossAttackArea2D.VisualState.ARMED)
+		if not wreck_active:
+			boss_volley.commit()
 		attack_changed.emit(active_mechanic, active_echo, attack_stage)
 	elif attack_stage == &"ACTIVE" and attack_elapsed >= ACTIVE_SECONDS:
 		attack_elapsed -= ACTIVE_SECONDS
 		attack_stage = &"RECOVERY"
+		boss_volley.cancel()
 		_set_mechanic_state(BossAttackArea2D.VisualState.TELEGRAPH)
 		attack_changed.emit(active_mechanic, active_echo, attack_stage)
 	elif attack_stage == &"RECOVERY" and attack_elapsed >= RECOVERY_SECONDS:
@@ -213,6 +240,9 @@ func set_combat_state(state_value: StringName, health_ratio: float) -> void:
 	var previous_choices: Array[int] = active_testimony_choices()
 	combat_state = state_value
 	body_health_ratio = clampf(health_ratio, 0.0, 1.0)
+	if body_health_ratio <= 0.0:
+		boss_volley.cancel()
+		_release_reinforcements()
 	var next_choices: Array[int] = active_testimony_choices()
 	if active() and next_choices != previous_choices and not active_pylon_index in next_choices:
 		_begin_next_testimony()
@@ -244,6 +274,8 @@ func begin_wreck(snapshot: FinaleEligibilitySnapshot) -> bool:
 		return false
 	finale_snapshot = snapshot
 	wreck_active = true
+	boss_volley.cancel()
+	_release_reinforcements()
 	severance_active = false
 	severance_completed = 0
 	severance_loop_count = 0
@@ -355,9 +387,21 @@ func echo_collision_count() -> int:
 
 
 func live_support_count() -> int:
-	if utility_pool == null or utility_pool.controller == null:
-		return 0
-	return utility_pool.controller.active_support.size()
+	_prune_reinforcements()
+	return _reinforcement_actors.size()
+
+
+func reinforcement_ids() -> Array[StringName]:
+	_prune_reinforcements()
+	var ids: Array[StringName] = []
+	for support: EnemyActor2D in _reinforcement_actors:
+		if support is ProceduralEnemy:
+			ids.append((support as ProceduralEnemy).archetype_id)
+	return ids
+
+
+func projectile_signature() -> Dictionary:
+	return boss_volley.signature()
 
 
 func player_motion_history_recorded() -> bool:
@@ -480,6 +524,9 @@ func capture_state() -> Dictionary:
 		"severance_loop_count": severance_loop_count,
 		"severance_window_remaining": severance_window_remaining,
 		"crown_transaction_committed": crown_transaction_committed,
+		"reinforcement_ids": reinforcement_ids(),
+		"reinforcement_elapsed": _reinforcement_elapsed,
+		"reinforcement_cursor": _reinforcement_cursor,
 	}
 
 
@@ -517,6 +564,8 @@ func restore_state(state: Dictionary) -> void:
 	crown_transaction_committed = bool(state.get(
 		"crown_transaction_committed", armor_connections == CONNECTION_COUNT
 	))
+	_reinforcement_elapsed = float(state.get("reinforcement_elapsed", 0.0))
+	_reinforcement_cursor = int(state.get("reinforcement_cursor", 0))
 	_restore_pylon_integrity()
 	_configure_testimony(active_pylon_index)
 	_set_mechanic_state(
@@ -528,6 +577,10 @@ func restore_state(state: Dictionary) -> void:
 		severance_receiver_moved.emit(
 			SEVERANCE_RECEIVER_OFFSETS[severance_completed]
 		)
+	if not wreck_active and body_health_ratio > 0.0:
+		_restore_reinforcements(state.get("reinforcement_ids", []) as Array)
+		if attack_stage == &"TELEGRAPH":
+			_prepare_crown_canon()
 
 
 func _configure_pylons() -> void:
@@ -553,6 +606,7 @@ func _pylon_severed(pylon_index: int) -> bool:
 func _begin_next_testimony() -> void:
 	if not active():
 		return
+	boss_volley.cancel()
 	attack_elapsed = 0.0
 	attack_stage = &"TELEGRAPH"
 	var choices: Array[int] = active_testimony_choices()
@@ -563,6 +617,8 @@ func _begin_next_testimony() -> void:
 	attack_index += 1
 	testimony_cycle_count += 1
 	_configure_testimony(choices[next_choice_index])
+	if not wreck_active and not _prepare_crown_canon():
+		_hide_pressure()
 	attack_changed.emit(active_mechanic, active_echo, attack_stage)
 
 
@@ -639,12 +695,37 @@ func _configure_composition_echo(pylon_index: int) -> void:
 func _set_mechanic_state(state_value: BossAttackArea2D.VisualState) -> void:
 	if utility_pool == null or active_mechanic.is_empty():
 		return
+	if not wreck_active and state_value == BossAttackArea2D.VisualState.ARMED:
+		state_value = BossAttackArea2D.VisualState.TELEGRAPH
 	for area: BossAttackArea2D in utility_pool.lane_damage_areas + utility_pool.line_areas:
 		if area.attack_id != active_mechanic or area.visual_state == BossAttackArea2D.VisualState.DRY:
 			continue
 		area.configure_footprint(
 			area.global_position, area.footprint_size, state_value, active_mechanic
 		)
+
+
+func _prepare_crown_canon() -> bool:
+	if (
+		wreck_active
+		or body_health_ratio <= 0.0
+		or encounter_runtime == null
+		or encounter_runtime.robot == null
+	):
+		return false
+	var player_snapshot: Vector2 = encounter_runtime.robot.global_position
+	var lead: float = 90.0 if testimony_cycle_count % 2 == 0 else -90.0
+	return boss_volley.begin(
+		&"rocket",
+		ProjectileVisualCatalog.ENEMY_ROCKET_DIRECT,
+		CROWN_CANON_SOCKETS,
+		[player_snapshot - Vector2(lead, 0.0), player_snapshot + Vector2(lead, 0.0)],
+		CROWN_CANON_DELAYS,
+		CROWN_CANON_PROJECTILE_SPEED,
+		CROWN_CANON_PROJECTILE_DAMAGE,
+		CROWN_CANON_PROJECTILE_SCALE,
+		TELEGRAPH_SECONDS
+	)
 
 
 func _hide_pressure() -> void:
@@ -654,10 +735,74 @@ func _hide_pressure() -> void:
 		area.deactivate()
 
 
+func _advance_reinforcements(delta: float) -> void:
+	_prune_reinforcements()
+	if (
+		wreck_active
+		or body_health_ratio <= 0.0
+		or combat_state not in [
+			CommandBossSession.STATE_BARRAGE,
+			CommandBossSession.STATE_EXPOSED,
+		]
+		or _reinforcement_actors.size() >= ROYAL_REINFORCEMENT_CAP
+	):
+		return
+	_reinforcement_elapsed += delta
+	if _reinforcement_elapsed < ROYAL_REINFORCEMENT_SECONDS:
+		return
+	_reinforcement_elapsed = 0.0
+	var archetype_id: StringName = ROYAL_REINFORCEMENTS[
+		posmod(_reinforcement_cursor, ROYAL_REINFORCEMENTS.size())
+	]
+	if _spawn_reinforcement(archetype_id) != null:
+		_reinforcement_cursor += 1
+
+
+func _spawn_reinforcement(archetype_id: StringName) -> EnemyActor2D:
+	if encounter_runtime == null:
+		return null
+	var ordinal: int = _reinforcement_cursor + _reinforcement_actors.size()
+	var side: float = -1.0 if ordinal % 2 == 0 else 1.0
+	var spawn_position: Vector2 = center + Vector2(side * (520.0 + float(ordinal % 2) * 70.0), 0.0)
+	if EnemyArchetypeCatalog.is_airborne(archetype_id):
+		spawn_position.y = float(
+			EnemyArchetypeCatalog.profile(archetype_id).get("spawn_y", 190.0)
+		)
+	var support: EnemyActor2D = encounter_runtime.acquire(archetype_id, spawn_position)
+	if support != null:
+		_reinforcement_actors.append(support)
+	return support
+
+
+func _prune_reinforcements() -> void:
+	for index: int in range(_reinforcement_actors.size() - 1, -1, -1):
+		var support: EnemyActor2D = _reinforcement_actors[index]
+		if support == null or not is_instance_valid(support) or not support.active or support.dead:
+			_reinforcement_actors.remove_at(index)
+
+
+func _restore_reinforcements(saved_ids: Array) -> void:
+	_release_reinforcements()
+	for id_value: Variant in saved_ids:
+		if _reinforcement_actors.size() >= ROYAL_REINFORCEMENT_CAP:
+			break
+		_spawn_reinforcement(StringName(id_value))
+
+
+func _release_reinforcements() -> void:
+	if encounter_runtime != null:
+		for support: EnemyActor2D in _reinforcement_actors:
+			if support != null and is_instance_valid(support):
+				encounter_runtime.release(support)
+	_reinforcement_actors.clear()
+
+
 func _cleanup_generation(token: int) -> void:
 	if generation_token != token:
 		return
 	if _preserve_state_on_cleanup:
+		boss_volley.cancel()
+		_release_reinforcements()
 		generation_token = 0
 		_preserve_state_on_cleanup = false
 		return

@@ -1,4 +1,4 @@
-# gdlint: disable=max-public-methods
+# gdlint: disable=max-public-methods,max-file-lines
 class_name BossEscalationController
 extends Node
 
@@ -53,6 +53,25 @@ const PIN_OFFSETS: Array[Vector2] = [
 const EXPORT_DESTINATIONS: Array[String] = [
 	"KHEPRI ORBITAL YARD", "SABLE COAST THEATRE", "VEYR OUTER COLONIES",
 ]
+const BOSS_PROJECTILE_SCALE: float = 1.5
+const ENTERTAINMENT_PROJECTILE_SPEED: float = 940.0
+const ENTERTAINMENT_PROJECTILE_DAMAGE: float = 38.0
+const ENTERTAINMENT_PROJECTILE_VISUAL: StringName = &"choir_marquee_anesthetist_shot"
+const ENTERTAINMENT_REINFORCEMENT_CAP: int = 3
+const ENTERTAINMENT_REINFORCEMENT_SECONDS: float = 1.35
+const ENTERTAINMENT_REINFORCEMENTS: Array[StringName] = [
+	&"memorial_usher", &"glassback_double", &"marquee_anesthetist",
+]
+const MILITARY_PROJECTILE_SPEED: float = 1040.0
+const MILITARY_PROJECTILE_DAMAGE: float = 46.0
+const MILITARY_PROJECTILE_VISUAL: StringName = &"choir_revetment_ward_shot"
+const MILITARY_REINFORCEMENT_CAP: int = 4
+const MILITARY_REINFORCEMENT_SECONDS: float = 1.20
+const MILITARY_REINFORCEMENTS: Array[StringName] = [
+	&"suture_marshal", &"mercy_raker", &"revetment_ward", &"triage_kite",
+]
+const ROSARY_SOCKETS: Array[StringName] = [&"LEFT_EMITTER", &"UPPER", &"RIGHT_EMITTER"]
+const ROSARY_OFFSETS: Array[float] = [-120.0, 0.0, 120.0]
 
 var utility_pool: BossUtilityPool
 var encounter_runtime: EncounterRuntime
@@ -70,6 +89,7 @@ var direct_clear_seconds: float = DIRECT_CLEAR_SECONDS
 var combat_state: StringName = CommandBossSession.STATE_SCREEN
 var body_health_ratio: float = 1.0
 var recorder: MotionEchoRecorder
+var boss_volley: BossProjectileVolley = BossProjectileVolley.new()
 
 var show_control_cabinet_available: bool = true
 var show_control_cabinet_used: bool = false
@@ -93,6 +113,9 @@ var anchor_denied: PackedByteArray = PackedByteArray()
 var reclamation_consumed: PackedByteArray = PackedByteArray()
 var ablative_plates: int = 0
 var export_record_visible: bool = false
+var _reinforcement_actors: Array[EnemyActor2D] = []
+var _reinforcement_elapsed: float = 0.0
+var _reinforcement_cursor: int = 0
 var _siren_preferred_weapon: StringName = &""
 var _active_siren: EnemyActor2D
 var _active_runner: EnemyActor2D
@@ -132,6 +155,7 @@ func start(
 	generation_token = token
 	center = world_center
 	orientation_portrait = portrait
+	boss_volley.setup(encounter_runtime, utility_pool.rig, utility_pool.rig.host)
 	direct_clear_seconds = DIRECT_CLEAR_SECONDS
 	combat_state = CommandBossSession.STATE_SCREEN
 	body_health_ratio = 1.0
@@ -146,8 +170,10 @@ func start(
 
 
 func deactivate() -> void:
+	boss_volley.cancel()
 	_release_support(_active_siren)
 	_release_support(_active_runner)
+	_release_reinforcements()
 	_active_siren = null
 	_active_runner = null
 	_resume_suspended_weapon()
@@ -181,6 +207,8 @@ func deactivate() -> void:
 	reclamation_consumed.fill(0)
 	ablative_plates = 0
 	export_record_visible = false
+	_reinforcement_elapsed = 0.0
+	_reinforcement_cursor = 0
 	if recorder != null:
 		recorder.deactivate()
 	if utility_pool != null:
@@ -201,6 +229,8 @@ func advance(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 	attack_elapsed += delta
+	boss_volley.advance(delta)
+	_advance_reinforcements(delta)
 	if recorder != null and active_definition.boss_id == ENTERTAINMENT_ID:
 		var robot: GiantRobotController = encounter_runtime.robot if encounter_runtime != null else null
 		if robot != null:
@@ -214,10 +244,12 @@ func advance(delta: float) -> void:
 		attack_elapsed -= TELEGRAPH_SECONDS
 		attack_stage = &"ACTIVE"
 		_activate_attack()
+		boss_volley.commit()
 		attack_changed.emit(active_attack, attack_stage)
 	elif attack_stage == &"ACTIVE" and attack_elapsed >= ACTIVE_SECONDS:
 		attack_elapsed -= ACTIVE_SECONDS
 		attack_stage = &"RECOVERY"
+		boss_volley.cancel()
 		_hide_attack_damage()
 		attack_changed.emit(active_attack, attack_stage)
 		_on_recovery_started()
@@ -257,6 +289,9 @@ func set_combat_state(state_value: StringName, health_ratio: float) -> void:
 	var previous_choices: Array[StringName] = active_attack_choices()
 	combat_state = state_value
 	body_health_ratio = clampf(health_ratio, 0.0, 1.0)
+	if body_health_ratio <= 0.0:
+		boss_volley.cancel()
+		_release_reinforcements()
 	var next_choices: Array[StringName] = active_attack_choices()
 	if active() and next_choices != previous_choices and not active_attack in next_choices:
 		_begin_next_attack()
@@ -389,7 +424,7 @@ func release_siren() -> void:
 
 func player_direct_controls_live() -> bool:
 	var robot: GiantRobotController = encounter_runtime.robot if encounter_runtime != null else null
-	return robot != null and bool(robot.get("_control_enabled"))
+	return robot != null and robot.can_request_attack()
 
 
 func request_dispatch() -> EnemyActor2D:
@@ -496,6 +531,24 @@ func live_auxiliary_count() -> int:
 
 func live_seraph_count() -> int:
 	return encounter_runtime.active_count(&"seraph_carrier") if encounter_runtime != null else 0
+
+
+func reinforcement_count() -> int:
+	_prune_reinforcements()
+	return _reinforcement_actors.size()
+
+
+func reinforcement_ids() -> Array[StringName]:
+	_prune_reinforcements()
+	var ids: Array[StringName] = []
+	for support: EnemyActor2D in _reinforcement_actors:
+		if support is ProceduralEnemy:
+			ids.append((support as ProceduralEnemy).archetype_id)
+	return ids
+
+
+func projectile_signature() -> Dictionary:
+	return boss_volley.signature()
 
 
 func direct_route_valid_after_facade_predestruction() -> bool:
@@ -609,6 +662,9 @@ func capture_state() -> Dictionary:
 		"reclamation_consumed": reclamation_consumed,
 		"ablative_plates": ablative_plates,
 		"export_record_visible": export_record_visible,
+		"reinforcement_ids": reinforcement_ids(),
+		"reinforcement_elapsed": _reinforcement_elapsed,
+		"reinforcement_cursor": _reinforcement_cursor,
 	}
 
 
@@ -643,6 +699,8 @@ func restore_state(state: Dictionary) -> void:
 	reclamation_consumed.resize(ANCHOR_CAPACITY)
 	ablative_plates = int(state.get("ablative_plates", 0))
 	export_record_visible = bool(state.get("export_record_visible", false))
+	_reinforcement_elapsed = float(state.get("reinforcement_elapsed", 0.0))
+	_reinforcement_cursor = int(state.get("reinforcement_cursor", 0))
 	_configure_attack(active_attack)
 	_set_attack_visual_state(
 		BossAttackArea2D.VisualState.ARMED
@@ -661,6 +719,9 @@ func restore_state(state: Dictionary) -> void:
 			siren_ring_remaining = float(state.get("siren_ring_remaining", 0.0))
 	if bool(state.get("runner_active", false)):
 		request_dispatch()
+	_restore_reinforcements(state.get("reinforcement_ids", []) as Array)
+	if attack_stage == &"TELEGRAPH":
+		_prepare_projectile_attack()
 
 
 func _configure_common_targets() -> void:
@@ -704,6 +765,7 @@ func _configure_military() -> void:
 
 
 func _begin_next_attack() -> void:
+	boss_volley.cancel()
 	attack_elapsed = 0.0
 	attack_stage = &"TELEGRAPH"
 	var choices: Array[StringName] = active_attack_choices()
@@ -711,6 +773,8 @@ func _begin_next_attack() -> void:
 	active_attack = choices[attack_index]
 	_configure_attack(active_attack)
 	_set_attack_visual_state(BossAttackArea2D.VisualState.TELEGRAPH)
+	if not _prepare_projectile_attack():
+		_hide_attack_damage()
 	attack_changed.emit(active_attack, attack_stage)
 
 
@@ -784,9 +848,9 @@ func _configure_military_attack(attack: StringName) -> void:
 
 func _activate_attack() -> void:
 	if active_attack == &"ARMED_AFTERIMAGE" and recorder != null:
-		recorder.activate_armed_footprint()
+		recorder.activate_armed_presentation()
 	else:
-		_set_attack_visual_state(BossAttackArea2D.VisualState.ARMED)
+		_set_attack_visual_state(BossAttackArea2D.VisualState.TELEGRAPH)
 
 
 func _hide_attack_damage() -> void:
@@ -798,6 +862,8 @@ func _hide_attack_damage() -> void:
 
 
 func _set_attack_visual_state(state_value: BossAttackArea2D.VisualState) -> void:
+	if state_value == BossAttackArea2D.VisualState.ARMED:
+		state_value = BossAttackArea2D.VisualState.TELEGRAPH
 	for area: BossAttackArea2D in utility_pool.lane_damage_areas + utility_pool.line_areas:
 		if area.visible:
 			if area.visual_state == BossAttackArea2D.VisualState.DRY:
@@ -805,6 +871,78 @@ func _set_attack_visual_state(state_value: BossAttackArea2D.VisualState) -> void
 			area.configure_footprint(
 				area.global_position, area.footprint_size, state_value, active_attack
 			)
+
+
+func _prepare_projectile_attack() -> bool:
+	if encounter_runtime == null or encounter_runtime.robot == null or active_definition == null:
+		return false
+	var player_snapshot: Vector2 = encounter_runtime.robot.global_position
+	if active_definition.boss_id == ENTERTAINMENT_ID:
+		return _prepare_entertainment_projectiles(player_snapshot)
+	return _prepare_military_projectiles(player_snapshot)
+
+
+func _prepare_entertainment_projectiles(player_snapshot: Vector2) -> bool:
+	var sockets: Array[StringName] = [&"LEFT_EMITTER"]
+	var origins: Array[Vector2] = []
+	var targets: Array[Vector2] = [player_snapshot]
+	var delays: Array[float] = [0.0]
+	match active_attack:
+		&"MEMORY_BLOCKING":
+			sockets = [&"LEFT_EMITTER", &"RIGHT_EMITTER"]
+			targets = [
+				player_snapshot + Vector2(-120.0, 0.0),
+				player_snapshot + Vector2(120.0, 0.0),
+			]
+			delays = [0.0, 0.14]
+		&"ARMED_AFTERIMAGE":
+			if recorder != null and recorder.armed_index >= 0:
+				var positions: PackedVector2Array = recorder.marker_positions()
+				if recorder.armed_index < positions.size():
+					origins = [positions[recorder.armed_index]]
+		&"ENCORE_IMPACT":
+			sockets = [&"LEFT_EMITTER", &"UPPER", &"RIGHT_EMITTER"]
+			targets = [
+				player_snapshot + Vector2(-150.0, 0.0),
+				player_snapshot,
+				player_snapshot + Vector2(150.0, 0.0),
+			]
+			delays = [0.0, 0.16, 0.32]
+	if not origins.is_empty():
+		return boss_volley.begin_from_origins(
+			&"shell", ENTERTAINMENT_PROJECTILE_VISUAL, origins, targets, delays,
+			ENTERTAINMENT_PROJECTILE_SPEED, ENTERTAINMENT_PROJECTILE_DAMAGE,
+			BOSS_PROJECTILE_SCALE, TELEGRAPH_SECONDS
+		)
+	return boss_volley.begin(
+		&"shell", ENTERTAINMENT_PROJECTILE_VISUAL, sockets, targets, delays,
+		ENTERTAINMENT_PROJECTILE_SPEED, ENTERTAINMENT_PROJECTILE_DAMAGE,
+		BOSS_PROJECTILE_SCALE, TELEGRAPH_SECONDS
+	)
+
+
+func _prepare_military_projectiles(player_snapshot: Vector2) -> bool:
+	var sockets: Array[StringName] = [&"CORE"]
+	var targets: Array[Vector2] = [player_snapshot]
+	var delays: Array[float] = [0.0]
+	var speed: float = MILITARY_PROJECTILE_SPEED
+	if active_attack == &"SUTURE_SALVO":
+		sockets = ROSARY_SOCKETS.duplicate()
+		targets = []
+		for offset: float in ROSARY_OFFSETS:
+			targets.append(player_snapshot + Vector2(offset, 0.0))
+		delays = [0.0, 0.10, 0.20]
+	elif active_attack == &"COMPRESSION_PSALM":
+		sockets = [&"UPPER"]
+		speed *= 0.74
+	elif active_attack == &"PALE_RECLAMATION":
+		sockets = [&"UPPER"]
+		speed *= 0.82
+	return boss_volley.begin(
+		&"shell", MILITARY_PROJECTILE_VISUAL, sockets, targets, delays,
+		speed, MILITARY_PROJECTILE_DAMAGE, BOSS_PROJECTILE_SCALE,
+		TELEGRAPH_SECONDS
+	)
 
 
 func _on_recovery_started() -> void:
@@ -858,12 +996,101 @@ func _release_support(support: EnemyActor2D) -> void:
 		encounter_runtime.release(support)
 
 
+func _advance_reinforcements(delta: float) -> void:
+	_prune_reinforcements()
+	if (
+		active_definition == null
+		or body_health_ratio <= 0.0
+		or combat_state not in [
+			CommandBossSession.STATE_BARRAGE,
+			CommandBossSession.STATE_EXPOSED,
+		]
+	):
+		return
+	var roster: Array[StringName] = _reinforcement_roster()
+	var cap: int = _reinforcement_cap()
+	if roster.is_empty() or _reinforcement_actors.size() >= cap:
+		return
+	_reinforcement_elapsed += delta
+	if _reinforcement_elapsed < _reinforcement_interval():
+		return
+	_reinforcement_elapsed = 0.0
+	var archetype_id: StringName = roster[posmod(_reinforcement_cursor, roster.size())]
+	if _spawn_reinforcement(archetype_id) != null:
+		_reinforcement_cursor += 1
+
+
+func _reinforcement_roster() -> Array[StringName]:
+	if active_definition == null:
+		return []
+	return (
+		ENTERTAINMENT_REINFORCEMENTS
+		if active_definition.boss_id == ENTERTAINMENT_ID
+		else MILITARY_REINFORCEMENTS
+	)
+
+
+func _reinforcement_cap() -> int:
+	return (
+		ENTERTAINMENT_REINFORCEMENT_CAP
+		if active_definition != null and active_definition.boss_id == ENTERTAINMENT_ID
+		else MILITARY_REINFORCEMENT_CAP
+	)
+
+
+func _reinforcement_interval() -> float:
+	return (
+		ENTERTAINMENT_REINFORCEMENT_SECONDS
+		if active_definition != null and active_definition.boss_id == ENTERTAINMENT_ID
+		else MILITARY_REINFORCEMENT_SECONDS
+	)
+
+
+func _spawn_reinforcement(archetype_id: StringName) -> EnemyActor2D:
+	if encounter_runtime == null:
+		return null
+	var ordinal: int = _reinforcement_cursor + _reinforcement_actors.size()
+	var side: float = -1.0 if ordinal % 2 == 0 else 1.0
+	var spawn_position: Vector2 = center + Vector2(side * (500.0 + float(ordinal % 3) * 55.0), 0.0)
+	if EnemyArchetypeCatalog.is_airborne(archetype_id):
+		spawn_position.y = float(
+			EnemyArchetypeCatalog.profile(archetype_id).get("spawn_y", 190.0)
+		)
+	var support: EnemyActor2D = encounter_runtime.acquire(archetype_id, spawn_position)
+	if support != null:
+		_reinforcement_actors.append(support)
+	return support
+
+
+func _prune_reinforcements() -> void:
+	for index: int in range(_reinforcement_actors.size() - 1, -1, -1):
+		var support: EnemyActor2D = _reinforcement_actors[index]
+		if support == null or not is_instance_valid(support) or not support.active or support.dead:
+			_reinforcement_actors.remove_at(index)
+
+
+func _restore_reinforcements(saved_ids: Array) -> void:
+	_release_reinforcements()
+	for id_value: Variant in saved_ids:
+		if _reinforcement_actors.size() >= _reinforcement_cap():
+			break
+		_spawn_reinforcement(StringName(id_value))
+
+
+func _release_reinforcements() -> void:
+	for support: EnemyActor2D in _reinforcement_actors:
+		_release_support(support)
+	_reinforcement_actors.clear()
+
+
 func _cleanup_generation(token: int) -> void:
 	if generation_token != token:
 		return
 	if _preserve_state_on_cleanup:
+		boss_volley.cancel()
 		_release_support(_active_siren)
 		_release_support(_active_runner)
+		_release_reinforcements()
 		_active_siren = null
 		_active_runner = null
 		_resume_suspended_weapon()

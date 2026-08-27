@@ -94,7 +94,9 @@ func acquire_reserved_projectile(
 	damage: float,
 	source: Node,
 	target_mask: int,
-	kind: StringName
+	kind: StringName,
+	visual_key: StringName = &"",
+	presentation_scale: float = 1.0
 ) -> Projectile2D:
 	if not projectile_reservations.has(reservation_id) or projectile_pool == null:
 		return null
@@ -107,7 +109,9 @@ func acquire_reserved_projectile(
 		damage,
 		source,
 		target_mask,
-		kind
+		kind,
+		visual_key,
+		presentation_scale
 	)
 
 

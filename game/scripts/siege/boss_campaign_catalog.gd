@@ -323,6 +323,7 @@ static func _make_definition(
 	definition_value.arena_building_slot = posmod(trigger_chunk, CityWorldStream.CHUNK_CAPACITY)
 	definition_value.arena_cell_indices = PackedInt32Array([0, 1, 2, 3, 4, 5])
 	definition_value.wreck_receiver_offsets = receiver_offsets
+	definition_value.summon_uses_arena_landmark = false
 	definition_value.armor = 330.0
 	definition_value.health = 320.0
 	definition_value.screen_seconds = 4.0

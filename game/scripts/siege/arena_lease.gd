@@ -53,13 +53,13 @@ func acquire(p_definition: BossEncounterDefinition) -> bool:
 	if buildings.size() != CityWorldStream.CHUNK_CAPACITY or arena_building == null:
 		_fail_acquire()
 		return false
-	if not destructibles.bind_landmark_for_chunk(
+	if definition.summon_uses_arena_landmark and not destructibles.bind_landmark_for_chunk(
 		world_stream.chunk_for_logical(definition.arena_logical_chunk),
 		definition.arena_landmark_variant_id
 	):
 		_fail_acquire()
 		return false
-	if definition.boss_id == &"SETTLEMENT_ENGINE_S04":
+	if not definition.summon_uses_arena_landmark:
 		arena_building.set_encounter_suppressed(true)
 	_refresh_cached_anchors()
 	active = true
@@ -114,9 +114,9 @@ func restore_structural_state(states: Array[Dictionary]) -> bool:
 			if variant == null or not building.apply_variant(variant):
 				return false
 			building.set_meta(&"building_variant_id", variant_id)
-			building.restore_stream_state(state)
-			if building == arena_building and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
-				building.set_encounter_suppressed(true)
+		building.restore_stream_state(state)
+		if building == arena_building and not definition.summon_uses_arena_landmark:
+			building.set_encounter_suppressed(true)
 	return true
 
 
@@ -125,7 +125,12 @@ func resident_count() -> int:
 
 
 func landmark_instance_count() -> int:
-	if not active or arena_building == null:
+	if (
+		not active
+		or arena_building == null
+		or definition == null
+		or not definition.summon_uses_arena_landmark
+	):
 		return 0
 	var count: int = 0
 	for building: StructuralBuilding2D in buildings:

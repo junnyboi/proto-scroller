@@ -116,9 +116,31 @@ func test_business_boss_has_complete_damage_and_visible_finisher_path() -> void:
 
 func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() -> void:
 	_start(&"SAMARITAN_15")
+	assert_eq(session.utility_pool.rig.scale, Vector2.ONE * 1.5)
+	assert_almost_eq(
+		session.boss.global_position.y,
+		BossRig2D.road_contact_y_for_preset(&"SAMARITAN"),
+		0.001
+	)
+	var projectile: Dictionary = slice.projectile_signature()
+	assert_eq(projectile.kind, &"shell")
+	assert_eq(projectile.visual_key, BossVerticalSliceController.RESIDENTIAL_PROJECTILE_VISUAL)
+	assert_almost_eq(projectile.presentation_scale, 1.5, 0.001)
+	assert_eq(projectile.planned, 1)
+	assert_gt(projectile.telegraph_id, 0)
 	assert_eq(slice.active_attack_choices(), [&"TRIAGE_SWEEP", &"PRESSURE_SENTENCE"])
 	assert_true(slice.central_cradle_preserved)
 	assert_true(slice.mechanical_targets_clear_of_glass())
+	slice.advance(BossVerticalSliceController.TELEGRAPH_SECONDS)
+	var fired: Projectile2D = city.projectile_root.last_acquired
+	assert_not_null(fired)
+	assert_eq(fired.source, session.boss)
+	assert_eq(fired.damage_type, &"shell")
+	assert_almost_eq(fired.presentation_scale, 1.5, 0.001)
+	for area: BossAttackArea2D in (
+		session.utility_pool.lane_damage_areas + session.utility_pool.line_areas
+	):
+		assert_false(area.monitoring)
 	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.2)
 	assert_eq(
 		slice.active_attack_choices(),
@@ -137,6 +159,33 @@ func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() ->
 			+ BossVerticalSliceController.ACTIVE_SECONDS
 			+ BossVerticalSliceController.RECOVERY_SECONDS
 		)
+
+
+func test_residential_continuously_rotates_bounded_district_support_until_body_death() -> void:
+	_start(&"SAMARITAN_15")
+	slice.set_combat_state(CommandBossSession.STATE_BARRAGE, 1.0)
+	for _index: int in range(BossVerticalSliceController.RESIDENTIAL_REINFORCEMENT_CAP):
+		slice.advance(BossVerticalSliceController.RESIDENTIAL_REINFORCEMENT_SECONDS)
+	assert_eq(
+		slice.residential_support_count(),
+		BossVerticalSliceController.RESIDENTIAL_REINFORCEMENT_CAP
+	)
+	assert_eq(
+		slice.residential_support_ids(),
+		BossVerticalSliceController.RESIDENTIAL_REINFORCEMENTS
+	)
+	var replaced: EnemyActor2D = slice._residential_support_actors[0]
+	assert_true(replaced.receive_damage(_smash_event(55_000)))
+	await get_tree().process_frame
+	slice.advance(BossVerticalSliceController.RESIDENTIAL_REINFORCEMENT_SECONDS)
+	assert_eq(
+		slice.residential_support_count(),
+		BossVerticalSliceController.RESIDENTIAL_REINFORCEMENT_CAP
+	)
+	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.0)
+	assert_eq(slice.residential_support_count(), 0)
+	slice.advance(BossVerticalSliceController.RESIDENTIAL_REINFORCEMENT_SECONDS * 2.0)
+	assert_eq(slice.residential_support_count(), 0)
 
 
 func test_direct_clear_target_is_45_to_75_seconds_for_both_bosses() -> void:

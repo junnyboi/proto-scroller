@@ -52,6 +52,8 @@ func test_catalog_has_exact_canonical_roster_triggers_and_campaign_results() -> 
 		)
 		assert_eq(definition.armor_fixed_step, 110.0)
 		assert_true(definition.direct_damage_route)
+		assert_false(definition.summon_uses_arena_landmark)
+		assert_false(definition.arena_landmark_variant_id.is_empty())
 		assert_eq(BossCampaignCatalog.definition(definition.boss_id), definition)
 		assert_eq(BossCampaignCatalog.definition_for_trigger(definition.trigger_chunk), definition)
 	assert_eq(definitions.back().outcomes, BossOutcome.values())

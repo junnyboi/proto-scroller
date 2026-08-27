@@ -8,12 +8,17 @@ const PART_CAPACITY: int = 6
 const SOCKET_CAPACITY: int = 8
 const HURT_REGION_CAPACITY: int = 3
 const DEFAULT_DISPLAY_SIZE: Vector2 = Vector2(520.0, 390.0)
-const SETTLEMENT_PRESENTATION_SCALE: float = 1.5
+const CAMPAIGN_PRESENTATION_SCALE: float = 1.5
+const SETTLEMENT_PRESENTATION_SCALE: float = CAMPAIGN_PRESENTATION_SCALE
 const SETTLEMENT_VISIBLE_BOTTOM_LOCAL_Y: float = 38.84
 const SETTLEMENT_ROAD_CONTACT_Y: float = (
 	CityStreetChunk.ROAD_DIVIDER_Y
 	- SETTLEMENT_VISIBLE_BOTTOM_LOCAL_Y * SETTLEMENT_PRESENTATION_SCALE
 )
+const SAMARITAN_VISIBLE_BOTTOM_LOCAL_Y: float = 34.289
+const MIMESIS_VISIBLE_BOTTOM_LOCAL_Y: float = 8.409
+const CANTOR_VISIBLE_BOTTOM_LOCAL_Y: float = 32.056
+const CHOIR_PRIME_VISIBLE_BOTTOM_LOCAL_Y: float = 26.865
 const STATE_MOVING: StringName = &"MOVING"
 const STATE_ATTACKING: StringName = &"ATTACKING"
 const DIRECTION_EAST: StringName = &"E"
@@ -68,11 +73,7 @@ func configure(
 	active_definition = definition
 	host = p_host
 	portrait = use_portrait
-	scale = (
-		Vector2.ONE * SETTLEMENT_PRESENTATION_SCALE
-		if definition.rig_preset == &"SETTLEMENT_ENGINE"
-		else Vector2.ONE
-	)
+	scale = Vector2.ONE * presentation_scale_for_preset(definition.rig_preset)
 	global_position = host.global_position
 	_configure_art(definition.rig_preset)
 	_configure_sockets(definition.rig_preset, definition.portrait_socket_overrides)
@@ -80,6 +81,38 @@ func configure(
 	set_armor_target_active(host.boss_armor > 0.0)
 	visible = true
 	return true
+
+
+static func presentation_scale_for_preset(preset: StringName) -> float:
+	return CAMPAIGN_PRESENTATION_SCALE if preset in [
+		&"SETTLEMENT_ENGINE",
+		&"SAMARITAN",
+		&"MIMESIS",
+		&"CANTOR_PALE_ENGINE",
+		&"CHOIR_PRIME",
+	] else 1.0
+
+
+static func visible_bottom_local_y(preset: StringName) -> float:
+	match preset:
+		&"SETTLEMENT_ENGINE":
+			return SETTLEMENT_VISIBLE_BOTTOM_LOCAL_Y
+		&"SAMARITAN":
+			return SAMARITAN_VISIBLE_BOTTOM_LOCAL_Y
+		&"MIMESIS":
+			return MIMESIS_VISIBLE_BOTTOM_LOCAL_Y
+		&"CANTOR_PALE_ENGINE":
+			return CANTOR_VISIBLE_BOTTOM_LOCAL_Y
+		&"CHOIR_PRIME":
+			return CHOIR_PRIME_VISIBLE_BOTTOM_LOCAL_Y
+	return 0.0
+
+
+static func road_contact_y_for_preset(preset: StringName) -> float:
+	return (
+		CityStreetChunk.ROAD_DIVIDER_Y
+		- visible_bottom_local_y(preset) * presentation_scale_for_preset(preset)
+	)
 
 
 func deactivate() -> void:

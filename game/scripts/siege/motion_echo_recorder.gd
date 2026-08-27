@@ -128,6 +128,20 @@ func activate_armed_footprint() -> bool:
 	return true
 
 
+func activate_armed_presentation() -> bool:
+	if armed_index < 0 or armed_index >= count or _damage_area == null:
+		return false
+	armed_active = true
+	_damage_area.configure_footprint(
+		_positions[armed_index],
+		FOOTPRINT_SIZE,
+		BossAttackArea2D.VisualState.TELEGRAPH,
+		&"ARMED_AFTERIMAGE"
+	)
+	queue_redraw()
+	return true
+
+
 func disarm() -> void:
 	armed_index = -1
 	armed_active = false
@@ -183,7 +197,7 @@ func restore_state(state: Dictionary, attack_id: StringName = &"ARMED_AFTERIMAGE
 	if armed_index >= 0 and armed_index < count:
 		arm_marker(armed_index, attack_id)
 		if armed_active:
-			activate_armed_footprint()
+			activate_armed_presentation()
 	else:
 		disarm()
 

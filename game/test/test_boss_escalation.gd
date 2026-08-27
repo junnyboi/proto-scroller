@@ -45,7 +45,7 @@ func test_entertainment_and_military_cover_all_masks_and_keep_direct_route() -> 
 		session.stop()
 
 
-func test_motion_recorder_is_fixed_eight_cyan_history_and_only_magenta_area_damages() -> void:
+func test_mimesis_echo_history_and_magenta_selection_are_noncolliding() -> void:
 	_start(&"MIMESIS_04")
 	var recorder: MotionEchoRecorder = session.utility_pool.motion_echo_recorder
 	for index: int in range(12):
@@ -64,9 +64,10 @@ func test_motion_recorder_is_fixed_eight_cyan_history_and_only_magenta_area_dama
 	assert_false(session.utility_pool.lane_damage_areas[2].contains_world_point(
 		recorder.marker_positions()[6]
 	))
-	assert_true(recorder.activate_armed_footprint())
-	assert_true(recorder.damage_footprint_matches_collision())
-	assert_true(session.utility_pool.lane_damage_areas[2].contains_world_point(
+	assert_true(recorder.activate_armed_presentation())
+	assert_false(recorder.damage_footprint_matches_collision())
+	assert_false(session.utility_pool.lane_damage_areas[2].monitoring)
+	assert_false(session.utility_pool.lane_damage_areas[2].contains_world_point(
 		recorder.marker_positions()[6]
 	))
 
@@ -200,6 +201,85 @@ func test_retry_restores_mid_generation_history_ring_anchors_and_one_support() -
 	assert_eq(city.encounter_runtime.active_family_count(&"air"), 1)
 	assert_eq(city.encounter_runtime.total_count(), baseline_total)
 	assert_eq(session.utility_pool.post_warm_creation_count, 0)
+
+
+func test_mimesis_fires_scaled_marquee_shells_and_rotates_entertainment_support() -> void:
+	_start(&"MIMESIS_04")
+	assert_eq(session.utility_pool.rig.scale, Vector2.ONE * 1.5)
+	assert_almost_eq(
+		session.boss.global_position.y,
+		BossRig2D.road_contact_y_for_preset(&"MIMESIS"),
+		0.001
+	)
+	var planned: Dictionary = escalation.projectile_signature()
+	assert_eq(planned.kind, &"shell")
+	assert_eq(planned.visual_key, BossEscalationController.ENTERTAINMENT_PROJECTILE_VISUAL)
+	assert_almost_eq(planned.presentation_scale, 1.5, 0.001)
+	assert_gt(planned.telegraph_id, 0)
+	escalation.advance(BossEscalationController.TELEGRAPH_SECONDS)
+	var shell: Projectile2D = city.projectile_root.last_acquired
+	assert_not_null(shell)
+	assert_eq(shell.source, session.boss)
+	assert_almost_eq(shell.presentation_scale, 1.5, 0.001)
+	for area: BossAttackArea2D in (
+		session.utility_pool.lane_damage_areas + session.utility_pool.line_areas
+	):
+		assert_false(area.monitoring)
+	escalation.set_combat_state(CommandBossSession.STATE_BARRAGE, 1.0)
+	for _index: int in range(BossEscalationController.ENTERTAINMENT_REINFORCEMENT_CAP):
+		escalation.advance(BossEscalationController.ENTERTAINMENT_REINFORCEMENT_SECONDS)
+	assert_eq(
+		escalation.reinforcement_ids(),
+		BossEscalationController.ENTERTAINMENT_REINFORCEMENTS
+	)
+	escalation.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.0)
+	assert_eq(escalation.reinforcement_count(), 0)
+
+
+func test_cantor_reserves_atomic_three_shell_rosary_and_continuous_military_support() -> void:
+	_start(&"CANTOR_31_PALE_ENGINE")
+	assert_eq(session.utility_pool.rig.scale, Vector2.ONE * 1.5)
+	assert_almost_eq(
+		session.boss.global_position.y,
+		BossRig2D.road_contact_y_for_preset(&"CANTOR_PALE_ENGINE"),
+		0.001
+	)
+	var planned: Dictionary = escalation.projectile_signature()
+	assert_eq(planned.planned, 3)
+	assert_eq(planned.pending, 3)
+	assert_eq(city.projectile_root.reservation_count(&"shell"), 3)
+	escalation.advance(BossEscalationController.TELEGRAPH_SECONDS)
+	assert_eq(city.projectile_root.active_count(&"shell"), 1)
+	escalation.advance(0.21)
+	assert_eq(city.projectile_root.active_count(&"shell"), 3)
+	for projectile: Projectile2D in city.projectile_root._active_order:
+		if projectile.damage_type == &"shell":
+			assert_almost_eq(projectile.presentation_scale, 1.5, 0.001)
+	escalation.set_combat_state(CommandBossSession.STATE_BARRAGE, 1.0)
+	for _index: int in range(BossEscalationController.MILITARY_REINFORCEMENT_CAP):
+		escalation.advance(BossEscalationController.MILITARY_REINFORCEMENT_SECONDS)
+	assert_eq(
+		escalation.reinforcement_ids(),
+		BossEscalationController.MILITARY_REINFORCEMENTS
+	)
+	escalation.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.0)
+	assert_eq(escalation.reinforcement_count(), 0)
+
+
+func test_cantor_pool_saturation_cancels_all_promised_rosary_shots() -> void:
+	_start(&"CANTOR_31_PALE_ENGINE")
+	escalation.boss_volley.cancel()
+	city.projectile_root.release_all()
+	for _index: int in range(RuntimeBudget.SHELLS):
+		assert_not_null(city.projectile_root.acquire(
+			Vector2.ZERO, Vector2.RIGHT, 10.0, 1.0, session.boss, 0, &"shell"
+		))
+	escalation._begin_next_attack()
+	var denied: Dictionary = escalation.projectile_signature()
+	assert_eq(denied.planned, 0)
+	assert_eq(denied.telegraph_id, 0)
+	assert_eq(city.projectile_root.reservation_count(&"shell"), 0)
+	assert_gt(denied.denials, 0)
 
 
 func test_stage_and_arsenal_transactions_are_idempotent_with_export_data() -> void:

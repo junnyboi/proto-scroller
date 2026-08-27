@@ -106,8 +106,10 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		utility_pool.cleanup_generation(generation_token)
 		active_definition = null
 		return false
-	if definition != null and definition.boss_id == &"SETTLEMENT_ENGINE_S04":
-		boss.global_position.y = BossRig2D.SETTLEMENT_ROAD_CONTACT_Y
+	if definition != null:
+		boss.global_position.y = BossRig2D.road_contact_y_for_preset(
+			definition.rig_preset
+		)
 	if active_definition == null:
 		boss.set_meta(&"enemy_boss_id", &"COMMAND_UNIT")
 		boss.configure_boss(ARMOR, HEALTH)
@@ -373,11 +375,17 @@ func _configure_campaign_runtime() -> void:
 		if dependencies.city != null and dependencies.city.urban_siege != null
 		else null
 	)
-	if campaign != null and campaign.arena_lease.active:
+	if (
+		campaign != null
+		and campaign.arena_lease.active
+		and active_definition.summon_uses_arena_landmark
+	):
 		utility_pool.arena_adapter.bind(
 			campaign.arena_lease.arena_building,
 			active_definition
 		)
+	else:
+		utility_pool.arena_adapter.unbind()
 	if not active_definition.phases.is_empty():
 		utility_pool.controller.begin_phase(
 			active_definition.phases[0],
@@ -565,6 +573,7 @@ func _on_wreck_receiver_damage(
 	if receiver.outcome_id == BossOutcome.PURGE:
 		royal_finale.cancel_pressure()
 		_completion_payload = royal_finale.completion_payload(BossOutcome.PURGE)
+		royal_finale.preserve_completion_state()
 		return boss_wreck.receive_damage(event)
 	var snapshot: FinaleEligibilitySnapshot = royal_finale.finale_snapshot
 	if not _accept_fresh_royal_finisher_step(event):
@@ -574,10 +583,12 @@ func _on_wreck_receiver_damage(
 		_completion_payload = royal_finale.completion_payload(
 			BossOutcome.ASCENSION_FAILURE
 		)
+		royal_finale.preserve_completion_state()
 		return boss_wreck.receive_damage(event)
 	if not royal_finale.complete_severance_immediately():
 		return false
 	_completion_payload = royal_finale.completion_payload(BossOutcome.DISENTANGLE)
+	royal_finale.preserve_completion_state()
 	return boss_wreck.receive_damage(event)
 
 

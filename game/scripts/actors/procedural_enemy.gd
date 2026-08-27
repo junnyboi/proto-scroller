@@ -601,7 +601,13 @@ func _repair_nearest_ally() -> EnemyActor2D:
 	var best: EnemyActor2D
 	var best_distance: float = SUPPORT_RADIUS
 	for actor: EnemyActor2D in encounter_runtime.all_actors():
-		if actor == self or not actor.active or actor.dead or actor.current_health >= actor.max_health:
+		if (
+			actor == self
+			or not actor.active
+			or actor.dead
+			or actor.has_meta(&"enemy_boss_id")
+			or actor.current_health >= actor.max_health
+		):
 			continue
 		var distance: float = global_position.distance_to(actor.global_position)
 		if distance < best_distance:

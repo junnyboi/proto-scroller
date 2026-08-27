@@ -26,19 +26,21 @@ func test_authored_gates_trigger_once_before_each_district_transition() -> void:
 		campaign._completed_ids[definition.boss_id] = true
 
 
-func test_gate_lease_uses_six_existing_chunks_and_one_landmark() -> void:
+func test_gate_lease_uses_six_existing_chunks_without_summoning_a_landmark() -> void:
 	var city: CitySlice = await _spawn_city()
 	var baseline_ids: PackedInt64Array = PackedInt64Array()
 	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
 		baseline_ids.append(building.get_instance_id())
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(9)
+	assert_false(definition.summon_uses_arena_landmark)
 	await _trigger(city, definition)
 	assert_true(campaign.arena_lease.active)
 	assert_eq(campaign.arena_lease.resident_count(), CityWorldStream.CHUNK_CAPACITY)
 	assert_eq(city.world_stream.active_chunk_count(), CityWorldStream.CHUNK_CAPACITY)
 	assert_eq(city.streamed_destructibles.active_building_count(), CityWorldStream.CHUNK_CAPACITY)
-	assert_eq(campaign.arena_lease.landmark_instance_count(), 1)
+	assert_eq(campaign.arena_lease.landmark_instance_count(), 0)
+	assert_null(city.urban_siege.boss_session.utility_pool.arena_adapter.building)
 	var arena_building: StructuralBuilding2D = campaign.arena_lease.arena_building
 	assert_true(arena_building.encounter_suppressed)
 	assert_false(arena_building.visible)

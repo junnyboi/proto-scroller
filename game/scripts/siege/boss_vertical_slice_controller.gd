@@ -42,6 +42,22 @@ const BUSINESS_SUPPORT_BATCH: int = 4
 const BUSINESS_SUPPORT_CAP: int = 8
 const BUSINESS_SHOCKWAVE_DIAMETER: float = 820.0
 const BUSINESS_SHOCKWAVE_DAMAGE: float = 72.0
+const RESIDENTIAL_PROJECTILE_SCALE: float = 1.5
+const RESIDENTIAL_PROJECTILE_SPEED: float = 980.0
+const RESIDENTIAL_PROJECTILE_DAMAGE: float = 42.0
+const RESIDENTIAL_PROJECTILE_VISUAL: StringName = &"choir_rainvault_pressure_ward_shot"
+const RESIDENTIAL_REINFORCEMENT_CAP: int = 4
+const RESIDENTIAL_REINFORCEMENT_SECONDS: float = 1.25
+const RESIDENTIAL_REINFORCEMENTS: Array[StringName] = [
+	&"intake_shepherd",
+	&"evacuation_litter",
+	&"rainvault_pressure_ward",
+	&"balcony_recall_beacon",
+]
+const RESIDENTIAL_PROJECTILE_SOCKETS: Array[StringName] = [
+	&"LEFT_EMITTER", &"UPPER", &"RIGHT_EMITTER", &"CORE",
+]
+const RESIDENTIAL_AIM_OFFSETS: Array[float] = [-150.0, 0.0, 150.0, 0.0]
 const BUSINESS_SUPPORT_OFFSETS: Array[Vector2] = [
 	Vector2(-540.0, 0.0), Vector2(540.0, 0.0),
 	Vector2(-460.0, 0.0), Vector2(460.0, 0.0),
@@ -95,8 +111,12 @@ var direct_clear_seconds: float = DIRECT_CLEAR_SECONDS
 var combat_state: StringName = CommandBossSession.STATE_SCREEN
 var body_health_ratio: float = 1.0
 var blackout_cycle_count: int = 0
+var boss_volley: BossProjectileVolley = BossProjectileVolley.new()
 var _business_support_wave_count: int = 0
 var _business_support_actors: Array[EnemyActor2D] = []
+var _residential_support_actors: Array[EnemyActor2D] = []
+var _residential_reinforcement_elapsed: float = 0.0
+var _residential_reinforcement_cursor: int = 0
 var _active_breacher: EnemyActor2D
 var _preserve_state_on_cleanup: bool = false
 
@@ -128,6 +148,7 @@ func start(
 	generation_token = token
 	center = world_center
 	orientation_portrait = portrait
+	boss_volley.setup(encounter_runtime, utility_pool.rig, utility_pool.rig.host)
 	direct_clear_seconds = DIRECT_CLEAR_SECONDS
 	combat_state = CommandBossSession.STATE_SCREEN
 	body_health_ratio = 1.0
@@ -142,9 +163,13 @@ func start(
 
 
 func deactivate() -> void:
+	boss_volley.cancel()
 	for support: EnemyActor2D in _business_support_actors:
 		_release_support(support)
 	_business_support_actors.clear()
+	for support: EnemyActor2D in _residential_support_actors:
+		_release_support(support)
+	_residential_support_actors.clear()
 	_release_support(_active_breacher)
 	_release_support(active_runner_slot)
 	_active_breacher = null
@@ -174,6 +199,8 @@ func deactivate() -> void:
 	body_health_ratio = 1.0
 	blackout_cycle_count = 0
 	_business_support_wave_count = 0
+	_residential_reinforcement_elapsed = 0.0
+	_residential_reinforcement_cursor = 0
 	if utility_pool != null:
 		for marker: Marker2D in utility_pool.markers:
 			marker.visible = false
@@ -194,6 +221,8 @@ func advance(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 	attack_elapsed += delta
+	boss_volley.advance(delta)
+	_advance_residential_reinforcements(delta)
 	if extraction_pod >= 0:
 		extraction_remaining = maxf(extraction_remaining - delta, 0.0)
 		if is_zero_approx(extraction_remaining):
@@ -202,10 +231,13 @@ func advance(delta: float) -> void:
 		attack_elapsed -= TELEGRAPH_SECONDS
 		attack_stage = &"ACTIVE"
 		_set_attack_visual_state(BossAttackArea2D.VisualState.ARMED)
+		if active_definition.boss_id == RESIDENTIAL_ID:
+			boss_volley.commit()
 		attack_changed.emit(active_attack, attack_stage)
 	elif attack_stage == &"ACTIVE" and attack_elapsed >= ACTIVE_SECONDS:
 		attack_elapsed -= ACTIVE_SECONDS
 		attack_stage = &"RECOVERY"
+		boss_volley.cancel()
 		_set_attack_visual_state(BossAttackArea2D.VisualState.HIDDEN)
 		attack_changed.emit(active_attack, attack_stage)
 		_on_recovery_started()
@@ -245,6 +277,9 @@ func set_combat_state(state_value: StringName, health_ratio: float) -> void:
 	var previous_choices: Array[StringName] = active_attack_choices()
 	combat_state = state_value
 	body_health_ratio = clampf(health_ratio, 0.0, 1.0)
+	if body_health_ratio <= 0.0:
+		boss_volley.cancel()
+		_release_residential_reinforcements()
 	var next_choices: Array[StringName] = active_attack_choices()
 	if active() and next_choices != previous_choices and not active_attack in next_choices:
 		_begin_next_attack()
@@ -396,6 +431,24 @@ func business_support_count() -> int:
 		if support != null and is_instance_valid(support) and support.active:
 			count += 1
 	return count
+
+
+func residential_support_count() -> int:
+	_prune_residential_support_actors()
+	return _residential_support_actors.size()
+
+
+func residential_support_ids() -> Array[StringName]:
+	_prune_residential_support_actors()
+	var ids: Array[StringName] = []
+	for support: EnemyActor2D in _residential_support_actors:
+		if support is ProceduralEnemy:
+			ids.append((support as ProceduralEnemy).archetype_id)
+	return ids
+
+
+func projectile_signature() -> Dictionary:
+	return boss_volley.signature()
 
 
 func deploy_breacher() -> EnemyActor2D:
@@ -574,6 +627,9 @@ func capture_state() -> Dictionary:
 		"blackout_cycle_count": blackout_cycle_count,
 		"business_support_wave_count": _business_support_wave_count,
 		"business_support_active": business_support_count(),
+		"residential_support_ids": residential_support_ids(),
+		"residential_reinforcement_elapsed": _residential_reinforcement_elapsed,
+		"residential_reinforcement_cursor": _residential_reinforcement_cursor,
 		"breacher_active": _active_breacher != null and _active_breacher.active,
 		"runner_active": active_runner_slot != null and active_runner_slot.active,
 		"pod_states": pod_states,
@@ -606,6 +662,12 @@ func restore_state(state: Dictionary) -> void:
 	body_health_ratio = float(state.get("body_health_ratio", 1.0))
 	blackout_cycle_count = int(state.get("blackout_cycle_count", 0))
 	_business_support_wave_count = int(state.get("business_support_wave_count", 0))
+	_residential_reinforcement_elapsed = float(
+		state.get("residential_reinforcement_elapsed", 0.0)
+	)
+	_residential_reinforcement_cursor = int(
+		state.get("residential_reinforcement_cursor", 0)
+	)
 	var business_support_active: int = int(state.get("business_support_active", 0))
 	var breacher_active: bool = bool(state.get("breacher_active", false))
 	var runner_active: bool = bool(state.get("runner_active", false))
@@ -621,6 +683,11 @@ func restore_state(state: Dictionary) -> void:
 	if extraction_pod >= 0:
 		_configure_extraction_clamp(extraction_pod)
 	_restore_support_actors(business_support_active, breacher_active, runner_active)
+	_restore_residential_reinforcements(
+		state.get("residential_support_ids", []) as Array
+	)
+	if active_definition.boss_id == RESIDENTIAL_ID and attack_stage == &"TELEGRAPH":
+		_prepare_residential_projectile()
 
 
 func _prune_business_support_actors() -> void:
@@ -628,6 +695,13 @@ func _prune_business_support_actors() -> void:
 		var support: EnemyActor2D = _business_support_actors[index]
 		if support == null or not is_instance_valid(support) or not support.active:
 			_business_support_actors.remove_at(index)
+
+
+func _prune_residential_support_actors() -> void:
+	for index: int in range(_residential_support_actors.size() - 1, -1, -1):
+		var support: EnemyActor2D = _residential_support_actors[index]
+		if support == null or not is_instance_valid(support) or not support.active or support.dead:
+			_residential_support_actors.remove_at(index)
 
 
 func _configure_common_targets() -> void:
@@ -681,6 +755,7 @@ func _configure_residential() -> void:
 
 
 func _begin_next_attack() -> void:
+	boss_volley.cancel()
 	attack_elapsed = 0.0
 	attack_stage = &"TELEGRAPH"
 	var choices: Array[StringName] = active_attack_choices()
@@ -688,6 +763,8 @@ func _begin_next_attack() -> void:
 	active_attack = choices[attack_index]
 	_configure_attack(active_attack)
 	_set_attack_visual_state(BossAttackArea2D.VisualState.TELEGRAPH)
+	if active_definition.boss_id == RESIDENTIAL_ID:
+		_prepare_residential_projectile()
 	attack_changed.emit(active_attack, attack_stage)
 
 
@@ -762,6 +839,8 @@ func _configure_extraction_clamp(pod_index: int) -> void:
 
 
 func _set_attack_visual_state(state_value: BossAttackArea2D.VisualState) -> void:
+	if active_definition != null and active_definition.boss_id == RESIDENTIAL_ID:
+		state_value = BossAttackArea2D.VisualState.TELEGRAPH
 	var attack_areas: Array[BossAttackArea2D] = (
 		utility_pool.lane_damage_areas + utility_pool.line_areas
 	)
@@ -784,6 +863,90 @@ func _on_recovery_started() -> void:
 			deploy_breacher()
 		elif active_attack == &"BLACKOUT_HARVEST":
 			deploy_next_runner()
+		_advance_residential_reinforcements(RESIDENTIAL_REINFORCEMENT_SECONDS)
+
+
+func _prepare_residential_projectile() -> bool:
+	if (
+		active_definition == null
+		or active_definition.boss_id != RESIDENTIAL_ID
+		or encounter_runtime == null
+		or encounter_runtime.robot == null
+	):
+		return false
+	var pattern_index: int = posmod(attack_index, RESIDENTIAL_PROJECTILE_SOCKETS.size())
+	var targets: Array[Vector2] = [
+		encounter_runtime.robot.global_position
+		+ Vector2(RESIDENTIAL_AIM_OFFSETS[pattern_index], 0.0),
+	]
+	return boss_volley.begin(
+		&"shell",
+		RESIDENTIAL_PROJECTILE_VISUAL,
+		[RESIDENTIAL_PROJECTILE_SOCKETS[pattern_index]],
+		targets,
+		[0.0],
+		RESIDENTIAL_PROJECTILE_SPEED,
+		RESIDENTIAL_PROJECTILE_DAMAGE,
+		RESIDENTIAL_PROJECTILE_SCALE,
+		TELEGRAPH_SECONDS
+	)
+
+
+func _advance_residential_reinforcements(delta: float) -> void:
+	if active_definition == null or active_definition.boss_id != RESIDENTIAL_ID:
+		return
+	_prune_residential_support_actors()
+	if (
+		body_health_ratio <= 0.0
+		or combat_state not in [
+			CommandBossSession.STATE_BARRAGE,
+			CommandBossSession.STATE_EXPOSED,
+		]
+		or extraction_pod >= 0
+	):
+		return
+	_residential_reinforcement_elapsed += delta
+	if (
+		_residential_support_actors.size() >= RESIDENTIAL_REINFORCEMENT_CAP
+		or _residential_reinforcement_elapsed < RESIDENTIAL_REINFORCEMENT_SECONDS
+	):
+		return
+	_residential_reinforcement_elapsed = 0.0
+	_spawn_residential_reinforcement(
+		RESIDENTIAL_REINFORCEMENTS[
+			posmod(_residential_reinforcement_cursor, RESIDENTIAL_REINFORCEMENTS.size())
+		]
+	)
+	_residential_reinforcement_cursor += 1
+
+
+func _spawn_residential_reinforcement(archetype_id: StringName) -> EnemyActor2D:
+	if encounter_runtime == null:
+		return null
+	var side: float = -1.0 if _residential_reinforcement_cursor % 2 == 0 else 1.0
+	var spawn_position: Vector2 = center + Vector2(side * 520.0, 0.0)
+	if EnemyArchetypeCatalog.is_airborne(archetype_id):
+		spawn_position.y = float(
+			EnemyArchetypeCatalog.profile(archetype_id).get("spawn_y", 190.0)
+		)
+	var support: EnemyActor2D = encounter_runtime.acquire(archetype_id, spawn_position)
+	if support != null:
+		_residential_support_actors.append(support)
+	return support
+
+
+func _restore_residential_reinforcements(saved_ids: Array) -> void:
+	_release_residential_reinforcements()
+	for id_value: Variant in saved_ids:
+		if _residential_support_actors.size() >= RESIDENTIAL_REINFORCEMENT_CAP:
+			break
+		_spawn_residential_reinforcement(StringName(id_value))
+
+
+func _release_residential_reinforcements() -> void:
+	for support: EnemyActor2D in _residential_support_actors:
+		_release_support(support)
+	_residential_support_actors.clear()
 
 
 func _restore_support_actors(
@@ -820,11 +983,13 @@ func _cleanup_generation(token: int) -> void:
 	if generation_token != token:
 		return
 	if _preserve_state_on_cleanup:
+		boss_volley.cancel()
 		for support: EnemyActor2D in _business_support_actors:
 			_release_support(support)
 		_business_support_actors.clear()
 		_release_support(_active_breacher)
 		_release_support(active_runner_slot)
+		_release_residential_reinforcements()
 		_active_breacher = null
 		active_runner_slot = null
 		generation_token = 0

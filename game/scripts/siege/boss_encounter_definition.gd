@@ -17,6 +17,7 @@ const DEFAULT_GROUND_SMASH_RADIUS: float = 96.0
 @export var arena_building_slot: int = -1
 @export var arena_cell_indices: PackedInt32Array = PackedInt32Array()
 @export var wreck_receiver_offsets: PackedVector2Array = PackedVector2Array()
+@export var summon_uses_arena_landmark: bool = true
 
 @export_group("Durability")
 @export_range(1.0, 5000.0, 1.0) var armor: float = 330.0

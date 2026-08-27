@@ -131,6 +131,14 @@ func _draw() -> void:
 		var presentation_variant: StringName = StringName(
 			record.get("presentation_variant", &"")
 		)
+		if presentation_variant == BossProjectileVolley.TELEGRAPH_PRESENTATION_VARIANT:
+			_draw_boss_volley_paths(
+				record,
+				progress,
+				thickness_scale,
+				color_intensity,
+				pulse_brightness
+			)
 		if _draw_support_variant(
 			presentation_variant,
 			origin,
@@ -229,6 +237,47 @@ func _draw() -> void:
 				true
 			)
 			draw_circle(origin, 5.0 + progress * 4.0, base_color)
+
+
+func _draw_boss_volley_paths(
+	record: Dictionary,
+	progress: float,
+	thickness_scale: float,
+	color_intensity: float,
+	pulse_brightness: float
+) -> void:
+	var style_data: Dictionary = record.get("style_data", {}) as Dictionary
+	var origins: Array = style_data.get(&"origins", []) as Array
+	var targets: Array = style_data.get(&"targets", []) as Array
+	var path_count: int = mini(origins.size(), targets.size())
+	if path_count <= 1:
+		return
+	var path_color: Color = _threat_color(
+		Color(1.0, 0.36, 0.16, 0.42 + progress * 0.46),
+		color_intensity,
+		pulse_brightness
+	)
+	for index: int in range(1, path_count):
+		var origin: Vector2 = to_local(origins[index] as Vector2)
+		var target: Vector2 = to_local(targets[index] as Vector2)
+		draw_dashed_line(
+			origin,
+			target,
+			path_color,
+			4.0 * thickness_scale,
+			12.0,
+			true
+		)
+		draw_arc(
+			target,
+			34.0 + progress * 10.0,
+			0.0,
+			TAU * progress,
+			32,
+			path_color,
+			4.0 * thickness_scale,
+			true
+		)
 
 
 func _draw_support_variant(

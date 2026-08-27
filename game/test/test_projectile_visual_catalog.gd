@@ -110,6 +110,59 @@ func test_projectile_defaults_keep_radius_and_rotate_authored_visual_to_velocity
 			assert_eq(collision.radius, item.radius)
 
 
+func test_boss_projectile_scale_expands_visual_and_hitbox_then_resets_on_reuse() -> void:
+	var pool: ProjectilePool = ProjectilePool.new()
+	add_child_autofree(pool)
+	await get_tree().process_frame
+	var boss_shell: Projectile2D = pool.acquire(
+		Vector2.ZERO,
+		Vector2.LEFT,
+		900.0,
+		32.0,
+		null,
+		1,
+		&"shell",
+		ProjectileVisualCatalog.ENEMY_SHELL,
+		1.5
+	)
+	assert_not_null(boss_shell)
+	assert_almost_eq(boss_shell.presentation_scale, 1.5, 0.0001)
+	assert_eq(boss_shell.rendered_display_size(), Vector2(54.0, 27.0))
+	var collision: CircleShape2D = (
+		boss_shell.get_node(^"CollisionShape2D").shape as CircleShape2D
+	)
+	assert_almost_eq(collision.radius, 13.5, 0.0001)
+	pool.release(boss_shell)
+	assert_almost_eq(boss_shell.presentation_scale, 1.0, 0.0001)
+	assert_almost_eq(collision.radius, 5.0, 0.0001)
+	var ordinary_shell: Projectile2D = pool.acquire(
+		Vector2.ZERO, Vector2.RIGHT, 400.0, 8.0, null, 1, &"shell"
+	)
+	assert_same(ordinary_shell, boss_shell)
+	assert_almost_eq(ordinary_shell.presentation_scale, 1.0, 0.0001)
+	assert_eq(ordinary_shell.rendered_display_size(), Vector2(36.0, 18.0))
+	assert_almost_eq(collision.radius, 9.0, 0.0001)
+
+
+func test_reserved_partition_mismatch_cancels_capacity_atomically() -> void:
+	var pool: ProjectilePool = ProjectilePool.new()
+	add_child_autofree(pool)
+	var reservation_id: int = pool.reserve(&"shell")
+	assert_gt(reservation_id, 0)
+	assert_null(pool.acquire_reserved(
+		reservation_id,
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		400.0,
+		8.0,
+		null,
+		1,
+		&"rocket"
+	))
+	assert_eq(pool.reservation_count(&"shell"), 0)
+	assert_eq(pool.available_count(&"shell"), RuntimeBudget.SHELLS)
+
+
 func test_explicit_salvo_key_resets_cleanly_and_machine_gun_path_is_preserved() -> void:
 	var projectile: Projectile2D = await _spawn_projectile()
 	projectile.activate(

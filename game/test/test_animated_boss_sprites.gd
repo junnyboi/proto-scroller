@@ -59,22 +59,28 @@ func test_rig_animation_never_moves_mechanical_regions_or_sockets() -> void:
 	assert_eq(rig.animation_signature().sequence_row, 3)
 
 
-func test_settlement_engine_is_50_percent_larger_and_touches_road() -> void:
-	var rig := BossRig2D.new()
-	add_child_autofree(rig)
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(
-		&"SETTLEMENT_ENGINE_S04"
-	)
-	var host := TankEnemy.new()
-	add_child_autofree(host)
-	host.global_position = Vector2(940.0, BossRig2D.SETTLEMENT_ROAD_CONTACT_Y)
-	assert_true(rig.configure(definition, host))
-	assert_eq(rig.scale, Vector2.ONE * 1.5)
-	var visible_bottom: float = (
-		rig.global_position.y
-		+ BossRig2D.SETTLEMENT_VISIBLE_BOTTOM_LOCAL_Y * rig.scale.y
-	)
-	assert_almost_eq(visible_bottom, CityStreetChunk.ROAD_DIVIDER_Y, 0.02)
+func test_all_five_campaign_bosses_are_50_percent_larger_and_touch_road() -> void:
+	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
+		var rig := BossRig2D.new()
+		add_child_autofree(rig)
+		var host := TankEnemy.new()
+		add_child_autofree(host)
+		host.global_position = Vector2(
+			940.0,
+			BossRig2D.road_contact_y_for_preset(definition.rig_preset)
+		)
+		assert_true(rig.configure(definition, host))
+		assert_eq(rig.scale, Vector2.ONE * 1.5, definition.boss_id)
+		var visible_bottom: float = (
+			rig.global_position.y
+			+ BossRig2D.visible_bottom_local_y(definition.rig_preset) * rig.scale.y
+		)
+		assert_almost_eq(
+			visible_bottom,
+			CityStreetChunk.ROAD_DIVIDER_Y,
+			0.02,
+			definition.boss_id
+		)
 
 
 func test_moving_loop_and_attack_stage_reset_are_deterministic() -> void:

@@ -22,6 +22,7 @@ var source: Node
 var lifetime: float = 2.5
 var projectile_color: Color = Color("ffb45e")
 var projectile_radius: float = 5.0
+var presentation_scale: float = 1.0
 var damage_type: StringName = &"projectile"
 var visual_key: StringName = &""
 var impact_key: StringName = &""
@@ -44,9 +45,20 @@ func setup(
 	p_source: Node,
 	target_mask: int,
 	kind: StringName = &"bullet",
-	p_visual_key: StringName = &""
+	p_visual_key: StringName = &"",
+	p_presentation_scale: float = 1.0
 ) -> void:
-	activate(origin, direction, speed, p_damage, p_source, target_mask, kind, p_visual_key)
+	activate(
+		origin,
+		direction,
+		speed,
+		p_damage,
+		p_source,
+		target_mask,
+		kind,
+		p_visual_key,
+		p_presentation_scale
+	)
 
 
 func activate(
@@ -57,7 +69,8 @@ func activate(
 	p_source: Node,
 	target_mask: int,
 	kind: StringName = &"bullet",
-	p_visual_key: StringName = &""
+	p_visual_key: StringName = &"",
+	p_presentation_scale: float = 1.0
 ) -> void:
 	_next_attack_id += 1
 	_attack_id = _next_attack_id
@@ -73,6 +86,7 @@ func activate(
 	collision_layer = 0
 	collision_mask = target_mask
 	damage_type = kind
+	presentation_scale = maxf(p_presentation_scale, 0.01)
 	visual_key = (
 		p_visual_key
 		if not p_visual_key.is_empty()
@@ -93,9 +107,16 @@ func activate(
 	else:
 		projectile_radius = 5.0
 		projectile_color = Color("ffb45e")
+	var visual_spec: Dictionary = ProjectileVisualCatalog.spec(visual_key)
+	projectile_radius = float(
+		visual_spec.get("collision_radius_contract", projectile_radius)
+	)
 	var collision: CollisionShape2D = get_node_or_null(^"CollisionShape2D") as CollisionShape2D
 	if collision != null and collision.shape is CircleShape2D:
-		(collision.shape as CircleShape2D).radius = maxf(projectile_radius, 5.0)
+		(collision.shape as CircleShape2D).radius = maxf(
+			projectile_radius * presentation_scale,
+			5.0
+		)
 	queue_redraw()
 
 
@@ -130,8 +151,12 @@ func deactivate() -> void:
 	impact_key = &""
 	projectile_color = Color("ffb45e")
 	projectile_radius = 5.0
+	presentation_scale = 1.0
 	damage_type = &"projectile"
 	modulate = Color.WHITE
+	var collision: CollisionShape2D = get_node_or_null(^"CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		(collision.shape as CircleShape2D).radius = 5.0
 	queue_redraw()
 
 
@@ -160,7 +185,11 @@ func _physics_process(delta: float) -> void:
 
 func _draw() -> void:
 	if damage_type == &"machine_gun":
-		draw_set_transform(Vector2.ZERO, velocity.angle(), Vector2.ONE)
+		draw_set_transform(
+			Vector2.ZERO,
+			velocity.angle(),
+			Vector2.ONE * presentation_scale
+		)
 		draw_texture_rect(
 			MACHINE_GUN_ROUND_TEXTURE,
 			Rect2(Vector2(-18.0, -6.0), Vector2(36.0, 12.0)),
@@ -176,7 +205,7 @@ func _draw() -> void:
 			draw_set_transform(
 				Vector2.ZERO,
 				visual_angle(),
-				Vector2.ONE
+				Vector2.ONE * presentation_scale
 			)
 			if region.size == Vector2i.ZERO:
 				draw_texture_rect(
@@ -191,15 +220,21 @@ func _draw() -> void:
 					Rect2(region)
 				)
 			return
-	var trail: float = maxf(14.0, projectile_radius * 3.0)
+	var scaled_radius: float = projectile_radius * presentation_scale
+	var trail: float = maxf(14.0 * presentation_scale, scaled_radius * 3.0)
 	var backward: Vector2 = -velocity.normalized() * trail
-	draw_line(Vector2.ZERO, backward, projectile_color.darkened(0.35), projectile_radius)
-	draw_circle(Vector2.ZERO, projectile_radius, projectile_color)
+	draw_line(Vector2.ZERO, backward, projectile_color.darkened(0.35), scaled_radius)
+	draw_circle(Vector2.ZERO, scaled_radius, projectile_color)
 
 
 func visual_angle() -> float:
 	var visual_spec: Dictionary = ProjectileVisualCatalog.spec(visual_key)
 	return velocity.angle() + float(visual_spec.get("canonical_angle", 0.0))
+
+
+func rendered_display_size() -> Vector2:
+	var visual_spec: Dictionary = ProjectileVisualCatalog.spec(visual_key)
+	return (visual_spec.get("display_size", Vector2.ZERO) as Vector2) * presentation_scale
 
 
 func _build_collision() -> void:
