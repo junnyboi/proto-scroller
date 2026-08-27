@@ -2,6 +2,7 @@ class_name DestructionUpgradeRuntime
 extends UpgradeRuntime
 
 const MAX_DEDUPE_RECORDS: int = 128
+const DEBRIS_PARTICLES_PER_RANK: int = 2
 
 var field: CosmeticDebrisField2D
 var run_generation: int = 1
@@ -79,4 +80,7 @@ func _on_event_published(event: GameplayEvent) -> void:
 	seen_order.append(key)
 	if seen_order.size() > MAX_DEDUPE_RECORDS:
 		seen_events.erase(seen_order.pop_front())
-	visual_spawn_count += field.spawn_counterparts(event)
+	visual_spawn_count += field.spawn_counterparts(
+		event,
+		DEBRIS_PARTICLES_PER_RANK * current_rank
+	)
