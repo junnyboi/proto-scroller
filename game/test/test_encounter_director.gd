@@ -239,7 +239,7 @@ func test_ground_vehicle_uses_visible_bottom_and_center_for_presentation() -> vo
 	).y
 	assert_almost_eq(
 		visible_bottom_y,
-		EncounterRuntime.LAND_VEHICLE_BASELINE_Y,
+		EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
 		0.01
 	)
 	var visible_center: Vector2 = jackal.attack_telegraph_origin()

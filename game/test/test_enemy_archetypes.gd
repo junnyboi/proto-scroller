@@ -203,6 +203,55 @@ func test_all_ground_vehicles_render_and_collide_at_exactly_double_size() -> voi
 		runtime.release(actor)
 
 
+func test_every_land_enemy_uses_one_road_center_lane_in_every_district() -> void:
+	assert_eq(
+		EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
+		CityStreetChunk.ROAD_DIVIDER_Y - 10.0
+	)
+	var kinds: Array[StringName] = [&"soldier", &"tank", &"helicopter"]
+	kinds.append_array(EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS)
+	var land_count: int = 0
+	var air_count: int = 0
+	for kind: StringName in kinds:
+		var requested_position: Vector2 = Vector2(1080.0, 120.0)
+		var actor: EnemyActor2D = runtime.acquire(kind, requested_position)
+		assert_not_null(actor, kind)
+		if EnemyArchetypeCatalog.is_airborne(kind):
+			assert_eq(actor.global_position.y, requested_position.y, kind)
+			air_count += 1
+		else:
+			var body: RectangleShape2D = (
+				actor.get_node(^"CollisionShape2D").shape as RectangleShape2D
+			)
+			var expected_origin_y: float = (
+				CityStreetChunk.ROAD_COLLISION_SURFACE_Y - body.size.y * 0.5
+			)
+			assert_almost_eq(actor.global_position.y, expected_origin_y, 0.01, kind)
+			var content_rect: Rect2 = actor.visual.get_meta(
+				EnemyActor2D.VISUAL_CONTENT_RECT_META
+			)
+			var visible_bottom_y: float = actor.visual.to_global(
+				Vector2(content_rect.get_center().x, content_rect.end.y)
+			).y
+			assert_almost_eq(
+				visible_bottom_y,
+				EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
+				0.01,
+				kind
+			)
+			await get_tree().physics_frame
+			assert_almost_eq(
+				actor.global_position.y,
+				expected_origin_y,
+				0.5,
+				"%s remains grounded" % kind
+			)
+			land_count += 1
+		runtime.release(actor)
+	assert_gt(land_count, 0)
+	assert_gt(air_count, 0)
+
+
 func test_surviving_ground_vehicles_resist_player_attack_knockback() -> void:
 	var tank: EnemyActor2D = runtime.acquire(&"tank", Vector2(1080.0, 542.5))
 	var soldier: EnemyActor2D = runtime.acquire(&"soldier", Vector2(920.0, 542.5))
