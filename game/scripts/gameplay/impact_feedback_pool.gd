@@ -17,6 +17,7 @@ const IMPACT_SPARK: Texture2D = preload("res://art/presentation/impact_spark.png
 const SPARK_SCALE_NORMALIZER: float = 1.0 / 16.0
 const DEBRIS_AUDIO_COOLDOWN_MSEC: int = 55
 const MAX_CUE_PITCH_VARIATION: float = 0.08
+const MAX_CUE_VOLUME_VARIATION_DB: float = 2.0
 
 @export_range(1, 16, 1) var particle_capacity: int = RuntimeBudget.PARTICLE_SLOTS
 @export_range(1, 16, 1) var audio_capacity: int = RuntimeBudget.AUDIO_VOICES
@@ -27,6 +28,7 @@ var cue_play_count: int = 0
 var invalid_cue_count: int = 0
 var last_cue: AudioCueRegistry.Cue = AudioCueRegistry.Cue.INVALID
 var last_cue_pitch: float = 1.0
+var last_cue_volume_db: float = 0.0
 var debris_audio_play_count: int = 0
 var debris_spark_play_count: int = 0
 var last_debris_mass: float = 0.0
@@ -145,7 +147,8 @@ func audio_stream_for_material(material_id: StringName) -> AudioStream:
 func play_cue(
 	cue: AudioCueRegistry.Cue,
 	origin: Vector2,
-	pitch_variation: float = 0.0
+	pitch_variation: float = 0.0,
+	volume_variation_db: float = 0.0
 ) -> AudioStreamPlayer2D:
 	var profile: Dictionary = AudioCueRegistry.profile(cue)
 	if profile.is_empty():
@@ -161,13 +164,18 @@ func play_cue(
 	player.stream = profile.stream as AudioStream
 	player.bus = profile.bus as StringName
 	player.global_position = origin
-	player.volume_db = float(profile.volume_db)
+	player.volume_db = float(profile.volume_db) + (
+		0.0
+		if is_zero_approx(volume_variation_db)
+		else cue_volume_delta_for_sample(randf(), volume_variation_db)
+	)
 	player.pitch_scale = 1.0 if is_zero_approx(pitch_variation) else cue_pitch_for_sample(
 		randf(), pitch_variation
 	)
 	_stamp_audio_voice(player, priority)
 	last_cue = cue
 	last_cue_pitch = player.pitch_scale
+	last_cue_volume_db = player.volume_db
 	cue_play_count += 1
 	player.play()
 	return player
@@ -269,6 +277,20 @@ static func cue_pitch_for_sample(random_sample: float, variation: float) -> floa
 	)
 
 
+static func cue_volume_delta_for_sample(
+	random_sample: float,
+	variation_db: float
+) -> float:
+	var bounded_variation_db: float = clampf(
+		absf(variation_db), 0.0, MAX_CUE_VOLUME_VARIATION_DB
+	)
+	return lerpf(
+		-bounded_variation_db,
+		bounded_variation_db,
+		clampf(random_sample, 0.0, 1.0)
+	)
+
+
 func reset_runtime_state() -> void:
 	for particles: CPUParticles2D in _particles:
 		particles.emitting = false
@@ -287,6 +309,7 @@ func reset_runtime_state() -> void:
 	invalid_cue_count = 0
 	last_cue = AudioCueRegistry.Cue.INVALID
 	last_cue_pitch = 1.0
+	last_cue_volume_db = 0.0
 	debris_audio_play_count = 0
 	debris_spark_play_count = 0
 	last_debris_mass = 0.0

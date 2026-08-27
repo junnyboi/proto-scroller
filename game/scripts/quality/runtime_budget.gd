@@ -111,6 +111,9 @@ const PENDING_HAZARDS: int = 3
 const HAZARD_PRESSURE: int = 10
 const STREET_CHUNKS: int = 6
 const FLOATING_ORIGIN_RUNTIMES: int = 1
+const WEATHER_RUNTIMES: int = 1
+const WEATHER_SURFACES: int = 1
+const WEATHER_PARTICLE_CAPACITY: int = DistrictWeatherSurface.PARTICLE_CAPACITY
 const NARRATIVE_DIRECTORS: int = 1
 const TRANSMISSION_TOASTS: int = 1
 const FACADE_REVEAL_SLOTS: int = CityWorldStream.CHUNK_CAPACITY
@@ -174,9 +177,13 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"district_copy_degradations": (
 			city.urban_siege.director.progression_degradation_count
 		),
-		"street_chunks": city.world_stream.active_chunk_count(),
-		"street_post_warm_creations": city.world_stream.post_warm_creation_count,
-		"floating_origin_runtimes": 1 if city.world_stream.floating_origin != null else 0,
+			"street_chunks": city.world_stream.active_chunk_count(),
+			"street_post_warm_creations": city.world_stream.post_warm_creation_count,
+			"floating_origin_runtimes": 1 if city.world_stream.floating_origin != null else 0,
+			"weather_runtimes": _weather_runtime_count(city),
+			"weather_surfaces": _weather_surface_count(city),
+			"weather_particle_capacity": WEATHER_PARTICLE_CAPACITY,
+			"weather_post_warm_creations": _weather_post_warm_creations(city),
 			"narrative_directors": 1 if city.project_choir_runtime.director != null else 0,
 			"transmission_toasts": 1 if city.gameplay_hud.transmission_toast != null else 0,
 			"facade_reveal_slots": city.project_choir_runtime.facade_reveal.slot_count(),
@@ -340,6 +347,15 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "street_chunks", STREET_CHUNKS)
 	_check_equal(errors, data, "street_post_warm_creations", 0)
 	_check_equal(errors, data, "floating_origin_runtimes", FLOATING_ORIGIN_RUNTIMES)
+	_check_equal(errors, data, "weather_runtimes", WEATHER_RUNTIMES)
+	_check_equal(errors, data, "weather_surfaces", WEATHER_SURFACES)
+	_check_equal(
+		errors,
+		data,
+		"weather_particle_capacity",
+		WEATHER_PARTICLE_CAPACITY
+	)
+	_check_equal(errors, data, "weather_post_warm_creations", 0)
 	_check_equal(errors, data, "narrative_directors", NARRATIVE_DIRECTORS)
 	_check_equal(errors, data, "transmission_toasts", TRANSMISSION_TOASTS)
 	_check_equal(errors, data, "facade_reveal_slots", FACADE_REVEAL_SLOTS)
@@ -503,6 +519,24 @@ static func _check_equal(
 	var actual: int = int(data[key])
 	if actual != expected:
 		errors.append("%s=%d expected=%d" % [key, actual, expected])
+
+
+static func _weather_runtime(city: CitySlice) -> DistrictWeatherRuntime:
+	return city.get_node_or_null(^"DistrictWeather") as DistrictWeatherRuntime
+
+
+static func _weather_runtime_count(city: CitySlice) -> int:
+	return 1 if _weather_runtime(city) != null else 0
+
+
+static func _weather_surface_count(city: CitySlice) -> int:
+	var weather: DistrictWeatherRuntime = _weather_runtime(city)
+	return weather.surface_count() if weather != null else 0
+
+
+static func _weather_post_warm_creations(city: CitySlice) -> int:
+	var weather: DistrictWeatherRuntime = _weather_runtime(city)
+	return weather.post_warm_creation_count if weather != null else 0
 
 
 static func _count_nodes(root: Node) -> int:

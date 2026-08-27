@@ -54,6 +54,13 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.street_chunks, RuntimeBudget.STREET_CHUNKS)
 	assert_eq(snapshot.street_post_warm_creations, 0)
 	assert_eq(snapshot.floating_origin_runtimes, 1)
+	assert_eq(snapshot.weather_runtimes, RuntimeBudget.WEATHER_RUNTIMES)
+	assert_eq(snapshot.weather_surfaces, RuntimeBudget.WEATHER_SURFACES)
+	assert_eq(
+		snapshot.weather_particle_capacity,
+		RuntimeBudget.WEATHER_PARTICLE_CAPACITY
+	)
+	assert_eq(snapshot.weather_post_warm_creations, 0)
 	assert_eq(snapshot.narrative_directors, RuntimeBudget.NARRATIVE_DIRECTORS)
 	assert_eq(snapshot.transmission_toasts, RuntimeBudget.TRANSMISSION_TOASTS)
 	assert_eq(snapshot.facade_reveal_slots, RuntimeBudget.FACADE_REVEAL_SLOTS)
