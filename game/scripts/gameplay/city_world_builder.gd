@@ -18,10 +18,9 @@ const ROBOT_ROAD_CLEARANCE_PIXELS: float = 35.0
 const ROBOT_ROAD_CENTER_VISUAL_OFFSET_Y: float = 27.5
 const ROBOT_SCRIPT: Script = preload("res://scripts/player/giant_robot_controller.gd")
 const CAMERA_RIG_SCRIPT: Script = preload("res://scripts/camera/camera_rig.gd")
-const SKY_TEXTURE: Texture2D = preload("res://art/city/parallax/sky.png")
-const FAR_TEXTURE: Texture2D = preload("res://art/city/parallax/far_skyline.png")
-const INFRA_TEXTURE: Texture2D = preload("res://art/city/parallax/infrastructure.png")
-const NEAR_TEXTURE: Texture2D = preload("res://art/city/parallax/near_buildings.png")
+const DISTRICT_PARALLAX_SCRIPT: Script = preload(
+	"res://scripts/world/district_parallax_runtime.gd"
+)
 const ROBOT_ATLAS: Texture2D = preload(
 	"res://art/robot/grunt/grunt_horizontal_atlas.png"
 )
@@ -31,27 +30,28 @@ const ROBOT_ANIMATION_PRESENTER: Script = preload(
 
 
 static func build_environment(parent: Node2D) -> void:
-	_build_parallax(parent)
+	var backdrop: DistrictParallaxRuntime = (
+		DISTRICT_PARALLAX_SCRIPT.new() as DistrictParallaxRuntime
+	)
+	backdrop.name = "ParallaxCity"
+	parent.add_child(backdrop)
+
+
+static func transition_parallax(parent: Node2D, district_id: StringName) -> bool:
+	var backdrop: DistrictParallaxRuntime = _parallax(parent)
+	return backdrop.transition_to(district_id) if backdrop != null else false
 
 
 static func compensate_parallax(parent: Node2D, offset: Vector2) -> void:
-	var backdrop: Node2D = parent.get_node_or_null(^"ParallaxCity") as Node2D
-	if backdrop == null:
-		return
-	for child: Node in backdrop.get_children():
-		var band: Parallax2D = child as Parallax2D
-		if band != null:
-			band.scroll_offset += offset * band.scroll_scale
+	var backdrop: DistrictParallaxRuntime = _parallax(parent)
+	if backdrop != null:
+		backdrop.compensate_origin(offset)
 
 
 static func reset_parallax(parent: Node2D) -> void:
-	var backdrop: Node2D = parent.get_node_or_null(^"ParallaxCity") as Node2D
-	if backdrop == null:
-		return
-	for child: Node in backdrop.get_children():
-		var band: Parallax2D = child as Parallax2D
-		if band != null:
-			band.scroll_offset = Vector2.ZERO
+	var backdrop: DistrictParallaxRuntime = _parallax(parent)
+	if backdrop != null:
+		backdrop.reset_to_business()
 
 
 static func initial_run_seed(deterministic: bool) -> int:
@@ -161,34 +161,5 @@ static func fit_sprite(texture: Texture2D, display_size: Vector2) -> Sprite2D:
 	return sprite
 
 
-static func _build_parallax(parent: Node2D) -> void:
-	var backdrop: Node2D = Node2D.new()
-	backdrop.name = "ParallaxCity"
-	parent.add_child(backdrop)
-	_create_parallax_band(backdrop, "Sky", SKY_TEXTURE, Vector2(0.05, 1.0), -50, 0.0)
-	_create_parallax_band(backdrop, "FarSkyline", FAR_TEXTURE, Vector2(0.18, 1.0), -40, 85.0)
-	_create_parallax_band(backdrop, "Infrastructure", INFRA_TEXTURE, Vector2(0.35, 1.0), -30, 95.0)
-	_create_parallax_band(backdrop, "NearBuildings", NEAR_TEXTURE, Vector2(0.60, 1.0), -20, 116.0)
-
-
-static func _create_parallax_band(
-	parent: Node2D,
-	band_name: String,
-	texture: Texture2D,
-	scroll_scale: Vector2,
-	z_value: int,
-	y_offset: float
-) -> void:
-	var band: Parallax2D = Parallax2D.new()
-	band.name = band_name
-	band.scroll_scale = scroll_scale
-	band.repeat_size = Vector2(1344.0, 0.0)
-	band.repeat_times = 3
-	band.z_index = z_value
-	parent.add_child(band)
-	var sprite: Sprite2D = Sprite2D.new()
-	sprite.texture = texture
-	sprite.centered = false
-	sprite.position = Vector2(0.0, y_offset)
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	band.add_child(sprite)
+static func _parallax(parent: Node2D) -> DistrictParallaxRuntime:
+	return parent.get_node_or_null(^"ParallaxCity") as DistrictParallaxRuntime

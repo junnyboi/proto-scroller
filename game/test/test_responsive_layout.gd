@@ -7,6 +7,7 @@ const BREACH: DirectiveProfile = preload(
 )
 const PORTRAIT_SIZE: Vector2i = Vector2i(720, 1280)
 const LANDSCAPE_SIZE: Vector2i = Vector2i(1280, 720)
+const ULTRAWIDE_SIZE: Vector2i = Vector2i(2048, 825)
 
 
 func after_each() -> void:
@@ -14,7 +15,7 @@ func after_each() -> void:
 	await get_tree().process_frame
 
 
-func test_orientation_manager_swaps_design_size_without_distortion() -> void:
+func test_orientation_manager_expands_design_size_without_distortion() -> void:
 	var responsive: ResponsiveViewport = ResponsiveViewport.new()
 	add_child_autofree(responsive)
 	responsive.setup()
@@ -22,11 +23,32 @@ func test_orientation_manager_swaps_design_size_without_distortion() -> void:
 	assert_true(responsive.portrait_mode)
 	assert_eq(responsive.design_size, PORTRAIT_SIZE)
 	assert_eq(get_window().content_scale_size, PORTRAIT_SIZE)
-	assert_eq(get_window().content_scale_aspect, Window.CONTENT_SCALE_ASPECT_KEEP)
+	assert_eq(get_window().content_scale_aspect, Window.CONTENT_SCALE_ASPECT_EXPAND)
 	responsive.apply_window_size(LANDSCAPE_SIZE)
 	assert_false(responsive.portrait_mode)
 	assert_eq(responsive.design_size, LANDSCAPE_SIZE)
 	assert_eq(get_window().content_scale_size, LANDSCAPE_SIZE)
+	responsive.apply_window_size(ULTRAWIDE_SIZE)
+	assert_eq(responsive.design_size, LANDSCAPE_SIZE)
+	assert_eq(get_window().content_scale_size, LANDSCAPE_SIZE)
+	assert_eq(get_window().content_scale_aspect, Window.CONTENT_SCALE_ASPECT_EXPAND)
+
+
+func test_ultrawide_layout_uses_full_available_width() -> void:
+	var screen: TitleScreen = TITLE_SCENE.instantiate() as TitleScreen
+	add_child_autofree(screen)
+	await get_tree().process_frame
+	screen._apply_landscape_layout(Vector2(ULTRAWIDE_SIZE))
+	assert_eq((screen.get_node("%SettingsButton") as Control).get_rect().end.x, 2032.0)
+	assert_eq((screen.get_node("%BriefingToggle") as Control).get_rect().end.x, 2016.0)
+	assert_eq((screen.get_node("%SettingsPanel") as Control).position.x, 714.0)
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.gameplay_hud._apply_landscape_layout(Vector2(ULTRAWIDE_SIZE))
+	assert_eq(city.gameplay_hud.score_panel.get_rect().end.x, 2024.0)
+	assert_eq(city.gameplay_hud.momentum_panel.position.x, 774.0)
+	assert_eq(city.gameplay_hud.terminal_panel.position.x, 699.0)
 
 
 func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:

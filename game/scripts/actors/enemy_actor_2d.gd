@@ -35,6 +35,7 @@ const TELEGRAPH_MAXIMUM_THICKNESS_SCALE: float = 2.40
 const TELEGRAPH_REFERENCE_DAMAGE: float = 16.0
 const TELEGRAPH_MINIMUM_COLOR_INTENSITY: float = 0.72
 const TELEGRAPH_MAXIMUM_COLOR_INTENSITY: float = 1.55
+const VISUAL_CONTENT_RECT_META: StringName = &"enemy_visual_content_rect"
 
 @export var max_health: float = 60.0
 
@@ -520,7 +521,14 @@ func begin_telegraph(
 
 func attack_telegraph_origin() -> Vector2:
 	if visual != null:
-		return visual.global_position
+		var content_rect: Rect2 = visual.get_meta(
+			VISUAL_CONTENT_RECT_META,
+			Rect2(-visual.texture.get_size() * 0.5, visual.texture.get_size())
+		)
+		var local_center: Vector2 = content_rect.get_center()
+		local_center.x *= -1.0 if visual.flip_h else 1.0
+		local_center.y *= -1.0 if visual.flip_v else 1.0
+		return visual.to_global(local_center)
 	return global_position
 
 

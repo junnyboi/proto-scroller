@@ -19,11 +19,21 @@ uniform vec2 hole_center = vec2(0.5, 0.48);
 uniform vec2 hole_half_extents = vec2(0.34, 0.38);
 uniform float pattern_seed = 1.0;
 uniform float ground_open = 1.0;
+uniform vec4 exposed_edges = vec4(0.0);
 
 void fragment() {
 	vec2 local_uv = (UV - atlas_region_uv.xy) / atlas_region_uv.zw;
 	vec4 facade = texture(TEXTURE, UV) * COLOR;
-	if (facade.a <= 0.01) {
+	if (facade.a <= 0.04) {
+		discard;
+	}
+	float horizontal_noise = sin(local_uv.x * 31.0 + pattern_seed * 1.37) * 0.018;
+	float vertical_noise = sin(local_uv.y * 29.0 - pattern_seed * 1.11) * 0.018;
+	float top_shell = exposed_edges.x * (1.0 - step(0.12 + horizontal_noise, local_uv.y));
+	float right_shell = exposed_edges.y * step(0.88 - vertical_noise, local_uv.x);
+	float bottom_shell = exposed_edges.z * step(0.88 - horizontal_noise, local_uv.y);
+	float left_shell = exposed_edges.w * (1.0 - step(0.12 + vertical_noise, local_uv.x));
+	if (max(max(top_shell, right_shell), max(bottom_shell, left_shell)) <= 0.0) {
 		discard;
 	}
 	vec2 from_hole = local_uv - hole_center;
@@ -134,6 +144,7 @@ func configure(
 	_cutout_material.set_shader_parameter("hole_half_extents", HOLE_HALF_EXTENTS)
 	_cutout_material.set_shader_parameter("pattern_seed", float(pattern_seed))
 	_cutout_material.set_shader_parameter("ground_open", 1.0)
+	_cutout_material.set_shader_parameter("exposed_edges", Vector4.ZERO)
 	_shell_sprite.material = _cutout_material
 	add_child(_shell_sprite)
 	visible = false
@@ -186,6 +197,11 @@ func set_exposed_edges(top: bool, right: bool, bottom: bool, left: bool) -> void
 	_edge_visible[Edge.RIGHT] = right
 	_edge_visible[Edge.BOTTOM] = bottom
 	_edge_visible[Edge.LEFT] = left
+	if _cutout_material != null:
+		_cutout_material.set_shader_parameter(
+			"exposed_edges",
+			Vector4(float(top), float(right), float(bottom), float(left))
+		)
 	visible = top or right or bottom or left
 
 
@@ -194,6 +210,15 @@ func exposed_edge_count() -> int:
 	for edge_is_visible: bool in _edge_visible:
 		total += 1 if edge_is_visible else 0
 	return total
+
+
+func exposed_edge_mask() -> Vector4:
+	return Vector4(
+		float(_edge_visible[Edge.TOP]),
+		float(_edge_visible[Edge.RIGHT]),
+		float(_edge_visible[Edge.BOTTOM]),
+		float(_edge_visible[Edge.LEFT])
+	)
 
 
 func active_shell_count() -> int:

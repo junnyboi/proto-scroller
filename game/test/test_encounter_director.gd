@@ -222,6 +222,41 @@ func test_warning_and_reservation_cancel_atomically_on_reuse() -> void:
 	assert_eq(city.telegraph_presenter.get_child_count(), 0)
 
 
+func test_ground_vehicle_uses_visible_bottom_and_center_for_presentation() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	var jackal: ProceduralEnemy = city.encounter_runtime.acquire(
+		&"jackal",
+		Vector2(1200.0, 554.0)
+	) as ProceduralEnemy
+	assert_not_null(jackal)
+	var content_rect: Rect2 = jackal.visual.get_meta(
+		EnemyActor2D.VISUAL_CONTENT_RECT_META
+	)
+	assert_lt(content_rect.end.y, jackal.visual.texture.get_size().y * 0.5)
+	var visible_bottom_y: float = jackal.visual.to_global(
+		Vector2(content_rect.get_center().x, content_rect.end.y)
+	).y
+	assert_almost_eq(
+		visible_bottom_y,
+		EncounterRuntime.LAND_VEHICLE_BASELINE_Y,
+		0.01
+	)
+	var visible_center: Vector2 = jackal.attack_telegraph_origin()
+	assert_ne(visible_center, jackal.visual.global_position)
+	assert_eq(visible_center, jackal.visual.to_global(content_rect.get_center()))
+	assert_true(jackal.begin_telegraph(
+		&"bullet",
+		0.5,
+		jackal.global_position,
+		city.robot.global_position,
+		6.0
+	))
+	var warning: Dictionary = city.telegraph_presenter.snapshot(jackal._telegraph_id)
+	assert_eq(warning.origin, visible_center)
+	jackal.cancel_telegraph()
+
+
 func test_warning_pulse_accelerates_and_extreme_threats_shift_red_white() -> void:
 	var city: CitySlice = await _spawn_city()
 	var presenter: TelegraphPresenter2D = city.telegraph_presenter

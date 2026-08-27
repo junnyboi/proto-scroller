@@ -18,7 +18,7 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/per_pixel_transparency/allowed=true
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
+window/stretch/aspect="expand"
 
 [editor_plugins]
 
