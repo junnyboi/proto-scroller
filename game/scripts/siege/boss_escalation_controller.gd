@@ -14,11 +14,27 @@ const ENTERTAINMENT_ATTACKS: Array[StringName] = [
 	&"ARMED_AFTERIMAGE",
 	&"ENCORE_IMPACT",
 ]
+const ENTERTAINMENT_ARMORED_ATTACKS: Array[StringName] = [
+	&"DEAD_AIR_SWEEP", &"MEMORY_BLOCKING",
+]
+const ENTERTAINMENT_EXPOSED_ATTACKS: Array[StringName] = [
+	&"DEAD_AIR_SWEEP", &"ARMED_AFTERIMAGE", &"MEMORY_BLOCKING",
+]
+const ENTERTAINMENT_FINAL_ATTACKS: Array[StringName] = [
+	&"ARMED_AFTERIMAGE", &"ENCORE_IMPACT",
+]
 const MILITARY_ATTACKS: Array[StringName] = [
 	&"SUTURE_SALVO",
 	&"DISPATCH_HARNESS",
 	&"PALE_RECLAMATION",
 	&"COMPRESSION_PSALM",
+]
+const MILITARY_ARMORED_ATTACKS: Array[StringName] = [&"SUTURE_SALVO"]
+const MILITARY_EXPOSED_ATTACKS: Array[StringName] = [
+	&"SUTURE_SALVO", &"DISPATCH_HARNESS",
+]
+const MILITARY_FINAL_ATTACKS: Array[StringName] = [
+	&"PALE_RECLAMATION", &"COMPRESSION_PSALM", &"SUTURE_SALVO",
 ]
 const DIRECT_CLEAR_SECONDS: float = 60.0
 const TELEGRAPH_SECONDS: float = 0.85
@@ -51,6 +67,8 @@ var attack_stage: StringName = &"IDLE"
 var active_attack: StringName = &""
 var armor_connections: int = 0
 var direct_clear_seconds: float = DIRECT_CLEAR_SECONDS
+var combat_state: StringName = CommandBossSession.STATE_SCREEN
+var body_health_ratio: float = 1.0
 var recorder: MotionEchoRecorder
 
 var show_control_cabinet_available: bool = true
@@ -75,6 +93,7 @@ var anchor_denied: PackedByteArray = PackedByteArray()
 var reclamation_consumed: PackedByteArray = PackedByteArray()
 var ablative_plates: int = 0
 var export_record_visible: bool = false
+var _siren_preferred_weapon: StringName = &""
 var _active_siren: EnemyActor2D
 var _active_runner: EnemyActor2D
 var _preserve_state_on_cleanup: bool = false
@@ -114,6 +133,8 @@ func start(
 	center = world_center
 	orientation_portrait = portrait
 	direct_clear_seconds = DIRECT_CLEAR_SECONDS
+	combat_state = CommandBossSession.STATE_SCREEN
+	body_health_ratio = 1.0
 	_configure_common_targets()
 	if definition.boss_id == ENTERTAINMENT_ID:
 		_configure_entertainment()
@@ -138,6 +159,8 @@ func deactivate() -> void:
 	attack_stage = &"IDLE"
 	active_attack = &""
 	armor_connections = 0
+	combat_state = CommandBossSession.STATE_SCREEN
+	body_health_ratio = 1.0
 	show_control_cabinet_available = true
 	show_control_cabinet_used = false
 	rubble_counterplay_available = true
@@ -147,6 +170,7 @@ func deactivate() -> void:
 	siren_ring_active = false
 	siren_ring_remaining = 0.0
 	suspended_weapon_id = &""
+	_siren_preferred_weapon = &""
 	artillery_spine_visible = false
 	seraph_environment_count = 0
 	dispatch_requested = false
@@ -183,6 +207,7 @@ func advance(delta: float) -> void:
 			recorder.record_motion(robot.global_position, elapsed_seconds)
 	if siren_ring_active:
 		siren_ring_remaining = maxf(siren_ring_remaining - delta, 0.0)
+		_sync_siren_hollow_center()
 		if is_zero_approx(siren_ring_remaining):
 			end_siren_ring()
 	if attack_stage == &"TELEGRAPH" and attack_elapsed >= TELEGRAPH_SECONDS:
@@ -211,11 +236,30 @@ func active() -> bool:
 func active_attack_choices() -> Array[StringName]:
 	if active_definition == null:
 		return []
+	if active_definition.boss_id == ENTERTAINMENT_ID:
+		if combat_state != CommandBossSession.STATE_EXPOSED:
+			return ENTERTAINMENT_ARMORED_ATTACKS.duplicate()
+		return (
+			ENTERTAINMENT_EXPOSED_ATTACKS.duplicate()
+			if body_health_ratio > 0.33
+			else ENTERTAINMENT_FINAL_ATTACKS.duplicate()
+		)
+	if combat_state != CommandBossSession.STATE_EXPOSED:
+		return MILITARY_ARMORED_ATTACKS.duplicate()
 	return (
-		ENTERTAINMENT_ATTACKS.duplicate()
-		if active_definition.boss_id == ENTERTAINMENT_ID
-		else MILITARY_ATTACKS.duplicate()
+		MILITARY_EXPOSED_ATTACKS.duplicate()
+		if body_health_ratio > 0.33
+		else MILITARY_FINAL_ATTACKS.duplicate()
 	)
+
+
+func set_combat_state(state_value: StringName, health_ratio: float) -> void:
+	var previous_choices: Array[StringName] = active_attack_choices()
+	combat_state = state_value
+	body_health_ratio = clampf(health_ratio, 0.0, 1.0)
+	var next_choices: Array[StringName] = active_attack_choices()
+	if active() and next_choices != previous_choices and not active_attack in next_choices:
+		_begin_next_attack()
 
 
 func register_armor_connection() -> bool:
@@ -295,10 +339,24 @@ func begin_siren_ring(preferred_weapon: StringName = &"") -> bool:
 	if _active_siren == null or not _active_siren.active or siren_ring_active:
 		return false
 	_resume_suspended_weapon()
+	_siren_preferred_weapon = preferred_weapon
+	siren_ring_active = true
+	siren_ring_remaining = SIREN_RING_SECONDS
+	_sync_siren_hollow_center()
+	return true
+
+
+func _sync_siren_hollow_center() -> void:
+	var robot: GiantRobotController = encounter_runtime.robot if encounter_runtime != null else null
+	if robot != null and robot.global_position.distance_to(center) <= 118.0:
+		_resume_suspended_weapon()
+		return
+	if not suspended_weapon_id.is_empty():
+		return
 	var assembler: PlayerUpgradeAssembler = _upgrade_assembler()
 	if assembler != null:
 		var candidates: Array[StringName] = [
-			preferred_weapon,
+			_siren_preferred_weapon,
 			&"MACHINE_GUN",
 			&"MISSILE",
 			&"LASER",
@@ -313,14 +371,12 @@ func begin_siren_ring(preferred_weapon: StringName = &"") -> bool:
 			runtime.set_paused(true)
 			suspended_weapon_id = candidate
 			break
-	siren_ring_active = true
-	siren_ring_remaining = SIREN_RING_SECONDS
-	return true
 
 
 func end_siren_ring() -> void:
 	siren_ring_active = false
 	siren_ring_remaining = 0.0
+	_siren_preferred_weapon = &""
 	_resume_suspended_weapon()
 
 
@@ -362,6 +418,7 @@ func request_dispatch() -> EnemyActor2D:
 		dispatch_dressing_only = true
 		return null
 	utility_pool.controller.track_support(_active_runner)
+	encounter_runtime.apply_target_mark(4.0)
 	support_changed.emit(&"GRAFT_RUNNER", true)
 	return _active_runner
 
@@ -528,6 +585,8 @@ func capture_state() -> Dictionary:
 		"attack_stage": attack_stage,
 		"active_attack": active_attack,
 		"armor_connections": armor_connections,
+		"combat_state": combat_state,
+		"body_health_ratio": body_health_ratio,
 		"show_control_cabinet_available": show_control_cabinet_available,
 		"show_control_cabinet_used": show_control_cabinet_used,
 		"rubble_counterplay_available": rubble_counterplay_available,
@@ -562,6 +621,8 @@ func restore_state(state: Dictionary) -> void:
 	attack_stage = StringName(state.get("attack_stage", &"TELEGRAPH"))
 	active_attack = StringName(state.get("active_attack", &""))
 	armor_connections = int(state.get("armor_connections", 0))
+	combat_state = StringName(state.get("combat_state", CommandBossSession.STATE_SCREEN))
+	body_health_ratio = float(state.get("body_health_ratio", 1.0))
 	show_control_cabinet_available = bool(state.get("show_control_cabinet_available", true))
 	show_control_cabinet_used = bool(state.get("show_control_cabinet_used", false))
 	rubble_counterplay_available = bool(state.get("rubble_counterplay_available", true))

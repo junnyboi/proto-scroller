@@ -1,0 +1,116 @@
+# Proto Scroller Boss Combat Audit
+
+**Audit date:** 2026-08-27  
+**Engine target:** Godot 4.7.2-stable  
+**Scope:** Settlement Engine S-04, SAMARITAN-15, MIMESIS-04, CANTOR-31 / Pale Engine, and CHOIR Prime
+
+## Executive assessment
+
+The reported first-boss lock was real. The screenshot shows the encounter still at **Armor 100%, Body 100%, Connections 0/3**. Before this repair, boss armor accepted only a moving, fully charged jab-cross, but rejected attacks gave the player no useful explanation. More seriously, standard bosses did not configure their mandatory wreck-finisher receiver because that setup was accidentally nested inside the CHOIR Prime-only branch. Therefore, even a player who discovered the hidden armor input could reach another blocked state after reducing the body to zero.
+
+The audit found additional systemic weaknesses: telegraphed attack areas were visual-only; the screen-introduction state could advance attack timers invisibly; all attack patterns were exposed from the opening second rather than escalating; one boss-support wave had been doubled despite being a stateful boss mechanic; SAMARITAN's broad fallback hurtboxes overlapped protected glass; MIMESIS advertised a hollow-center counter that did not react continuously; the Military Graft Runner did not receive its target mark; evidence payloads could be lost because wreck generation could clean up a controller before its death callback captured results; and a transient completion-save failure could leave a consumed boss behind an owned route gate.[1][2][3][4]
+
+The repaired contract is now consistent across the campaign. Safe telegraphs transition to **magenta armed zones** that inflict one deduplicated chassis hit per activation. Boss introductions cannot arm attacks. Armor, exposed-body, and wreck states have different attack sets. Rejected armor hits immediately explain the exact input. Gold armor targets and mandatory wreck receivers are visible. Standard evidence survives the wreck callback order. Completion writes retry in place before the gate is consumed, and Royal persists its ending transaction before release.[1][2][5]
+
+## Universal defeat sequence
+
+> **Keyboard:** Move with **A/D**, hold **Space** for the charge attack, and dodge with **Shift**. On touch devices, use the floating movement joystick, **SMASH**, and **DASH**.
+
+Every campaign boss follows the same readable three-stage structure.
+
+| Stage | Required player action | What does not work |
+|---|---|---|
+| **Armored** | Reach at least 70% movement speed, press and hold **Space/SMASH for the full 2.0 seconds**, then release the moving jab-cross into the glowing gold core. Repeat for **three accepted connections**. | Standing ground smashes, tap attacks, and ranged weapons cannot break armor. The HUD now explains which requirement was missed. |
+| **Exposed body** | Use normal melee and equipped weapons while reading the telegraphs. Attacks escalate again below roughly one-third body integrity. | Remaining inside a magenta armed footprint. Pale/gold telegraphs are warnings; magenta is live damage. |
+| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Walking into the route barrier or hitting the wreck away from its receiver. The barrier opens only after the finisher and durable completion transaction. |
+
+The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. It is the intended answer when an armed lane closes after the player has already committed to a charge. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
+
+## Boss-by-boss field guide
+
+### 1. Settlement Engine S-04 — The Fiduciary Saint
+
+**Identity:** A lane-control tutorial boss that teaches the universal armor input before layering support pressure.
+
+| Phase | Abilities and attack pattern | Counterplay |
+|---|---|---|
+| **Armored** | **Settlement Sweep** covers asymmetric left and right ground zones. **Double-Entry Barrage** attacks both outer approaches and, after recovery, deploys one Bulwark and one Sapper. | Accelerate through the open interval, begin the two-second charge while already moving, and release into the gold core. Do not stop in order to start the charge; a stationary press selects ground smash instead. |
+| **Exposed** | **Foreclosure Stamp** attacks the center. **Audit Beam** creates a long horizontal beam above the road. | Stay near an edge during Stamp; change vertical/road position relative to the thin beam; attack during recovery. |
+| **Final third** | **Audit Beam** remains and **Foundation Cascade** adds a heavy left-side ground collapse. | Favor the right approach, dodge through a late arm, then punish the recovery. Eliminate the two support enemies if they obstruct the charging lane. |
+| **Finisher** | A visible gold **GROUND SMASH** receiver appears on the wreck. | Ground-smash the labeled receiver. This is the previously missing route-completion step. |
+
+**How to take it down:** Hold A or D until the robot is moving quickly, press and hold Space for two seconds, and release into the core. Do this three times. Then use any normal damage source against the exposed body. When it falls, ground-smash the labeled wreck target. The gate remains closed until that last step is complete and saved.[1][3]
+
+### 2. SAMARITAN-15 — The Last Evacuation
+
+**Identity:** A rescue-pressure fight built around protected side pods and rotating safe lanes.
+
+| Phase | Abilities and attack pattern | Counterplay |
+|---|---|---|
+| **Armored** | **Triage Sweep** attacks the two outer lanes. **Pressure Sentence** fires a thin horizontal beam and can deploy one Reclaimed Breacher during recovery. | Use the center gap during Triage, then land three moving full-charge core hits. Kill the Breacher rather than letting it occupy the charging route. |
+| **Exposed** | Triage remains. **Extraction Clamp** targets one side pod. | Damage the exposed chassis while avoiding the pod glass. Mechanical boss hurtboxes have been narrowed and separated from all protected glass rectangles. |
+| **Final third** | **Blackout Harvest** arms two of three road lanes while one dry lane rotates each cycle; Pressure Sentence and Extraction Clamp remain. Blackout can deploy at most one live Graft Runner. | Identify the dry lane before magenta activation, move into it, and destroy the Runner before resuming body damage. |
+| **Finisher** | A visible ground-smash receiver appears on the wreck. Surviving pods are rescued automatically when the body is defeated. | Use the labeled finisher. Optional pod loss affects the record, not route completion. |
+
+**How to take it down:** Break armor with the universal three-hit charge sequence, fight from the dry lane, and prioritize Breacher/Runner support when it blocks movement. The body is always directly damageable after armor breaks; the captive glass is no longer part of the fallback body target.[1][7]
+
+### 3. MIMESIS-04 — The Afterimage Conductor
+
+**Identity:** A memory-versus-threat recognition fight with a localized weapon-jamming counter.
+
+| Phase | Abilities and attack pattern | Counterplay |
+|---|---|---|
+| **Armored** | **Dead-Air Sweep** paints a left-biased line. **Memory Blocking** closes both side lanes and later deploys a single Needle-class CHOIR Siren. | Use the open side or center and land three moving full-charge core hits. Cyan history images are presentation-only. |
+| **Exposed** | **Armed Afterimage** turns one recorded position magenta and damaging. Dead-Air Sweep and Memory Blocking remain. | Track the magenta afterimage rather than the cyan memory trail. Do not dodge away from harmless cyan echoes. |
+| **Final third** | Armed Afterimage alternates with the long **Encore Impact** beam. If the Siren ring is active, one weapon can be paused. | Enter the 118-pixel hollow center to immediately restore the paused weapon; leaving the center reapplies the single-weapon lock while the ring remains active. Direct movement and melee controls are never disabled. |
+| **Finisher** | A visible ground-smash receiver appears. The STAGE continuity payload is captured before controller cleanup. | Finish the wreck normally; the evidence result now survives callback ordering. |
+
+**How to take it down:** Learn the color language: **cyan is memory, magenta is damage**. Break armor at speed, use the hollow center when the Siren jams a weapon, and attack the exposed chassis between Armed Afterimage and Encore windows.[2][8]
+
+### 4. CANTOR-31 / Pale Engine — The Export Surgeon
+
+**Identity:** A production-lane fight that introduces marked support pursuit and finite reclamation pressure.
+
+| Phase | Abilities and attack pattern | Counterplay |
+|---|---|---|
+| **Armored** | **Suture Salvo** arms two of three lanes and leaves one dry lane. | Move to the visible dry lane and release the full-charge core hit from there. Repeat three times. |
+| **Exposed** | Suture Salvo remains. **Dispatch Harness** deploys one Graft Runner and applies the target mark required by its attack logic. A freight anchor is recorded only after successful deployment. | Destroy the marked Runner first; no false dispatch telegraph appears if the pool cannot supply it. Resume body damage during recovery. |
+| **Final third** | **Pale Reclamation** consumes at most three finite freight anchors into capped ablative records. **Compression Psalm** combines a long beam with a left ground zone. | Deny space around visible anchors, use the right side against Compression Psalm, and keep moving between dry-lane changes. The decorative Seraph projections are not extra enemies. |
+| **Finisher** | A visible ground-smash receiver appears. The ARSENAL export payload remains intact through the wreck transition. | Ground-smash the receiver and let the transaction commit before advancing. |
+
+**How to take it down:** Treat dry lanes as the primary navigation puzzle, kill the marked Runner, then pressure the exposed chassis. Reclamation is finite and capped; surviving long enough does not produce infinite armor or enemies.[2][8]
+
+### 5. CHOIR Prime — The Last Sovereign
+
+**Identity:** A final exam that reuses one mechanic from each prior district, then presents an explicit ending choice.
+
+| Phase | Abilities and attack pattern | Counterplay |
+|---|---|---|
+| **Armored** | **Ledger / Settlement Sweep** covers a left-biased ground zone. **Nursery / Braced Shock** attacks the center. | Use the remembered Business/Nursery spacing and land the universal three moving full-charge core hits. |
+| **Exposed** | **Stage / Armed Ring** creates a wide central footprint. **Arsenal / Production Lanes** arms two lanes and rotates the dry lane. | Respect magenta Stage pressure and move to the dry Arsenal lane before attacking the body. |
+| **Final third** | Arsenal remains and **Crown / Radial Verdict** adds a long horizontal verdict beam. All large composition echoes remain non-colliding presentation. | Avoid reading the large echo art as hitboxes; only the magenta authored pressure zones can damage the robot. |
+| **Outcome wreck** | The wreck exposes a red **PURGE** receiver and a cyan **DISENTANGLE** receiver. Ineligible Disentangle is visibly warned. | Ground-smash PURGE once for the safe ending. Eligible DISENTANGLE requires five distinct fresh ground-smash roots; repeated or fatal attack roots are rejected. Royal ending persistence completes before the gate is released. |
+
+**How to take it down:** Apply everything learned in the earlier fights, break armor, destroy the exposed Sovereign core, then choose a clearly labeled receiver. PURGE always remains available. DISENTANGLE is evidence-dependent, never times out, and now requires a genuinely fresh smash for every severance step.[1][9]
+
+## Fun and fairness assessment
+
+The campaign now has a coherent learning curve instead of five differently decorated target dummies. Settlement teaches movement-charge timing and lane recovery. SAMARITAN adds protection pressure and rotating sanctuary. MIMESIS tests visual discrimination and spatial counterplay to a weapon jam. CANTOR adds marked pursuit and finite area denial. CHOIR Prime recombines those rules, then ends with a legible consequential choice. The same visual grammar is consistent throughout: **gold is the armor objective, pale/gold is warning, magenta is armed damage, cyan is memory or Disentangle, and labeled circles are finishers**.
+
+The implementation deliberately keeps stateful boss support singular despite global 2× enemy density. This preserves readable boss mechanics while ordinary authored waves remain doubled. Each attack uses a bounded pooled area, supports are capped, phase transitions are health-driven, and no encounter requires the player to destroy optional evidence to open the route.
+
+## Remaining high-value design opportunities
+
+The current repair makes every fight playable, damaging, phase-structured, and explainable. A subsequent content pass could deepen spectacle without changing the now-stable contracts: add boss-specific hit-stun and armor-break animations; make the Business treasury slab, Entertainment control cabinet, and Military freight anchors directly attackable world receivers; add unique audio stingers for telegraph, armor connection, exposure, and finisher; and tune per-boss hazard damage after collecting real completion-time and chassis-loss telemetry. Those are enhancements, not blockers to defeating the campaign.
+
+## Source references
+
+[1]: ../game/scripts/siege/command_boss_session.gd
+[2]: ../game/scripts/siege/boss_attack_area_2d.gd
+[3]: ../game/scripts/siege/boss_vertical_slice_controller.gd
+[4]: ../game/scripts/siege/boss_campaign_director.gd
+[5]: ../game/scripts/siege/boss_wreck_receiver_2d.gd
+[6]: ../game/scripts/player/giant_robot_controller.gd
+[7]: ../game/scripts/siege/boss_rig_2d.gd
+[8]: ../game/scripts/siege/boss_escalation_controller.gd
+[9]: ../game/scripts/siege/boss_royal_finale_controller.gd

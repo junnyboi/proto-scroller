@@ -8,6 +8,7 @@ signal boss_completed(definition: BossEncounterDefinition)
 
 const GATE_APPROACH_FRACTION: float = 0.62
 const GATE_INSET: float = 80.0
+const COMPLETION_RETRY_SECONDS: float = 1.0
 
 var siege: UrbanSiegeRuntime
 var world_stream: CityWorldStream
@@ -20,6 +21,8 @@ var music_director: BossMusicDirector
 var active_definition: BossEncounterDefinition
 var active_gate: BossGateMarker
 var attempt_failed: bool = false
+var completion_pending: bool = false
+var _completion_retry_elapsed: float = 0.0
 var _triggered_ids: Dictionary[StringName, bool] = {}
 var _completed_ids: Dictionary[StringName, bool] = {}
 
@@ -45,6 +48,7 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	siege.boss_session.state_changed.connect(_refresh_hud)
 	siege.boss_session.armor_changed.connect(_on_boss_durability_changed)
 	siege.boss_session.body_changed.connect(_on_boss_durability_changed)
+	siege.boss_session.feedback_changed.connect(_on_slice_feedback_changed)
 	siege.boss_session.utility_pool.vertical_slice.attack_changed.connect(_on_slice_feedback_changed)
 	siege.boss_session.utility_pool.vertical_slice.archive_revealed.connect(_on_slice_feedback_changed)
 	siege.boss_session.utility_pool.vertical_slice.rescue_tally_changed.connect(
@@ -61,7 +65,13 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if completion_pending:
+		_completion_retry_elapsed += delta
+		if _completion_retry_elapsed >= COMPLETION_RETRY_SECONDS:
+			_completion_retry_elapsed = 0.0
+			_try_commit_completion()
+		return
 	advance()
 
 
@@ -105,6 +115,8 @@ func stop() -> void:
 	active_definition = null
 	active_gate = null
 	attempt_failed = false
+	completion_pending = false
+	_completion_retry_elapsed = 0.0
 	if siege != null and siege.dependencies.gameplay_hud != null:
 		siege.dependencies.gameplay_hud.hide_boss_status()
 
@@ -214,13 +226,31 @@ func _rollback_attempt_start() -> void:
 func _on_boss_completed(_elapsed_seconds: float) -> void:
 	if not owns_combat():
 		return
+	_try_commit_completion()
+
+
+func _try_commit_completion() -> bool:
+	if not owns_combat():
+		return false
 	var completed_definition: BossEncounterDefinition = active_definition
 	var choir: ProjectChoirRuntime = siege.dependencies.city.project_choir_runtime
-	if choir != null and not choir.commit_boss_completion(
-		completed_definition,
-		siege.boss_session.completion_payload()
-	):
-		return
+	var payload: Dictionary = siege.boss_session.completion_payload()
+	var persisted: bool = choir != null and choir.commit_boss_completion(
+		completed_definition, payload
+	)
+	if persisted and completed_definition.boss_id == &"CHOIR_PRIME":
+		var royal_outcome: int = int(payload.get("finale_outcome", -1))
+		persisted = BossOutcome.is_valid(royal_outcome) and choir.commit_finale_ending(
+			royal_outcome, payload
+		)
+	if not persisted:
+		completion_pending = true
+		_completion_retry_elapsed = 0.0
+		siege.boss_session.mark_completion_pending()
+		_refresh_hud()
+		return false
+	completion_pending = false
+	siege.boss_session.mark_completion_committed()
 	_completed_ids[completed_definition.boss_id] = true
 	active_gate.consume()
 	arena_lease.release()
@@ -233,10 +263,11 @@ func _on_boss_completed(_elapsed_seconds: float) -> void:
 	boss_completed.emit(completed_definition)
 	if completed_definition.boss_id == &"CHOIR_PRIME":
 		var outcome: int = int(
-			siege.boss_session.completion_payload().get("finale_outcome", -1)
+			payload.get("finale_outcome", -1)
 		)
 		if BossOutcome.is_valid(outcome):
 			siege.call_deferred("resolve_finale", outcome)
+	return true
 
 
 func _refresh_hud(_state: StringName = &"") -> void:

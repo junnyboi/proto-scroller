@@ -6,12 +6,14 @@ signal state_changed(state: StringName)
 signal armor_changed(current: float, maximum: float)
 signal body_changed(current: float, maximum: float)
 signal completed(elapsed_seconds: float)
+signal feedback_changed
 
 const STATE_IDLE: StringName = &"IDLE"
 const STATE_SCREEN: StringName = &"SCREEN"
 const STATE_BARRAGE: StringName = &"BARRAGE"
 const STATE_EXPOSED: StringName = &"EXPOSED"
 const STATE_WRECK: StringName = &"WRECK_FINISHER"
+const STATE_COMPLETION_PENDING: StringName = &"COMPLETION_PENDING"
 const STATE_COMPLETE: StringName = &"COMPLETE"
 const ARMOR: float = 330.0
 const HEALTH: float = 320.0
@@ -30,6 +32,9 @@ var generation_token: int = 0
 var _state_elapsed: float = 0.0
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
+var _armor_feedback_key: String = ""
+var _royal_finisher_attacks: Dictionary[int, bool] = {}
+var _royal_finisher_roots: Dictionary[int, bool] = {}
 
 
 func setup(p_dependencies: UrbanSiegeDependencies) -> void:
@@ -49,6 +54,7 @@ func setup(p_dependencies: UrbanSiegeDependencies) -> void:
 	royal_finale.setup(utility_pool, dependencies.encounter_runtime)
 	royal_finale.severance_receiver_moved.connect(_on_severance_receiver_moved)
 	add_child(royal_finale)
+	utility_pool.rig.damage_forwarded.connect(_on_rig_damage_forwarded)
 
 
 func start() -> bool:
@@ -103,6 +109,9 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	elapsed_seconds = 0.0
 	_state_elapsed = 0.0
 	_completion_payload.clear()
+	_armor_feedback_key = ""
+	_royal_finisher_attacks.clear()
+	_royal_finisher_roots.clear()
 	_apply_pending_attempt_restore()
 	_set_state(STATE_SCREEN)
 	dependencies.encounter_runtime.set_attack_gate(false)
@@ -115,7 +124,7 @@ func advance(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 	_state_elapsed += delta
-	if utility_pool != null:
+	if utility_pool != null and state != STATE_SCREEN:
 		utility_pool.vertical_slice.advance(delta)
 		utility_pool.escalation.advance(delta)
 		royal_finale.advance(delta)
@@ -186,16 +195,39 @@ func completion_payload() -> Dictionary:
 	return _completion_payload.duplicate(true)
 
 
+func mark_completion_pending() -> void:
+	_set_state(STATE_COMPLETION_PENDING)
+
+
+func mark_completion_committed() -> void:
+	_set_state(STATE_COMPLETE)
+
+
 func live_boss_feedback() -> Dictionary:
 	if utility_pool == null:
 		return {}
+	if state == STATE_COMPLETION_PENDING:
+		return {
+			"objective": L10n.t("boss.objective.completion_pending"),
+			"attack": L10n.t("boss.attack.none"),
+		}
+	if state == STATE_WRECK:
+		if _is_choir_prime() and royal_finale.active():
+			return royal_finale.hud_feedback()
+		return {
+			"objective": L10n.t("boss.objective.finish"),
+			"attack": L10n.t("boss.attack.none"),
+		}
+	var feedback: Dictionary = {}
 	if utility_pool.vertical_slice.active():
-		return utility_pool.vertical_slice.hud_feedback()
-	if utility_pool.escalation.active():
-		return utility_pool.escalation.hud_feedback()
-	if royal_finale.active():
-		return royal_finale.hud_feedback()
-	return {}
+		feedback = utility_pool.vertical_slice.hud_feedback()
+	elif utility_pool.escalation.active():
+		feedback = utility_pool.escalation.hud_feedback()
+	elif royal_finale.active():
+		feedback = royal_finale.hud_feedback()
+	if not _armor_feedback_key.is_empty():
+		feedback["objective"] = L10n.t(_armor_feedback_key)
+	return feedback
 
 
 func _apply_pending_attempt_restore() -> void:
@@ -230,6 +262,7 @@ func _apply_pending_attempt_restore() -> void:
 
 
 func _on_boss_health_changed(current: float, maximum: float) -> void:
+	_sync_controller_phase()
 	body_changed.emit(current, maximum)
 
 
@@ -258,6 +291,8 @@ func _on_boss_armor_changed(current: float, maximum: float) -> void:
 
 
 func _on_boss_armor_broken() -> void:
+	_armor_feedback_key = ""
+	utility_pool.rig.set_armor_target_active(false)
 	var slice_state: Dictionary = (
 		utility_pool.vertical_slice.capture_state()
 		if utility_pool.vertical_slice.active()
@@ -351,24 +386,30 @@ func _is_choir_prime() -> bool:
 
 func _on_enemy_died(enemy: EnemyActor2D, _event: DamageEvent, _points: int) -> void:
 	if enemy == boss:
-		if utility_pool.vertical_slice.active():
-			utility_pool.vertical_slice.reveal_archive()
-			utility_pool.vertical_slice.rescue_remaining_pods()
-			_completion_payload = utility_pool.vertical_slice.completion_payload()
-			utility_pool.vertical_slice.preserve_completion_state()
-		elif utility_pool.escalation.active():
-			if active_definition.boss_id == &"MIMESIS_04":
-				utility_pool.escalation.play_continuity_record()
-			else:
-				utility_pool.escalation.export_record_visible = true
-			_completion_payload = utility_pool.escalation.completion_payload()
-			utility_pool.escalation.preserve_completion_state()
+		_capture_completion_payload()
 		dependencies.encounter_runtime.set_attack_gate(false)
+
+
+func _capture_completion_payload() -> void:
+	if utility_pool.vertical_slice.active():
+		utility_pool.vertical_slice.reveal_archive()
+		utility_pool.vertical_slice.rescue_remaining_pods()
+		_completion_payload = utility_pool.vertical_slice.completion_payload()
+		utility_pool.vertical_slice.preserve_completion_state()
+	elif utility_pool.escalation.active():
+		if active_definition.boss_id == &"MIMESIS_04":
+			utility_pool.escalation.play_continuity_record()
+		else:
+			utility_pool.escalation.export_record_visible = true
+		_completion_payload = utility_pool.escalation.completion_payload()
+		utility_pool.escalation.preserve_completion_state()
 
 
 func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 	if enemy != boss:
 		return
+	if _completion_payload.is_empty():
+		_capture_completion_payload()
 	var royal_state: Dictionary = (
 		royal_finale.capture_state() if royal_finale.active() else {}
 	)
@@ -386,6 +427,12 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 		utility_pool.configure_wreck_receivers(
 			boss_wreck, active_definition, _on_wreck_receiver_damage
 		)
+		if _is_choir_prime() and utility_pool.royal_outcome_receiver != null:
+			utility_pool.royal_outcome_receiver.warning = (
+				royal_finale.finale_snapshot == null
+				or not royal_finale.finale_snapshot.disentangle_eligible
+			)
+			utility_pool.royal_outcome_receiver.queue_redraw()
 	_set_state(STATE_WRECK)
 
 
@@ -424,11 +471,15 @@ func _on_wreck_receiver_damage(
 		or event.damage_type != &"ground_smash"
 	):
 		return false
+	if not _is_choir_prime():
+		return boss_wreck.receive_damage(event)
 	if receiver.outcome_id == BossOutcome.PURGE:
 		royal_finale.cancel_pressure()
 		_completion_payload = royal_finale.completion_payload(BossOutcome.PURGE)
 		return boss_wreck.receive_damage(event)
 	var snapshot: FinaleEligibilitySnapshot = royal_finale.finale_snapshot
+	if not _accept_fresh_royal_finisher_step(event):
+		return false
 	if snapshot == null or not snapshot.disentangle_eligible:
 		royal_finale.cancel_pressure()
 		_completion_payload = royal_finale.completion_payload(
@@ -445,6 +496,22 @@ func _on_wreck_receiver_damage(
 	return boss_wreck.receive_damage(event)
 
 
+func _accept_fresh_royal_finisher_step(event: DamageEvent) -> bool:
+	if event == null or event.attack_id == 0 or event.root_attack_id == 0:
+		return false
+	if _royal_finisher_attacks.has(event.attack_id) or _royal_finisher_roots.has(event.root_attack_id):
+		return false
+	if boss_wreck != null and boss_wreck.fatal_event != null:
+		if (
+			event.attack_id == boss_wreck.fatal_event.attack_id
+			or event.root_attack_id == boss_wreck.fatal_event.root_attack_id
+		):
+			return false
+	_royal_finisher_attacks[event.attack_id] = true
+	_royal_finisher_roots[event.root_attack_id] = true
+	return true
+
+
 func _on_severance_receiver_moved(offset: Vector2) -> void:
 	if boss_wreck == null or utility_pool.royal_outcome_receiver == null:
 		return
@@ -454,7 +521,38 @@ func _on_severance_receiver_moved(offset: Vector2) -> void:
 func _set_state(next_state: StringName) -> void:
 	state = next_state
 	_state_elapsed = 0.0
+	_sync_controller_phase()
 	state_changed.emit(state)
+
+
+func _sync_controller_phase() -> void:
+	var health_ratio: float = (
+		boss.current_health / maxf(boss.max_health, 1.0)
+		if boss != null
+		else 0.0
+	)
+	if utility_pool != null and utility_pool.vertical_slice.active():
+		utility_pool.vertical_slice.set_combat_state(state, health_ratio)
+	if utility_pool != null and utility_pool.escalation.active():
+		utility_pool.escalation.set_combat_state(state, health_ratio)
+	if royal_finale != null and royal_finale.active():
+		royal_finale.set_combat_state(state, health_ratio)
+
+
+func _on_rig_damage_forwarded(event: DamageEvent, accepted: bool) -> void:
+	if event == null or boss == null or boss.boss_armor <= 0.0:
+		return
+	if accepted:
+		_armor_feedback_key = ""
+	elif event.damage_type == &"ground_smash":
+		_armor_feedback_key = "boss.feedback.keep_moving"
+	elif event.damage_type == &"jab_cross" and (
+		event.effect_flags & DamageEvent.FLAG_FULL_CHARGE == 0
+	):
+		_armor_feedback_key = "boss.feedback.full_charge"
+	else:
+		_armor_feedback_key = "boss.feedback.armor_locked"
+	feedback_changed.emit()
 
 
 func _next_generation() -> void:

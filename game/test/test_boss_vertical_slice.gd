@@ -35,27 +35,49 @@ func test_business_and_residential_each_cover_all_64_facade_masks() -> void:
 		assert_eq(rows, 64)
 
 
-func test_business_has_exactly_five_attacks_and_bounded_doubled_one_time_support() -> void:
+func test_business_phases_all_five_attacks_and_bounds_one_time_support() -> void:
 	_start(&"SETTLEMENT_ENGINE_S04")
-	assert_eq(slice.active_attack_choices(), BossVerticalSliceController.BUSINESS_ATTACKS)
-	assert_eq(slice.active_attack_choices().size(), 5)
+	assert_eq(slice.active_attack_choices(), [&"SETTLEMENT_SWEEP", &"DOUBLE_ENTRY_BARRAGE"])
 	var support: Array[EnemyActor2D] = slice.deploy_business_support()
-	assert_eq(support.size(), EnemySpawnTuning.scaled_count(2))
+	assert_eq(support.size(), 2)
 	assert_eq(slice.deploy_business_support().size(), 0)
-	assert_eq(
-		city.encounter_runtime.active_family_count(&"infantry"),
-		EnemySpawnTuning.scaled_count(2)
-	)
+	assert_eq(city.encounter_runtime.active_family_count(&"infantry"), 2)
 	assert_eq(city.encounter_runtime.active_family_count(&"siege"), 0)
 	assert_eq(city.encounter_runtime.active_family_count(&"light"), 0)
+	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.8)
+	assert_eq(slice.active_attack_choices(), [&"FORECLOSURE_STAMP", &"AUDIT_BEAM"])
+	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.2)
+	assert_eq(slice.active_attack_choices(), [&"AUDIT_BEAM", &"FOUNDATION_CASCADE"])
+
+
+func test_business_boss_has_complete_damage_and_visible_finisher_path() -> void:
+	_start(&"SETTLEMENT_ENGINE_S04")
+	var attack_id: int = 91_000
+	while session.boss.boss_armor > 0.0:
+		assert_true(session.boss.receive_damage(_charged_event(attack_id)))
+		attack_id += 1
+	assert_eq(session.state, CommandBossSession.STATE_EXPOSED)
+	assert_true(session.boss.receive_damage(_charged_event(attack_id)))
+	attack_id += 1
+	var receiver: BossWreckReceiver2D = session.utility_pool.default_wreck_receiver
+	assert_eq(session.state, CommandBossSession.STATE_WRECK)
+	assert_true(receiver.active)
+	assert_true(receiver.visible)
+	assert_eq(receiver.display_label, L10n.t("boss.receiver.finish_label"))
+	assert_true(receiver.receive_damage(_smash_event(attack_id)))
+	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 
 
 func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() -> void:
 	_start(&"SAMARITAN_15")
-	assert_eq(slice.active_attack_choices(), BossVerticalSliceController.RESIDENTIAL_ATTACKS)
-	assert_eq(slice.active_attack_choices().size(), 4)
+	assert_eq(slice.active_attack_choices(), [&"TRIAGE_SWEEP", &"PRESSURE_SENTENCE"])
 	assert_true(slice.central_cradle_preserved)
 	assert_true(slice.mechanical_targets_clear_of_glass())
+	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.2)
+	assert_eq(
+		slice.active_attack_choices(),
+		[&"BLACKOUT_HARVEST", &"PRESSURE_SENTENCE", &"EXTRACTION_CLAMP"]
+	)
 	for _cycle: int in range(4):
 		while slice.active_attack != &"BLACKOUT_HARVEST":
 			slice.advance(
@@ -85,6 +107,7 @@ func test_residential_support_caps_reuses_runner_and_never_overlaps_extraction()
 	var breacher: EnemyActor2D = slice.deploy_breacher()
 	assert_not_null(breacher)
 	assert_null(slice.deploy_breacher())
+	assert_false(slice.begin_extraction(0))
 	city.encounter_runtime.release(breacher)
 	assert_true(slice.begin_extraction(0))
 	assert_null(slice.deploy_next_runner())
@@ -92,6 +115,7 @@ func test_residential_support_caps_reuses_runner_and_never_overlaps_extraction()
 	var runner_one: EnemyActor2D = slice.deploy_next_runner()
 	assert_not_null(runner_one)
 	assert_null(slice.deploy_next_runner())
+	assert_false(slice.begin_extraction(1))
 	slice.release_active_runner()
 	var runner_two: EnemyActor2D = slice.deploy_next_runner()
 	assert_not_null(runner_two)
@@ -170,3 +194,31 @@ func test_25_restart_loops_add_no_nodes_actors_or_post_warm_allocations() -> voi
 func _start(boss_id: StringName) -> void:
 	assert_true(session.start_definition(BossCampaignCatalog.definition(boss_id)))
 	assert_true(slice.active())
+
+
+func _charged_event(attack_id: int) -> DamageEvent:
+	return DamageEvent.new(
+		attack_id,
+		city.robot,
+		999.0,
+		&"jab_cross",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		0.0,
+		attack_id,
+		0,
+		DamageEvent.FLAG_FULL_CHARGE
+	)
+
+
+func _smash_event(attack_id: int) -> DamageEvent:
+	return DamageEvent.new(
+		attack_id,
+		city.robot,
+		999.0,
+		&"ground_smash",
+		Vector2.ZERO,
+		Vector2.RIGHT,
+		0.0,
+		attack_id + 1_000_000
+	)

@@ -121,6 +121,47 @@ func test_success_resumes_next_unconsumed_beat_after_one_recovery() -> void:
 	assert_false(director.is_suspended_for_boss())
 
 
+func test_completion_write_failure_retains_gate_then_retries_idempotently() -> void:
+	var city: CitySlice = await _spawn_city()
+	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
+	var gate: BossGateMarker = campaign.gate_for_trigger(definition.trigger_chunk)
+	assert_true(gate.acquire(Vector2.ZERO))
+	campaign.active_definition = definition
+	campaign.active_gate = gate
+	assert_true(city.urban_siege.boss_session.start_definition(definition))
+	var store: CampaignProgressStore = city.project_choir_runtime.campaign_progress
+	store.fault_injection = CampaignProgressStore.FAIL_BEFORE_WRITE
+	var session: CommandBossSession = city.urban_siege.boss_session
+	for attack_id: int in range(82_001, 82_004):
+		assert_true(session.boss.receive_damage(_full_charge(city, attack_id, 999.0)))
+	assert_true(session.boss.receive_damage(DamageEvent.new(
+		82_004, city.robot, definition.health, &"impact"
+	)))
+	assert_true(session.utility_pool.default_wreck_receiver.receive_damage(
+		DamageEvent.new(
+			82_005,
+			city.robot,
+			999.0,
+			&"ground_smash",
+			Vector2.ZERO,
+			Vector2.RIGHT,
+			0.0,
+			182_005
+		)
+	))
+	assert_true(campaign.completion_pending)
+	assert_true(campaign.owns_combat())
+	assert_true(campaign.active_gate.owned)
+	assert_eq(session.state, CommandBossSession.STATE_COMPLETION_PENDING)
+	store.fault_injection = &""
+	campaign._process(BossCampaignDirector.COMPLETION_RETRY_SECONDS)
+	assert_false(campaign.completion_pending)
+	assert_false(campaign.owns_combat())
+	assert_true(store.has_evidence(&"LEDGER"))
+	assert_eq(store.pending_reward_grants().count("boss:SETTLEMENT_ENGINE_S04:reward"), 1)
+
+
 func test_stop_and_reset_clear_campaign_and_siege_suspension() -> void:
 	var city: CitySlice = await _spawn_city()
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
