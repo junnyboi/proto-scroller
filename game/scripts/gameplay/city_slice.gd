@@ -39,6 +39,9 @@ const TELEGRAPH_SCRIPT: Script = preload(
 const WEB_GAMEPLAY_SMOKE_PROBE_SCRIPT: Script = preload(
 	"res://scripts/quality/web_gameplay_smoke_probe.gd"
 )
+const LEADERBOARD_BRIDGE_SCRIPT: Script = preload(
+	"res://scripts/network/leaderboard_bridge.gd"
+)
 const CONTACT_DISTRICT: DistrictDefinition = preload("res://resources/siege/district_contact.tres")
 const GLASS_IMPACT_SFX: AudioStream = preload(
 	"res://audio/sfx/structural/glass_shatter.wav"
@@ -54,6 +57,7 @@ var enemy_scrap_pool: DebrisPool
 var soldier_defeat_pool: SoldierDefeatPool
 var mobile_controls: MobileControls
 var gameplay_hud: GameplayHud
+var leaderboard_bridge: LeaderboardBridge
 var projectile_root: ProjectilePool
 var impact_audio_root: Node2D
 var impact_feedback_pool: ImpactFeedbackPool
@@ -143,6 +147,7 @@ func _ready() -> void:
 	debris_pool.set_culling_camera(camera_rig)
 	enemy_scrap_pool.set_culling_camera(camera_rig)
 	_build_hud()
+	_build_leaderboard_bridge()
 	_build_urban_siege()
 	run_lifecycle = RUN_LIFECYCLE_SCRIPT.new() as CityRunLifecycle
 	run_lifecycle.name = "CityRunLifecycle"
@@ -357,6 +362,13 @@ func _build_hud() -> void:
 		robot
 	)
 	add_child(impact_feedback_director)
+
+
+func _build_leaderboard_bridge() -> void:
+	leaderboard_bridge = LEADERBOARD_BRIDGE_SCRIPT.new() as LeaderboardBridge
+	leaderboard_bridge.name = "LeaderboardBridge"
+	add_child(leaderboard_bridge)
+	leaderboard_bridge.setup(combat_profile, gameplay_hud.match_debrief)
 
 
 func _on_robot_heavy_impact(

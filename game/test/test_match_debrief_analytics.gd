@@ -355,6 +355,54 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	_record_test_execution()
 
 
+func test_leaderboard_bridge_is_native_safe_and_rejects_unsolicited_responses() -> void:
+	L10n.set_locale("en")
+	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(store)
+	store.setup(TEST_PROFILE_PATH)
+	var panel: MatchDebriefPanel = MatchDebriefPanel.new()
+	add_child_autofree(panel)
+	await get_tree().process_frame
+	panel.configure_profile(store)
+	var bridge: LeaderboardBridge = LeaderboardBridge.new()
+	add_child_autofree(bridge)
+	bridge.setup(store, panel)
+	assert_eq(String(bridge.debug_snapshot().state), "native_local")
+	panel.set_page(MatchDebriefPanel.Page.GLOBAL)
+	bridge._pending["request-1"] = {"type": &"list", "deadline": 999_999.0}
+	bridge._handle_response({
+		"channel": "wrong-channel",
+		"version": LeaderboardBridge.PROTOCOL_VERSION,
+		"requestId": "request-1",
+		"ok": true,
+	})
+	assert_eq(int(bridge.debug_snapshot().pending_count), 1)
+	bridge._handle_response({
+		"channel": LeaderboardBridge.CHANNEL,
+		"version": LeaderboardBridge.PROTOCOL_VERSION,
+		"requestId": "request-1",
+		"ok": true,
+		"data": {
+			"entries": [{
+				"rank": 1,
+				"callsign": "ECHO-7",
+				"highestComboTier": 22,
+				"bestScore": 1_500_000,
+				"bestPhysicalChain": 38,
+				"preferredWeapon": "LASER",
+			}],
+			"personalRank": {"rank": 1, "callsign": "ECHO-7"},
+		},
+	})
+	assert_eq(String(bridge.debug_snapshot().state), "online")
+	assert_eq(int(bridge.debug_snapshot().pending_count), 0)
+	var snapshot: Dictionary = panel.debug_snapshot()
+	assert_eq(String(snapshot.global_state), "online")
+	assert_eq((snapshot.global_rows as PackedStringArray).size(), 1)
+	assert_true(String((snapshot.global_rows as PackedStringArray)[0]).contains("ECHO-7"))
+	_record_test_execution()
+
+
 func test_run_lifecycle_submits_profile_once_and_presents_enriched_dossier() -> void:
 	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
 	add_child_autofree(store)
