@@ -24,9 +24,9 @@ Every campaign boss follows the same readable armor, body, and wreck structure, 
 |---|---|---|
 | **Armored** | Against **Settlement Engine S-04**, use any melee or equipped weapon: every accepted damage type chips the yellow armor bar by its actual damage. Against bosses 2–5, reach at least 70% movement speed, line up with the glowing gold core, then hold **Space/SMASH for the full 2.0 seconds** and release; repeat for three accepted connections. | Only the four later bosses reject standing smashes, taps, and ranged armor damage. Their corrective feedback remains available through combat presentation, not the compact durability HUD. |
 | **Exposed body** | Use normal melee and equipped weapons while reading the telegraphs. Attacks escalate again below roughly one-third body integrity. | Remaining inside a magenta armed footprint. Pale/gold telegraphs are warnings; magenta is live damage. |
-| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Hitting the wreck away from its receiver. The finisher controls rewards and progression only; the right arena wall has already disappeared when body health reached zero. |
+| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Hitting the wreck away from its receiver. The finisher controls rewards and progression only; it never controls route access. |
 
-The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. Line up before charging; once an attack is committed, locomotion remains locked through recovery and a recovery-phase dodge request is buffered until release. During the fight, one invisible wall sits exactly 1,000 pixels right of the boss to prevent leaving forward; rear-wall and facade obstruction remain suspended, so the player can retreat and reposition. The wall drops on body defeat rather than waiting for the finisher. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
+The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. Line up before charging; once an attack is committed, locomotion remains locked through recovery and a recovery-phase dodge request is buffered until release. Boss attempts create no dedicated arena wall or collision layer; rear-wall and facade obstruction remain suspended, so the player can retreat, pass the boss, and reposition freely. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
 
 ## Boss-by-boss field guide
 
@@ -41,7 +41,7 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. L
 | **Final third** | **Audit Beam** remains and **Foundation Cascade** adds a heavy left-side ground collapse. | Favor the right approach, dodge through a late arm, then punish the recovery. Eliminate the two support enemies if they obstruct the charging lane. |
 | **Finisher** | A visible gold **GROUND SMASH** receiver appears on the wreck. | Ground-smash the labeled receiver. This is the previously missing route-completion step. |
 
-**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. The invisible east arena boundary remains 1,000 pixels right of the boss until body health reaches zero; it then drops immediately. Ground-smash the labeled wreck target for the completion record.[1][3]
+**How to take it down:** Damage the armor with any weapon while crossing the open lanes, then continue with any normal damage source against the exposed body. Each accepted hit produces a brief white flash and updates the compact yellow/red bars. The arena remains physically open throughout the attempt. Ground-smash the labeled wreck target for the completion record.[1][3]
 
 ### 2. SAMARITAN-15 — The Last Evacuation
 
@@ -116,5 +116,4 @@ The current repair makes every fight playable, damaging, phase-structured, and e
 [7]: ../game/scripts/siege/boss_rig_2d.gd
 [8]: ../game/scripts/siege/boss_escalation_controller.gd
 [9]: ../game/scripts/siege/boss_royal_finale_controller.gd
-[10]: ../game/scripts/siege/boss_arena_barrier_2d.gd
 [11]: ../game/scripts/ui/boss_fight_herald.gd
