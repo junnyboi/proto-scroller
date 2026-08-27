@@ -134,7 +134,7 @@ A package is complete only after focused evidence is recorded, the plan is updat
 
 | Work package | Completion | Commit / checkpoint | Focused evidence | Notes |
 |---|---|---|---|---|
-| WP0 | Completed | Pending milestone hash | 20 GPT Image 2 masters, 20 embedded proposal plates, 3 atlases, 60/60 nonempty cells, 478,162 runtime source bytes | Visual contact sheet and packed atlases passed the lightweight inspection; no fatal clipping, text, gore, or opaque-background defect. |
+| WP0 | Completed | `ab0c2ef14c995899e97fcf3d2adb83528169c8c8` | 20 GPT Image 2 masters, 20 embedded proposal plates, 3 atlases, 60/60 nonempty cells, 478,162 runtime source bytes | Visual contact sheet and packed atlases passed the lightweight inspection; no fatal clipping, text, gore, or opaque-background defect. |
 | WP1 | Pending | — | — | — |
 | WP2 | Pending | — | — | — |
 | WP3 | Pending | — | — | — |

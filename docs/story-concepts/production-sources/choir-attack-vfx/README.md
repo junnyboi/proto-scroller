@@ -4,7 +4,7 @@
 
 All twenty source triptychs in this directory were generated with **GPT Image 2** on 27 August 2026. Each generation used the corresponding approved district enemy concept as a visual reference and requested three isolated elements on a transparent background: a delivery payload, an impact or completion burst, and an anticipation or attack channel. The prompts explicitly prohibited text, gore spectacle, fantasy magic, hidden attacks, persistent hazards, control effects, additional damage instances, collision changes, and new child attackers.
 
-The twenty `*-attack-master.png` files are the unmodified 2304×1536 generation outputs. `manifest.json` records every master, proposal image, delivery class, atlas path, region, content size, runtime byte size, and SHA-256 hash.
+The twenty `*_original.png` files are the raw 2304×1536 GPT Image 2 outputs retained by the transparent-background generation pipeline. The corresponding `*-attack-master.png` files are the alpha-cleaned production masters used by deterministic processing. `manifest.json` records every production master, proposal image, delivery class, atlas path, region, content size, runtime byte size, and SHA-256 hash.
 
 ## Deterministic Processing
 
