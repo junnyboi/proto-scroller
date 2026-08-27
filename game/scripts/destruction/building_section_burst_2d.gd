@@ -17,10 +17,11 @@ const FLASH_TEXTURE: Texture2D = preload(
 	"res://art/city/destructibles/debris/impact_flash.png"
 )
 
-const ACTIVE_LIFETIME: float = 1.25
+const ACTIVE_LIFETIME: float = 1.70
 const FLASH_LIFETIME: float = 0.24
 
 var fragments: CPUParticles2D
+var falling_debris: CPUParticles2D
 var dust: CPUParticles2D
 var flash: Sprite2D
 var material_id: StringName = &"concrete"
@@ -41,7 +42,13 @@ func setup() -> void:
 	fragments.damping_min = 22.0
 	fragments.damping_max = 62.0
 	add_child(fragments)
-	dust = _make_particles("Dust", 7, 0.82)
+	falling_debris = _make_particles("FallingDebris", 10, 1.52)
+	falling_debris.angular_velocity_min = -420.0
+	falling_debris.angular_velocity_max = 420.0
+	falling_debris.damping_min = 12.0
+	falling_debris.damping_max = 38.0
+	add_child(falling_debris)
+	dust = _make_particles("DustCloud", 11, 1.18)
 	dust.angular_velocity_min = -95.0
 	dust.angular_velocity_max = 95.0
 	dust.damping_min = 58.0
@@ -75,6 +82,7 @@ func activate(
 	direction = Vector2(direction.x, minf(direction.y - 0.28, -0.18)).normalized()
 	var speed: float = clampf(impact_speed, 220.0, 920.0)
 	_configure_fragments(direction, speed, profile)
+	_configure_falling_debris(direction, speed, profile)
 	_configure_dust(direction, speed, profile)
 	_configure_flash(speed)
 	_age = 0.0
@@ -82,6 +90,7 @@ func activate(
 	visible = true
 	set_process(true)
 	fragments.restart()
+	falling_debris.restart()
 	dust.restart()
 
 
@@ -91,6 +100,8 @@ func deactivate() -> void:
 	set_process(false)
 	if fragments != null:
 		fragments.emitting = false
+	if falling_debris != null:
+		falling_debris.emitting = false
 	if dust != null:
 		dust.emitting = false
 	if flash != null:
@@ -155,26 +166,56 @@ func _configure_dust(
 	_profile: StructuralMaterialProfile
 ) -> void:
 	dust.direction = Vector2(direction.x * 0.42, -0.82).normalized()
-	dust.initial_velocity_min = impact_speed * 0.16
-	dust.initial_velocity_max = impact_speed * 0.34
-	dust.scale_amount_min = 0.16
-	dust.scale_amount_max = 0.42
+	dust.initial_velocity_min = impact_speed * 0.12
+	dust.initial_velocity_max = impact_speed * 0.30
+	dust.scale_amount_min = 0.24
+	dust.scale_amount_max = 0.68
 	match material_id:
 		&"glass":
-			dust.amount = 4
+			dust.amount = 7
 			dust.spread = 78.0
 			dust.gravity = Vector2(0.0, 230.0)
 			dust.color = Color(0.42, 0.86, 0.94, 0.38)
 		&"steel":
-			dust.amount = 5
+			dust.amount = 8
 			dust.spread = 42.0
 			dust.gravity = Vector2(0.0, 680.0)
 			dust.color = Color(1.0, 0.58, 0.24, 0.62)
 		_:
-			dust.amount = 9
+			dust.amount = 14
 			dust.spread = 92.0
 			dust.gravity = Vector2(0.0, 210.0)
 			dust.color = Color(0.72, 0.64, 0.54, 0.72)
+
+
+func _configure_falling_debris(
+	direction: Vector2,
+	impact_speed: float,
+	profile: StructuralMaterialProfile
+) -> void:
+	falling_debris.texture = texture_for_material(material_id)
+	falling_debris.direction = Vector2(direction.x * 0.26, 0.96).normalized()
+	falling_debris.spread = 38.0
+	falling_debris.gravity = Vector2(
+		0.0,
+		(profile.particle_gravity if profile != null else 560.0) * 1.18
+	)
+	falling_debris.initial_velocity_min = impact_speed * 0.10
+	falling_debris.initial_velocity_max = impact_speed * 0.28
+	falling_debris.color = Color(0.64, 0.58, 0.52, 0.94)
+	match material_id:
+		&"glass":
+			falling_debris.amount = 13
+			falling_debris.scale_amount_min = 0.04
+			falling_debris.scale_amount_max = 0.13
+		&"steel":
+			falling_debris.amount = 7
+			falling_debris.scale_amount_min = 0.06
+			falling_debris.scale_amount_max = 0.16
+		_:
+			falling_debris.amount = 10
+			falling_debris.scale_amount_min = 0.06
+			falling_debris.scale_amount_max = 0.18
 
 
 func _configure_flash(impact_speed: float) -> void:
