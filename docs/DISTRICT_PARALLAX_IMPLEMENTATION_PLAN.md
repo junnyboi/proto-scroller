@@ -62,9 +62,9 @@ Per project directive, repository-wide release-gate certification, full regressi
 
 | Phase | Status | Evidence |
 |---|---|---|
-| Phase 1 | Pending | — |
-| Phase 2 | Pending | — |
-| Phase 3 | Pending | — |
+| Phase 1 | Completed | Commit `42a7070`; five 2688×1152 GPT Image 2 concepts and five 1344×576 WebP derivatives with SHA-256 provenance manifest |
+| Phase 2 | In progress | Fixed four-band, two-sky-sprite runtime implemented locally; focused verification pending post-merge rerun |
+| Phase 3 | In progress | Spatial signal and New Game+ reset integration implemented locally; focused verification pending post-merge rerun |
 | Phase 4 | Pending | — |
 
 ## References
