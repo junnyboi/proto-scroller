@@ -231,6 +231,21 @@ func test_four_generated_impact_families_animate_in_fixed_pool() -> void:
 		assert_almost_eq(pool.last_hostile_impact_damage, impact_damage, 0.0001, visual_key)
 		assert_eq(pool.last_hostile_impact_cue, expected.audio_cue, visual_key)
 		assert_eq(feedback_pool.last_cue, expected.audio_cue, visual_key)
+		assert_between(
+			feedback_pool.last_cue_pitch,
+			1.0 - ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION,
+			1.0 + ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION,
+			visual_key
+		)
+		var authored_volume_db: float = float(
+			AudioCueRegistry.profile(expected.audio_cue).volume_db
+		)
+		assert_between(
+			feedback_pool.last_cue_volume_db,
+			authored_volume_db - ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB,
+			authored_volume_db + ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB,
+			visual_key
+		)
 		assert_false(impact.particles.visible, visual_key)
 		var impact_spec: Dictionary = EnemyAttackVfxCatalog.impact_spec_for_key(
 			expected.impact_key
@@ -280,6 +295,58 @@ func test_generated_impact_audio_assets_are_unique_mono_qoa_and_bounded() -> voi
 		assert_false(unique_payloads.has(stream.data), cue_label)
 		unique_payloads[stream.data] = true
 	assert_eq(unique_payloads.size(), 4)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(
+			0.0, ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION
+		),
+		0.965,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(
+			0.5, ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION
+		),
+		1.0,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(
+			1.0, ProjectilePool.HOSTILE_IMPACT_PITCH_VARIATION
+		),
+		1.035,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_pitch_for_sample(1.0, 1.0),
+		1.0 + ImpactFeedbackPool.MAX_CUE_PITCH_VARIATION,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(
+			0.0, ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB
+		),
+		-0.45,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(
+			0.5, ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB
+		),
+		0.0,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(
+			1.0, ProjectilePool.HOSTILE_IMPACT_VOLUME_VARIATION_DB
+		),
+		0.45,
+		0.0001
+	)
+	assert_almost_eq(
+		ImpactFeedbackPool.cue_volume_delta_for_sample(1.0, 20.0),
+		ImpactFeedbackPool.MAX_CUE_VOLUME_VARIATION_DB,
+		0.0001
+	)
 	assert_almost_eq(
 		ProjectilePool.damage_impact_scale(1.0, 100.0),
 		ProjectilePool.MIN_DAMAGE_IMPACT_SCALE,

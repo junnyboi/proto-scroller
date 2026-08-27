@@ -17,8 +17,10 @@ const PIPE_TEXTURE: Texture2D = preload(
 	"res://art/destruction/damage_details/broken_water_pipe.png"
 )
 const FACADE_ALPHA_THRESHOLD: float = 0.08
-const DAMAGED_DARKEN_STRENGTH: float = 0.28
-const DESTROYED_DARKEN_STRENGTH: float = 0.82
+const DAMAGED_DARKEN_STRENGTH: float = 0.72
+const DESTROYED_DARKEN_STRENGTH: float = 1.0
+const DESTROYED_HOLLOW_EXTENTS: Vector2 = Vector2(0.37, 0.43)
+const HOLLOW_CENTER_Y: float = 0.56
 const CAVITY_SHADER_CODE: String = """
 shader_type canvas_item;
 render_mode unshaded;
@@ -26,12 +28,37 @@ render_mode unshaded;
 uniform vec4 visual_tint : source_color = vec4(1.0);
 uniform vec4 cavity_tint : source_color = vec4(0.018, 0.014, 0.016, 1.0);
 uniform float alpha_threshold = 0.08;
-uniform float darken_strength = 0.28;
+uniform float darken_strength = 0.0;
+uniform float hollow_progress = 0.0;
+uniform vec2 hollow_center_uv = vec2(0.5, 0.56);
+uniform vec2 hollow_extents_uv = vec2(0.0);
+uniform float hollow_seed = 0.0;
+uniform vec4 region_uv_rect = vec4(0.0, 0.0, 1.0, 1.0);
 
 void fragment() {
 	vec4 facade = texture(TEXTURE, UV) * visual_tint;
 	if (facade.a <= alpha_threshold) {
 		discard;
+	}
+	if (hollow_progress > 0.0001) {
+		vec2 cell_uv = (UV - region_uv_rect.xy) / max(region_uv_rect.zw, vec2(0.0001));
+		vec2 extents = max(hollow_extents_uv, vec2(0.0001));
+		vec2 delta = cell_uv - hollow_center_uv;
+		float angle = atan(delta.y, delta.x);
+		float coarse = sin(angle * 5.0 + hollow_seed * 19.0);
+		float chips = sin(angle * 11.0 - hollow_seed * 31.0);
+		float notches = step(0.70, sin(angle * 17.0 + hollow_seed * 43.0));
+		float boundary = 1.0 + coarse * 0.075 + chips * 0.035 - notches * 0.055;
+		float lower_breach = smoothstep(0.72, 1.0, hollow_progress)
+			* smoothstep(0.58, 0.92, cell_uv.y)
+			* (1.0 - smoothstep(0.68, 0.96, abs(delta.x) / extents.x));
+		boundary += lower_breach * 0.18;
+		float radial = length(delta / extents);
+		float edge_softness = 0.012;
+		if (radial < boundary - edge_softness) {
+			discard;
+		}
+		facade.a *= smoothstep(boundary - edge_softness, boundary + edge_softness, radial);
 	}
 	float cavity_mix = clamp(darken_strength, 0.0, 1.0);
 	facade.rgb = mix(facade.rgb, cavity_tint.rgb, cavity_mix);
@@ -53,8 +80,10 @@ var _cable_detail: BuildingDamageAttachment2D
 var _pipe_detail: BuildingDamageAttachment2D
 var _detail_mask: int = 0
 var _cavity_material: ShaderMaterial
+var _facade_sprite: Sprite2D
 var _visual_tint: Color = Color.WHITE
 var _destroyed_stage: bool = false
+var _hollow_progress: float = 0.0
 
 
 func configure(
@@ -73,14 +102,10 @@ func configure(
 	_visual_tint = visual_tint
 	z_index = 2
 	_patch = Polygon2D.new()
-	_patch.name = "FractureTexture"
-	_patch.texture = _texture
-	_patch.color = Color.WHITE
-	_patch.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_patch.z_index = -1
+	_patch.name = "HollowGeometry"
+	_patch.visible = false
 	_cavity_material = ShaderMaterial.new()
 	_cavity_material.shader = _get_shared_cavity_shader()
-	_patch.material = _cavity_material
 	_configure_cavity_material()
 	add_child(_patch)
 	_cable_detail = _create_detail_attachment(
@@ -113,15 +138,22 @@ func reconfigure(
 	_material_id = material_id
 	_visual_tint = visual_tint
 	if _patch != null:
-		_patch.texture = _texture
-		_patch.color = Color.WHITE
-	_configure_cavity_material()
+		_configure_cavity_material()
 	if _cable_detail != null:
 		_cable_detail.configure_seed(_pattern_seed)
 	if _pipe_detail != null:
 		_pipe_detail.configure_seed(_pattern_seed)
 	reset_pattern()
 	visible = false
+
+
+func _bind_facade_sprite(sprite: Sprite2D) -> void:
+	_facade_sprite = sprite
+	if _facade_sprite == null:
+		return
+	_facade_sprite.modulate = Color.WHITE
+	_facade_sprite.material = _cavity_material
+	_configure_cavity_material()
 
 
 func record_damage(event: DamageEvent, health_ratio: float) -> void:
@@ -138,6 +170,7 @@ func record_damage(event: DamageEvent, health_ratio: float) -> void:
 		^ int(roundf(event.hit_position.y * 31.0))
 	)
 	var severity: float = clampf(1.0 - health_ratio, 0.0, 1.0)
+	_set_hollow_progress(severity)
 	_generate(local_hit, severity, event_seed)
 	_emit_attachment_effects(event, severity)
 	set_destroyed_stage(health_ratio <= 0.0)
@@ -156,13 +189,11 @@ func ensure_destroyed_pattern() -> void:
 
 func set_destroyed_stage(value: bool) -> void:
 	_destroyed_stage = value
+	if value:
+		_set_hollow_progress(1.0)
 	if value and not _contour.is_empty():
 		_apply_detail_mask(CABLE_DETAIL_BIT | PIPE_DETAIL_BIT, _contour_center())
-	if _cavity_material != null:
-		_cavity_material.set_shader_parameter(
-			"darken_strength",
-			DESTROYED_DARKEN_STRENGTH if value else DAMAGED_DARKEN_STRENGTH
-		)
+	_update_hollow_material()
 
 
 func is_destroyed_stage() -> bool:
@@ -209,6 +240,10 @@ func damage_effect_activation_count() -> int:
 	return total
 
 
+func _set_damage_progress(value: float) -> void:
+	_set_hollow_progress(value)
+
+
 func active_damage_effect_count() -> int:
 	var total: int = 0
 	if _cable_detail != null:
@@ -241,14 +276,11 @@ func reset_pattern() -> void:
 	_cracks.clear()
 	_detail_mask = 0
 	_destroyed_stage = false
+	_hollow_progress = 0.0
 	if _patch != null:
 		_patch.polygon = PackedVector2Array()
 		_patch.uv = PackedVector2Array()
-	if _cavity_material != null:
-		_cavity_material.set_shader_parameter(
-			"darken_strength",
-			DAMAGED_DARKEN_STRENGTH
-		)
+	_update_hollow_material()
 	cull_damage_details()
 	queue_redraw()
 
@@ -261,6 +293,7 @@ func capture_stream_state() -> Dictionary:
 		"contour": _contour.duplicate(),
 		"cracks": cracks,
 		"detail_mask": _detail_mask,
+		"hollow_progress": _hollow_progress,
 	}
 
 
@@ -274,6 +307,7 @@ func restore_stream_state(state: Dictionary) -> void:
 		_cracks.append((crack_value as PackedVector2Array).duplicate())
 	_patch.polygon = _contour
 	_patch.uv = _texture_uvs(_contour)
+	_set_hollow_progress(float(state.get("hollow_progress", 0.0)))
 	_apply_detail_mask(
 		int(state.get("detail_mask", 0)),
 		_contour_center()
@@ -281,27 +315,31 @@ func restore_stream_state(state: Dictionary) -> void:
 	queue_redraw()
 
 
-func _generate(center: Vector2, severity: float, event_seed: int) -> void:
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = event_seed
-	var base_radius: float = minf(_cell_size.x, _cell_size.y) * 0.28
+func _generate(_impact_center: Vector2, severity: float, event_seed: int) -> void:
+	var contour_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	contour_rng.seed = _pattern_seed * 32452843 + 49979687
+	var crack_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	crack_rng.seed = event_seed
+	var center: Vector2 = _hollow_center_local()
+	var base_radius: float = minf(_cell_size.x, _cell_size.y) * lerpf(
+		0.10,
+		0.42,
+		_smooth_progress(severity)
+	)
 	var radius_scale: Vector2 = Vector2(1.18, 0.88)
-	var crack_total: int = BASE_CRACK_COUNT
+	var crack_total: int = BASE_CRACK_COUNT + floori(severity * 4.0)
 	if _material_id == &"glass":
-		base_radius *= 0.90
 		radius_scale = Vector2(1.02, 1.20)
 		crack_total += 2
 	elif _material_id == &"steel":
-		base_radius *= 0.82
 		radius_scale = Vector2(1.42, 0.66)
 		crack_total -= 1
-	base_radius *= lerpf(0.82, 1.18, severity)
 	_contour = PackedVector2Array()
 	for point_index: int in range(CONTOUR_POINTS):
 		var angle: float = TAU * float(point_index) / float(CONTOUR_POINTS)
-		angle += rng.randf_range(-0.12, 0.12)
+		angle += contour_rng.randf_range(-0.12, 0.12)
 		var notch: float = 0.72 if point_index % 5 == 2 else 1.0
-		var radial: float = base_radius * notch * rng.randf_range(0.72, 1.14)
+		var radial: float = base_radius * notch * contour_rng.randf_range(0.72, 1.14)
 		var point: Vector2 = center + Vector2(
 			cos(angle) * radial * radius_scale.x,
 			sin(angle) * radial * radius_scale.y
@@ -323,22 +361,80 @@ func _generate(center: Vector2, severity: float, event_seed: int) -> void:
 	for crack_index: int in range(crack_total):
 		var contour_index: int = wrapi(
 			roundi(float(crack_index) * float(CONTOUR_POINTS) / float(crack_total))
-			+ rng.randi_range(-1, 1),
+			+ crack_rng.randi_range(-1, 1),
 			0,
 			CONTOUR_POINTS
 		)
 		var edge: Vector2 = _contour[contour_index]
 		var direction: Vector2 = center.direction_to(edge)
 		var normal: Vector2 = direction.orthogonal()
-		var middle: Vector2 = center.lerp(edge, rng.randf_range(0.38, 0.62))
-		middle += normal * rng.randf_range(-10.0, 10.0)
+		var outer: Vector2 = edge + direction * crack_rng.randf_range(18.0, 42.0)
+		outer.x = clampf(outer.x, -_cell_size.x * 0.5, _cell_size.x * 0.5)
+		outer.y = clampf(outer.y, -_cell_size.y * 0.5, _cell_size.y * 0.5)
+		var middle: Vector2 = edge.lerp(outer, crack_rng.randf_range(0.38, 0.62))
+		middle += normal * crack_rng.randf_range(-8.0, 8.0)
 		var crack: PackedVector2Array = PackedVector2Array([
-			center + normal * rng.randf_range(-3.0, 3.0),
+			edge + normal * crack_rng.randf_range(-2.0, 2.0),
 			middle,
-			edge,
+			outer,
 		])
 		_cracks.append(crack)
 	_apply_detail_mask(_detail_mask_for_severity(severity), center)
+
+
+func _set_hollow_progress(value: float) -> void:
+	_hollow_progress = clampf(value, 0.0, 1.0)
+	_update_hollow_material()
+
+
+func _update_hollow_material() -> void:
+	if _cavity_material == null:
+		return
+	var eased_progress: float = _smooth_progress(_hollow_progress)
+	var darken_strength: float = lerpf(
+		0.0,
+		DAMAGED_DARKEN_STRENGTH,
+		eased_progress
+	)
+	if _destroyed_stage or is_equal_approx(_hollow_progress, 1.0):
+		darken_strength = DESTROYED_DARKEN_STRENGTH
+	_cavity_material.set_shader_parameter("hollow_progress", _hollow_progress)
+	_cavity_material.set_shader_parameter(
+		"hollow_center_uv",
+		Vector2(0.5, HOLLOW_CENTER_Y)
+	)
+	_cavity_material.set_shader_parameter(
+		"hollow_extents_uv",
+		_hollow_extents_for_progress(eased_progress)
+	)
+	_cavity_material.set_shader_parameter(
+		"hollow_seed",
+		float(posmod(_pattern_seed, 997)) / 997.0
+	)
+	_cavity_material.set_shader_parameter("darken_strength", darken_strength)
+
+
+func _hollow_extents_for_progress(eased_progress: float) -> Vector2:
+	if eased_progress <= 0.0:
+		return Vector2.ZERO
+	var extents: Vector2 = Vector2(0.035, 0.025).lerp(
+		DESTROYED_HOLLOW_EXTENTS,
+		eased_progress
+	)
+	if _material_id == &"glass":
+		extents *= Vector2(0.96, 1.05)
+	elif _material_id == &"steel":
+		extents *= Vector2(1.08, 0.90)
+	return extents
+
+
+func _hollow_center_local() -> Vector2:
+	return Vector2(0.0, (_cell_size.y * HOLLOW_CENTER_Y) - _cell_size.y * 0.5)
+
+
+func _smooth_progress(value: float) -> float:
+	var clamped: float = clampf(value, 0.0, 1.0)
+	return clamped * clamped * (3.0 - 2.0 * clamped)
 
 
 func _detail_mask_for_severity(severity: float) -> int:
@@ -445,9 +541,22 @@ func _configure_cavity_material() -> void:
 	_cavity_material.set_shader_parameter("visual_tint", _visual_tint)
 	_cavity_material.set_shader_parameter("alpha_threshold", FACADE_ALPHA_THRESHOLD)
 	_cavity_material.set_shader_parameter("cavity_tint", _cavity_tint())
-	_cavity_material.set_shader_parameter(
-		"darken_strength",
-		DESTROYED_DARKEN_STRENGTH if _destroyed_stage else DAMAGED_DARKEN_STRENGTH
+	_cavity_material.set_shader_parameter("region_uv_rect", _facade_region_uv_rect())
+	_update_hollow_material()
+
+
+func _facade_region_uv_rect() -> Vector4:
+	var texture: Texture2D = _texture
+	var region: Rect2 = _region_rect
+	if _facade_sprite != null and _facade_sprite.texture != null:
+		texture = _facade_sprite.texture
+		region = _facade_sprite.region_rect
+	var texture_size: Vector2 = texture.get_size() if texture != null else Vector2.ONE
+	return Vector4(
+		region.position.x / maxf(texture_size.x, 1.0),
+		region.position.y / maxf(texture_size.y, 1.0),
+		region.size.x / maxf(texture_size.x, 1.0),
+		region.size.y / maxf(texture_size.y, 1.0)
 	)
 
 

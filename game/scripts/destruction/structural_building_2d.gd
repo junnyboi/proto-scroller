@@ -232,12 +232,21 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 	cell.set_meta(&"structural_column", column)
 	cell.set_meta(&"structural_row", row)
 	cell.set_meta(&"structural_material", profile.material_id)
-	cell.add_child(
-		_create_cell_sprite("IntactVisual", intact_texture, column, row, profile)
+	var intact_visual: Sprite2D = _create_cell_sprite(
+		"IntactVisual",
+		intact_texture,
+		column,
+		row,
+		profile
 	)
-	cell.add_child(
-		_create_damage_pattern(column, row, profile)
+	cell.add_child(intact_visual)
+	var damage_pattern: BuildingDamagePattern2D = _create_damage_pattern(
+		column,
+		row,
+		profile
 	)
+	damage_pattern._bind_facade_sprite(intact_visual)
+	cell.add_child(damage_pattern)
 	cell.add_child(_create_rubble_sprite(column, row, profile))
 	cell.add_child(_create_intact_body(row))
 	cell.add_child(_create_hurtbox())
@@ -249,7 +258,7 @@ func _create_cell_sprite(
 	texture: Texture2D,
 	column: int,
 	row: int,
-	profile: StructuralMaterialProfile
+	_profile: StructuralMaterialProfile
 ) -> Sprite2D:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.name = sprite_name
@@ -267,7 +276,7 @@ func _create_cell_sprite(
 		source_cell_size
 	)
 	sprite.scale = _cell_size() / source_cell_size
-	sprite.modulate = profile.visual_tint
+	sprite.modulate = Color.WHITE
 	return sprite
 
 
@@ -346,6 +355,7 @@ func _reconfigure_cell(column: int, row: int) -> void:
 			profile.material_id,
 			_cell_visual_tint(profile)
 		)
+		pattern._bind_facade_sprite(intact_visual)
 	var rubble_visual: Sprite2D = cell.get_node_or_null(^"RubbleVisual") as Sprite2D
 	_configure_rubble_sprite(rubble_visual, column, row, profile)
 	_configure_intact_collision(cell, row)
@@ -357,14 +367,14 @@ func _configure_cell_sprite(
 	texture: Texture2D,
 	column: int,
 	row: int,
-	profile: StructuralMaterialProfile
+	_profile: StructuralMaterialProfile
 ) -> void:
 	if sprite == null:
 		return
 	sprite.texture = texture
 	sprite.region_rect = _cell_region(texture, column, row)
 	sprite.scale = _cell_size() / sprite.region_rect.size
-	sprite.modulate = _cell_visual_tint(profile)
+	sprite.modulate = Color.WHITE
 
 
 func _configure_rubble_sprite(

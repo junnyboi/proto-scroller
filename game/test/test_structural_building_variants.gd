@@ -3,6 +3,18 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
+func _hollow_progress(pattern: BuildingDamagePattern2D) -> float:
+	return float(pattern.cavity_material().get_shader_parameter("hollow_progress"))
+
+
+func _hollow_extents(pattern: BuildingDamagePattern2D) -> Vector2:
+	return pattern.cavity_material().get_shader_parameter("hollow_extents_uv") as Vector2
+
+
+func _region_uv_rect(pattern: BuildingDamagePattern2D) -> Vector4:
+	return pattern.cavity_material().get_shader_parameter("region_uv_rect") as Vector4
+
+
 func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 	var bootstrap: StructuralBuildingVariant = CityDistrictCatalog.districts()[0].building_variants[0]
 	var building: StructuralBuilding2D = StructuralBuilding2D.new()
@@ -39,6 +51,13 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 						^"DamagedVisual"
 					) as BuildingDamagePattern2D
 					assert_not_null(pattern.cavity_material())
+					assert_eq(sprite.material, pattern.cavity_material())
+					assert_almost_eq(_hollow_progress(pattern), 0.0, 0.0001)
+					var uv_region: Vector4 = _region_uv_rect(pattern)
+					assert_almost_eq(uv_region.x, float(column) / 3.0, 0.0001)
+					assert_almost_eq(uv_region.y, float(row) / 2.0, 0.0001)
+					assert_almost_eq(uv_region.z, 1.0 / 3.0, 0.0001)
+					assert_almost_eq(uv_region.w, 1.0 / 2.0, 0.0001)
 					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					assert_lt(
 						(
@@ -106,9 +125,25 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						0.0001,
 						String(variant.variant_id)
 					)
+					assert_almost_eq(
+						_hollow_progress(pattern),
+						1.0,
+						0.0001,
+						String(variant.variant_id)
+					)
+					assert_gte(
+						_hollow_extents(pattern).x,
+						0.35,
+						String(variant.variant_id)
+					)
+					assert_gte(
+						_hollow_extents(pattern).y,
+						0.38,
+						String(variant.variant_id)
+					)
 					assert_true(
 						pattern.cavity_material().shader.code.contains(
-							"facade.a <= alpha_threshold"
+							"radial < boundary - edge_softness"
 						),
 						String(variant.variant_id)
 					)
