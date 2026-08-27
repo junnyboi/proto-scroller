@@ -100,6 +100,25 @@ func test_one_ground_breach_opens_passage_to_the_next_live_facade() -> void:
 	_record_test_execution()
 
 
+func test_destroyed_cell_disables_hurtbox_and_reset_restores_it() -> void:
+	var city: CitySlice = await _spawn_city()
+	var building: StructuralBuilding2D = city.building
+	var cell: Destructible2D = building.get_cell(0, 1)
+	var hurtbox_collision: CollisionShape2D = cell.get_node(
+		^"Hurtbox/CollisionShape2D"
+	) as CollisionShape2D
+	assert_false(hurtbox_collision.disabled)
+	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_075)))
+	await get_tree().physics_frame
+	assert_true(cell.is_destroyed())
+	assert_true(hurtbox_collision.disabled)
+	building.restore_stream_state({})
+	await get_tree().physics_frame
+	assert_false(cell.is_destroyed())
+	assert_false(hurtbox_collision.disabled)
+	_record_test_execution()
+
+
 func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	var city: CitySlice = await _spawn_city()
 	var cell: Destructible2D = city.building.get_cell(1, 1)
@@ -198,6 +217,7 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	assert_not_null(cutout_material)
 	assert_not_null(cutout_material.shader)
 	assert_true(cutout_material.shader.code.contains("discard"))
+	assert_true(cutout_material.shader.code.contains("facade.a <= 0.01"))
 	_record_test_execution()
 
 

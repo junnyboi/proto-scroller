@@ -11,6 +11,7 @@ const PROP_LAYER: int = 1 << 7
 const DEBRIS_LAYER: int = 1 << 8
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
+const REAR_BARRIER_LAYER: int = 1 << 11
 const LAND_VISUAL_BASELINE_Y: float = 655.0
 const ROBOT_START_POSITION: Vector2 = Vector2(760.0, 466.5)
 const ROBOT_ROAD_CLEARANCE_PIXELS: float = 35.0
@@ -74,7 +75,7 @@ static func build_robot(
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0
 	robot.collision_layer = ROBOT_LAYER
-	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER
+	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER | REAR_BARRIER_LAYER
 	robot.z_index = 100
 	robot.set_meta(&"combat_team", &"player")
 	var body_shape: CollisionShape2D = CollisionShape2D.new()

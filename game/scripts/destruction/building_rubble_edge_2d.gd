@@ -22,6 +22,10 @@ uniform float ground_open = 1.0;
 
 void fragment() {
 	vec2 local_uv = (UV - atlas_region_uv.xy) / atlas_region_uv.zw;
+	vec4 facade = texture(TEXTURE, UV) * COLOR;
+	if (facade.a <= 0.01) {
+		discard;
+	}
 	vec2 from_hole = local_uv - hole_center;
 	float angle = atan(from_hole.y, from_hole.x);
 	float irregularity = (
@@ -65,7 +69,6 @@ void fragment() {
 	if (cutout > 0.5) {
 		discard;
 	}
-	vec4 facade = texture(TEXTURE, UV) * COLOR;
 	float hollow_rim = 1.0 - smoothstep(1.0, 1.14, hollow_distance);
 	float ground_edge_distance = min(
 		abs(ground_x + left_width),

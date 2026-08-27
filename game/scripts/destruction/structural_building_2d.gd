@@ -226,6 +226,7 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 	cell.damaged_visual_path = ^"DamagedVisual"
 	cell.rubble_visual_path = ^"RubbleVisual"
 	cell.intact_collision_path = ^"IntactBody/CollisionShape2D"
+	cell.hurtbox_collision_path = ^"Hurtbox/CollisionShape2D"
 	cell.damage_applied.connect(_on_cell_damage_applied)
 	cell.destroyed.connect(_on_cell_destroyed.bind(column, row))
 	cell.set_meta(&"structural_column", column)
@@ -537,6 +538,7 @@ func _create_hurtbox() -> Area2D:
 	hurtbox.collision_layer = hurtbox_layer_value
 	hurtbox.collision_mask = 0
 	var collision: CollisionShape2D = CollisionShape2D.new()
+	collision.name = "CollisionShape2D"
 	var rectangle: RectangleShape2D = RectangleShape2D.new()
 	rectangle.size = _cell_size() - Vector2(4.0, 4.0)
 	collision.shape = rectangle
