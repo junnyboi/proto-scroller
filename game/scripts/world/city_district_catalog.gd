@@ -14,9 +14,6 @@ const CHUNKS_PER_DISTRICT: int = (
 	FACADE_ENCOUNTERS_PER_DISTRICT + TRANSITION_CORRIDOR_CHUNKS
 )
 
-const SHARED_RUBBLE: Texture2D = preload(
-	"res://art/city/destructibles/building_rubble.png"
-)
 const INITIAL_DISTRICT_TEXTURES: Dictionary = {
 	&"business_mercy_exchange_annex": preload(
 		"res://art/city/destructibles/districts/business/mercy_exchange_annex.png"
@@ -571,15 +568,9 @@ static func _variant(
 	var initial_texture: Texture2D = INITIAL_DISTRICT_TEXTURES.get(id) as Texture2D
 	if initial_texture != null:
 		variant.intact_texture = initial_texture
-		variant.damaged_texture = initial_texture
-		variant.rubble_texture = SHARED_RUBBLE
 	else:
 		var facade_path: String = String(FACADE_TEXTURE_PATHS.get(id, ""))
-		variant.configure_texture_paths(
-			facade_path,
-			facade_path,
-			SHARED_RUBBLE.resource_path
-		)
+		variant.configure_texture_path(facade_path)
 	variant.display_size = size * FACADE_SIZE_SCALE
 	variant.material_ids = PackedStringArray(materials)
 	variant.visual_tint = tint

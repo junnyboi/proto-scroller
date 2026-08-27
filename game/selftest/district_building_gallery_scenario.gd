@@ -82,8 +82,6 @@ func _create_building(variant: StructuralBuildingVariant) -> StructuralBuilding2
 	var building: StructuralBuilding2D = StructuralBuilding2D.new()
 	building.name = String(variant.variant_id)
 	building.intact_texture = variant.intact_texture
-	building.damaged_texture = variant.damaged_texture
-	building.rubble_texture = variant.rubble_texture
 	building.display_size = variant.display_size
 	building.z_index = 2
 	return building

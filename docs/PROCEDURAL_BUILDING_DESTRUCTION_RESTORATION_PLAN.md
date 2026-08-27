@@ -7,7 +7,7 @@
 
 ## Objective
 
-Restore the original damage language in which each building retains its authored facade while individual structural sections are progressively scarred, hollowed, and darkened by deterministic runtime geometry. Destroyed cells must not be replaced by a facade-resampled cross-section layer or any bespoke destroyed-building image. Cracks, broken plumbing, dangling wires, sparks, water spray, shallow rubble, material debris, support transfer, chain collapse, passage opening, persistence, and pooling must remain intact.
+Restore the original damage language in which each building retains its authored facade while individual structural sections are progressively scarred, hollowed, and darkened by deterministic runtime geometry. Destroyed cells must not be replaced or backed by a facade-resampled cross-section layer, rubble texture, interior plate, or any bespoke destroyed-building image. Cracks, broken plumbing, dangling wires, sparks, water spray, material debris, support transfer, chain collapse, passage opening, persistence, and pooling must remain intact.
 
 ## Diagnosis
 
@@ -15,7 +15,7 @@ The unwanted presentation is owned by `BuildingRubbleEdge2D`. Its current shader
 
 A second defect exists in the damage lifecycle. `Destructible2D.receive_damage()` records a procedural pattern only while health remains above zero. A fatal single hit therefore skips final contour generation. `_apply_stage()` then hides `BuildingDamagePattern2D` and culls its cable and pipe attachments when the cell enters the destroyed state. This makes some failed sections appear insufficiently damaged and leaves the cross-section renderer as the dominant visual.
 
-The district catalog also retains two obsolete legacy textures, `building_intact.png` and `building_damaged.png`, as unused preload constants. All 25 production variants already point to their own facade for both intact and procedural fracture sampling, so those two images and imports are dead runtime art. The shared `building_rubble.png` remains active and is not cross-section art; it provides the shallow nonblocking rubble bed at the foot of a failed cell.
+The district catalog previously retained obsolete secondary structural texture channels. All 25 production variants now expose exactly one authored facade texture. The procedural shader samples that same facade, and there is no damaged, rubble, cross-section, or interior-background texture channel to regress into later.
 
 ## Target Architecture
 
@@ -24,7 +24,7 @@ The district catalog also retains two obsolete legacy textures, `building_intact
 | Authored facade sprite | Visible | Visible | Visible outside the procedural cavity |
 | Procedural damage pattern | Hidden | Visible, moderate darkening and staged cracks | Visible, deep alpha-clipped cavity, final crack network, wires and broken pipe |
 | Cross-section facade reconstruction | Absent | Absent | Absent |
-| Shared shallow rubble strip | Hidden | Hidden | Visible |
+| Texture-backed rubble or interior background | Absent | Absent | Absent |
 | Material burst and physical debris | Inactive | Damage attachment effects only | One pooled material burst plus bounded physical chunks |
 | Collision and hurtbox | Enabled | Enabled | Disabled according to the existing passage contract |
 
@@ -91,11 +91,11 @@ Retain all existing material layouts, facade sizes, mutation schema compatibilit
 
 ### WP4 — Remove unused art and reconcile documentation
 
-Delete the unused legacy `building_intact.png` and `building_damaged.png` files plus imports. Remove their preload constants from `CityDistrictCatalog`. Keep all 25 authored facade images, `building_rubble.png`, cable/pipe details, and material-specific burst/debris assets because they remain active.
+Delete the unused legacy `building_intact.png`, `building_damaged.png`, and `building_rubble.png` files plus imports. Remove all damaged/rubble texture fields, paths, preload constants, and sprite construction from the structural facade runtime. Keep all 25 authored facade images, cable/pipe details, and material-specific burst/debris assets because they remain active.
 
 Update the district design/implementation records, building-destruction VFX plan, README, and this plan so “rubble edges” or cross-section reconstruction is not presented as the current architecture.
 
-**Acceptance:** repository search finds no runtime reference to the deleted files; catalog validation still resolves all 25 production facade, damage, and rubble resources.
+**Acceptance:** repository search finds no runtime reference to the deleted files or any structural damaged/rubble texture channel; catalog validation still resolves all 25 production facade resources.
 
 ### WP5 — Integration, export, and WebDev synchronization
 
@@ -112,7 +112,7 @@ Run focused import and destruction regressions only, per the release-gate overri
 | All-building coverage | Every one of the 25 variants reconfigures the same six cells and produces procedural destroyed state |
 | Persistence | Destroyed state with a stored pattern restores exactly; legacy destroyed state without a pattern synthesizes a deterministic fallback |
 | Gameplay preservation | Each failed cell disables only its own hurtbox/collider; passage opens after all three lower bays fail, while support/floor/steel chains and burst/debris paths remain unchanged |
-| Cleanup | Unused legacy intact/damaged art is removed; active facade, rubble, attachment, and burst assets remain |
+| Cleanup | Legacy intact/damaged/rubble art and structural secondary-texture channels are removed; active facade, attachment, and burst assets remain |
 | Delivery | Source is pushed; fresh HTML/JS/WASM/PCK are produced; both WASM and PCK are remapped into the existing WebDev checkpoint |
 
 ## Risks and Controls

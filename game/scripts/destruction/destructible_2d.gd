@@ -14,9 +14,7 @@ signal destroyed(event: DamageEvent)
 @export var section_burst_pool_path: NodePath
 @export var intact_visual_path: NodePath
 @export var damaged_visual_path: NodePath
-@export var rubble_visual_path: NodePath
 @export var intact_collision_path: NodePath
-@export var rubble_collision_path: NodePath
 @export var hurtbox_collision_path: NodePath
 
 var current_health: float
@@ -30,12 +28,8 @@ var _seen_attacks: Dictionary[int, bool] = {}
 )
 @onready var _intact_visual: CanvasItem = get_node_or_null(intact_visual_path) as CanvasItem
 @onready var _damaged_visual: CanvasItem = get_node_or_null(damaged_visual_path) as CanvasItem
-@onready var _rubble_visual: CanvasItem = get_node_or_null(rubble_visual_path) as CanvasItem
 @onready var _intact_collision: CollisionShape2D = (
 	get_node_or_null(intact_collision_path) as CollisionShape2D
-)
-@onready var _rubble_collision: CollisionShape2D = (
-	get_node_or_null(rubble_collision_path) as CollisionShape2D
 )
 @onready var _hurtbox_collision: CollisionShape2D = (
 	get_node_or_null(hurtbox_collision_path) as CollisionShape2D
@@ -119,26 +113,22 @@ func _break(event: DamageEvent) -> void:
 	destroyed.emit(event)
 
 
-func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
+func _apply_stage(show_damaged: bool, show_destroyed: bool) -> void:
 	if _intact_visual != null:
-		_intact_visual.visible = true
+		_intact_visual.visible = not show_destroyed
 	if _damaged_visual != null:
-		_damaged_visual.visible = show_damaged or show_rubble
+		_damaged_visual.visible = show_damaged
 		var damage_pattern: BuildingDamagePattern2D = (
 			_damaged_visual as BuildingDamagePattern2D
 		)
 		if damage_pattern != null:
-			damage_pattern.set_destroyed_stage(show_rubble)
-			if show_rubble or not show_damaged:
+			damage_pattern.set_destroyed_stage(show_destroyed)
+			if show_destroyed or not show_damaged:
 				damage_pattern.cull_damage_details()
-	if _rubble_visual != null:
-		_rubble_visual.visible = show_rubble
 	if _intact_collision != null:
-		_intact_collision.set_deferred("disabled", show_rubble)
-	if _rubble_collision != null:
-		_rubble_collision.set_deferred("disabled", not show_rubble)
+		_intact_collision.set_deferred("disabled", show_destroyed)
 	if _hurtbox_collision != null:
-		_hurtbox_collision.set_deferred("disabled", show_rubble)
+		_hurtbox_collision.set_deferred("disabled", show_destroyed)
 
 
 func _release_chunks(event: DamageEvent) -> void:

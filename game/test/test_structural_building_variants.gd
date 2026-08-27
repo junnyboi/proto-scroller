@@ -67,8 +67,6 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 	var bootstrap: StructuralBuildingVariant = CityDistrictCatalog.districts()[0].building_variants[0]
 	var building: StructuralBuilding2D = StructuralBuilding2D.new()
 	building.intact_texture = bootstrap.intact_texture
-	building.damaged_texture = bootstrap.damaged_texture
-	building.rubble_texture = bootstrap.rubble_texture
 	building.display_size = bootstrap.display_size
 	add_child_autofree(building)
 	await get_tree().process_frame
@@ -106,6 +104,7 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 					assert_almost_eq(uv_region.y, float(row) / 2.0, 0.0001)
 					assert_almost_eq(uv_region.z, 1.0 / 3.0, 0.0001)
 					assert_almost_eq(uv_region.w, 1.0 / 2.0, 0.0001)
+					assert_null(cell.get_node_or_null(^"RubbleVisual"))
 					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					assert_lt(
 						(
@@ -123,8 +122,6 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 	var bootstrap: StructuralBuildingVariant = CityDistrictCatalog.districts()[0].building_variants[0]
 	var building: StructuralBuilding2D = StructuralBuilding2D.new()
 	building.intact_texture = bootstrap.intact_texture
-	building.damaged_texture = bootstrap.damaged_texture
-	building.rubble_texture = bootstrap.rubble_texture
 	building.display_size = bootstrap.display_size
 	add_child_autofree(building)
 	await get_tree().process_frame
@@ -158,8 +155,12 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 					var pattern: BuildingDamagePattern2D = cell.get_node(
 						^"DamagedVisual"
 					) as BuildingDamagePattern2D
-					assert_true(pattern.visible, String(variant.variant_id))
+					assert_false(pattern.visible, String(variant.variant_id))
 					assert_true(pattern.is_destroyed_stage(), String(variant.variant_id))
+					assert_false(
+						(cell.get_node(^"IntactVisual") as Sprite2D).visible,
+						String(variant.variant_id)
+					)
 					assert_eq(
 						pattern.contour().size(),
 						BuildingDamagePattern2D.CONTOUR_POINTS,
@@ -196,6 +197,7 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						),
 						String(variant.variant_id)
 					)
+					assert_null(cell.get_node_or_null(^"RubbleVisual"))
 					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					var hurtbox: CollisionShape2D = cell.get_node(
 						^"Hurtbox/CollisionShape2D"
@@ -276,8 +278,6 @@ func test_stream_state_restores_only_to_the_matching_variant() -> void:
 	var second: StructuralBuildingVariant = business.building_variants[1]
 	var building: StructuralBuilding2D = StructuralBuilding2D.new()
 	building.intact_texture = first.intact_texture
-	building.damaged_texture = first.damaged_texture
-	building.rubble_texture = first.rubble_texture
 	building.display_size = first.display_size
 	add_child_autofree(building)
 	await get_tree().process_frame

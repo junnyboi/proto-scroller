@@ -21,8 +21,6 @@ const UPPER_SUPPORT_DAMAGE_RATIO: float = 0.5
 const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.gd")
 
 @export var intact_texture: Texture2D
-@export var damaged_texture: Texture2D
-@export var rubble_texture: Texture2D
 @export var display_size: Vector2 = Vector2(600.0, 534.0)
 @export var collision_layer_value: int = 0
 @export var collision_mask_value: int = 0
@@ -61,8 +59,6 @@ func apply_variant(variant: StructuralBuildingVariant) -> bool:
 	active_variant = variant
 	active_variant_id = variant.variant_id
 	intact_texture = variant.intact_texture
-	damaged_texture = variant.damaged_texture
-	rubble_texture = variant.rubble_texture
 	display_size = variant.display_size
 	set_meta(&"building_variant_id", active_variant_id)
 	set_meta(&"destruction_signature", variant.destruction_signature)
@@ -200,8 +196,8 @@ func restore_stream_state(state: Dictionary) -> void:
 
 
 func _build_cells() -> void:
-	if intact_texture == null or damaged_texture == null or rubble_texture == null:
-		push_error("StructuralBuilding2D requires intact, damaged, and rubble textures")
+	if intact_texture == null:
+		push_error("StructuralBuilding2D requires one authored facade texture")
 		return
 	for row: int in range(ROWS):
 		for column: int in range(COLUMNS):
@@ -224,7 +220,6 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 	cell.section_burst_pool_path = NodePath("../" + str(section_burst_pool_path))
 	cell.intact_visual_path = ^"IntactVisual"
 	cell.damaged_visual_path = ^"DamagedVisual"
-	cell.rubble_visual_path = ^"RubbleVisual"
 	cell.intact_collision_path = ^"IntactBody/CollisionShape2D"
 	cell.hurtbox_collision_path = ^"Hurtbox/CollisionShape2D"
 	cell.damage_applied.connect(_on_cell_damage_applied)
@@ -247,7 +242,6 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 	)
 	damage_pattern._bind_facade_sprite(intact_visual)
 	cell.add_child(damage_pattern)
-	cell.add_child(_create_rubble_sprite(column, row, profile))
 	cell.add_child(_create_intact_body(row))
 	cell.add_child(_create_hurtbox())
 	return cell
@@ -280,33 +274,6 @@ func _create_cell_sprite(
 	return sprite
 
 
-func _create_rubble_sprite(
-	column: int,
-	row: int,
-	profile: StructuralMaterialProfile
-) -> Sprite2D:
-	var sprite: Sprite2D = Sprite2D.new()
-	sprite.name = "RubbleVisual"
-	sprite.texture = rubble_texture
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	sprite.region_enabled = true
-	sprite.region_filter_clip_enabled = true
-	var source_size: Vector2 = rubble_texture.get_size()
-	var source_width: float = source_size.x / float(COLUMNS)
-	sprite.region_rect = Rect2(
-		Vector2(source_width * float(column), 0.0),
-		Vector2(source_width, source_size.y)
-	)
-	var rubble_height: float = 64.0 if row == ROWS - 1 else 44.0
-	sprite.scale = Vector2(
-		_cell_size().x / source_width,
-		rubble_height / maxf(source_size.y, 1.0)
-	)
-	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
-	sprite.modulate = profile.visual_tint
-	return sprite
-
-
 func _create_damage_pattern(
 	column: int,
 	row: int,
@@ -314,13 +281,13 @@ func _create_damage_pattern(
 ) -> BuildingDamagePattern2D:
 	var pattern: BuildingDamagePattern2D = BuildingDamagePattern2D.new()
 	pattern.name = "DamagedVisual"
-	var source_size: Vector2 = damaged_texture.get_size()
+	var source_size: Vector2 = intact_texture.get_size()
 	var source_cell_size: Vector2 = Vector2(
 		source_size.x / float(COLUMNS),
 		source_size.y / float(ROWS)
 	)
 	pattern.configure(
-		damaged_texture,
+		intact_texture,
 		Rect2(
 			Vector2(source_cell_size.x * float(column), source_cell_size.y * float(row)),
 			source_cell_size
@@ -348,16 +315,14 @@ func _reconfigure_cell(column: int, row: int) -> void:
 	) as BuildingDamagePattern2D
 	if pattern != null:
 		pattern.reconfigure(
-			damaged_texture,
-			_cell_region(damaged_texture, column, row),
+			intact_texture,
+			_cell_region(intact_texture, column, row),
 			_cell_size(),
 			_pattern_seed_for_cell(column, row),
 			profile.material_id,
 			_cell_visual_tint(profile)
 		)
 		pattern._bind_facade_sprite(intact_visual)
-	var rubble_visual: Sprite2D = cell.get_node_or_null(^"RubbleVisual") as Sprite2D
-	_configure_rubble_sprite(rubble_visual, column, row, profile)
 	_configure_intact_collision(cell, row)
 	_configure_hurtbox(cell)
 
@@ -375,30 +340,6 @@ func _configure_cell_sprite(
 	sprite.region_rect = _cell_region(texture, column, row)
 	sprite.scale = _cell_size() / sprite.region_rect.size
 	sprite.modulate = Color.WHITE
-
-
-func _configure_rubble_sprite(
-	sprite: Sprite2D,
-	column: int,
-	row: int,
-	profile: StructuralMaterialProfile
-) -> void:
-	if sprite == null:
-		return
-	var source_size: Vector2 = rubble_texture.get_size()
-	var source_width: float = source_size.x / float(COLUMNS)
-	var rubble_height: float = 64.0 if row == ROWS - 1 else 44.0
-	sprite.texture = rubble_texture
-	sprite.region_rect = Rect2(
-		Vector2(source_width * float(column), 0.0),
-		Vector2(source_width, source_size.y)
-	)
-	sprite.scale = Vector2(
-		_cell_size().x / source_width,
-		rubble_height / maxf(source_size.y, 1.0)
-	)
-	sprite.position.y = -_cell_center(column, row).y - rubble_height * 0.5
-	sprite.modulate = _cell_visual_tint(profile)
 
 
 func _configure_intact_collision(cell: Destructible2D, row: int) -> void:

@@ -144,5 +144,13 @@ func test_every_building_has_one_unique_grid_safe_production_facade() -> void:
 			facade_paths[resource_path] = true
 			assert_eq(posmod(texture.get_width(), 6), 0)
 			assert_eq(posmod(texture.get_height(), 6), 0)
-			assert_eq(variant.damaged_texture, variant.intact_texture)
 	assert_eq(facade_paths.size(), CityDistrictCatalog.BUILDING_VARIANT_COUNT)
+	var variant_source: String = FileAccess.get_file_as_string(
+		"res://scripts/destruction/structural_building_variant.gd"
+	)
+	var catalog_source: String = FileAccess.get_file_as_string(
+		"res://scripts/world/city_district_catalog.gd"
+	)
+	assert_false(variant_source.contains("damaged_texture"))
+	assert_false(variant_source.contains("rubble_texture"))
+	assert_false(catalog_source.contains("building_rubble.png"))
