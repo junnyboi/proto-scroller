@@ -260,7 +260,7 @@ func test_four_generated_impact_families_animate_in_fixed_pool() -> void:
 	assert_eq(pool.active_hostile_impact_count(), 0)
 
 
-func test_generated_impact_audio_assets_are_unique_mono_pcm_and_bounded() -> void:
+func test_generated_impact_audio_assets_are_unique_mono_qoa_and_bounded() -> void:
 	var cues: Array[AudioCueRegistry.Cue] = [
 		AudioCueRegistry.Cue.ENEMY_BULLET_IMPACT,
 		AudioCueRegistry.Cue.ENEMY_SHELL_IMPACT,
@@ -274,7 +274,7 @@ func test_generated_impact_audio_assets_are_unique_mono_pcm_and_bounded() -> voi
 		var cue_label: String = str(cue)
 		assert_not_null(stream, cue_label)
 		assert_eq(stream.mix_rate, 48000, cue_label)
-		assert_eq(stream.format, AudioStreamWAV.FORMAT_16_BITS, cue_label)
+		assert_eq(stream.format, AudioStreamWAV.FORMAT_QOA, cue_label)
 		assert_false(stream.stereo, cue_label)
 		assert_between(stream.get_length(), 1.0, 1.4, cue_label)
 		assert_false(unique_payloads.has(stream.data), cue_label)

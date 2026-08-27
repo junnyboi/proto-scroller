@@ -7,6 +7,7 @@
     "enemy_rocket_salvo": "veo3.1-fast"
   },
   "runtime_directory": "res://audio/sfx/enemy_projectiles/",
+  "godot_runtime_import": "QOA",
   "entries": [
     {
       "projectile_key": "enemy_bullet",
