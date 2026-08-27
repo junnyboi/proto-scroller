@@ -18,6 +18,7 @@ var impact_feedback_pool: ImpactFeedbackPool
 var hit_stop: HitStopLease
 var destruction_director: DestructionDirector
 var debris_pool: DebrisPool
+var building_section_burst_pool: BuildingSectionBurstPool
 var enemy_scrap_pool: DebrisPool
 var soldier_defeat_pool: SoldierDefeatPool
 var enemy_remains_factory: EnemyRemainsFactory
@@ -101,9 +102,14 @@ func _build_destruction(
 	debris_pool.aerial_impact_accepted.connect(aerial_impact_accepted)
 	debris_pool.ground_impact_accepted.connect(ground_impact_accepted)
 	root.add_child(debris_pool)
+	building_section_burst_pool = BuildingSectionBurstPool.new()
+	building_section_burst_pool.name = "BuildingSectionBurstPool"
+	building_section_burst_pool.capacity = RuntimeBudget.BUILDING_SECTION_BURST_SLOTS
+	root.add_child(building_section_burst_pool)
 	enemy_scrap_pool = DebrisPool.new()
 	enemy_scrap_pool.name = "EnemyScrapPool"
 	enemy_scrap_pool.capacity = RuntimeBudget.ENEMY_SCRAP
+	enemy_scrap_pool.use_generated_visuals = false
 	enemy_scrap_pool.z_index = 31
 	enemy_scrap_pool.ground_impact_accepted.connect(ground_impact_accepted)
 	root.add_child(enemy_scrap_pool)

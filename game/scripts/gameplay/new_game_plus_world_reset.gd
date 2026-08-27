@@ -11,6 +11,7 @@ static func execute(city: CitySlice) -> void:
 	city.enemy_remains_factory.release_all()
 	city.soldier_defeat_pool.release_all()
 	city.debris_pool.release_all()
+	city.building_section_burst_pool.reset_all()
 	city.enemy_scrap_pool.release_all()
 	city.impact_feedback_director.cancel_all()
 	city.impact_feedback_pool.reset_runtime_state()

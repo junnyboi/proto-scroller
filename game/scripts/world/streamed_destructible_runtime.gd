@@ -178,6 +178,7 @@ func _build_slot(chunk: CityStreetChunk) -> void:
 	building.collision_mask_value = ROBOT_LAYER
 	building.hurtbox_layer_value = HURTBOX_LAYER
 	building.debris_pool_path = ^"../../../BuildingDebrisPool"
+	building.section_burst_pool_path = ^"../../../BuildingSectionBurstPool"
 	building.damage_applied.connect(_emit_building_damage.bind(building))
 	building.cell_destroyed.connect(_emit_building_cell.bind(building))
 	building.chain_reaction_started.connect(_emit_chain_started.bind(building))

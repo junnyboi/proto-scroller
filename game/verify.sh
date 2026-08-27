@@ -90,6 +90,14 @@ for herald_tier in \
 	test -s "art/ui/combo_herald/${herald_tier}.png"
 	test -s "audio/voice/combo/${herald_tier}.wav"
 done
+for destruction_vfx_asset in \
+	concrete_chunk \
+	glass_shard \
+	steel_fragment \
+	dust_puff \
+	impact_flash; do
+	test -s "art/city/destructibles/debris/${destruction_vfx_asset}.png"
+done
 CITY_SLICE_LINES="$(wc -l < scripts/gameplay/city_slice.gd)"
 test "$CITY_SLICE_LINES" -le 650
 printf 'city_slice_lines=%s\n' "$CITY_SLICE_LINES"
@@ -228,6 +236,10 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
   -s selftest/district_building_gallery_scenario.gd
 jq -e '.done == true and .result == "PASS" and (.districts | length) == 5' \
   artifacts/district_gallery/report.json >/dev/null
+
+printf '%s\n' '[L4] building destruction VFX headless scenario'
+run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
+	-s selftest/building_destruction_vfx_scenario.gd
 
 printf '%s\n' '[L4] enemy-variety headless scenario'
 run_engine "$GODOT" --headless --fixed-fps 60 --path . \
@@ -818,12 +830,25 @@ if [[ "$MODE" == "full" ]]; then
 		  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
 		    --audio-driver Dummy --path . --resolution 720x1280 \
 		    -s selftest/kill_combo_visual_scenario.gd
-		  test -s artifacts/kill_combo/kill-combo.png
-		  grep -Fq '720 x 1280' <<< "$(file artifacts/kill_combo/kill-combo.png)"
-		  mv artifacts/kill_combo/kill-combo.png \
-		    artifacts/kill_combo/kill-combo-portrait.png
+			  test -s artifacts/kill_combo/kill-combo.png
+			  grep -Fq '720 x 1280' <<< "$(file artifacts/kill_combo/kill-combo.png)"
+			  mv artifacts/kill_combo/kill-combo.png \
+			    artifacts/kill_combo/kill-combo-portrait.png
 
-		  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
+			  printf '%s\n' '[L5] landscape building destruction VFX scenario'
+			  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
+			    --resolution 1280x720 -s selftest/building_destruction_vfx_scenario.gd
+			  test -s artifacts/building_destruction_vfx/building-destruction-vfx-landscape.png
+			  grep -Fq '1280 x 720' <<< "$(file artifacts/building_destruction_vfx/building-destruction-vfx-landscape.png)"
+
+			  printf '%s\n' '[L5] portrait building destruction VFX scenario'
+			  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
+			    --audio-driver Dummy --path . --resolution 720x1280 \
+			    -s selftest/building_destruction_vfx_scenario.gd
+			  test -s artifacts/building_destruction_vfx/building-destruction-vfx-portrait.png
+			  grep -Fq '720 x 1280' <<< "$(file artifacts/building_destruction_vfx/building-destruction-vfx-portrait.png)"
+
+			  printf '%s\n' '[L5] landscape active/failed directive-card scenario'
 	  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
 	    -s selftest/directive_card_visual_scenario.gd
 	  test -s artifacts/directives/directive-active.png

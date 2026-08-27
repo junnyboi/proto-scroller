@@ -1,6 +1,6 @@
 # Building Section Destruction VFX — Implementation Plan
 
-**Status:** In progress
+**Status:** WP0–WP3 complete; source integration and WebDev deployment pending
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 **Target branch:** `main`
 
@@ -48,6 +48,18 @@ Repository-wide release gates are intentionally skipped under the project overri
 ### WP4 — Source integration and WebDev deployment
 
 Push the final source phase to shared `main`, produce a fresh exact Godot Web export, apply the existing local-worklet/title-shell patches, upload both WASM and PCK, remap the existing `proto-scroller` WebDev project, update `PLAN.md`, `STRUCTURE.md`, `MEMORY.md`, and `ASSETS.md`, save a checkpoint, and deploy through the existing project.
+
+## Completed Evidence — WP0–WP3
+
+| Evidence | Result |
+|---|---|
+| GPT Image 2 assets | Five canonical 1920×1920 source concepts and five deterministic 128×128 transparent runtime derivatives; exact SHA-256 lineage recorded in `BUILDING_DESTRUCTION_VFX_ASSET_PROVENANCE.md` |
+| Runtime architecture | Twelve prewarmed composite burst slots; concrete/glass/steel fragment emitter, dust/spark emitter, and flash sprite per slot; oldest-active recycling under saturation |
+| Physical debris | Existing 24-body structural pool preserved; concrete, glass, and steel building chunks use generated textures while enemy machinery scrap retains its procedural visual path |
+| Focused unit integration | Three dedicated VFX tests passed with 48 assertions, including fixed capacity, material selection, one-shot destruction, stream restore, replay, and New Game+ teardown |
+| Related debris regressions | Eight focused tests across the new VFX, organic damage, and culling suites passed with 133 assertions |
+| Responsive visuals | Concrete, glass, and steel failures produced exactly three live section bursts plus sixteen physical debris bodies in both 1280×720 and 720×1280 captures |
+| Diagnostic scan | Touched-file lint, Godot 4.7.2 import, headless fixture, and both Xvfb lanes completed without script, parse, leak, or retained-resource markers |
 
 ## Acceptance Criteria
 
