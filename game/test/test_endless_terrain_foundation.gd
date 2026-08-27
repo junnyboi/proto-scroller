@@ -4,7 +4,7 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const EPSILON: float = 0.5
 
 
-func test_six_chunk_window_reuses_fixed_nodes_across_bidirectional_travel() -> void:
+func test_six_chunk_window_reuses_fixed_nodes_and_enforces_rear_frontier() -> void:
 	var city: CitySlice = await _spawn_city()
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
 	assert_eq(CityWorldStream.LEFT_RETENTION_DISTANCE, 1000.0)
@@ -23,28 +23,42 @@ func test_six_chunk_window_reuses_fixed_nodes_across_bidirectional_travel() -> v
 		- CityWorldStream.LEFT_RETENTION_DISTANCE,
 		EPSILON
 	)
-	_move_to_logical_chunk(city, -8)
-	_assert_contiguous_window(city.world_stream)
-	assert_eq(city.world_stream.current_logical_chunk, -8)
-	assert_eq(city.world_stream.minimum_visited_chunk, -8)
-	assert_eq(city.world_stream.maximum_visited_chunk, 48)
-	assert_eq(RuntimeBudget.snapshot(city).node_count, baseline_nodes)
+	var rear_contacts: Array[int] = [0]
+	city.world_stream.rear_barrier_contact.connect(func() -> void:
+		rear_contacts[0] += 1
+	)
+	var attempted_left_x: float = city.world_stream.rear_frontier_runtime_x() - 900.0
+	city.robot.global_position.x = attempted_left_x
+	city.world_stream.advance_stream()
+	assert_eq(rear_contacts[0], 1)
+	assert_true(city.gameplay_hud.rear_barrier_warning.visible)
+	assert_eq(city.gameplay_hud.rear_barrier_warning_play_count, 1)
+	assert_gte(
+		city.robot.global_position.x,
+		city.world_stream.rear_frontier_runtime_x()
+		+ CityWorldStream.ROBOT_BARRIER_CLEARANCE
+	)
 	for chunk: CityStreetChunk in city.world_stream.chunks:
-		assert_false(chunk.culled)
-		assert_true(chunk.visible)
+		if (
+			float(chunk.logical_index + 1) * CityWorldStream.CHUNK_WIDTH
+			+ CityWorldStream.CHUNK_CONTENT_OVERHANG
+			<= city.world_stream.rear_frontier_logical_x
+		):
+			assert_true(chunk.culled)
 	_record_test_execution()
 
 
-func test_progression_markers_are_collisionless_for_every_actor() -> void:
+func test_rear_wall_blocks_only_robot_and_district_marker_stays_collisionless() -> void:
 	var city: CitySlice = await _spawn_city()
 	var stream: CityWorldStream = city.world_stream
-	assert_eq(stream.rear_barrier.collision_layer, 0)
-	assert_eq(stream.rear_barrier.collision_mask, 0)
-	assert_true(stream._rear_barrier_collision.disabled)
+	assert_eq(stream.rear_barrier.collision_layer, CityWorldStream.REAR_BARRIER_LAYER)
+	assert_eq(stream.rear_barrier.collision_mask, CityStreetChunk.ROBOT_LAYER)
+	assert_false(stream._rear_barrier_collision.disabled)
 	assert_eq(stream.district_exit_barrier.collision_layer, 0)
 	assert_eq(stream.district_exit_barrier.collision_mask, 0)
 	assert_true(stream._district_exit_collision.disabled)
-	assert_eq(city.robot.collision_mask, CityStreetChunk.WORLD_LAYER)
+	assert_ne(city.robot.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_ne(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
 	for actor: EnemyActor2D in city.encounter_runtime.all_actors():
 		assert_eq(actor.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
 	assert_eq(city.car.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)

@@ -28,6 +28,7 @@ signal district_handoff_completed(district_id: StringName, next_district_id: Str
 signal content_access_changed
 signal district_exit_unlocked(district_id: StringName, next_district_id: StringName)
 signal rear_frontier_changed(logical_x: float, runtime_x: float)
+signal rear_barrier_contact
 
 const CHUNK_WIDTH: float = CityStreetChunk.CHUNK_WIDTH
 const CHUNK_CAPACITY: int = 6
@@ -39,9 +40,13 @@ const LEFT_RETENTION_DISTANCE: float = 1000.0
 const DISTRICT_BUILDINGS_REQUIRED: int = CityDistrictCatalog.VARIANTS_PER_DISTRICT
 const BARRIER_WIDTH: float = 48.0
 const BARRIER_HEIGHT: float = 1200.0
+const ROBOT_BARRIER_CLEARANCE: float = 72.0
 const FRONTIER_CULL_STEP: float = 64.0
 const CHUNK_CONTENT_OVERHANG: float = 384.0
+const REAR_CONTACT_TOLERANCE: float = 12.0
 const REAR_BARRIER_LAYER: int = 1 << 11
+const BUILDING_LAYER: int = 1 << 3
+const BOSS_TRAVERSAL_BYPASS_LAYERS: int = REAR_BARRIER_LAYER | BUILDING_LAYER
 const CHUNK_SCRIPT: Script = preload("res://scripts/world/city_street_chunk.gd")
 
 var robot: GiantRobotController
@@ -65,6 +70,9 @@ var _district_exit_collision: CollisionShape2D
 var _cleared_variants_by_district: Dictionary[StringName, Dictionary] = {}
 var _last_frontier_signal_logical_x: float = 0.0
 var _resident_lease_owner: Object
+var _rear_barrier_contact_active: bool = false
+var _boss_traversal_bypass_active: bool = false
+var _robot_mask_before_boss_bypass: int = 0
 var _pending_boss_district_index: int = -1
 var _corridor_district_index: int = -1
 var _campaign_handoff_complete: bool = false
@@ -117,6 +125,7 @@ func advance_stream() -> void:
 		floating_origin.commit(chunk_delta)
 		origin_shift_requested.emit(Vector2(-float(chunk_delta) * CHUNK_WIDTH, 0.0), chunk_delta)
 	_update_progression_barriers()
+	_enforce_rear_barrier()
 	var next_chunk: int = logical_index_for_runtime_x(robot.global_position.x)
 	if next_chunk == current_logical_chunk:
 		if chunk_delta != 0:
@@ -161,13 +170,17 @@ func begin_resident_lease(owner: Object) -> bool:
 	if owner == null or (_resident_lease_owner != null and _resident_lease_owner != owner):
 		return false
 	_resident_lease_owner = owner
+	_set_boss_traversal_bypass(true)
+	_update_progression_barriers()
 	return true
 
 
 func end_resident_lease(owner: Object) -> void:
 	if _resident_lease_owner == owner:
 		_resident_lease_owner = null
+		_set_boss_traversal_bypass(false)
 		_refresh_window()
+		_update_progression_barriers()
 
 
 func resident_lease_active() -> bool:
@@ -191,7 +204,14 @@ func chunk_for_logical(logical_index: int) -> CityStreetChunk:
 
 func resident_bounds() -> Vector2:
 	return Vector2(
-		runtime_x_for_logical_index(current_logical_chunk - BEHIND_CHUNKS),
+		(
+			runtime_x_for_logical_index(current_logical_chunk - BEHIND_CHUNKS)
+			if resident_lease_active()
+			else maxf(
+				runtime_x_for_logical_index(current_logical_chunk - BEHIND_CHUNKS),
+				rear_frontier_runtime_x()
+			)
+		),
 		runtime_x_for_logical_index(current_logical_chunk + AHEAD_CHUNKS + 1)
 	)
 
@@ -370,6 +390,7 @@ func reset_stream(p_run_seed: int = 0, preserve_spatial_state: bool = false) -> 
 	_corridor_district_index = -1
 	_campaign_handoff_complete = false
 	_last_frontier_signal_logical_x = rear_frontier_logical_x
+	_rear_barrier_contact_active = false
 	transition_count = 0
 	run_configured.emit(run_seed)
 	_refresh_window()
@@ -420,10 +441,22 @@ func refresh_culling() -> void:
 
 func _refresh_culling(refresh_descendants: bool = false) -> void:
 	for chunk: CityStreetChunk in chunks:
-		chunk.set_culled(false, refresh_descendants)
+		if resident_lease_active():
+			chunk.set_culled(false, refresh_descendants)
+			continue
+		var chunk_right_logical_x: float = (
+			float(chunk.logical_index + 1) * CHUNK_WIDTH
+			+ CHUNK_CONTENT_OVERHANG
+		)
+		chunk.set_culled(
+			chunk_right_logical_x <= rear_frontier_logical_x,
+			refresh_descendants
+		)
 
 
 func _update_rear_frontier(robot_logical_x: float) -> void:
+	if resident_lease_active():
+		return
 	if robot_logical_x <= furthest_progress_logical_x:
 		return
 	furthest_progress_logical_x = robot_logical_x
@@ -457,9 +490,9 @@ func _make_progression_barrier(
 ) -> StaticBody2D:
 	var barrier: StaticBody2D = StaticBody2D.new()
 	barrier.name = barrier_name
-	barrier.collision_layer = 0
-	barrier.collision_mask = 0
-	barrier.set_meta(&"presentation_layer", barrier_layer)
+	var is_rear_barrier: bool = barrier_name == "RearFrontierBarrier"
+	barrier.collision_layer = barrier_layer if is_rear_barrier else 0
+	barrier.collision_mask = CityStreetChunk.ROBOT_LAYER if is_rear_barrier else 0
 	var collision: CollisionShape2D = CollisionShape2D.new()
 	collision.name = "Collision"
 	var shape: RectangleShape2D = RectangleShape2D.new()
@@ -468,7 +501,7 @@ func _make_progression_barrier(
 	collision.position.y = BARRIER_HEIGHT * 0.5 - 200.0
 	barrier.add_child(collision)
 	add_child(barrier)
-	if barrier_name == "RearFrontierBarrier":
+	if is_rear_barrier:
 		_rear_barrier_collision = collision
 	else:
 		_district_exit_collision = collision
@@ -501,8 +534,47 @@ func _update_progression_barriers() -> void:
 	district_exit_barrier.position.x = (
 		gate_logical_x - float(floating_origin.origin_chunk) * CHUNK_WIDTH
 	)
-	_rear_barrier_collision.disabled = true
+	_rear_barrier_collision.disabled = resident_lease_active()
 	_district_exit_collision.disabled = true
+
+
+func _enforce_rear_barrier() -> void:
+	if robot == null or resident_lease_active():
+		_rear_barrier_contact_active = false
+		return
+	var minimum_runtime_x: float = rear_frontier_runtime_x() + ROBOT_BARRIER_CLEARANCE
+	var clamped: bool = false
+	if robot.global_position.x < minimum_runtime_x:
+		robot.global_position.x = minimum_runtime_x
+		robot.velocity.x = maxf(robot.velocity.x, 0.0)
+		clamped = true
+	var pressing_left: bool = (
+		Input.get_axis(&"move_left", &"move_right") < -0.05
+		or robot.virtual_move_axis < -0.05
+		or robot.velocity.x < -1.0
+	)
+	var touching: bool = (
+		clamped
+		or (
+			robot.global_position.x <= minimum_runtime_x + REAR_CONTACT_TOLERANCE
+			and pressing_left
+		)
+	)
+	if touching and not _rear_barrier_contact_active:
+		rear_barrier_contact.emit()
+	_rear_barrier_contact_active = touching
+
+
+func _set_boss_traversal_bypass(active: bool) -> void:
+	if robot == null or active == _boss_traversal_bypass_active:
+		return
+	_boss_traversal_bypass_active = active
+	if active:
+		_robot_mask_before_boss_bypass = robot.collision_mask
+		robot.collision_mask &= ~BOSS_TRAVERSAL_BYPASS_LAYERS
+	else:
+		robot.collision_mask = _robot_mask_before_boss_bypass
+		_robot_mask_before_boss_bypass = 0
 
 
 func _queue_recorded_boss_if_ready(

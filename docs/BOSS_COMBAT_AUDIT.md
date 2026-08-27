@@ -22,11 +22,11 @@ Every campaign boss follows the same readable three-stage structure.
 
 | Stage | Required player action | What does not work |
 |---|---|---|
-| **Armored** | Reach at least 70% movement speed, press and hold **Space/SMASH for the full 2.0 seconds**, then release the moving jab-cross into the glowing gold core. Repeat for **three accepted connections**. | Standing ground smashes, tap attacks, and ranged weapons cannot break armor. The HUD now explains which requirement was missed. |
+| **Armored** | Reach at least 70% movement speed, line up with the glowing gold core, then press and hold **Space/SMASH for the full 2.0 seconds** and release. The initial speed selects the jab-cross; the charge itself uses the normal attack lock. Repeat for **three accepted connections**. | Standing ground smashes, tap attacks, and ranged weapons cannot break armor. The HUD now explains which requirement was missed. |
 | **Exposed body** | Use normal melee and equipped weapons while reading the telegraphs. Attacks escalate again below roughly one-third body integrity. | Remaining inside a magenta armed footprint. Pale/gold telegraphs are warnings; magenta is live damage. |
 | **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Hitting the wreck away from its receiver. The finisher controls rewards and progression only; the route marker is always collisionless. |
 
-The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. It is the intended answer when an armed lane closes after the player has already committed to a charge. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
+The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. Line up before charging; once an attack is committed, locomotion remains locked through recovery and a recovery-phase dodge request is buffered until release. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
 
 ## Boss-by-boss field guide
 

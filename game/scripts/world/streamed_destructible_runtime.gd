@@ -187,7 +187,7 @@ func _build_slot(chunk: CityStreetChunk) -> void:
 	building.rubble_texture = bootstrap_variant.rubble_texture
 	building.display_size = bootstrap_variant.display_size
 	building.collision_layer_value = BUILDING_LAYER
-	building.collision_mask_value = 0
+	building.collision_mask_value = ROBOT_LAYER
 	building.hurtbox_layer_value = HURTBOX_LAYER
 	building.debris_pool_path = ^"../../../BuildingDebrisPool"
 	building.section_burst_pool_path = ^"../../../BuildingSectionBurstPool"
