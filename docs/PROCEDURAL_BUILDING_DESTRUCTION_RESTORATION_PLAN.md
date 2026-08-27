@@ -1,6 +1,6 @@
 # Procedural Building Destruction Restoration Plan
 
-**Status:** Implementation complete; source integration and deployment in progress
+**Status:** Implementation and fresh export complete; WebDev synchronization in progress
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export  
 **Target branch:** `main`  
 **Applies to:** all 25 district facade variants through the six-instance streamed building pool
@@ -100,4 +100,6 @@ The work also corrected a pooled-state reset indentation defect that previously 
 
 The obsolete `building_intact.png`, `building_damaged.png`, both import files, and the cross-section renderer files were removed. The 25 production facades, shared shallow rubble, cable/pipe attachments, material burst textures, and physical debris remain active.
 
-Four targeted Godot 4.7.2 regressions passed with **2,932 assertions**: alpha-safe procedural destruction with persistent details; natural passage opening; stable pooled reconfiguration across all 25 variants; and fatal destruction of all 150 variant cells with nonempty contours, final cracks, two details, strong cavity darkening, and no cross-section node. Final source revision, export identities, WebDev routes, and checkpoint will be recorded after integration and deployment.
+Four targeted Godot 4.7.2 regressions passed with **2,932 assertions**: alpha-safe procedural destruction with persistent details; natural passage opening; stable pooled reconfiguration across all 25 variants; and fatal destruction of all 150 variant cells with nonempty contours, final cracks, two details, strong cavity darkening, and no cross-section node.
+
+The implementation was integrated non-destructively with the concurrent boss-combat release and pushed as source revision `48b5e1ba5146188383f7b505c5898b514b61f0ce`. A fresh Godot 4.7.2 Web export produced a **39,514,754-byte WASM** with SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` and a **16,103,384-byte PCK** with SHA-256 `6bc0069f3e8cbb721e35e037b8e1db7f9efaeb4b8a691fe5213a81677f87a730`. WebDev routes and checkpoint will be recorded in the mapped project's durable deployment files.
