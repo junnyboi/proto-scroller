@@ -1,6 +1,6 @@
 # Procedural Building Destruction Restoration Plan
 
-**Status:** Complete and deployed
+**Status:** Progressive sprite hollowing extension in progress
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export  
 **Target branch:** `main`  
 **Applies to:** all 25 district facade variants through the six-instance streamed building pool
@@ -33,6 +33,16 @@ The district catalog also retains two obsolete legacy textures, `building_intact
 The procedural contour is regenerated at severity 1.0 for every fatal hit, including one-shot kills, support failures, floor cascades, and steel-support cascades. Destroyed cells retain both authored damage attachments. Legacy mutation states that mark a cell destroyed without stored pattern geometry receive a deterministic fallback cavity during restoration, preventing old runs from producing visually intact failed sections.
 
 ## Work Packages
+
+### WP6 — Damage-progressive sprite hollowing
+
+Move the shared cavity material from a facade-textured overlay polygon onto each cell's authored `IntactVisual` sprite. The material must preserve the untouched sprite at zero damage, then use normalized cumulative damage to expand one deterministic center-out alpha void without reallocating nodes or textures. A seed-stable angular boundary function must produce coarse structural bites and finer chips so the same jagged silhouette grows rather than popping to a new outline after every hit.
+
+The surviving facade pixels must darken continuously with damage. At terminal destruction, the hollow reaches most of the center and lower middle, while conservative maximum extents preserve visibly jagged left and right structural rails plus a top lintel. The terminal remainder uses full cavity tint; transparent source pixels stay transparent at every stage. Cracks and cable/pipe attachments remain separate deterministic overlays above the eroded sprite.
+
+Persistence stores normalized hollow progress and also reconstructs it from authoritative health when loading older mutations. Reconfiguration resets the shared material to pristine without replacing the per-cell material instance. All 25 facade variants inherit the behavior through the existing six-cell pooled path.
+
+**Acceptance:** progressive damage produces strictly increasing `hollow_progress`, hollow extents, and darkening; zero damage leaves sprite alpha unchanged; terminal damage reaches progress `1.0`, fully darkens surviving facade pixels, removes the center and lower middle, preserves side and top margins, and retains final cracks plus both attachment details. The shader must perform alpha discard on `IntactVisual` rather than render a replacement facade polygon.
 
 ### WP0 — Plan and contract lock
 
