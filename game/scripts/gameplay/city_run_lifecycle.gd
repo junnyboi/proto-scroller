@@ -61,7 +61,7 @@ func robot_defeated() -> void:
 		and city.urban_siege.boss_campaign.fail_attempt()
 	):
 		city.game_over_active = true
-		city.mobile_controls.set_controls_enabled(false)
+		city.mobile_controls.set_controls_enabled(true)
 		city.gameplay_hud.show_game_over()
 		return
 	_finish_run(false)
@@ -302,7 +302,7 @@ func _finish_run(completed: bool, ending_id: StringName = &"NONE") -> void:
 	city.impact_feedback_director.cancel_all()
 	city.impact_feedback_pool.reset_runtime_state()
 	city.overdrive_session.end_overdrive()
-	city.mobile_controls.set_controls_enabled(false)
+	city.mobile_controls.set_controls_enabled(true)
 	var waves_cleared: int = 6 if completed else clampi(
 		city.encounter_director.phase_index + 1,
 		0,

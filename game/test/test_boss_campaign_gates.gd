@@ -60,6 +60,7 @@ func test_origin_rebase_keeps_gate_and_arena_anchors_aligned() -> void:
 func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 	var city: CitySlice = await _spawn_city()
 	var siege: UrbanSiegeRuntime = city.urban_siege
+	var campaign: BossCampaignDirector = siege.boss_campaign
 	var director: DistrictResponseDirector = siege.director
 	director.stop()
 	city.encounter_runtime.release_all()
@@ -87,6 +88,41 @@ func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 			assert_almost_eq(enemy.external_attack_interval_multiplier, 1.0, 0.0001)
 	assert_true(city.robot.can_request_attack())
 	assert_false(siege.is_simulation_paused())
+	assert_true(campaign.active_gate.blocker_collision.disabled)
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	var gate_x: float = campaign.active_gate.global_position.x
+	city.robot.global_position.x = gate_x - 60.0
+	for _movement_step: int in range(36):
+		city.robot.physics_step(1.0, 1.0 / 60.0)
+	assert_gt(city.robot.global_position.x, gate_x + 60.0)
+
+
+func test_active_boss_lease_allows_streaming_past_arena_and_back() -> void:
+	var city: CitySlice = await _spawn_city()
+	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
+	await _trigger(city, definition)
+	var boss_id: int = city.urban_siege.boss_session.boss.get_instance_id()
+	var baseline_nodes: int = int(RuntimeBudget.snapshot(city).node_count)
+	assert_true(campaign.arena_lease.active)
+	assert_true(city.world_stream.resident_lease_active())
+	city.robot.global_position.x = (
+		city.world_stream.runtime_x_for_logical_index(12)
+		+ CityWorldStream.CHUNK_WIDTH * 0.5
+	)
+	city.world_stream.advance_stream()
+	assert_eq(city.world_stream.current_logical_chunk, 12)
+	assert_eq(city.urban_siege.boss_session.boss.get_instance_id(), boss_id)
+	city.robot.global_position.x = (
+		city.world_stream.runtime_x_for_logical_index(2)
+		+ CityWorldStream.CHUNK_WIDTH * 0.5
+	)
+	city.world_stream.advance_stream()
+	assert_eq(city.world_stream.current_logical_chunk, 2)
+	assert_eq(city.urban_siege.boss_session.boss.get_instance_id(), boss_id)
+	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
 
 
 func test_success_resumes_next_unconsumed_beat_after_one_recovery() -> void:

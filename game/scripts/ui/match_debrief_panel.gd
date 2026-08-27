@@ -88,7 +88,7 @@ func _ready() -> void:
 	name = "MatchDebriefPanel"
 	z_index = 30
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
 	_build_controls()
 

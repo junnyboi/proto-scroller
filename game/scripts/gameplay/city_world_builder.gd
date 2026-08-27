@@ -75,7 +75,7 @@ static func build_robot(
 	robot.stomp_radius = 320.0
 	robot.stomp_damage = 180.0
 	robot.collision_layer = ROBOT_LAYER
-	robot.collision_mask = WORLD_LAYER | BUILDING_LAYER | REAR_BARRIER_LAYER
+	robot.collision_mask = WORLD_LAYER
 	robot.z_index = 100
 	robot.set_meta(&"combat_team", &"player")
 	var body_shape: CollisionShape2D = CollisionShape2D.new()

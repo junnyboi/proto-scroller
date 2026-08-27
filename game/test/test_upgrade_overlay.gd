@@ -73,7 +73,7 @@ func test_level_offer_uses_two_fixed_cards_and_preserves_mobile_touches() -> voi
 	await get_tree().process_frame
 	assert_true(overlay.visible)
 	assert_true(city.urban_siege.pause_coordinator.is_paused())
-	assert_eq(overlay.mouse_filter, Control.MOUSE_FILTER_STOP)
+	assert_eq(overlay.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	assert_eq(session.active_offer.choice_ids.size(), 2)
 	assert_ne(session.active_offer.choice_ids[0], session.active_offer.choice_ids[1])
 	assert_eq(city.mobile_controls.joystick_touch_index(), 4)
@@ -87,6 +87,9 @@ func test_level_offer_uses_two_fixed_cards_and_preserves_mobile_touches() -> voi
 	assert_eq(session.active_offer.choice_ids, choices)
 	assert_eq(city.mobile_controls.joystick_touch_index(), 4)
 	assert_eq(city.mobile_controls.smash_touch_index(), 9)
+	city.mobile_controls.handle_touch_input(_drag(4, Vector2(280.0, 520.0)))
+	city.mobile_controls.process_controls(0.1)
+	assert_gt(city.mobile_controls.movement_axis(), 0.8)
 	assert_true(_viewport_rect().encloses(overlay.cards[0].get_global_rect()))
 	assert_true(_viewport_rect().encloses(overlay.cards[1].get_global_rect()))
 	assert_false(overlay.cards[0].get_global_rect().intersects(
@@ -124,6 +127,13 @@ func _touch(index: int, position: Vector2, pressed: bool) -> InputEventScreenTou
 	event.index = index
 	event.position = position
 	event.pressed = pressed
+	return event
+
+
+func _drag(index: int, position: Vector2) -> InputEventScreenDrag:
+	var event: InputEventScreenDrag = InputEventScreenDrag.new()
+	event.index = index
+	event.position = position
 	return event
 
 

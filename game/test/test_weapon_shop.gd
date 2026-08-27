@@ -62,6 +62,12 @@ func test_act_completion_opens_matching_shop_banks_score_and_holds_next_act() ->
 	assert_eq(score.safe_score, 7000)
 	assert_eq(city.district_transition_banner.presentation_count, banner_count)
 	assert_true(city.upgrade_assembler.session.presentation_blocked)
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	var shop_x: float = city.robot.global_position.x
+	city.robot.physics_step(1.0, 0.2)
+	assert_gt(city.robot.global_position.x, shop_x)
 	assert_true(session.close_shop())
 	assert_false(city.weapon_shop_assembler.overlay.visible)
 	assert_false(city.urban_siege.pause_coordinator.is_paused())

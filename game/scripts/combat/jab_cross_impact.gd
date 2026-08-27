@@ -66,7 +66,6 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 	last_query_count = results.size()
 	last_accepted_targets = 0
 	last_velocity_retention = 1.0
-	var impact_speed: float = absf(robot.velocity.x)
 	var blocked_by_steel: bool = false
 	var enemy_count: int = 0
 	var enemy_hit_position: Vector2 = robot.global_position
@@ -105,9 +104,6 @@ func resolve(spec: AttackSpec, robot: GiantRobotController) -> int:
 			break
 	if blocked_by_steel:
 		last_velocity_retention = -steel_rebound_ratio
-		robot.velocity.x = -float(spec.facing) * impact_speed * steel_rebound_ratio
-	else:
-		robot.velocity.x *= last_velocity_retention
 	jab_cross_resolved.emit(spec, last_accepted_targets, last_velocity_retention)
 	if enemy_count > 0:
 		enemy_hit_resolved.emit(spec, enemy_count, enemy_hit_position)

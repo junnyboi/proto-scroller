@@ -801,12 +801,12 @@ func _build_game_over_overlay() -> void:
 	game_over_overlay.z_index = 20
 	game_over_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	game_over_overlay.visible = false
-	game_over_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	game_over_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(game_over_overlay)
 	var shade: ColorRect = ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.color = Color(0.015, 0.02, 0.03, 0.78)
-	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	game_over_overlay.add_child(shade)
 	terminal_panel = ColorRect.new()
 	terminal_panel.position = Vector2(365.0, 188.0)

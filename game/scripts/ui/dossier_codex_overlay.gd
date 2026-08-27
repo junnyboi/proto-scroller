@@ -30,7 +30,7 @@ func _ready() -> void:
 	name = "DossierCodexOverlay"
 	z_index = 120
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
 	_build()
 	_definitions = DossierCatalog.definitions()

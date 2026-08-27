@@ -175,7 +175,7 @@ func _build_slot(chunk: CityStreetChunk) -> void:
 	building.rubble_texture = bootstrap_variant.rubble_texture
 	building.display_size = bootstrap_variant.display_size
 	building.collision_layer_value = BUILDING_LAYER
-	building.collision_mask_value = ROBOT_LAYER
+	building.collision_mask_value = 0
 	building.hurtbox_layer_value = HURTBOX_LAYER
 	building.debris_pool_path = ^"../../../BuildingDebrisPool"
 	building.section_burst_pool_path = ^"../../../BuildingSectionBurstPool"
@@ -243,7 +243,7 @@ func _create_prop(
 	prop.debris_pool_path = ^"../../../BuildingDebrisPool"
 	prop.mass = float(spec.mass)
 	prop.collision_layer = PROP_LAYER
-	prop.collision_mask = WORLD_LAYER | ROBOT_LAYER
+	prop.collision_mask = WORLD_LAYER
 	prop.intact_texture = spec.intact as Texture2D
 	prop.destroyed_texture = spec.broken as Texture2D
 	prop.intact_display_size = spec.intact_size as Vector2
@@ -278,11 +278,22 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	var building_id: StringName = ledger.make_object_id(blueprint.logical_index, &"building")
 	var car_id: StringName = ledger.make_object_id(blueprint.logical_index, &"car")
 	var lamp_id: StringName = ledger.make_object_id(blueprint.logical_index, &"streetlamp")
-	var variant_applied: bool = building.apply_variant(blueprint.building_variant)
+	var building_state: Dictionary = ledger.restore(building_id)
+	var configured_variant: StructuralBuildingVariant = blueprint.building_variant
+	var stored_variant_id: StringName = StringName(
+		building_state.get("variant_id", &"")
+	)
+	if not stored_variant_id.is_empty():
+		var stored_variant: StructuralBuildingVariant = CityDistrictCatalog.variant_by_id(
+			stored_variant_id
+		)
+		if stored_variant != null:
+			configured_variant = stored_variant
+	var variant_applied: bool = building.apply_variant(configured_variant)
 	if not variant_applied:
 		push_error(
 			"Failed to apply streamed facade %s to logical chunk %d"
-			% [blueprint.building_variant_id, blueprint.logical_index]
+			% [configured_variant.variant_id, blueprint.logical_index]
 		)
 		return
 	assert(variant_applied)
@@ -290,11 +301,11 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	building.set_meta(&"district_id", blueprint.district_id)
 	building.set_meta(&"district_index", blueprint.district_index)
 	building.set_meta(&"logical_chunk", blueprint.logical_index)
-	building.set_meta(&"building_variant_id", blueprint.building_variant_id)
+	building.set_meta(&"building_variant_id", configured_variant.variant_id)
 	car.set_meta(&"stream_object_id", car_id)
 	lamp.set_meta(&"stream_object_id", lamp_id)
 	building.position = Vector2(blueprint.building_x, CitySlice.LAND_VISUAL_BASELINE_Y)
-	building.restore_stream_state(ledger.restore(building_id))
+	building.restore_stream_state(building_state)
 	car.visual_ground_offset = CitySlice.LAND_VISUAL_BASELINE_Y - blueprint.car_y
 	car.restore_stream_state(
 		Vector2(blueprint.car_x, blueprint.car_y),
@@ -308,7 +319,7 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	building_configured.emit(
 		building,
 		blueprint.logical_index,
-		blueprint.building_variant_id
+		configured_variant.variant_id
 	)
 
 

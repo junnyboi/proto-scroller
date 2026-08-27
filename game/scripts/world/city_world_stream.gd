@@ -24,7 +24,6 @@ signal district_clear_progress(
 )
 signal district_exit_unlocked(district_id: StringName, next_district_id: StringName)
 signal rear_frontier_changed(logical_x: float, runtime_x: float)
-signal rear_barrier_contact
 
 const CHUNK_WIDTH: float = CityStreetChunk.CHUNK_WIDTH
 const CHUNK_CAPACITY: int = 6
@@ -36,10 +35,8 @@ const LEFT_RETENTION_DISTANCE: float = 1000.0
 const DISTRICT_BUILDINGS_REQUIRED: int = CityDistrictCatalog.VARIANTS_PER_DISTRICT
 const BARRIER_WIDTH: float = 48.0
 const BARRIER_HEIGHT: float = 1200.0
-const ROBOT_BARRIER_CLEARANCE: float = 72.0
 const FRONTIER_CULL_STEP: float = 64.0
 const CHUNK_CONTENT_OVERHANG: float = 384.0
-const REAR_CONTACT_TOLERANCE: float = 12.0
 const REAR_BARRIER_LAYER: int = 1 << 11
 const CHUNK_SCRIPT: Script = preload("res://scripts/world/city_street_chunk.gd")
 
@@ -64,7 +61,6 @@ var _district_exit_collision: CollisionShape2D
 var _cleared_variants_by_district: Dictionary[StringName, Dictionary] = {}
 var _last_frontier_signal_logical_x: float = 0.0
 var _resident_lease_owner: Object
-var _rear_barrier_contact_active: bool = false
 
 
 func setup(p_robot: GiantRobotController, p_run_seed: int = 0) -> void:
@@ -114,9 +110,8 @@ func advance_stream() -> void:
 		floating_origin.commit(chunk_delta)
 		origin_shift_requested.emit(Vector2(-float(chunk_delta) * CHUNK_WIDTH, 0.0), chunk_delta)
 	_update_progression_barriers()
-	_enforce_progression_barriers()
 	var next_chunk: int = logical_index_for_runtime_x(robot.global_position.x)
-	if next_chunk == current_logical_chunk or resident_lease_active():
+	if next_chunk == current_logical_chunk:
 		if chunk_delta != 0:
 			_refresh_window()
 		else:
@@ -189,10 +184,7 @@ func chunk_for_logical(logical_index: int) -> CityStreetChunk:
 
 func resident_bounds() -> Vector2:
 	return Vector2(
-		maxf(
-			runtime_x_for_logical_index(current_logical_chunk - BEHIND_CHUNKS),
-			rear_frontier_runtime_x()
-		),
+		runtime_x_for_logical_index(current_logical_chunk - BEHIND_CHUNKS),
 		runtime_x_for_logical_index(current_logical_chunk + AHEAD_CHUNKS + 1)
 	)
 
@@ -240,7 +232,10 @@ func district_exit_is_unlocked(district_index: int = -1) -> bool:
 	)
 
 
-func report_building_cleared(building: StructuralBuilding2D) -> bool:
+func report_building_cleared(
+	building: StructuralBuilding2D,
+	_event: DamageEvent = null
+) -> bool:
 	if building == null:
 		return false
 	var district_id: StringName = StringName(building.get_meta(&"district_id", &""))
@@ -248,11 +243,7 @@ func report_building_cleared(building: StructuralBuilding2D) -> bool:
 	var variant_id: StringName = StringName(
 		building.get_meta(&"building_variant_id", &"")
 	)
-	if (
-		district_id.is_empty()
-		or variant_id.is_empty()
-		or district_index != unlocked_district_index
-	):
+	if district_id.is_empty() or variant_id.is_empty():
 		return false
 	var districts: Array[CityDistrictProfile] = CityDistrictCatalog.districts()
 	if district_index < 0 or district_index >= districts.size():
@@ -270,25 +261,17 @@ func report_building_cleared(building: StructuralBuilding2D) -> bool:
 		cleared.size(),
 		DISTRICT_BUILDINGS_REQUIRED
 	)
-	if (
-		cleared.size() >= DISTRICT_BUILDINGS_REQUIRED
-		and unlocked_district_index < CityDistrictCatalog.DISTRICT_COUNT - 1
-	):
-		var previous_district: CityDistrictProfile = districts[unlocked_district_index]
-		unlocked_district_index += 1
-		var next_district: CityDistrictProfile = districts[unlocked_district_index]
-		district_exit_unlocked.emit(
-			previous_district.district_id,
-			next_district.district_id
-		)
+	_advance_recorded_district_unlocks(districts)
 	_update_progression_barriers()
 	return true
 
 
-func reset_stream(p_run_seed: int = 0) -> void:
+func reset_stream(p_run_seed: int = 0, preserve_spatial_state: bool = false) -> void:
 	run_seed = p_run_seed
 	var previous_district_id: StringName = current_district_id
 	floating_origin.reset()
+	if preserve_spatial_state and robot != null:
+		floating_origin.origin_chunk = -floori(robot.global_position.x / CHUNK_WIDTH)
 	current_logical_chunk = logical_index_for_runtime_x(
 		robot.global_position.x if robot != null else 0.0
 	)
@@ -306,7 +289,6 @@ func reset_stream(p_run_seed: int = 0) -> void:
 	)
 	_cleared_variants_by_district.clear()
 	_last_frontier_signal_logical_x = rear_frontier_logical_x
-	_rear_barrier_contact_active = false
 	transition_count = 0
 	run_configured.emit(run_seed)
 	_refresh_window()
@@ -320,12 +302,6 @@ func reset_stream(p_run_seed: int = 0) -> void:
 
 
 func _refresh_window() -> void:
-	if resident_lease_active():
-		for chunk: CityStreetChunk in chunks:
-			chunk.position.x = runtime_x_for_logical_index(chunk.logical_index)
-		_update_landmark_root()
-		_refresh_culling()
-		return
 	var desired: Array[int] = []
 	for logical_index: int in range(
 		current_logical_chunk - BEHIND_CHUNKS,
@@ -363,14 +339,7 @@ func refresh_culling() -> void:
 
 func _refresh_culling(refresh_descendants: bool = false) -> void:
 	for chunk: CityStreetChunk in chunks:
-		var chunk_right_logical_x: float = (
-			float(chunk.logical_index + 1) * CHUNK_WIDTH
-			+ CHUNK_CONTENT_OVERHANG
-		)
-		chunk.set_culled(
-			chunk_right_logical_x <= rear_frontier_logical_x,
-			refresh_descendants
-		)
+		chunk.set_culled(false, refresh_descendants)
 
 
 func _update_rear_frontier(robot_logical_x: float) -> void:
@@ -407,8 +376,9 @@ func _make_progression_barrier(
 ) -> StaticBody2D:
 	var barrier: StaticBody2D = StaticBody2D.new()
 	barrier.name = barrier_name
-	barrier.collision_layer = barrier_layer
-	barrier.collision_mask = CityStreetChunk.ROBOT_LAYER
+	barrier.collision_layer = 0
+	barrier.collision_mask = 0
+	barrier.set_meta(&"presentation_layer", barrier_layer)
 	var collision: CollisionShape2D = CollisionShape2D.new()
 	collision.name = "Collision"
 	var shape: RectangleShape2D = RectangleShape2D.new()
@@ -428,9 +398,6 @@ func _update_progression_barriers() -> void:
 	if rear_barrier == null or district_exit_barrier == null:
 		return
 	rear_barrier.position.x = rear_frontier_runtime_x()
-	var gate_enabled: bool = (
-		unlocked_district_index < CityDistrictCatalog.DISTRICT_COUNT - 1
-	)
 	var active_district: CityDistrictProfile = CityDistrictCatalog.districts()[
 		unlocked_district_index
 	]
@@ -449,48 +416,23 @@ func _update_progression_barriers() -> void:
 	district_exit_barrier.position.x = (
 		gate_logical_x - float(floating_origin.origin_chunk) * CHUNK_WIDTH
 	)
-	_rear_barrier_collision.disabled = false
-	_district_exit_collision.disabled = not gate_enabled
+	_rear_barrier_collision.disabled = true
+	_district_exit_collision.disabled = true
 
 
-func _enforce_progression_barriers() -> void:
-	if robot == null:
-		return
-	var minimum_runtime_x: float = rear_frontier_runtime_x() + ROBOT_BARRIER_CLEARANCE
-	var clamped_by_rear_barrier: bool = false
-	if robot.global_position.x < minimum_runtime_x:
-		robot.global_position.x = minimum_runtime_x
-		robot.velocity.x = maxf(robot.velocity.x, 0.0)
-		clamped_by_rear_barrier = true
-	_update_rear_barrier_contact(minimum_runtime_x, clamped_by_rear_barrier)
-	if unlocked_district_index >= CityDistrictCatalog.DISTRICT_COUNT - 1:
-		return
-	var gate_runtime_x: float = district_exit_barrier.position.x
-	var maximum_runtime_x: float = gate_runtime_x - ROBOT_BARRIER_CLEARANCE
-	if robot.global_position.x > maximum_runtime_x:
-		robot.global_position.x = maximum_runtime_x
-		robot.velocity.x = minf(robot.velocity.x, 0.0)
-
-
-func _update_rear_barrier_contact(
-	minimum_runtime_x: float,
-	clamped_by_rear_barrier: bool
+func _advance_recorded_district_unlocks(
+	districts: Array[CityDistrictProfile]
 ) -> void:
-	var pressing_left: bool = (
-		Input.get_axis(&"move_left", &"move_right") < -0.05
-		or robot.virtual_move_axis < -0.05
-		or robot.velocity.x < -1.0
-	)
-	var touching_rear_barrier: bool = (
-		clamped_by_rear_barrier
-		or (
-			robot.global_position.x <= minimum_runtime_x + REAR_CONTACT_TOLERANCE
-			and pressing_left
+	while unlocked_district_index < CityDistrictCatalog.DISTRICT_COUNT - 1:
+		var previous_district: CityDistrictProfile = districts[unlocked_district_index]
+		if district_clear_count(previous_district.district_id) < DISTRICT_BUILDINGS_REQUIRED:
+			return
+		unlocked_district_index += 1
+		var next_district: CityDistrictProfile = districts[unlocked_district_index]
+		district_exit_unlocked.emit(
+			previous_district.district_id,
+			next_district.district_id
 		)
-	)
-	if touching_rear_barrier and not _rear_barrier_contact_active:
-		rear_barrier_contact.emit()
-	_rear_barrier_contact_active = touching_rear_barrier
 
 
 func _update_landmark_root() -> void:

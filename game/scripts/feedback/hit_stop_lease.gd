@@ -1,7 +1,6 @@
 class_name HitStopLease
 extends Node
 
-const HIT_STOP_SCALE: float = 0.08
 const MINIMUM_DURATION_MS: int = 25
 const MAXIMUM_DURATION_MS: int = 110
 
@@ -13,7 +12,6 @@ var restore_count: int = 0
 var last_duration_ms: int = 0
 var _active: bool = false
 var _end_usec: int = 0
-var _prior_time_scale: float = 1.0
 var _seen_request_ids: Dictionary[int, bool] = {}
 
 
@@ -38,9 +36,7 @@ func request(duration_ms: int, request_id: int = 0) -> bool:
 		return true
 	var next_end_usec: int = Time.get_ticks_usec() + last_duration_ms * 1000
 	if not _active:
-		_prior_time_scale = Engine.time_scale
 		_active = true
-		Engine.time_scale = HIT_STOP_SCALE
 	_end_usec = maxi(_end_usec, next_end_usec)
 	return true
 
@@ -48,7 +44,6 @@ func request(duration_ms: int, request_id: int = 0) -> bool:
 func cancel_and_restore() -> void:
 	if not _active:
 		return
-	Engine.time_scale = _prior_time_scale
 	_active = false
 	_end_usec = 0
 	restore_count += 1

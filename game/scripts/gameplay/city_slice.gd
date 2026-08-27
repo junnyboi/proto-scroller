@@ -340,7 +340,6 @@ func _build_hud() -> void:
 	gameplay_hud.setup(robot, contextual_attacks, combat_profile)
 	world_stream.district_clear_progress.connect(gameplay_hud.set_district_clear_progress)
 	world_stream.district_exit_unlocked.connect(gameplay_hud.set_district_exit_unlocked)
-	world_stream.rear_barrier_contact.connect(gameplay_hud.show_rear_barrier_warning)
 	gameplay_hud.retry_pressed.connect(_on_retry_pressed)
 	gameplay_hud.title_pressed.connect(_on_title_pressed)
 	add_child(gameplay_hud)

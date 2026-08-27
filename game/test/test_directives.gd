@@ -227,6 +227,12 @@ func test_choice_overlay_pauses_runtime_and_selects_exactly_once() -> void:
 	assert_true(city.gameplay_hud.directive_choice_overlay.visible)
 	assert_eq(city.urban_siege.pause_coordinator.lease_count(), 1)
 	assert_eq(city.projectile_root.process_mode, Node.PROCESS_MODE_DISABLED)
+	city.robot.set_physics_process(false)
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
+	var paused_x: float = city.robot.global_position.x
+	city.robot.physics_step(1.0, 0.2)
+	assert_gt(city.robot.global_position.x, paused_x)
 	city._process(1.0)
 	assert_almost_eq(city.rampage_session.momentum_value(), momentum_before, 0.001)
 	city.gameplay_hud.directive_choice_overlay.buttons[0].pressed.emit()

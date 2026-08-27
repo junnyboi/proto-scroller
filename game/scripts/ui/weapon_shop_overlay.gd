@@ -83,8 +83,8 @@ func show_shop(
 	preview_panel.visible = false
 	active = true
 	visible = true
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	apply_responsive_layout()
 	_input_armed_frame = Engine.get_process_frames() + 2
 	dialogue_panel.show_dialogue(district.district_id)

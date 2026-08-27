@@ -87,20 +87,32 @@ func capture_structural_state() -> Array[Dictionary]:
 
 
 func restore_structural_state(states: Array[Dictionary]) -> bool:
-	if not active or states.size() != buildings.size():
+	if not active or states.size() != CityWorldStream.CHUNK_CAPACITY:
 		return false
-	for index: int in range(states.size()):
-		var record: Dictionary = states[index]
-		var building: StructuralBuilding2D = buildings[index]
-		if (
-			int(record.get("logical_chunk", CityStreetChunk.UNUSED_INDEX))
-			!= chunks[index].logical_index
-			or int(record.get("building_instance_id", 0)) != building.get_instance_id()
-			or StringName(record.get("variant_id", &"")) != building.current_variant_id()
-		):
-			return false
-	for index: int in range(states.size()):
-		buildings[index].restore_stream_state(states[index].state as Dictionary)
+	for record: Dictionary in states:
+		var logical_chunk: int = int(
+			record.get("logical_chunk", CityStreetChunk.UNUSED_INDEX)
+		)
+		var variant_id: StringName = StringName(record.get("variant_id", &""))
+		var state: Dictionary = record.get("state", {}) as Dictionary
+		var resident_chunk: CityStreetChunk = world_stream.chunk_for_logical(logical_chunk)
+		var building: StructuralBuilding2D = destructibles.building_for_chunk(resident_chunk)
+		if building == null:
+			var persisted_state: Dictionary = state.duplicate(true)
+			persisted_state.pristine = false
+			destructibles.ledger.store(
+				destructibles.ledger.make_object_id(logical_chunk, &"building"),
+				persisted_state
+			)
+			continue
+		if building.current_variant_id() != variant_id:
+			var variant: StructuralBuildingVariant = CityDistrictCatalog.variant_by_id(
+				variant_id
+			)
+			if variant == null or not building.apply_variant(variant):
+				return false
+			building.set_meta(&"building_variant_id", variant_id)
+		building.restore_stream_state(state)
 	return true
 
 

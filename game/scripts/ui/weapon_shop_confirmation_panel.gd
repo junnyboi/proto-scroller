@@ -57,8 +57,8 @@ func show_confirmation(
 	cancel_button.text = L10n.t("shop.confirm.cancel")
 	active = true
 	visible = true
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_input_armed_frame = Engine.get_process_frames() + 2
 	apply_responsive_layout()
 	confirm_button.grab_focus()

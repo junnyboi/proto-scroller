@@ -315,7 +315,7 @@ func test_all_steel_supports_trigger_building_wide_chain_reaction() -> void:
 	_record_test_execution()
 
 
-func test_walking_stops_at_building_until_jab_cross_opens_one_bay() -> void:
+func test_robot_walks_through_intact_facades_without_forced_destruction() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -327,34 +327,12 @@ func test_walking_stops_at_building_until_jab_cross_opens_one_bay() -> void:
 	for step_index: int in range(120):
 		city.robot.physics_step(1.0, 1.0 / 60.0)
 		await get_tree().physics_frame
-	assert_lt(city.robot.position.x, 1170.0)
+	assert_gt(city.robot.position.x, 1450.0)
 	assert_false(glass_cell.is_destroyed())
 	assert_eq(glass_cell.current_health, glass_cell.max_health)
-	city.robot.facing = 1
-	city.robot.velocity.x = city.robot.max_speed * 0.8
-	var attack_id: int = city.robot.request_attack()
-	var spec: AttackSpec = city.contextual_attacks.current_spec
-	assert_true(spec.is_jab_cross())
-	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	assert_gt(attack_id, 0)
-	assert_true(glass_cell.is_destroyed())
-	await get_tree().process_frame
-	var upgrade_session: UpgradeSession = city.upgrade_assembler.session
-	if upgrade_session.active_offer != null:
-		var offer_sequence: int = upgrade_session.active_offer.sequence
-		var selected: StringName = upgrade_session.active_offer.choice_ids[0]
-		assert_true(upgrade_session.select_choice(selected, offer_sequence))
-	assert_false(city.urban_siege.pause_coordinator.is_paused())
-	for step_index: int in range(90):
-		city.robot.physics_step(1.0, 1.0 / 60.0)
-		await get_tree().physics_frame
-	assert_gt(city.robot.position.x, 1200.0)
-	assert_lt(city.robot.position.x, 1340.0)
 	assert_false(city.building.is_cell_destroyed(1, 1))
 	assert_false(city.building.is_destroyed())
-	assert_gt(city.debris_pool.active_count(), 0)
+	assert_eq(city.robot.collision_mask, CitySlice.WORLD_LAYER)
 	_record_test_execution()
 
 

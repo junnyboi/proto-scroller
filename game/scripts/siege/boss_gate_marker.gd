@@ -1,9 +1,7 @@
 class_name BossGateMarker
 extends Node2D
 
-const WORLD_LAYER: int = 1 << 0
-const ROBOT_LAYER: int = 1 << 1
-const BLOCKER_SIZE: Vector2 = Vector2(72.0, 900.0)
+const MARKER_SENSOR_SIZE: Vector2 = Vector2.ONE
 
 var definition: BossEncounterDefinition
 var owned: bool = false
@@ -17,16 +15,15 @@ var blocker_collision: CollisionShape2D
 
 func _init() -> void:
 	blocker = StaticBody2D.new()
-	blocker.name = "RouteBlocker"
-	blocker.collision_layer = WORLD_LAYER
-	blocker.collision_mask = ROBOT_LAYER
+	blocker.name = "RouteMarker"
+	blocker.collision_layer = 0
+	blocker.collision_mask = 0
 	add_child(blocker)
 	blocker_collision = CollisionShape2D.new()
 	blocker_collision.name = "Collision"
 	var shape: RectangleShape2D = RectangleShape2D.new()
-	shape.size = BLOCKER_SIZE
+	shape.size = MARKER_SENSOR_SIZE
 	blocker_collision.shape = shape
-	blocker_collision.position = Vector2(0.0, 360.0)
 	blocker_collision.disabled = true
 	blocker.add_child(blocker_collision)
 	visible = false
@@ -51,7 +48,7 @@ func acquire(world_anchor: Vector2) -> bool:
 	cached_world_anchor = world_anchor
 	global_position = world_anchor
 	visible = true
-	blocker_collision.disabled = false
+	blocker_collision.disabled = true
 	queue_redraw()
 	return true
 
@@ -63,7 +60,7 @@ func restore_ownership(state: Dictionary, world_anchor: Vector2) -> void:
 	cached_world_anchor = world_anchor
 	global_position = world_anchor
 	visible = owned and not consumed
-	blocker_collision.disabled = not visible
+	blocker_collision.disabled = true
 	queue_redraw()
 
 
@@ -108,14 +105,15 @@ func rebase_cached_world_state(offset: Vector2) -> void:
 func _draw() -> void:
 	if not owned or consumed:
 		return
-	draw_rect(
-		Rect2(Vector2(-28.0, -80.0), Vector2(56.0, 690.0)),
-		Color(0.08, 0.16, 0.19, 0.78)
+	var marker_color: Color = Color(0.96, 0.49, 0.24, 0.92)
+	draw_circle(Vector2(0.0, -42.0), 22.0, Color(0.08, 0.16, 0.19, 0.74))
+	draw_arc(Vector2(0.0, -42.0), 22.0, 0.0, TAU, 24, marker_color, 4.0)
+	draw_polyline(
+		PackedVector2Array([
+			Vector2(-9.0, -50.0),
+			Vector2(2.0, -42.0),
+			Vector2(-9.0, -34.0),
+		]),
+		marker_color,
+		4.0
 	)
-	for stripe_y: float in range(-50, 600, 52):
-		draw_line(
-			Vector2(-24.0, stripe_y),
-			Vector2(24.0, stripe_y + 30.0),
-			Color(0.96, 0.49, 0.24, 0.88),
-			6.0
-		)

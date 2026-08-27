@@ -42,11 +42,8 @@ func capture(
 	reservation_state = session.utility_pool.capture_reservation_state()
 	gate_state = gate.capture_state()
 	robot_state = {
-		"logical_x": world_stream.logical_distance_x(robot.global_position.x),
-		"y": robot.global_position.y,
 		"health": robot.current_health,
 		"maximum": robot.max_health,
-		"facing": robot.facing,
 	}
 	valid = true
 	return true
@@ -77,18 +74,10 @@ func restore(
 	rampage.event_hub.restore_attempt_state(event_history_state)
 	rampage.causal_chain_tracker.restore_attempt_state(recorder_state)
 	session.utility_pool.restore_reservation_state(reservation_state)
-	var runtime_x: float = (
-		float(robot_state.logical_x)
-		- float(world_stream.floating_origin.origin_chunk) * CityWorldStream.CHUNK_WIDTH
-	)
-	robot.global_position = Vector2(runtime_x, float(robot_state.y))
-	robot.velocity = Vector2.ZERO
 	robot.max_health = float(robot_state.maximum)
 	robot.current_health = float(robot_state.health)
-	robot.facing = int(robot_state.facing)
 	robot._seen_attacks.clear()
 	robot.set_disabled(false)
-	robot.set_control_enabled(true)
 	robot.health_changed.emit(robot.current_health, robot.max_health)
 	var gate_anchor: Vector2 = Vector2(
 		world_stream.runtime_x_for_logical_index(gate.gate_chunk()) - 80.0,

@@ -38,8 +38,8 @@ func show_dialogue(district_id: StringName) -> void:
 	body_label.text = L10n.t(WeaponShopVisualCatalog.dialogue_key(district_id))
 	active = true
 	visible = true
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_input_armed_frame = Engine.get_process_frames() + 2
 	apply_responsive_layout()
 	continue_button.grab_focus()

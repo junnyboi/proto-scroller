@@ -4,7 +4,7 @@ const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 const EPSILON: float = 0.5
 
 
-func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> void:
+func test_six_chunk_window_reuses_fixed_nodes_across_bidirectional_travel() -> void:
 	var city: CitySlice = await _spawn_city()
 	var baseline_nodes: int = RuntimeBudget.snapshot(city).node_count
 	assert_eq(CityWorldStream.LEFT_RETENTION_DISTANCE, 1000.0)
@@ -14,7 +14,7 @@ func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> vo
 		_assert_contiguous_window(city.world_stream)
 	assert_eq(RuntimeBudget.snapshot(city).node_count, baseline_nodes)
 	assert_eq(city.world_stream.post_warm_creation_count, 0)
-	assert_gte(city.world_stream.floating_origin.shift_count, 2)
+	assert_gte(city.world_stream.floating_origin.shift_count, 1)
 	assert_eq(city.world_stream.minimum_visited_chunk, 0)
 	assert_eq(city.world_stream.maximum_visited_chunk, 48)
 	assert_almost_eq(
@@ -23,87 +23,32 @@ func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> vo
 		- CityWorldStream.LEFT_RETENTION_DISTANCE,
 		EPSILON
 	)
-	var rear_contacts: Array[int] = [0]
-	city.world_stream.rear_barrier_contact.connect(func() -> void:
-		rear_contacts[0] += 1
-	)
-	var attempted_left_x: float = city.world_stream.rear_frontier_runtime_x() - 900.0
-	city.robot.global_position.x = attempted_left_x
-	city.world_stream.advance_stream()
-	assert_eq(rear_contacts[0], 1)
-	assert_true(city.gameplay_hud.rear_barrier_warning.visible)
-	assert_eq(city.gameplay_hud.rear_barrier_warning_play_count, 1)
-	assert_eq(city.gameplay_hud.rear_barrier_warning_audio.bus, &"Voice")
-	assert_eq(
-		city.gameplay_hud.rear_barrier_warning_audio.stream.resource_path,
-		"res://audio/voice/rear_barrier_warning.wav"
-	)
-	assert_gte(
-		city.robot.global_position.x,
-		city.world_stream.rear_frontier_runtime_x()
-		+ CityWorldStream.ROBOT_BARRIER_CLEARANCE
-	)
-	city.robot.global_position.x = attempted_left_x
-	city.world_stream.advance_stream()
-	assert_eq(rear_contacts[0], 1)
-	assert_eq(city.gameplay_hud.rear_barrier_warning_play_count, 1)
-	city.robot.global_position.x += 100.0
-	city.world_stream.advance_stream()
-	city.robot.global_position.x = (
-		city.world_stream.rear_frontier_runtime_x()
-		+ CityWorldStream.ROBOT_BARRIER_CLEARANCE
-	)
-	Input.action_press(&"move_left")
-	city.world_stream.advance_stream()
-	Input.action_release(&"move_left")
-	assert_eq(rear_contacts[0], 2)
-	assert_eq(city.gameplay_hud.rear_barrier_warning_play_count, 2)
-	city.gameplay_hud._process(GameplayHud.REAR_BARRIER_WARNING_DURATION + 0.01)
-	assert_false(city.gameplay_hud.rear_barrier_warning.visible)
+	_move_to_logical_chunk(city, -8)
+	_assert_contiguous_window(city.world_stream)
+	assert_eq(city.world_stream.current_logical_chunk, -8)
+	assert_eq(city.world_stream.minimum_visited_chunk, -8)
+	assert_eq(city.world_stream.maximum_visited_chunk, 48)
+	assert_eq(RuntimeBudget.snapshot(city).node_count, baseline_nodes)
 	for chunk: CityStreetChunk in city.world_stream.chunks:
-		if (
-			float(chunk.logical_index + 1) * CityWorldStream.CHUNK_WIDTH
-			+ CityWorldStream.CHUNK_CONTENT_OVERHANG
-			<= city.world_stream.rear_frontier_logical_x
-		):
-			assert_true(chunk.culled)
+		assert_false(chunk.culled)
+		assert_true(chunk.visible)
 	_record_test_execution()
 
 
-func test_rear_frontier_collision_is_player_only() -> void:
+func test_progression_markers_are_collisionless_for_every_actor() -> void:
 	var city: CitySlice = await _spawn_city()
 	var stream: CityWorldStream = city.world_stream
-	assert_eq(CityWorldStream.LEFT_RETENTION_DISTANCE, 1000.0)
-	assert_almost_eq(
-		stream.rear_frontier_logical_x,
-		stream.furthest_progress_logical_x - 1000.0,
-		EPSILON
-	)
-	assert_eq(stream.rear_barrier.collision_layer, CityWorldStream.REAR_BARRIER_LAYER)
-	assert_eq(stream.rear_barrier.collision_mask, CityStreetChunk.ROBOT_LAYER)
-	assert_ne(city.robot.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_eq(stream.rear_barrier.collision_layer, 0)
+	assert_eq(stream.rear_barrier.collision_mask, 0)
+	assert_true(stream._rear_barrier_collision.disabled)
+	assert_eq(stream.district_exit_barrier.collision_layer, 0)
+	assert_eq(stream.district_exit_barrier.collision_mask, 0)
+	assert_true(stream._district_exit_collision.disabled)
+	assert_eq(city.robot.collision_mask, CityStreetChunk.WORLD_LAYER)
 	for actor: EnemyActor2D in city.encounter_runtime.all_actors():
 		assert_eq(actor.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
 	assert_eq(city.car.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
 	assert_eq(city.streetlamp.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
-	var passer: CharacterBody2D = CharacterBody2D.new()
-	passer.name = "RearBarrierNonPlayerProbe"
-	passer.collision_layer = CityStreetChunk.ENEMY_LAYER
-	passer.collision_mask = CityStreetChunk.WORLD_LAYER
-	passer.motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
-	var shape_node: CollisionShape2D = CollisionShape2D.new()
-	var shape: RectangleShape2D = RectangleShape2D.new()
-	shape.size = Vector2(32.0, 32.0)
-	shape_node.shape = shape
-	passer.add_child(shape_node)
-	city.add_child(passer)
-	passer.global_position = Vector2(stream.rear_frontier_runtime_x() + 96.0, 180.0)
-	await get_tree().physics_frame
-	for _step: int in range(12):
-		passer.velocity = Vector2(-1200.0, 0.0)
-		passer.move_and_slide()
-		await get_tree().physics_frame
-	assert_lt(passer.global_position.x, stream.rear_frontier_runtime_x() - 40.0)
 	_record_test_execution()
 
 
@@ -147,6 +92,28 @@ func test_five_unique_buildings_unlock_the_next_district_once() -> void:
 		* CityWorldStream.CHUNK_WIDTH,
 		EPSILON
 	)
+	_record_test_execution()
+
+
+func test_out_of_order_district_clears_are_recorded_without_route_blocking() -> void:
+	var city: CitySlice = await _spawn_city()
+	var stream: CityWorldStream = city.world_stream
+	var districts: Array[CityDistrictProfile] = CityDistrictCatalog.districts()
+	for district_index: int in [1, 0]:
+		var district: CityDistrictProfile = districts[district_index]
+		for variant: StructuralBuildingVariant in district.building_variants:
+			var building: StructuralBuilding2D = StructuralBuilding2D.new()
+			building.set_meta(&"district_id", district.district_id)
+			building.set_meta(&"district_index", district.district_index)
+			building.set_meta(&"building_variant_id", variant.variant_id)
+			assert_true(stream.report_building_cleared(building))
+			building.free()
+		if district_index == 1:
+			assert_eq(stream.unlocked_district_index, 0)
+	assert_eq(stream.unlocked_district_index, 2)
+	_move_to_logical_chunk(city, 11)
+	assert_eq(stream.current_logical_chunk, 11)
+	assert_eq(stream.current_district_id, &"ENTERTAINMENT")
 	_record_test_execution()
 
 
@@ -293,7 +260,6 @@ func _spawn_city() -> CitySlice:
 
 
 func _move_to_logical_chunk(city: CitySlice, logical_index: int) -> void:
-	_unlock_districts_through(city.world_stream, logical_index)
 	city.robot.global_position.x = (
 		city.world_stream.runtime_x_for_logical_index(logical_index)
 		+ CityWorldStream.CHUNK_WIDTH * 0.5

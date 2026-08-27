@@ -67,11 +67,15 @@ func test_new_game_plus_restarts_act_one_with_score_power_and_exact_double_enemi
 	assert_true(city.gameplay_hud.continue_button.visible)
 	assert_true(city.gameplay_hud.new_game_plus_badge.visible)
 	assert_eq(city.gameplay_hud.continue_button.text, "START NEW GAME +")
+	city.robot.velocity = Vector2(333.0, -45.0)
+	var continuation_position: Vector2 = city.robot.global_position
+	var continuation_velocity: Vector2 = city.robot.velocity
 	city.run_lifecycle._on_continue_pressed()
 	assert_eq(city.urban_siege.cycle_count, 2)
 	assert_eq(city.score, score)
 	assert_almost_eq(city.robot.current_health, 640.0, 0.001)
-	assert_eq(city.robot.global_position, CityWorldBuilder.ROBOT_START_POSITION)
+	assert_eq(city.robot.global_position, continuation_position)
+	assert_eq(city.robot.velocity, continuation_velocity)
 	assert_eq(city.world_stream.current_logical_chunk, 0)
 	assert_eq(city.world_stream.current_district_id, &"BUSINESS")
 	assert_eq(city.encounter_director.phase_index, 0)

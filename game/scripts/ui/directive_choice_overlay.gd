@@ -15,12 +15,12 @@ var title: Label
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 40
 	var shade: ColorRect = ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.color = Color(0.0, 0.0, 0.0, 0.76)
-	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 	panel = ColorRect.new()
 	panel.position = Vector2(126.0, 146.0)

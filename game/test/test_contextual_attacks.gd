@@ -165,7 +165,7 @@ func test_full_charge_feedback_requires_enemy_damage_and_emits_once_per_attack()
 	_record_test_execution()
 
 
-func test_half_charge_freezes_robot_then_release_deals_150_percent_jab_damage() -> void:
+func test_half_charge_preserves_movement_and_release_deals_150_percent_jab_damage() -> void:
 	var city: CitySlice = await _city()
 	var robot: GiantRobotController = city.robot
 	var attacks: ContextualAttackController = city.contextual_attacks
@@ -176,11 +176,10 @@ func test_half_charge_freezes_robot_then_release_deals_150_percent_jab_damage() 
 	city.car.current_health = 500.0
 	assert_gt(attacks.begin_charge(), 0)
 	assert_true(attacks.current_spec.is_jab_cross())
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
-	var locked_x: float = robot.global_position.x
+	var charge_start_x: float = robot.global_position.x
 	attacks._process(1.0)
 	robot.physics_step(-1.0, 1.0)
-	assert_almost_eq(robot.global_position.x, locked_x, 0.001)
+	assert_ne(robot.global_position.x, charge_start_x)
 	assert_almost_eq(attacks.charge_damage_multiplier(), 1.5, 0.0001)
 	assert_true(attacks.release_charge())
 	var charged_spec: AttackSpec = attacks.current_spec
@@ -194,56 +193,50 @@ func test_half_charge_freezes_robot_then_release_deals_150_percent_jab_damage() 
 	_record_test_execution()
 
 
-func test_airborne_charge_freezes_vertical_and_horizontal_motion_until_release() -> void:
+func test_airborne_charge_preserves_vertical_and_horizontal_motion() -> void:
 	var city: CitySlice = await _city()
 	var robot: GiantRobotController = city.robot
 	var attacks: ContextualAttackController = city.contextual_attacks
 	robot.global_position = Vector2(760.0, 240.0)
 	robot.velocity = Vector2(310.0, -420.0)
-	var locked_position: Vector2 = robot.global_position
+	var charge_position: Vector2 = robot.global_position
 	assert_gt(attacks.begin_charge(), 0)
 	robot.physics_step(1.0, 0.5)
-	assert_eq(robot.global_position, locked_position)
-	assert_eq(robot.velocity, Vector2.ZERO)
+	assert_gt(robot.global_position.x, charge_position.x)
+	assert_ne(robot.global_position.y, charge_position.y)
 	attacks._process(1.0)
+	var moved_position: Vector2 = robot.global_position
 	robot.physics_step(-1.0, 0.5)
-	assert_eq(robot.global_position, locked_position)
-	assert_eq(robot.velocity, Vector2.ZERO)
+	assert_ne(robot.global_position, moved_position)
 	assert_true(attacks.release_charge())
 	robot.physics_step(0.0, 0.1)
-	assert_gt(robot.global_position.y, locked_position.y)
+	assert_ne(robot.global_position.y, charge_position.y)
 	_record_test_execution()
 
 
-func test_attack_locks_horizontal_movement_through_telegraph_and_recovery() -> void:
+func test_attack_preserves_horizontal_movement_through_telegraph_and_recovery() -> void:
 	var city: CitySlice = await _city()
+	city.robot.collision_mask = 0
+	city.robot.gravity = 0.0
 	city.robot.velocity.x = city.robot.max_speed * 0.8
 	var attack_id: int = city.robot.request_attack()
 	var spec: AttackSpec = city.contextual_attacks.current_spec
-	var locked_position_x: float = city.robot.position.x
+	var start_position_x: float = city.robot.position.x
 	assert_gt(attack_id, 0)
 	assert_true(spec.is_jab_cross())
 	assert_true(city.contextual_attacks.is_busy())
-	assert_eq(
-		city.robot.locomotion_state,
-		GiantRobotController.LocomotionState.ATTACK_LOCKED
-	)
-	assert_almost_eq(city.robot.velocity.x, 0.0, 0.001)
 	city.robot.physics_step(-1.0, 0.1)
-	assert_almost_eq(city.robot.position.x, locked_position_x, 0.001)
+	assert_ne(city.robot.position.x, start_position_x)
+	var telegraph_position_x: float = city.robot.position.x
 	await get_tree().create_timer(spec.anticipation_seconds + spec.active_seconds + 0.03).timeout
 	assert_true(city.contextual_attacks.is_busy())
-	assert_eq(
-		city.robot.locomotion_state,
-		GiantRobotController.LocomotionState.ATTACK_LOCKED
-	)
 	city.robot.physics_step(1.0, 0.1)
-	assert_almost_eq(city.robot.position.x, locked_position_x, 0.001)
+	assert_ne(city.robot.position.x, telegraph_position_x)
 	await get_tree().create_timer(spec.recovery_seconds + 0.03).timeout
 	assert_false(city.contextual_attacks.is_busy())
-	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.IDLE)
+	var recovery_position_x: float = city.robot.position.x
 	city.robot.physics_step(1.0, 0.1)
-	assert_gt(city.robot.position.x, locked_position_x)
+	assert_gt(city.robot.position.x, recovery_position_x)
 	_record_test_execution()
 
 
@@ -260,7 +253,10 @@ func test_jab_cross_commits_forward_and_leaves_rear_target_untouched() -> void:
 	var attack_id: int = city.robot.request_attack()
 	var spec: AttackSpec = city.contextual_attacks.current_spec
 	assert_true(spec.is_jab_cross())
-	assert_eq(city.gameplay_hud.objective_label.text, "JAB-CROSS LOCKED / FORWARD IMPACT")
+	assert_eq(
+		city.gameplay_hud.objective_label.text,
+		"JAB-CROSS CHARGING / MOVEMENT LIVE"
+	)
 	city.robot.velocity.x = -city.robot.max_speed
 	city.robot.facing = -1
 	await get_tree().create_timer(spec.anticipation_seconds + 0.03).timeout
@@ -277,7 +273,7 @@ func test_jab_cross_commits_forward_and_leaves_rear_target_untouched() -> void:
 		0.92,
 		0.001
 	)
-	assert_almost_eq(city.robot.velocity.x, 0.0, 0.001)
+	assert_almost_eq(city.robot.velocity.x, -city.robot.max_speed, 0.001)
 	assert_gt(attack_id, 0)
 	_record_test_execution()
 
@@ -297,7 +293,7 @@ func test_jab_cross_concrete_drags_and_steel_requires_two_hits() -> void:
 		1
 	)
 	assert_true(concrete_cell.is_destroyed())
-	assert_almost_eq(concrete_city.robot.velocity.x, 144.0, 0.01)
+	assert_almost_eq(concrete_city.robot.velocity.x, 200.0, 0.01)
 	concrete_city.queue_free()
 	await get_tree().process_frame
 	var steel_city: CitySlice = await _city()
@@ -314,7 +310,7 @@ func test_jab_cross_concrete_drags_and_steel_requires_two_hits() -> void:
 	)
 	assert_false(steel_cell.is_destroyed())
 	assert_almost_eq(steel_cell.current_health, 30.0, 0.01)
-	assert_almost_eq(steel_city.robot.velocity.x, -12.0, 0.01)
+	assert_almost_eq(steel_city.robot.velocity.x, 200.0, 0.01)
 	assert_almost_eq(
 		steel_city.contextual_attacks.jab_cross_impact.last_velocity_retention,
 		-0.06,
@@ -329,7 +325,7 @@ func test_jab_cross_concrete_drags_and_steel_requires_two_hits() -> void:
 		1
 	)
 	assert_true(steel_cell.is_destroyed())
-	assert_almost_eq(steel_city.robot.velocity.x, 76.0, 0.01)
+	assert_almost_eq(steel_city.robot.velocity.x, 200.0, 0.01)
 	assert_almost_eq(
 		steel_city.contextual_attacks.jab_cross_impact.last_velocity_retention,
 		0.38,
@@ -361,7 +357,6 @@ func test_space_during_recovery_remains_attack_only() -> void:
 	assert_gt(city.robot.request_attack(), 0)
 	await _wait_for_phase(city.contextual_attacks, ContextualAttackController.Phase.RECOVERY)
 	assert_eq(city.robot.request_attack(), 0)
-	assert_eq(city.contextual_attacks.buffered_dodge_count, 0)
 	await get_tree().create_timer(0.08).timeout
 	assert_eq(city.robot.dodge_count, 0)
 	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.IDLE)
@@ -395,8 +390,7 @@ func test_melee_cancels_dodge_into_half_momentum_attack_in_dodge_direction() -> 
 	assert_almost_eq(spec.actor_damage, 72.5, 0.001)
 	assert_almost_eq(spec.structural_damage, 62.5, 0.001)
 	assert_almost_eq(spec.impulse_per_mass, 540.0, 0.001)
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
-	assert_almost_eq(robot.velocity.x, 0.0, 0.001)
+	assert_almost_eq(robot.velocity.x, -robot.dodge_speed, 0.001)
 	assert_almost_eq(robot.dodge_cooldown_remaining, spent_cooldown, 0.001)
 	assert_false(robot.dodge_invulnerable)
 	assert_false(presenter.dodging)
@@ -434,12 +428,12 @@ func test_space_binding_cancels_east_dodge_into_half_momentum_melee() -> void:
 	assert_almost_eq(spec.actor_damage, 108.75, 0.001)
 	assert_almost_eq(spec.structural_damage, 93.75, 0.001)
 	assert_almost_eq(spec.impulse_per_mass, 540.0, 0.001)
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
+	assert_true(city.contextual_attacks.is_busy())
 	assert_false(robot.dodge_invulnerable)
 	_record_test_execution()
 
 
-func test_recovery_double_tap_buffers_directional_dodge_with_300ms_invulnerability() -> void:
+func test_recovery_double_tap_immediately_cancels_into_directional_dodge() -> void:
 	var city: CitySlice = await _city()
 	city.robot.global_position = Vector2(400.0, 460.0)
 	city.robot.collision_mask = 0
@@ -447,15 +441,11 @@ func test_recovery_double_tap_buffers_directional_dodge_with_300ms_invulnerabili
 	city.robot.facing = -1
 	_tune_short_attack(city.contextual_attacks.resolver)
 	assert_gt(city.robot.request_attack(), 0)
-	assert_eq(
-		city.robot.locomotion_state,
-		GiantRobotController.LocomotionState.ATTACK_LOCKED
-	)
+	assert_true(city.contextual_attacks.is_busy())
 	await _wait_for_phase(city.contextual_attacks, ContextualAttackController.Phase.RECOVERY)
 	assert_false(city.robot._register_move_tap(-1))
 	assert_true(city.robot._register_move_tap(-1))
-	assert_eq(city.contextual_attacks.buffered_dodge_count, 1)
-	await get_tree().create_timer(0.08).timeout
+	assert_false(city.contextual_attacks.is_busy())
 	assert_eq(city.robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
 	assert_eq(city.robot.dodge_count, 1)
 	assert_true(city.robot.dodge_invulnerable)

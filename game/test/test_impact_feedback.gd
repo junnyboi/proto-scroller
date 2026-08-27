@@ -7,7 +7,7 @@ func after_each() -> void:
 	Engine.time_scale = 1.0
 
 
-func test_hit_stop_clamps_deduplicates_and_restores_prior_scale() -> void:
+func test_hit_stop_clamps_and_deduplicates_without_changing_time_scale() -> void:
 	var prior_scale: float = 0.75
 	Engine.time_scale = prior_scale
 	var lease: HitStopLease = HitStopLease.new()
@@ -15,7 +15,8 @@ func test_hit_stop_clamps_deduplicates_and_restores_prior_scale() -> void:
 	await get_tree().process_frame
 	assert_true(lease.request(5, 71))
 	assert_eq(lease.last_duration_ms, 25)
-	assert_almost_eq(Engine.time_scale, HitStopLease.HIT_STOP_SCALE, 0.001)
+	assert_almost_eq(Engine.time_scale, prior_scale, 0.001)
+	assert_true(lease.is_active())
 	assert_false(lease.request(100, 71))
 	assert_eq(lease.ignored_request_count, 1)
 	lease.cancel_and_restore()

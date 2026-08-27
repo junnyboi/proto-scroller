@@ -24,7 +24,7 @@ Every campaign boss follows the same readable three-stage structure.
 |---|---|---|
 | **Armored** | Reach at least 70% movement speed, press and hold **Space/SMASH for the full 2.0 seconds**, then release the moving jab-cross into the glowing gold core. Repeat for **three accepted connections**. | Standing ground smashes, tap attacks, and ranged weapons cannot break armor. The HUD now explains which requirement was missed. |
 | **Exposed body** | Use normal melee and equipped weapons while reading the telegraphs. Attacks escalate again below roughly one-third body integrity. | Remaining inside a magenta armed footprint. Pale/gold telegraphs are warnings; magenta is live damage. |
-| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Walking into the route barrier or hitting the wreck away from its receiver. The barrier opens only after the finisher and durable completion transaction. |
+| **Wreck finisher** | Strike the visible labeled receiver with a **fresh ground smash**. The fatal attack cannot double as the finisher. | Hitting the wreck away from its receiver. The finisher controls rewards and progression only; the route marker is always collisionless. |
 
 The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. It is the intended answer when an armed lane closes after the player has already committed to a charge. Ordinary boss hazard activations deal 16 base chassis damage once per activation, then deduplicate until a new attack arms.[5][6]
 
@@ -41,7 +41,7 @@ The dodge has a 0.30-second invulnerability window and a 1.20-second cooldown. I
 | **Final third** | **Audit Beam** remains and **Foundation Cascade** adds a heavy left-side ground collapse. | Favor the right approach, dodge through a late arm, then punish the recovery. Eliminate the two support enemies if they obstruct the charging lane. |
 | **Finisher** | A visible gold **GROUND SMASH** receiver appears on the wreck. | Ground-smash the labeled receiver. This is the previously missing route-completion step. |
 
-**How to take it down:** Hold A or D until the robot is moving quickly, press and hold Space for two seconds, and release into the core. Do this three times. Then use any normal damage source against the exposed body. When it falls, ground-smash the labeled wreck target. The gate remains closed until that last step is complete and saved.[1][3]
+**How to take it down:** Hold A or D until the robot is moving quickly, press and hold Space for two seconds, and release into the core. Do this three times. Then use any normal damage source against the exposed body. When it falls, ground-smash the labeled wreck target for the completion record. You may pass, retreat, and return at every stage.[1][3]
 
 ### 2. SAMARITAN-15 — The Last Evacuation
 

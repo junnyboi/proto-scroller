@@ -61,8 +61,8 @@ func show_offer(
 	})
 	active = true
 	visible = true
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for card: UpgradeChoiceCard in cards:
 		card.disabled = true
 		card.mouse_filter = Control.MOUSE_FILTER_STOP

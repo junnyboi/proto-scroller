@@ -138,7 +138,7 @@ func test_contextual_attack_flow_drives_real_slam_and_punch_clips() -> void:
 	assert_eq(sprite.animation, &"idle_s")
 
 
-func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on_release() -> void:
+func test_charge_holds_melee_pose_draws_particles_and_keeps_locomotion_live() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var attacks: ContextualAttackController = city.contextual_attacks
@@ -214,7 +214,7 @@ func test_charge_freezes_first_melee_frame_draws_golden_particles_and_resumes_on
 	assert_eq(RuntimeBudget.validation_errors(city), PackedStringArray())
 
 
-func test_pause_cancels_charge_and_clears_particles_without_releasing_attack() -> void:
+func test_pause_preserves_full_charge_and_allows_release() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var attacks: ContextualAttackController = city.contextual_attacks
@@ -227,17 +227,17 @@ func test_pause_cancels_charge_and_clears_particles_without_releasing_attack() -
 	assert_false(presenter.charge_particles_emitting())
 	assert_true(presenter._charge_voice_player.playing)
 	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
-	assert_false(attacks.is_busy())
-	assert_false(attacks.is_charging())
-	assert_false(presenter.attacking)
-	assert_false(presenter.charging)
+	assert_true(attacks.is_busy())
+	assert_true(attacks.is_charging())
+	assert_true(presenter.attacking)
+	assert_true(presenter.charging)
 	assert_false(presenter.charge_particles_emitting())
 	assert_false(presenter.release_shockwave_visible())
-	assert_false(presenter._charge_voice_player.playing)
-	assert_eq(sprite.animation, &"idle_s")
+	assert_true(presenter._charge_voice_player.playing)
+	assert_eq(sprite.animation, &"attack_se")
 	assert_false(sprite.is_playing())
-	assert_false(attacks.release_charge())
-	assert_false(presenter.release_shockwave_visible())
+	assert_true(attacks.release_charge())
+	assert_true(presenter.release_shockwave_visible())
 	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
 
 
@@ -315,7 +315,7 @@ func test_confirmed_full_charge_enemy_hit_plays_signature_cue_and_world_flash_on
 	assert_false(presenter.full_charge_hit_flash_visible())
 
 
-func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() -> void:
+func test_upgrade_pause_preserves_melee_and_free_directional_movement() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var sprite: AnimatedSprite2D = _sprite(city)
@@ -335,13 +335,16 @@ func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() 
 	assert_true(presenter.attacking)
 	assert_eq(sprite.animation, &"attack_e")
 	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
-	assert_false(city.contextual_attacks.is_busy())
-	assert_eq(terminal_specs.size(), 1)
+	assert_true(city.contextual_attacks.is_busy())
+	assert_eq(terminal_specs.size(), 0)
+	var pause_x: float = robot.global_position.x
+	robot.physics_step(1.0, 0.10)
+	assert_gt(robot.global_position.x, pause_x)
 	city.contextual_attacks.cancel_attack()
 	assert_eq(terminal_specs.size(), 1)
 	assert_false(presenter.attacking)
-	assert_eq(sprite.animation, &"idle_s")
-	assert_false(sprite.is_playing())
+	assert_eq(sprite.animation, &"walk_e")
+	assert_true(sprite.is_playing())
 	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
 	robot.physics_step(1.0, 0.10)
 	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.WALK)
@@ -353,7 +356,7 @@ func test_upgrade_pause_cancels_melee_and_restores_directional_walk_animation() 
 	assert_true(sprite.is_playing())
 
 
-func test_pause_cancels_dodge_and_restores_clean_directional_animation() -> void:
+func test_pause_preserves_dodge_and_player_locomotion() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var sprite: AnimatedSprite2D = _sprite(city)
@@ -367,19 +370,15 @@ func test_pause_cancels_dodge_and_restores_clean_directional_animation() -> void
 	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
 	assert_gt(sprite.skew, 0.0)
 	var pause_token: int = city.urban_siege.pause_coordinator.acquire(&"upgrade_choice")
-	assert_false(presenter.dodging)
-	assert_eq(sprite.skew, 0.0)
-	assert_eq(sprite.modulate, Color.WHITE)
-	assert_eq(sprite.animation, &"idle_s")
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.ATTACK_LOCKED)
-	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
+	assert_true(presenter.dodging)
+	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.DODGE)
+	var start_x: float = robot.global_position.x
 	robot.physics_step(-1.0, 0.10)
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.WALK)
-	assert_eq(sprite.animation, &"walk_w")
-	assert_true(sprite.is_playing())
+	assert_lt(robot.global_position.x, start_x)
+	assert_true(city.urban_siege.pause_coordinator.release(pause_token))
 
 
-func test_defeat_cancels_melee_animation_and_preserves_disabled_state() -> void:
+func test_defeat_cancels_melee_but_preserves_free_locomotion() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var sprite: AnimatedSprite2D = _sprite(city)
@@ -398,15 +397,14 @@ func test_defeat_cancels_melee_animation_and_preserves_disabled_state() -> void:
 	assert_false(city.contextual_attacks.is_busy())
 	assert_false(presenter.attacking)
 	assert_eq(terminal_specs.size(), 1)
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.DISABLED)
-	assert_eq(sprite.animation, &"idle_s")
-	assert_false(sprite.is_playing())
+	assert_eq(sprite.animation, &"walk_e")
+	assert_true(sprite.is_playing())
+	var defeated_x: float = robot.global_position.x
 	robot.physics_step(-1.0, 0.10)
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.DISABLED)
-	assert_eq(sprite.animation, &"idle_s")
+	assert_ne(robot.global_position.x, defeated_x)
 
 
-func test_directive_pause_cancels_melee_and_restores_walk_animation() -> void:
+func test_directive_pause_preserves_melee_and_free_locomotion() -> void:
 	var city: CitySlice = await _spawn_city()
 	var robot: GiantRobotController = city.robot
 	var sprite: AnimatedSprite2D = _sprite(city)
@@ -421,15 +419,14 @@ func test_directive_pause_cancels_melee_and_restores_walk_animation() -> void:
 	var profile: DirectiveProfile = city.urban_siege.directives.offer(781)
 	assert_not_null(profile)
 	assert_true(city.urban_siege.pause_coordinator.is_paused())
-	assert_false(city.contextual_attacks.is_busy())
-	assert_false(presenter.attacking)
-	assert_eq(sprite.animation, &"idle_s")
+	assert_true(city.contextual_attacks.is_busy())
+	assert_true(presenter.attacking)
+	var paused_x: float = robot.global_position.x
+	robot.physics_step(1.0, 0.10)
+	assert_gt(robot.global_position.x, paused_x)
 	assert_true(city.urban_siege.directives.select(profile))
 	assert_false(city.urban_siege.pause_coordinator.is_paused())
-	robot.physics_step(1.0, 0.10)
-	assert_eq(robot.locomotion_state, GiantRobotController.LocomotionState.WALK)
-	assert_eq(sprite.animation, &"walk_e")
-	assert_true(sprite.is_playing())
+	city.contextual_attacks.cancel_attack()
 	city.urban_siege.directives.stop()
 
 
