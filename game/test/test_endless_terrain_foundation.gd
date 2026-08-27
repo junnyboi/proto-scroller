@@ -31,6 +31,12 @@ func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> vo
 	city.world_stream.advance_stream()
 	assert_eq(rear_contacts[0], 1)
 	assert_true(city.gameplay_hud.rear_barrier_warning.visible)
+	assert_eq(city.gameplay_hud.rear_barrier_warning_play_count, 1)
+	assert_eq(city.gameplay_hud.rear_barrier_warning_audio.bus, &"Voice")
+	assert_eq(
+		city.gameplay_hud.rear_barrier_warning_audio.stream.resource_path,
+		"res://audio/voice/rear_barrier_warning.wav"
+	)
 	assert_gte(
 		city.robot.global_position.x,
 		city.world_stream.rear_frontier_runtime_x()
@@ -39,6 +45,7 @@ func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> vo
 	city.robot.global_position.x = attempted_left_x
 	city.world_stream.advance_stream()
 	assert_eq(rear_contacts[0], 1)
+	assert_eq(city.gameplay_hud.rear_barrier_warning_play_count, 1)
 	city.robot.global_position.x += 100.0
 	city.world_stream.advance_stream()
 	city.robot.global_position.x = (
@@ -49,6 +56,7 @@ func test_six_chunk_window_reuses_fixed_nodes_across_long_forward_travel() -> vo
 	city.world_stream.advance_stream()
 	Input.action_release(&"move_left")
 	assert_eq(rear_contacts[0], 2)
+	assert_eq(city.gameplay_hud.rear_barrier_warning_play_count, 2)
 	city.gameplay_hud._process(GameplayHud.REAR_BARRIER_WARNING_DURATION + 0.01)
 	assert_false(city.gameplay_hud.rear_barrier_warning.visible)
 	for chunk: CityStreetChunk in city.world_stream.chunks:

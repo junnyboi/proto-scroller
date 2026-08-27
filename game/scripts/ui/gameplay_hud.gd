@@ -14,6 +14,9 @@ const ACCENT_COLOR: Color = Color("f1b36f")
 const MUTED_COLOR: Color = Color("b7c4cb")
 const COMBO_GRACE_SECONDS: float = 3.0
 const REAR_BARRIER_WARNING_DURATION: float = 0.72
+const REAR_BARRIER_WARNING_VOICE: AudioStream = preload(
+	"res://audio/voice/rear_barrier_warning.wav"
+)
 const REAR_BARRIER_VIGNETTE_SHADER: String = """
 shader_type canvas_item;
 render_mode unshaded;
@@ -75,6 +78,8 @@ var score_panel: ColorRect
 var score_caption: Label
 var terminal_panel: ColorRect
 var rear_barrier_warning: ColorRect
+var rear_barrier_warning_audio: AudioStreamPlayer
+var rear_barrier_warning_play_count: int = 0
 var _robot: GiantRobotController
 var _contextual_attacks: ContextualAttackController
 var _pulse_age: float = 0.0
@@ -140,6 +145,9 @@ func show_rear_barrier_warning() -> void:
 	_rear_barrier_warning_remaining = REAR_BARRIER_WARNING_DURATION
 	rear_barrier_warning.visible = true
 	_set_rear_barrier_warning_intensity(1.0)
+	rear_barrier_warning_play_count += 1
+	rear_barrier_warning_audio.stop()
+	rear_barrier_warning_audio.play()
 
 
 func set_health(current: float, maximum: float) -> void:
@@ -527,6 +535,13 @@ func _build_rear_barrier_warning() -> void:
 	rear_barrier_warning.material = shader_material
 	rear_barrier_warning.visible = false
 	add_child(rear_barrier_warning)
+	rear_barrier_warning_audio = AudioStreamPlayer.new()
+	rear_barrier_warning_audio.name = "RearBarrierWarningVoice"
+	rear_barrier_warning_audio.stream = REAR_BARRIER_WARNING_VOICE
+	rear_barrier_warning_audio.bus = &"Voice"
+	rear_barrier_warning_audio.volume_db = -4.0
+	rear_barrier_warning_audio.max_polyphony = 1
+	add_child(rear_barrier_warning_audio)
 
 
 func _update_rear_barrier_warning(delta: float) -> void:
