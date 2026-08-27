@@ -22,6 +22,7 @@ const WEAPON_ROW_COUNT: int = 3
 const ENEMY_ROW_COUNT: int = 4
 const LOCAL_ROW_COUNT: int = 5
 const GLOBAL_ROW_COUNT: int = 10
+const CONTROL_GROUP_MARGIN: float = 24.0
 
 var content_root: Control
 var scrim: ColorRect
@@ -219,6 +220,9 @@ func debug_snapshot() -> Dictionary:
 			content_root.position,
 			main_panel.size * content_root.scale
 		) if content_root != null and main_panel != null else Rect2(),
+		"tabs_rect": _controls_union_rect(tab_buttons),
+		"page_content_rect": _page_content_rect(),
+		"bottom_content_rect": _bottom_content_rect(),
 		"retry_rect": _scaled_rect(retry_button),
 		"title_rect": _scaled_rect(title_button),
 		"callsign_rect": _scaled_rect(callsign_edit),
@@ -623,109 +627,114 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	main_panel.position = Vector2.ZERO
 	main_panel.size = LANDSCAPE_SIZE
 	_layout_tabs(20.0, 10.0, 1120.0, 42.0)
-	result_label.position = Vector2(30.0, 58.0)
+	var body_offset: float = _tabs_bottom() + CONTROL_GROUP_MARGIN - 58.0
+	result_label.position = Vector2(30.0, 58.0 + body_offset)
 	result_label.size = Vector2(590.0, 44.0)
 	result_label.add_theme_font_size_override(&"font_size", 34)
-	grade_label.position = Vector2(655.0, 56.0)
+	grade_label.position = Vector2(655.0, 56.0 + body_offset)
 	grade_label.size = Vector2(180.0, 48.0)
 	grade_label.add_theme_font_size_override(&"font_size", 28)
-	score_label.position = Vector2(845.0, 56.0)
+	score_label.position = Vector2(845.0, 56.0 + body_offset)
 	score_label.size = Vector2(285.0, 48.0)
 	score_label.add_theme_font_size_override(&"font_size", 28)
-	run_meta_label.position = Vector2(30.0, 100.0)
+	run_meta_label.position = Vector2(30.0, 100.0 + body_offset)
 	run_meta_label.size = Vector2(1100.0, 24.0)
-	combo_panel.position = Vector2(20.0, 130.0)
+	combo_panel.position = Vector2(20.0, 130.0 + body_offset)
 	combo_panel.size = Vector2(535.0, 190.0)
-	crest.position = Vector2(36.0, 153.0)
+	crest.position = Vector2(36.0, 153.0 + body_offset)
 	crest.size = Vector2(140.0, 140.0)
-	combo_header_label.position = Vector2(194.0, 140.0)
+	combo_header_label.position = Vector2(194.0, 140.0 + body_offset)
 	combo_header_label.size = Vector2(335.0, 24.0)
-	combo_value_label.position = Vector2(194.0, 166.0)
+	combo_value_label.position = Vector2(194.0, 166.0 + body_offset)
 	combo_value_label.size = Vector2(325.0, 74.0)
 	combo_value_label.add_theme_font_size_override(&"font_size", 25)
-	combo_detail_label.position = Vector2(194.0, 242.0)
+	combo_detail_label.position = Vector2(194.0, 242.0 + body_offset)
 	combo_detail_label.size = Vector2(325.0, 26.0)
-	personal_best_label.position = Vector2(194.0, 272.0)
+	personal_best_label.position = Vector2(194.0, 272.0 + body_offset)
 	personal_best_label.size = Vector2(325.0, 30.0)
-	career_panel.position = Vector2(20.0, 330.0)
+	career_panel.position = Vector2(20.0, 330.0 + body_offset)
 	career_panel.size = Vector2(535.0, 174.0)
-	career_header_label.position = Vector2(40.0, 340.0)
+	career_header_label.position = Vector2(40.0, 340.0 + body_offset)
 	career_header_label.size = Vector2(495.0, 28.0)
-	career_value_label.position = Vector2(40.0, 372.0)
+	career_value_label.position = Vector2(40.0, 372.0 + body_offset)
 	career_value_label.size = Vector2(495.0, 116.0)
-	weapon_panel.position = Vector2(565.0, 130.0)
+	weapon_panel.position = Vector2(565.0, 130.0 + body_offset)
 	weapon_panel.size = Vector2(575.0, 180.0)
-	weapon_header_label.position = Vector2(585.0, 140.0)
+	weapon_header_label.position = Vector2(585.0, 140.0 + body_offset)
 	weapon_header_label.size = Vector2(535.0, 24.0)
-	weapon_preferred_label.position = Vector2(585.0, 167.0)
+	weapon_preferred_label.position = Vector2(585.0, 167.0 + body_offset)
 	weapon_preferred_label.size = Vector2(535.0, 28.0)
 	for index: int in range(weapon_rows.size()):
-		weapon_rows[index].position = Vector2(585.0, 199.0 + float(index) * 31.0)
+		weapon_rows[index].position = Vector2(
+			585.0, 199.0 + body_offset + float(index) * 31.0
+		)
 		weapon_rows[index].size = Vector2(535.0, 28.0)
-	enemy_panel.position = Vector2(565.0, 320.0)
+	enemy_panel.position = Vector2(565.0, 320.0 + body_offset)
 	enemy_panel.size = Vector2(575.0, 184.0)
-	enemy_header_label.position = Vector2(585.0, 330.0)
+	enemy_header_label.position = Vector2(585.0, 330.0 + body_offset)
 	enemy_header_label.size = Vector2(310.0, 24.0)
-	enemy_total_label.position = Vector2(895.0, 330.0)
+	enemy_total_label.position = Vector2(895.0, 330.0 + body_offset)
 	enemy_total_label.size = Vector2(225.0, 24.0)
 	enemy_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	for index: int in range(enemy_rows.size()):
-		enemy_rows[index].position = Vector2(585.0, 358.0 + float(index) * 34.0)
+		enemy_rows[index].position = Vector2(
+			585.0, 358.0 + body_offset + float(index) * 34.0
+		)
 		enemy_rows[index].size = Vector2(535.0, 30.0)
 	_layout_career_landscape()
 	_layout_global_landscape()
-	recommendation_label.position = Vector2(30.0, 508.0)
+	recommendation_label.position = Vector2(30.0, 526.0)
 	recommendation_label.size = Vector2(1100.0, 24.0)
-	retry_button.position = Vector2(190.0, 548.0)
+	retry_button.position = Vector2(190.0, 574.0)
 	retry_button.size = Vector2(350.0, 60.0)
-	title_button.position = Vector2(620.0, 548.0)
+	title_button.position = Vector2(620.0, 574.0)
 	title_button.size = Vector2(350.0, 60.0)
 
 
 func _layout_career_landscape() -> void:
-	career_profile_panel.position = Vector2(20.0, 64.0)
+	career_profile_panel.position = Vector2(20.0, 89.0)
 	career_profile_panel.size = Vector2(330.0, 186.0)
-	callsign_header_label.position = Vector2(38.0, 76.0)
+	callsign_header_label.position = Vector2(38.0, 101.0)
 	callsign_header_label.size = Vector2(294.0, 26.0)
-	callsign_edit.position = Vector2(38.0, 110.0)
+	callsign_edit.position = Vector2(38.0, 135.0)
 	callsign_edit.size = Vector2(294.0, 44.0)
-	callsign_save_button.position = Vector2(38.0, 162.0)
+	callsign_save_button.position = Vector2(38.0, 187.0)
 	callsign_save_button.size = Vector2(142.0, 48.0)
-	callsign_status_label.position = Vector2(188.0, 162.0)
+	callsign_status_label.position = Vector2(188.0, 187.0)
 	callsign_status_label.size = Vector2(144.0, 48.0)
-	local_board_panel.position = Vector2(20.0, 260.0)
-	local_board_panel.size = Vector2(330.0, 272.0)
-	local_board_header_label.position = Vector2(38.0, 270.0)
+	local_board_panel.position = Vector2(20.0, 285.0)
+	local_board_panel.size = Vector2(330.0, 265.0)
+	local_board_header_label.position = Vector2(38.0, 295.0)
 	local_board_header_label.size = Vector2(294.0, 26.0)
 	for index: int in range(local_board_rows.size()):
-		local_board_rows[index].position = Vector2(38.0, 302.0 + float(index) * 43.0)
+		local_board_rows[index].position = Vector2(38.0, 327.0 + float(index) * 43.0)
 		local_board_rows[index].size = Vector2(294.0, 38.0)
 		local_board_rows[index].add_theme_font_size_override(&"font_size", 12)
-	chart_panel.position = Vector2(360.0, 64.0)
-	chart_panel.size = Vector2(780.0, 468.0)
-	chart_header_label.position = Vector2(378.0, 74.0)
+	chart_panel.position = Vector2(360.0, 89.0)
+	chart_panel.size = Vector2(780.0, 461.0)
+	chart_header_label.position = Vector2(378.0, 99.0)
 	chart_header_label.size = Vector2(380.0, 26.0)
-	chart_kills_button.position = Vector2(900.0, 72.0)
+	chart_kills_button.position = Vector2(900.0, 97.0)
 	chart_kills_button.size = Vector2(104.0, 36.0)
-	chart_share_button.position = Vector2(1012.0, 72.0)
+	chart_share_button.position = Vector2(1012.0, 97.0)
 	chart_share_button.size = Vector2(104.0, 36.0)
-	weapon_history_chart.position = Vector2(378.0, 116.0)
-	weapon_history_chart.size = Vector2(744.0, 398.0)
+	weapon_history_chart.position = Vector2(378.0, 141.0)
+	weapon_history_chart.size = Vector2(744.0, 404.0)
 
 
 func _layout_global_landscape() -> void:
-	global_panel.position = Vector2(20.0, 64.0)
-	global_panel.size = Vector2(1120.0, 468.0)
-	global_header_label.position = Vector2(40.0, 76.0)
+	global_panel.position = Vector2(20.0, 89.0)
+	global_panel.size = Vector2(1120.0, 461.0)
+	global_header_label.position = Vector2(40.0, 101.0)
 	global_header_label.size = Vector2(400.0, 28.0)
-	global_status_label.position = Vector2(450.0, 76.0)
+	global_status_label.position = Vector2(450.0, 101.0)
 	global_status_label.size = Vector2(390.0, 28.0)
-	global_refresh_button.position = Vector2(930.0, 72.0)
+	global_refresh_button.position = Vector2(930.0, 97.0)
 	global_refresh_button.size = Vector2(190.0, 42.0)
-	personal_rank_label.position = Vector2(40.0, 112.0)
+	personal_rank_label.position = Vector2(40.0, 137.0)
 	personal_rank_label.size = Vector2(1080.0, 32.0)
 	for index: int in range(global_rows.size()):
-		global_rows[index].position = Vector2(40.0, 150.0 + float(index) * 35.0)
+		global_rows[index].position = Vector2(40.0, 175.0 + float(index) * 35.0)
 		global_rows[index].size = Vector2(1080.0, 31.0)
 		global_rows[index].add_theme_font_size_override(&"font_size", 14)
 
@@ -735,113 +744,118 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	main_panel.position = Vector2.ZERO
 	main_panel.size = PORTRAIT_SIZE
 	_layout_tabs(16.0, 12.0, 640.0, 50.0)
-	result_label.position = Vector2(20.0, 70.0)
+	var body_offset: float = _tabs_bottom() + CONTROL_GROUP_MARGIN - 70.0
+	result_label.position = Vector2(20.0, 70.0 + body_offset)
 	result_label.size = Vector2(632.0, 44.0)
 	result_label.add_theme_font_size_override(&"font_size", 32)
-	grade_label.position = Vector2(20.0, 116.0)
+	grade_label.position = Vector2(20.0, 116.0 + body_offset)
 	grade_label.size = Vector2(190.0, 42.0)
 	grade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	grade_label.add_theme_font_size_override(&"font_size", 26)
-	score_label.position = Vector2(220.0, 116.0)
+	score_label.position = Vector2(220.0, 116.0 + body_offset)
 	score_label.size = Vector2(432.0, 42.0)
 	score_label.add_theme_font_size_override(&"font_size", 26)
-	run_meta_label.position = Vector2(20.0, 160.0)
+	run_meta_label.position = Vector2(20.0, 160.0 + body_offset)
 	run_meta_label.size = Vector2(632.0, 24.0)
-	combo_panel.position = Vector2(16.0, 192.0)
+	combo_panel.position = Vector2(16.0, 192.0 + body_offset)
 	combo_panel.size = Vector2(640.0, 180.0)
-	crest.position = Vector2(30.0, 220.0)
+	crest.position = Vector2(30.0, 220.0 + body_offset)
 	crest.size = Vector2(124.0, 124.0)
-	combo_header_label.position = Vector2(174.0, 204.0)
+	combo_header_label.position = Vector2(174.0, 204.0 + body_offset)
 	combo_header_label.size = Vector2(458.0, 24.0)
-	combo_value_label.position = Vector2(174.0, 232.0)
+	combo_value_label.position = Vector2(174.0, 232.0 + body_offset)
 	combo_value_label.size = Vector2(458.0, 70.0)
 	combo_value_label.add_theme_font_size_override(&"font_size", 23)
-	combo_detail_label.position = Vector2(174.0, 304.0)
+	combo_detail_label.position = Vector2(174.0, 304.0 + body_offset)
 	combo_detail_label.size = Vector2(458.0, 24.0)
-	personal_best_label.position = Vector2(174.0, 332.0)
+	personal_best_label.position = Vector2(174.0, 332.0 + body_offset)
 	personal_best_label.size = Vector2(458.0, 28.0)
-	weapon_panel.position = Vector2(16.0, 382.0)
+	weapon_panel.position = Vector2(16.0, 382.0 + body_offset)
 	weapon_panel.size = Vector2(640.0, 174.0)
-	weapon_header_label.position = Vector2(32.0, 392.0)
+	weapon_header_label.position = Vector2(32.0, 392.0 + body_offset)
 	weapon_header_label.size = Vector2(608.0, 24.0)
-	weapon_preferred_label.position = Vector2(32.0, 420.0)
+	weapon_preferred_label.position = Vector2(32.0, 420.0 + body_offset)
 	weapon_preferred_label.size = Vector2(608.0, 28.0)
 	for index: int in range(weapon_rows.size()):
-		weapon_rows[index].position = Vector2(32.0, 450.0 + float(index) * 30.0)
+		weapon_rows[index].position = Vector2(
+			32.0, 450.0 + body_offset + float(index) * 30.0
+		)
 		weapon_rows[index].size = Vector2(608.0, 28.0)
 		weapon_rows[index].add_theme_font_size_override(&"font_size", 14)
-	enemy_panel.position = Vector2(16.0, 566.0)
+	enemy_panel.position = Vector2(16.0, 566.0 + body_offset)
 	enemy_panel.size = Vector2(640.0, 190.0)
-	enemy_header_label.position = Vector2(32.0, 576.0)
+	enemy_header_label.position = Vector2(32.0, 576.0 + body_offset)
 	enemy_header_label.size = Vector2(340.0, 24.0)
-	enemy_total_label.position = Vector2(372.0, 576.0)
+	enemy_total_label.position = Vector2(372.0, 576.0 + body_offset)
 	enemy_total_label.size = Vector2(268.0, 24.0)
 	enemy_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	for index: int in range(enemy_rows.size()):
-		enemy_rows[index].position = Vector2(32.0, 606.0 + float(index) * 34.0)
+		enemy_rows[index].position = Vector2(
+			32.0, 606.0 + body_offset + float(index) * 34.0
+		)
 		enemy_rows[index].size = Vector2(608.0, 30.0)
 		enemy_rows[index].add_theme_font_size_override(&"font_size", 14)
-	career_panel.position = Vector2(16.0, 766.0)
+	career_panel.position = Vector2(16.0, 766.0 + body_offset)
 	career_panel.size = Vector2(640.0, 162.0)
-	career_header_label.position = Vector2(32.0, 776.0)
+	career_header_label.position = Vector2(32.0, 776.0 + body_offset)
 	career_header_label.size = Vector2(608.0, 24.0)
-	career_value_label.position = Vector2(32.0, 804.0)
+	career_value_label.position = Vector2(32.0, 804.0 + body_offset)
 	career_value_label.size = Vector2(608.0, 110.0)
 	career_value_label.add_theme_font_size_override(&"font_size", 15)
 	_layout_career_portrait()
 	_layout_global_portrait()
-	recommendation_label.position = Vector2(24.0, 938.0)
+	recommendation_label.position = Vector2(24.0, 986.0)
 	recommendation_label.size = Vector2(624.0, 28.0)
-	retry_button.position = Vector2(24.0, 1018.0)
+	retry_button.position = Vector2(24.0, 1038.0)
 	retry_button.size = Vector2(296.0, 66.0)
-	title_button.position = Vector2(352.0, 1018.0)
+	title_button.position = Vector2(352.0, 1038.0)
 	title_button.size = Vector2(296.0, 66.0)
 
 
 func _layout_career_portrait() -> void:
-	career_profile_panel.position = Vector2(16.0, 72.0)
+	career_profile_panel.position = Vector2(16.0, 91.0)
 	career_profile_panel.size = Vector2(640.0, 150.0)
-	callsign_header_label.position = Vector2(32.0, 82.0)
+	callsign_header_label.position = Vector2(32.0, 101.0)
 	callsign_header_label.size = Vector2(608.0, 26.0)
-	callsign_edit.position = Vector2(32.0, 114.0)
+	callsign_edit.position = Vector2(32.0, 133.0)
 	callsign_edit.size = Vector2(392.0, 50.0)
-	callsign_save_button.position = Vector2(438.0, 114.0)
+	callsign_save_button.position = Vector2(438.0, 133.0)
 	callsign_save_button.size = Vector2(202.0, 50.0)
-	callsign_status_label.position = Vector2(32.0, 170.0)
+	callsign_status_label.position = Vector2(32.0, 189.0)
 	callsign_status_label.size = Vector2(608.0, 34.0)
-	chart_panel.position = Vector2(16.0, 232.0)
+	chart_panel.position = Vector2(16.0, 251.0)
 	chart_panel.size = Vector2(640.0, 430.0)
-	chart_header_label.position = Vector2(32.0, 242.0)
+	chart_header_label.position = Vector2(32.0, 261.0)
 	chart_header_label.size = Vector2(340.0, 26.0)
-	chart_kills_button.position = Vector2(408.0, 238.0)
+	chart_kills_button.position = Vector2(408.0, 257.0)
 	chart_kills_button.size = Vector2(108.0, 42.0)
-	chart_share_button.position = Vector2(524.0, 238.0)
+	chart_share_button.position = Vector2(524.0, 257.0)
 	chart_share_button.size = Vector2(116.0, 42.0)
-	weapon_history_chart.position = Vector2(32.0, 290.0)
+	weapon_history_chart.position = Vector2(32.0, 309.0)
 	weapon_history_chart.size = Vector2(608.0, 354.0)
-	local_board_panel.position = Vector2(16.0, 672.0)
-	local_board_panel.size = Vector2(640.0, 328.0)
-	local_board_header_label.position = Vector2(32.0, 682.0)
+	local_board_panel.position = Vector2(16.0, 691.0)
+	local_board_panel.size = Vector2(640.0, 323.0)
+	local_board_header_label.position = Vector2(32.0, 701.0)
 	local_board_header_label.size = Vector2(608.0, 26.0)
 	for index: int in range(local_board_rows.size()):
-		local_board_rows[index].position = Vector2(32.0, 716.0 + float(index) * 54.0)
+		local_board_rows[index].position = Vector2(32.0, 735.0 + float(index) * 54.0)
 		local_board_rows[index].size = Vector2(608.0, 48.0)
 		local_board_rows[index].add_theme_font_size_override(&"font_size", 13)
 
 
 func _layout_global_portrait() -> void:
-	global_panel.position = Vector2(16.0, 72.0)
-	global_panel.size = Vector2(640.0, 928.0)
-	global_header_label.position = Vector2(32.0, 84.0)
+	global_panel.position = Vector2(16.0, 91.0)
+	global_panel.size = Vector2(640.0, 923.0)
+	global_header_label.position = Vector2(32.0, 103.0)
 	global_header_label.size = Vector2(360.0, 28.0)
-	global_status_label.position = Vector2(32.0, 118.0)
+	global_status_label.position = Vector2(32.0, 137.0)
 	global_status_label.size = Vector2(380.0, 28.0)
-	global_refresh_button.position = Vector2(438.0, 92.0)
+	global_refresh_button.position = Vector2(438.0, 111.0)
 	global_refresh_button.size = Vector2(202.0, 54.0)
-	personal_rank_label.position = Vector2(32.0, 156.0)
+	personal_rank_label.position = Vector2(32.0, 175.0)
 	personal_rank_label.size = Vector2(608.0, 42.0)
 	for index: int in range(global_rows.size()):
-		global_rows[index].position = Vector2(32.0, 206.0 + float(index) * 72.0)
+		global_rows[index].position = Vector2(32.0, 225.0 + float(index) * 72.0)
 		global_rows[index].size = Vector2(608.0, 64.0)
 		global_rows[index].add_theme_font_size_override(&"font_size", 14)
 
@@ -853,6 +867,13 @@ func _layout_tabs(x: float, y: float, total_width: float, height: float) -> void
 		tab_buttons[index].position = Vector2(x + float(index) * (tab_width + gap), y)
 		tab_buttons[index].size = Vector2(tab_width, height)
 		tab_buttons[index].add_theme_font_size_override(&"font_size", 16)
+
+
+func _tabs_bottom() -> float:
+	var bottom: float = 0.0
+	for tab: Button in tab_buttons:
+		bottom = maxf(bottom, tab.position.y + tab.size.y)
+	return bottom
 
 
 func _place_content(viewport_size: Vector2, design_size: Vector2, margin: float) -> void:
@@ -880,6 +901,33 @@ func _visible_row_text(rows: Array[Label]) -> PackedStringArray:
 		if row.visible:
 			text.append(row.text)
 	return text
+
+
+func _controls_union_rect(controls: Array[Button]) -> Rect2:
+	if controls.is_empty():
+		return Rect2()
+	var combined: Rect2 = _scaled_rect(controls[0])
+	for index: int in range(1, controls.size()):
+		combined = combined.merge(_scaled_rect(controls[index]))
+	return combined
+
+
+func _page_content_rect() -> Rect2:
+	match current_page:
+		Page.CAREER:
+			return _scaled_rect(career_profile_panel)
+		Page.GLOBAL:
+			return _scaled_rect(global_panel)
+	return _scaled_rect(result_label)
+
+
+func _bottom_content_rect() -> Rect2:
+	match current_page:
+		Page.CAREER:
+			return _scaled_rect(local_board_panel)
+		Page.GLOBAL:
+			return _scaled_rect(global_panel)
+	return _scaled_rect(recommendation_label)
 
 
 func _scaled_rect(control: Control) -> Rect2:
