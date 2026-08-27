@@ -1,6 +1,6 @@
 # Procedural Building Destruction Restoration Plan
 
-**Status:** Progressive sprite hollowing extension in progress
+**Status:** Progressive sprite hollowing implemented and exported; WebDev deployment in progress
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export  
 **Target branch:** `main`  
 **Applies to:** all 25 district facade variants through the six-instance streamed building pool
@@ -115,3 +115,9 @@ Four targeted Godot 4.7.2 regressions passed with **2,932 assertions**: alpha-sa
 The implementation was integrated non-destructively with the concurrent boss-combat release and pushed as source revision `48b5e1ba5146188383f7b505c5898b514b61f0ce`; the fresh export record was pushed as `43b711c1a8d8ef67c281a06ab2a660917d54d72c`. A fresh Godot 4.7.2 Web export produced a **39,514,754-byte WASM** with SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` and a **16,103,384-byte PCK** with SHA-256 `6bc0069f3e8cbb721e35e037b8e1db7f9efaeb4b8a691fe5213a81677f87a730`.
 
 The existing `proto-scroller` WebDev project now maps `/manus-storage/game-43b711c_278ae8cd.wasm` and `/manus-storage/game-43b711c_87833a7b.pck`, preserves the fullscreen dynamic iframe and concurrent leaderboard/boss systems, and is sealed at checkpoint `f3656c8b`.
+
+The progressive extension moves the per-cell shader onto `IntactVisual` itself. Cumulative normalized damage now increases one stored `hollow_progress` value, drives smooth center-out alpha erosion, and darkens every surviving facade texel. The shader normalizes atlas coordinates to the active 3×2 cell region, combines three deterministic angular frequencies into coarse bites, chips, and notches, and opens the lower middle near terminal failure. At progress `1.0`, material-aware extents remove most of the center while preserving dark jagged side rails and at least a narrow top lintel. Crack strokes now radiate outward from the cavity boundary instead of floating across the transparent opening.
+
+Progress is captured with the mutation state and reconstructed from authoritative health for older saves. The material instance remains bound during all 25 facade reconfigurations and resets to an untouched zero-progress sprite on pooled reuse. Four focused Godot 4.7.2 tests passed with **4,316 assertions**, covering cumulative growth, full darkening, lower breach logic, nonterminal persistence, all 150 terminal cell states, per-cell atlas normalization, stable node reuse, and the prior alpha-safe/detail contract.
+
+The implementation was merged with concurrent projectile-impact work and pushed as source `172fa284e23f0620ea741a283b3e47438588e5a1`. Its fresh Godot 4.7.2 Web export produced a **39,514,754-byte WASM** with SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` and a **16,108,216-byte PCK** with SHA-256 `038a25b7b362b3d6171ccc15cf1a8f28cdc6115596693ad8476103d5afdcc78b`.

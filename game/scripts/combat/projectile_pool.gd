@@ -10,6 +10,7 @@ const HOSTILE_IMPACT_CAPACITY: int = 8
 const MIN_DAMAGE_IMPACT_SCALE: float = 0.70
 const MAX_DAMAGE_IMPACT_SCALE: float = 1.80
 const HOSTILE_IMPACT_PITCH_VARIATION: float = 0.035
+const HOSTILE_IMPACT_VOLUME_VARIATION_DB: float = 0.45
 
 @export_range(1, 64, 1) var capacity: int = 24
 @export_range(1, 32, 1) var bullet_capacity: int = RuntimeBudget.BULLETS
@@ -355,6 +356,7 @@ func _on_impact_requested(
 		impact_feedback_pool.play_cue(
 			audio_cue,
 			world_position,
-			HOSTILE_IMPACT_PITCH_VARIATION
+			HOSTILE_IMPACT_PITCH_VARIATION,
+			HOSTILE_IMPACT_VOLUME_VARIATION_DB
 		)
 	_hostile_impact_cursor = (_hostile_impact_cursor + 1) % hostile_impacts.size()

@@ -546,7 +546,8 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_cue_volume(
 		presenter,
 		RobotAnimationPresenter.GROUND_SLAM_IMPACT_SFX,
-		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB
+		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB,
+		RobotAnimationPresenter.MELEE_IMPACT_VOLUME_VARIATION_DB
 	)
 	assert_eq(sprite.frame, RobotAnimationPresenter.ATTACK_EVENT_FRAME)
 	presenter._on_attack_committed(AttackSpec.Mode.JAB_CROSS, 501)
@@ -555,7 +556,34 @@ func test_robot_mechanics_audio_is_pcm_fixed_and_frame_synchronized() -> void:
 	_assert_cue_volume(
 		presenter,
 		RobotAnimationPresenter.DOUBLE_PUNCH_IMPACT_SFX,
-		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB
+		RobotAnimationPresenter.ATTACK_IMPACT_VOLUME_DB,
+		RobotAnimationPresenter.MELEE_IMPACT_VOLUME_VARIATION_DB
+	)
+	assert_almost_eq(
+		RobotAnimationPresenter.volume_delta_for_sample(
+			0.0, RobotAnimationPresenter.MELEE_IMPACT_VOLUME_VARIATION_DB
+		),
+		-0.55,
+		0.0001
+	)
+	assert_almost_eq(
+		RobotAnimationPresenter.volume_delta_for_sample(
+			0.5, RobotAnimationPresenter.MELEE_IMPACT_VOLUME_VARIATION_DB
+		),
+		0.0,
+		0.0001
+	)
+	assert_almost_eq(
+		RobotAnimationPresenter.volume_delta_for_sample(
+			1.0, RobotAnimationPresenter.MELEE_IMPACT_VOLUME_VARIATION_DB
+		),
+		0.55,
+		0.0001
+	)
+	assert_almost_eq(
+		RobotAnimationPresenter.volume_delta_for_sample(1.0, 20.0),
+		RobotAnimationPresenter.MAX_MECHANICS_VOLUME_VARIATION_DB,
+		0.0001
 	)
 	for cycle_index: int in range(8):
 		presenter.attacking = false
@@ -815,14 +843,19 @@ func _assert_compressed_runtime_cue(stream: AudioStream, minimum_length: float =
 func _assert_cue_volume(
 	presenter: RobotAnimationPresenter,
 	stream: AudioStream,
-	expected_volume_db: float
+	expected_volume_db: float,
+	variation_db: float = 0.0
 ) -> void:
 	var matching_voices: int = 0
 	for player: AudioStreamPlayer2D in presenter._audio_players:
 		if player.stream != stream:
 			continue
 		matching_voices += 1
-		assert_almost_eq(player.volume_db, expected_volume_db, 0.0001)
+		assert_between(
+			player.volume_db,
+			expected_volume_db - variation_db,
+			expected_volume_db + variation_db
+		)
 	assert_eq(matching_voices, 1)
 
 

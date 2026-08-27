@@ -98,6 +98,9 @@ func restore_stream_state(state: Dictionary) -> void:
 	var damage_pattern: BuildingDamagePattern2D = _damaged_visual as BuildingDamagePattern2D
 	if damage_pattern != null:
 		damage_pattern.restore_stream_state(state.get("pattern", {}) as Dictionary)
+		damage_pattern._set_damage_progress(
+			1.0 - current_health / maxf(max_health, 1.0)
+		)
 		if _destroyed:
 			damage_pattern.ensure_destroyed_pattern()
 	_apply_stage(
