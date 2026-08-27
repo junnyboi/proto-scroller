@@ -13,6 +13,10 @@ const JAMMER_PULSE: Texture2D = preload(
 const SHIELD_PULSE: Texture2D = preload(
 	"res://art/city/effects/support/shield-pulse.png"
 )
+const FIRING_PULSE_MINIMUM_AMPLITUDE: float = 0.04
+const FIRING_PULSE_MAXIMUM_AMPLITUDE: float = 0.32
+const EXTREME_THREAT_START: float = 1.30
+const EXTREME_THREAT_COLOR: Color = Color(1.0, 0.90, 0.86, 1.0)
 
 @export_range(1, 16, 1) var capacity: int = RuntimeBudget.TELEGRAPH_RECORDS
 
@@ -118,9 +122,11 @@ func _draw() -> void:
 		var kind: StringName = record.kind
 		var thickness_scale: float = float(record.thickness_scale)
 		var color_intensity: float = float(record.color_intensity)
+		var pulse_brightness: float = firing_pulse_brightness(progress)
 		var base_color: Color = _threat_color(
 			Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56),
-			color_intensity
+			color_intensity,
+			pulse_brightness
 		)
 		var presentation_variant: StringName = StringName(
 			record.get("presentation_variant", &"")
@@ -131,7 +137,8 @@ func _draw() -> void:
 			target,
 			progress,
 			thickness_scale,
-			color_intensity
+			color_intensity,
+			pulse_brightness
 		):
 			continue
 		if kind == &"shell" or kind == &"rocket":
@@ -142,7 +149,8 @@ func _draw() -> void:
 				false,
 				_threat_color(
 					Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38),
-					color_intensity
+					color_intensity,
+					pulse_brightness
 				)
 			)
 		if kind == &"shell":
@@ -150,14 +158,22 @@ func _draw() -> void:
 			draw_line(
 				origin,
 				target,
-				_threat_color(Color(1.0, 0.82, 0.42, 0.86), color_intensity),
+				_threat_color(
+					Color(1.0, 0.82, 0.42, 0.86),
+					color_intensity,
+					pulse_brightness
+				),
 				2.0 * thickness_scale,
 				true
 			)
 			draw_circle(
 				target,
 				26.0 + progress * 10.0,
-				_threat_color(Color(1.0, 0.28, 0.10, 0.20), color_intensity)
+				_threat_color(
+					Color(1.0, 0.28, 0.10, 0.20),
+					color_intensity,
+					pulse_brightness
+				)
 			)
 			draw_arc(
 				target,
@@ -206,7 +222,8 @@ func _draw() -> void:
 				target,
 				_threat_color(
 					Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45),
-					color_intensity
+					color_intensity,
+					pulse_brightness
 				),
 				2.0 * thickness_scale,
 				true
@@ -220,7 +237,8 @@ func _draw_support_variant(
 	target: Vector2,
 	progress: float,
 	thickness_scale: float,
-	color_intensity: float
+	color_intensity: float,
+	pulse_brightness: float
 ) -> bool:
 	if variant in [&"scan", &"choir_ring"]:
 		var start_size: float = 46.0 if variant == &"scan" else 92.0
@@ -231,21 +249,23 @@ func _draw_support_variant(
 			target,
 			_threat_color(
 				Color(1.0, 0.72, 0.34, 0.34 + progress * 0.42),
-				color_intensity
+				color_intensity,
+				pulse_brightness
 			),
 			2.0 * thickness_scale,
 			true
 		)
 		draw_set_transform(target, 0.0, Vector2.ONE)
-		draw_texture_rect(
-			TARGET_MARK_SUPPORT,
-			Rect2(-mark_size * 0.5, mark_size),
-			false,
-			_threat_color(
-				Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48),
-				color_intensity
+			draw_texture_rect(
+				TARGET_MARK_SUPPORT,
+				Rect2(-mark_size * 0.5, mark_size),
+				false,
+				_threat_color(
+					Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48),
+					color_intensity,
+					pulse_brightness
+				)
 			)
-		)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return true
 	if variant == &"jammer_pulse" or variant == &"shield_pulse":
@@ -257,20 +277,41 @@ func _draw_support_variant(
 		)
 		var envelope: float = lerpf(0.72, 1.0, progress)
 		var pulse_size: Vector2 = display_size * envelope
-		draw_texture_rect(
-			pulse_texture,
-			Rect2(origin - pulse_size * 0.5, pulse_size),
-			false,
-			_threat_color(
-				Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55),
-				color_intensity
+			draw_texture_rect(
+				pulse_texture,
+				Rect2(origin - pulse_size * 0.5, pulse_size),
+				false,
+				_threat_color(
+					Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55),
+					color_intensity,
+					pulse_brightness
+				)
 			)
-		)
 		return true
 	return false
 
 
-func _threat_color(base_color: Color, intensity: float) -> Color:
+func firing_pulse_amplitude(progress: float) -> float:
+	return lerpf(
+		FIRING_PULSE_MINIMUM_AMPLITUDE,
+		FIRING_PULSE_MAXIMUM_AMPLITUDE,
+		pow(clampf(progress, 0.0, 1.0), 2.0)
+	)
+
+
+func firing_pulse_brightness(progress: float) -> float:
+	var clamped_progress: float = clampf(progress, 0.0, 1.0)
+	var amplitude: float = firing_pulse_amplitude(clamped_progress)
+	var cycles: float = 2.0 * clamped_progress + 2.5 * pow(clamped_progress, 3.0)
+	var wave: float = 0.5 + 0.5 * sin(TAU * cycles - PI * 0.5)
+	return lerpf(1.0 - amplitude, 1.0 + amplitude, wave)
+
+
+func threat_color(base_color: Color, intensity: float, progress: float) -> Color:
+	return _threat_color(base_color, intensity, firing_pulse_brightness(progress))
+
+
+func _threat_color(base_color: Color, intensity: float, pulse_brightness: float) -> Color:
 	var normalized: float = clampf(
 		inverse_lerp(
 			EnemyActor2D.TELEGRAPH_MINIMUM_COLOR_INTENSITY,
@@ -280,9 +321,25 @@ func _threat_color(base_color: Color, intensity: float) -> Color:
 		0.0,
 		1.0
 	)
-	return Color(
+	var extreme_blend: float = smoothstep(
+		EXTREME_THREAT_START,
+		EnemyActor2D.TELEGRAPH_MAXIMUM_COLOR_INTENSITY,
+		intensity
+	)
+	var threat_rgb: Color = Color(
 		clampf(base_color.r * intensity, 0.0, 1.0),
 		clampf(base_color.g * intensity, 0.0, 1.0),
 		clampf(base_color.b * intensity, 0.0, 1.0),
-		clampf(base_color.a * lerpf(0.78, 1.15, normalized), 0.0, 1.0)
+		1.0
+	).lerp(EXTREME_THREAT_COLOR, extreme_blend)
+	var pulse_alpha: float = lerpf(
+		0.90,
+		1.10,
+		clampf(inverse_lerp(0.68, 1.32, pulse_brightness), 0.0, 1.0)
+	)
+	return Color(
+		clampf(threat_rgb.r * pulse_brightness, 0.0, 1.0),
+		clampf(threat_rgb.g * pulse_brightness, 0.0, 1.0),
+		clampf(threat_rgb.b * pulse_brightness, 0.0, 1.0),
+		clampf(base_color.a * lerpf(0.78, 1.15, normalized) * pulse_alpha, 0.0, 1.0)
 	)
