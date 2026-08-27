@@ -6,11 +6,11 @@
 
 **Runtime source total:** 20,017,608 bytes
 
-**Measured Web PCK:** 16,650,088 bytes
+**Measured 2× Web PCK:** 25,720,400 bytes
 
-**PCK ceiling:** 16,777,216 bytes
+**Legacy presentation ceiling:** 16,777,216 bytes
 
-**Remaining PCK headroom:** 127,128 bytes
+**Explicit 2× fidelity override:** 8,943,184 bytes above the legacy presentation ceiling
 
 The five canonical animated boss atlases began with **GPT Image 2** 2560×1440 keyframes and locked-camera 1280×720 Veo carriers; the five instrumental themes were generated with **Lyria 3 Pro**. Every atlas cell is exactly twice its predecessor in both axes while the on-screen display envelope remains unchanged. Concept plates and generation masters remain outside the Web PCK. Runtime art is stored as transparent high-quality WebP atlases; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter.
 
@@ -42,7 +42,7 @@ The two particle textures were generated with **GPT Image 2**. `defeat_fx/boss-e
 
 | Artifact | Bytes | SHA-256 |
 |---|---:|---|
-| `game.html` | 17,891 | `b5f1518f5bb5a33628e8d350a075878363b76c7d6962d756c8376a0a8b9a1fed` |
+| `game.html` | 17,891 | `f589d4a267bc8ba5bde2609ec585db34c6fd1df6ce1ef7b94f22696a8ab87c6e` |
 | `game.js` | 279,995 | `9b24675ee72bfd4b2427106b651ce7648e2900350f91ce6c32e2f5e23b4ed11d` |
 | `game.wasm` | 39,514,754 | `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` |
-| `game.pck` | 16,650,088 | `955f00db65298150adfd520fc91d95b0dd88bd002b75bf7650da16d3b71677b5` |
+| `game.pck` | 25,720,400 | `f409b393fdaf1ba30f37afb4d081702065c2b684f87cc3ee9051a8e2980200fa` |
