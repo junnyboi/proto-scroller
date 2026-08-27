@@ -1,6 +1,6 @@
 # Building Section Destruction VFX — Implementation Plan
 
-**Status:** WP0–WP3 complete; source integration and WebDev deployment pending
+**Status:** Complete and deployed
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 **Target branch:** `main`
 
@@ -60,6 +60,19 @@ Push the final source phase to shared `main`, produce a fresh exact Godot Web ex
 | Related debris regressions | Eight focused tests across the new VFX, organic damage, and culling suites passed with 133 assertions |
 | Responsive visuals | Concrete, glass, and steel failures produced exactly three live section bursts plus sixteen physical debris bodies in both 1280×720 and 720×1280 captures |
 | Diagnostic scan | Touched-file lint, Godot 4.7.2 import, headless fixture, and both Xvfb lanes completed without script, parse, leak, or retained-resource markers |
+
+## Completed Deployment — WP4
+
+The runtime implementation landed in `4c81f0c4122512b9d112ee8874a07ee39e7ff877`. Concurrent projectile-impact cue compression was then integrated by fast-forward, producing final canonical descendant `f9ae2365fde613e53cce938a66be520c442d8e72` without rewriting shared history. A fresh Godot 4.7.2 non-threaded Web export was generated from that exact tree and synchronized to the existing full-stack `proto-scroller` WebDev project.
+
+| Deployment item | Final value |
+|---|---|
+| Source revision | `f9ae2365fde613e53cce938a66be520c442d8e72` |
+| WebDev checkpoint | `manus-webdev://9ab37b4b` |
+| WASM | `UVgwogCabHumLyOE.wasm`; 39,514,754 bytes; SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` |
+| PCK | `OZecJchIZDOKnjbr.pck`; 16,885,708 bytes; SHA-256 `80cf44d6d784d6e2bf24dfb16a2bbccb771507c4529c1de00b95b01eb298196e` |
+| Host contract | Dynamic-viewport, borderless fullscreen iframe; managed leaderboard/database retained; local audio worklets and title scheduler retained |
+| Release policy | Repository-wide gates and historical package-budget enforcement skipped under the explicit project override |
 
 ## Acceptance Criteria
 
