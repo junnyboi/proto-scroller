@@ -39,7 +39,7 @@ const TELEGRAPH_REFERENCE_DAMAGE: float = 16.0
 const TELEGRAPH_MINIMUM_COLOR_INTENSITY: float = 0.72
 const TELEGRAPH_MAXIMUM_COLOR_INTENSITY: float = 1.55
 const VISUAL_CONTENT_RECT_META: StringName = &"enemy_visual_content_rect"
-const ENEMY_DAMAGE_MULTIPLIER: float = 0.85
+const ENEMY_DAMAGE_MULTIPLIER: float = 0.75
 
 @export var max_health: float = 60.0
 

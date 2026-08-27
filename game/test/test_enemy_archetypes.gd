@@ -89,6 +89,14 @@ func test_catalog_contains_twenty_six_valid_visual_and_gameplay_profiles() -> vo
 	assert_eq(signatures.size(), 26)
 
 
+func test_global_enemy_damage_multiplier_reduces_hostile_output_by_quarter() -> void:
+	assert_eq(EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER, 0.75)
+	var soldier: EnemyActor2D = runtime.acquire(&"soldier", Vector2(920.0, 542.5))
+	assert_not_null(soldier)
+	assert_almost_eq(soldier._scale_outgoing_damage(40.0), 30.0, 0.001)
+	runtime.release(soldier)
+
+
 func test_catalog_adds_exactly_twenty_district_variants_without_replacing_bases() -> void:
 	assert_eq(EnemyArchetypeCatalog.PROCEDURAL_IDS.size(), 26)
 	assert_eq(EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS.size(), 20)
