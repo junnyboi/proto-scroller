@@ -181,10 +181,10 @@ The CJK subset builder must be rerun after localization changes.
 | WP1 — Production assets | Generate six GPT Image 2 insignias, one GPT Image 2 carrier anchor, six carrier videos, six optimized WAV files, deterministic runtime derivatives, provenance | File integrity, alpha/dimensions, WAV format/duration, import scan, push asset phase |
 | WP2 — Semantic event and catalog | Add milestone signal and immutable catalog; add exact-threshold and non-repeat tests | Focused combo tracker tests and resource load test |
 | WP3 — Responsive presenter | Build ComboHerald, integrate HUD/lifecycle, localization, break/reset behavior, telemetry | Focused city integration and landscape/portrait visual scenario; no overlap/clipping |
-| WP4 — Browser-ready source release | Update Web smoke telemetry and authoritative harness assertions; focused direct import/boot only under release-gate override | Focused GUT, direct import, bounded boot, asset/log scan; push source release |
+| WP4 — Browser-ready source release | Update Web smoke telemetry and authoritative harness assertions; retain only focused checks under the release-gate override | Focused GUT, direct import, asset/log scan; push source release |
 | WP5 — WebDev synchronization | Fresh Godot Web export from final pushed tree; upload/remap fresh WASM and PCK; update WebDev continuity files; checkpoint and publish | Required payload files and exact source revision recorded; no full release-gate ceremony unless explicitly requested |
 
-**Status:** WP0 and WP1 are complete and pushed. WP2 through WP4 are implemented in the current source candidate with focused tests and responsive visual evidence complete. WP5 remains pending until the final source commit is pushed and its fresh Web export is synchronized to the existing WebDev project.
+**Status:** WP0 through WP5 are complete. Runtime implementation commit `ae99578` was pushed to shared `main`; export refresh commit `5dd9d13` produced the deployed candidate. Follow-up canonical commit `06cda94` changes documentation only and does not alter the exported runtime. WebDev checkpoint `71c1c6dd` is published at `https://protoscoll-enopta8p.manus.space/`.
 
 ## 9. Focused Test Matrix
 
@@ -193,7 +193,7 @@ The CJK subset builder must be rerun after localization changes.
 | `ComboTracker` | Emits authored tiers 2/3/4/5/7/10 exactly once while preserving physical-kill progress normalization and the capped multiplier |
 | Catalog | Every threshold resolves a texture, voice, localization key, and accent |
 | Scoring | Existing `1× + 2× + 3×...` score math remains byte-for-byte behaviorally equivalent |
-| HUD | Third kill presents `TRIPLE KILL`, x3 compact label remains visible, and the visual is non-interactive |
+| HUD | The third density-normalized physical kill presents `DOUBLE KILL`, the x2 compact label remains visible, and the visual is non-interactive |
 | Supersession | A new tier replaces active tween and voice rather than queueing stale feedback |
 | Reset | Damage and expiry hide the herald and stop voice while preserving pending-score semantics |
 | Responsive | Generated insignia and localized label stay inside both 1280×720 and 720×1280 viewports |
@@ -202,9 +202,11 @@ The CJK subset builder must be rerun after localization changes.
 
 ## 10. Implemented evidence
 
-The source candidate adds a preloaded `ComboHeraldCatalog`, a preallocated responsive `ComboHerald`, density-aware milestone emission, lifecycle dismissal, EN/zh-CN titles, Voice-bus playback, future Web-smoke telemetry, and updated release-harness asset requirements. Six visual sources and one carrier anchor were generated with GPT Image 2; six original announcer cues were extracted from image-conditioned carriers and speech-verified. Deterministic processing, models, hashes, and final durations are recorded in `docs/KILL_COMBO_ASSET_PROVENANCE.md`.
+The source release adds a preloaded `ComboHeraldCatalog`, a preallocated responsive `ComboHerald`, density-aware milestone emission, lifecycle dismissal, EN/zh-CN titles, Voice-bus playback, future Web-smoke telemetry, and updated release-harness asset requirements. Six visual sources and one carrier anchor were generated with GPT Image 2; six original announcer cues were extracted from image-conditioned carriers and speech-verified. Deterministic processing, models, hashes, and final durations are recorded in `docs/KILL_COMBO_ASSET_PROVENANCE.md`.
 
 Focused GUT checks passed **14/14 tests with 170 assertions** for rampage progression/catalog behavior and **6/6 tests with 52 assertions** for live city/HUD integration. The updated final-tier visual scenario passed at **1280×720** and **720×1280** with no script, resource-retention, or ObjectDB leak diagnostics. Screenshot inspection confirmed the Extinction Event insignia and localized title remain clear of top telemetry, narrative transmission, robot readability, and the portrait touch-control region.
+
+The exact final Godot 4.7.2 Web synchronization uses `/manus-storage/game_c2e11355.wasm` at **39,514,754 bytes** and `/manus-storage/game_60c6f488.pck` at **15,622,608 bytes**. The PCK SHA-256 is `3d226a40160d94425242f6c5d246671d6e7e85ad556f6c143baf184083e33c94`, leaving **1,154,608 bytes** below the 16 MiB package limit. The existing fullscreen iframe host, cinematic title scheduler, title media, and local audio-worklet routing were preserved. Repository-wide release gates, WebDev type/build checks, browser matrices, and screenshot certification remained intentionally skipped under the explicit project override.
 
 ## 11. Completion Definition
 
