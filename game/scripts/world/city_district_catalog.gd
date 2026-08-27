@@ -4,7 +4,10 @@ extends RefCounted
 const DISTRICT_COUNT: int = 5
 const VARIANTS_PER_DISTRICT: int = 5
 const BUILDING_VARIANT_COUNT: int = DISTRICT_COUNT * VARIANTS_PER_DISTRICT
-const CHUNKS_PER_DISTRICT: int = VARIANTS_PER_DISTRICT
+const TRANSITION_CORRIDOR_CHUNKS: int = 2
+const CHUNKS_PER_DISTRICT: int = (
+	VARIANTS_PER_DISTRICT + TRANSITION_CORRIDOR_CHUNKS
+)
 
 const SHARED_RUBBLE: Texture2D = preload(
 	"res://art/city/destructibles/building_rubble.png"
@@ -124,6 +127,15 @@ static func district_index_for_chunk(logical_index: int) -> int:
 static func district_for_chunk(logical_index: int) -> CityDistrictProfile:
 	_ensure_catalog()
 	return _districts[district_index_for_chunk(logical_index)]
+
+
+static func local_chunk_index(logical_index: int) -> int:
+	var district_index: int = district_index_for_chunk(logical_index)
+	return logical_index - district_index * CHUNKS_PER_DISTRICT
+
+
+static func chunk_hosts_facade(logical_index: int) -> bool:
+	return local_chunk_index(logical_index) < VARIANTS_PER_DISTRICT
 
 
 static func variant_for_chunk(

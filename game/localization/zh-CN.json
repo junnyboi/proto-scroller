@@ -205,6 +205,8 @@
   "objective.overdrive_breakthrough": "动能超载 / 四秒突破窗口",
   "objective.district_clear": "城区清除 {current}/{total} 座建筑",
   "objective.district_unlocked": "前方通道已开放 / 继续前进",
+  "objective.boss_salvage": "越过已击败的指挥单位 / 打开回收商店",
+  "objective.clear_handoff_corridor": "向东推进 / 让旧天际线退出视野",
   "objective.act": "阶段 {current} / {total}  {name}",
   "objective.command_unit": "指挥单位 / {state}",
   "objective.cycle": "循环 {cycle} / {recipe}",

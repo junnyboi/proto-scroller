@@ -205,6 +205,8 @@
   "objective.overdrive_breakthrough": "KINETIC OVERDRIVE / FOUR SECOND BREAKTHROUGH",
   "objective.district_clear": "DISTRICT CLEARANCE {current}/{total} UNIQUE FACADES",
   "objective.district_unlocked": "EASTBOUND ROUTE OPEN / ADVANCE",
+  "objective.boss_salvage": "WALK ACROSS THE DEFEATED COMMAND UNIT / SALVAGE SHOP",
+  "objective.clear_handoff_corridor": "ADVANCE EAST / CLEAR THE OLD SKYLINE",
   "objective.act": "ACT {current} / {total}  {name}",
   "objective.command_unit": "COMMAND UNIT / {state}",
   "objective.cycle": "CYCLE {cycle} / {recipe}",

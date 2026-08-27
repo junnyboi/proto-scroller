@@ -6,6 +6,7 @@ signal state_changed(state: StringName)
 signal armor_changed(current: float, maximum: float)
 signal body_changed(current: float, maximum: float)
 signal completed(elapsed_seconds: float)
+signal defeated_wreck_committed(definition: BossEncounterDefinition, world_position: Vector2)
 signal feedback_changed
 
 const STATE_IDLE: StringName = &"IDLE"
@@ -35,6 +36,7 @@ var _completion_payload: Dictionary = {}
 var _armor_feedback_key: String = ""
 var _royal_finisher_attacks: Dictionary[int, bool] = {}
 var _royal_finisher_roots: Dictionary[int, bool] = {}
+var last_completed_wreck_position: Vector2 = Vector2.ZERO
 
 
 func setup(p_dependencies: UrbanSiegeDependencies) -> void:
@@ -73,12 +75,19 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	generation_token = utility_pool.begin_generation()
 	active_definition = definition
 	dependencies.encounter_runtime.release_all()
+	var spawn_position: Vector2 = dependencies.encounter_runtime.resolve_spawn_position(
+		Vector2(0.0, 551.0),
+		&"AHEAD"
+	)
+	var resident_bounds: Vector2 = dependencies.city.world_stream.resident_bounds()
+	spawn_position.x = clampf(
+		maxf(spawn_position.x, dependencies.robot.global_position.x + 900.0),
+		resident_bounds.x + 200.0,
+		resident_bounds.y - 200.0
+	)
 	boss = dependencies.encounter_runtime.acquire(
 		&"tank",
-		dependencies.encounter_runtime.resolve_spawn_position(
-			Vector2(0.0, 551.0),
-			&"AHEAD"
-		),
+		spawn_position,
 		&"ANCHOR_TANK",
 		&"COMMAND"
 	) as TankEnemy
@@ -109,6 +118,7 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	elapsed_seconds = 0.0
 	_state_elapsed = 0.0
 	_completion_payload.clear()
+	last_completed_wreck_position = Vector2.ZERO
 	_armor_feedback_key = ""
 	_royal_finisher_attacks.clear()
 	_royal_finisher_roots.clear()
@@ -147,6 +157,7 @@ func stop() -> void:
 	boss = null
 	boss_wreck = null
 	active_definition = null
+	last_completed_wreck_position = Vector2.ZERO
 	if state != STATE_COMPLETE:
 		_set_state(STATE_IDLE)
 
@@ -439,6 +450,8 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 func _on_wreck_scrapped(wreck: EnemyWreck2D, _event: DamageEvent, _points: int) -> void:
 	if wreck != boss_wreck:
 		return
+	last_completed_wreck_position = wreck.global_position
+	defeated_wreck_committed.emit(active_definition, last_completed_wreck_position)
 	_next_generation()
 	boss_wreck = null
 	_set_state(STATE_COMPLETE)

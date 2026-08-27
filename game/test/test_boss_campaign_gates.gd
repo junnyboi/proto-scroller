@@ -1,7 +1,7 @@
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
-const EXPECTED_TRIGGERS: Array[int] = [4, 9, 14, 19, 24]
+const EXPECTED_TRIGGERS: Array[int] = [4, 11, 18, 25, 32]
 
 
 func test_authored_gates_trigger_once_before_each_district_transition() -> void:
@@ -89,15 +89,15 @@ func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 	assert_false(siege.is_simulation_paused())
 
 
-func test_success_resumes_next_unconsumed_beat_after_one_recovery() -> void:
+func test_success_waits_for_salvage_shop_and_clear_corridor_before_next_act() -> void:
 	var city: CitySlice = await _spawn_city()
 	var siege: UrbanSiegeRuntime = city.urban_siege
 	var director: DistrictResponseDirector = siege.director
+	var campaign: BossCampaignDirector = siege.boss_campaign
 	director.stop()
 	city.encounter_runtime.release_all()
 	director.start()
 	director.advance(0.01)
-	var captured_beat: int = director.beat_index
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(4)
 	await _trigger(city, definition)
 	var boss: TankEnemy = siege.boss_session.boss
@@ -110,14 +110,23 @@ func test_success_resumes_next_unconsumed_beat_after_one_recovery() -> void:
 	siege.boss_session.boss_wreck.receive_damage(
 		DamageEvent.new(81_005, city.robot, 999.0, &"ground_smash")
 	)
-	assert_eq(director.state, DistrictResponseDirector.STATE_RECOVERY)
-	assert_eq(director.beat_index, captured_beat)
-	director.advance(BossSiegeInterlock.RECOVERY_SECONDS - 0.01)
-	assert_eq(director.state, DistrictResponseDirector.STATE_RECOVERY)
-	director.advance(0.02)
+	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SALVAGE)
+	assert_true(director.is_suspended_for_boss())
+	campaign._on_salvage_claimed()
+	assert_true(city.weapon_shop_assembler.session.active)
+	assert_true(city.weapon_shop_assembler.session.close_shop())
+	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_CORRIDOR)
+	city.world_stream.rear_frontier_logical_x = (
+		float(CityWorldStream.DISTRICT_BUILDINGS_REQUIRED) * CityWorldStream.CHUNK_WIDTH
+		+ CityWorldStream.CHUNK_CONTENT_OVERHANG
+	)
+	city.world_stream.furthest_progress_logical_x = (
+		float(CityDistrictCatalog.CHUNKS_PER_DISTRICT) * CityWorldStream.CHUNK_WIDTH
+	)
+	campaign._process(0.0)
 	assert_eq(director.state, DistrictResponseDirector.STATE_WAITING)
-	director.advance(0.01)
-	assert_eq(director.beat_index, captured_beat + 1)
+	assert_eq(director.beat_index, -1)
+	assert_eq(director.phase_index, 1)
 	assert_false(director.is_suspended_for_boss())
 
 
@@ -208,6 +217,16 @@ func _prepare_gate_window(city: CitySlice, definition: BossEncounterDefinition) 
 	city.world_stream.reset_stream(city.world_stream.run_seed)
 	await get_tree().process_frame
 	city.urban_siege.pause_coordinator.release_all()
+	var district: CityDistrictProfile = CityDistrictCatalog.districts()[
+		CityDistrictCatalog.district_index_for_chunk(definition.trigger_chunk)
+	]
+	for variant: StructuralBuildingVariant in district.building_variants:
+		var building: StructuralBuilding2D = StructuralBuilding2D.new()
+		building.set_meta(&"district_id", district.district_id)
+		building.set_meta(&"district_index", district.district_index)
+		building.set_meta(&"building_variant_id", variant.variant_id)
+		city.world_stream.report_building_cleared(building)
+		building.free()
 
 
 func _trigger(city: CitySlice, definition: BossEncounterDefinition) -> void:

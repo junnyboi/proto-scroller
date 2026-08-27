@@ -276,6 +276,42 @@ func resume_after_boss(recovery_seconds: float) -> bool:
 	return true
 
 
+func advance_after_district_handoff(completed_act_index: int) -> bool:
+	if not _boss_suspended or district == null or _boss_resume_snapshot.is_empty():
+		return false
+	phase_index = clampi(
+		completed_act_index,
+		0,
+		maxi(district.acts.size() - 1, 0)
+	)
+	beat_index = district.acts[phase_index].beats.size() - 1
+	elapsed = float(_boss_resume_snapshot.get("elapsed", elapsed))
+	act_elapsed = float(_boss_resume_snapshot.get("act_elapsed", act_elapsed))
+	pressure_remaining = 0.0
+	recovery_remaining = 0.0
+	state = STATE_WAITING
+	running = true
+	completed = false
+	_boss_suspended = false
+	_boss_resume_snapshot.clear()
+	var completed_act: DistrictAct = district.acts[phase_index]
+	if not _act_completion_emitted:
+		_act_completion_emitted = true
+		act_completed.emit(
+			phase_index,
+			completed_act.act_id,
+			completed_act.display_name
+		)
+	if not completed_act.milestone_after.is_empty():
+		milestone_reached.emit(completed_act.milestone_after)
+	_act_advance_blocked = false
+	_advance_act()
+	_act_advance_blocked = true
+	if runtime != null:
+		runtime.set_attack_gate(true)
+	return true
+
+
 func discard_boss_suspension() -> void:
 	_boss_suspended = false
 	_boss_resume_snapshot.clear()

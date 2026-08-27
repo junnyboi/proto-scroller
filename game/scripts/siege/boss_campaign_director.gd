@@ -9,6 +9,10 @@ signal boss_completed(definition: BossEncounterDefinition)
 const GATE_APPROACH_FRACTION: float = 0.62
 const GATE_INSET: float = 80.0
 const COMPLETION_RETRY_SECONDS: float = 1.0
+const HANDOFF_NONE: StringName = &"NONE"
+const HANDOFF_SALVAGE: StringName = &"SALVAGE"
+const HANDOFF_SHOP: StringName = &"SHOP"
+const HANDOFF_CORRIDOR: StringName = &"CORRIDOR"
 
 var siege: UrbanSiegeRuntime
 var world_stream: CityWorldStream
@@ -25,6 +29,9 @@ var completion_pending: bool = false
 var _completion_retry_elapsed: float = 0.0
 var _triggered_ids: Dictionary[StringName, bool] = {}
 var _completed_ids: Dictionary[StringName, bool] = {}
+var salvage_trigger: BossSalvageTrigger2D
+var handoff_state: StringName = HANDOFF_NONE
+var pending_finale_outcome: int = -1
 
 
 func setup(p_siege: UrbanSiegeRuntime) -> void:
@@ -39,6 +46,9 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	attempt_started.connect(music_director.play_definition)
 	attempt_retried.connect(music_director.play_definition)
 	boss_completed.connect(music_director.stop_music)
+	salvage_trigger = BossSalvageTrigger2D.new()
+	salvage_trigger.claimed.connect(_on_salvage_claimed)
+	add_child(salvage_trigger)
 	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
 		var marker: BossGateMarker = BossGateMarker.new()
 		marker.configure(definition)
@@ -63,6 +73,7 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	siege.boss_session.utility_pool.escalation.support_changed.connect(
 		_on_slice_feedback_changed
 	)
+	world_stream.district_boss_ready.connect(_on_district_boss_ready)
 
 
 func _process(delta: float) -> void:
@@ -71,6 +82,12 @@ func _process(delta: float) -> void:
 		if _completion_retry_elapsed >= COMPLETION_RETRY_SECONDS:
 			_completion_retry_elapsed = 0.0
 			_try_commit_completion()
+		return
+	if handoff_state == HANDOFF_CORRIDOR:
+		if world_stream.post_boss_corridor_is_clear(_active_district_index()):
+			_finalize_handoff()
+		return
+	if handoff_state != HANDOFF_NONE:
 		return
 	advance()
 
@@ -86,6 +103,10 @@ func advance() -> void:
 	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
 		if _triggered_ids.has(definition.boss_id) or _completed_ids.has(definition.boss_id):
 			continue
+		if not world_stream.district_boss_is_ready(
+			_district_index(definition.district_id)
+		):
+			continue
 		var threshold: float = (
 			float(definition.trigger_chunk) + GATE_APPROACH_FRACTION
 		) * CityWorldStream.CHUNK_WIDTH
@@ -98,6 +119,8 @@ func reset_run() -> void:
 	stop()
 	_triggered_ids.clear()
 	_completed_ids.clear()
+	handoff_state = HANDOFF_NONE
+	pending_finale_outcome = -1
 	for gate: BossGateMarker in gates:
 		gate.reset_gate()
 
@@ -109,6 +132,8 @@ func stop() -> void:
 		siege.boss_session.stop()
 	if active_gate != null:
 		active_gate.release()
+	if salvage_trigger != null:
+		salvage_trigger.deactivate()
 	arena_lease.release()
 	interlock.discard()
 	attempt_snapshot.clear()
@@ -116,13 +141,20 @@ func stop() -> void:
 	active_gate = null
 	attempt_failed = false
 	completion_pending = false
+	handoff_state = HANDOFF_NONE
+	pending_finale_outcome = -1
 	_completion_retry_elapsed = 0.0
 	if siege != null and siege.dependencies.gameplay_hud != null:
 		siege.dependencies.gameplay_hud.hide_boss_status()
 
 
 func owns_combat() -> bool:
-	return active_definition != null and active_gate != null and active_gate.owned
+	return (
+		active_definition != null
+		and active_gate != null
+		and active_gate.owned
+		and handoff_state == HANDOFF_NONE
+	)
 
 
 func fail_attempt() -> bool:
@@ -177,6 +209,14 @@ func completed_count() -> int:
 
 
 func _begin_attempt(definition: BossEncounterDefinition) -> bool:
+	if (
+		definition == null
+		or handoff_state != HANDOFF_NONE
+		or not world_stream.district_boss_is_ready(
+			_district_index(definition.district_id)
+		)
+	):
+		return false
 	var gate: BossGateMarker = gate_for_trigger(definition.trigger_chunk)
 	if gate == null or not arena_lease.acquire(definition):
 		return false
@@ -253,21 +293,97 @@ func _try_commit_completion() -> bool:
 	siege.boss_session.mark_completion_committed()
 	_completed_ids[completed_definition.boss_id] = true
 	active_gate.consume()
-	arena_lease.release()
-	interlock.resume_after_success()
 	attempt_snapshot.clear()
+	attempt_failed = false
+	music_director.stop_music()
+	siege.dependencies.gameplay_hud.hide_boss_status()
+	handoff_state = HANDOFF_SALVAGE
+	if completed_definition.boss_id == &"CHOIR_PRIME":
+		pending_finale_outcome = int(payload.get("finale_outcome", -1))
+	salvage_trigger.configure(
+		completed_definition,
+		siege.boss_session.last_completed_wreck_position
+	)
+	siege.dependencies.gameplay_hud.set_objective("objective.boss_salvage")
+	return true
+
+
+func complete_shop_handoff(district_id: StringName) -> bool:
+	if (
+		handoff_state != HANDOFF_SHOP
+		or active_definition == null
+		or active_definition.district_id != district_id
+	):
+		return false
+	var district_index: int = _active_district_index()
+	if district_index >= CityDistrictCatalog.DISTRICT_COUNT - 1:
+		return _finalize_handoff()
+	if not world_stream.begin_post_boss_corridor(district_index):
+		return false
+	handoff_state = HANDOFF_CORRIDOR
+	siege.dependencies.gameplay_hud.set_objective("objective.clear_handoff_corridor")
+	return true
+
+
+func _on_district_boss_ready(_district_id: StringName, district_index: int) -> void:
+	if active_definition != null or handoff_state != HANDOFF_NONE:
+		return
+	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
+		if _district_index(definition.district_id) != district_index:
+			continue
+		call_deferred("_begin_attempt", definition)
+		return
+
+
+func _on_salvage_claimed() -> void:
+	if handoff_state != HANDOFF_SALVAGE or active_definition == null:
+		return
+	var city: CitySlice = siege.dependencies.city
+	if city.weapon_shop_assembler.queue_boss_salvage(active_definition):
+		handoff_state = HANDOFF_SHOP
+		return
+	salvage_trigger.configure(
+		active_definition,
+		siege.boss_session.last_completed_wreck_position
+	)
+
+
+func _finalize_handoff() -> bool:
+	if active_definition == null:
+		return false
+	var completed_definition: BossEncounterDefinition = active_definition
+	var district_index: int = _active_district_index()
+	if not world_stream.complete_district_handoff(district_index):
+		return false
+	arena_lease.release()
+	if not interlock.complete_after_handoff(district_index):
+		return false
+	handoff_state = HANDOFF_NONE
 	active_definition = null
 	active_gate = null
-	attempt_failed = false
-	siege.dependencies.gameplay_hud.hide_boss_status()
 	boss_completed.emit(completed_definition)
-	if completed_definition.boss_id == &"CHOIR_PRIME":
-		var outcome: int = int(
-			payload.get("finale_outcome", -1)
-		)
-		if BossOutcome.is_valid(outcome):
-			siege.call_deferred("resolve_finale", outcome)
+	if completed_definition.boss_id == &"CHOIR_PRIME" and BossOutcome.is_valid(
+		pending_finale_outcome
+	):
+		siege.call_deferred("resolve_finale", pending_finale_outcome)
+	pending_finale_outcome = -1
+	_refresh_hud()
 	return true
+
+
+func _active_district_index() -> int:
+	return (
+		_district_index(active_definition.district_id)
+		if active_definition != null
+		else -1
+	)
+
+
+func _district_index(district_id: StringName) -> int:
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		if district.district_id == district_id:
+			return district.district_index
+	return -1
 
 
 func _refresh_hud(_state: StringName = &"") -> void:
