@@ -8,7 +8,14 @@ extends Resource
 	"kestrel", "rainmaker", "shrike", "cinder", "aegis",
 	"longbow", "hive", "goliath", "nemesis", "leviathan",
 	"reclaimed_breacher", "graft_runner", "choir_siren",
-	"ossuary_crawler", "seraph_carrier", "pale_engine"
+	"ossuary_crawler", "seraph_carrier", "pale_engine",
+	"covenant_warden", "mercy_recovery_cart", "testament_kite",
+	"receivership_ambulance", "intake_shepherd", "evacuation_litter",
+	"rainvault_pressure_ward", "balcony_recall_beacon", "memorial_usher",
+	"glassback_double", "recall_lantern", "marquee_anesthetist",
+	"suture_marshal", "mercy_raker", "revetment_ward", "triage_kite",
+	"privy_chirurgeon", "laureate_courser", "ninefold_witness",
+	"regency_conservator"
 ) var kind: String = "soldier"
 @export var delay: float = 0.0
 @export var position: Vector2 = Vector2.ZERO
