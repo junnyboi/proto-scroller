@@ -16,6 +16,30 @@ const CABLE_TEXTURE: Texture2D = preload(
 const PIPE_TEXTURE: Texture2D = preload(
 	"res://art/destruction/damage_details/broken_water_pipe.png"
 )
+const FACADE_ALPHA_THRESHOLD: float = 0.08
+const DAMAGED_DARKEN_STRENGTH: float = 0.28
+const DESTROYED_DARKEN_STRENGTH: float = 0.82
+const CAVITY_SHADER_CODE: String = """
+shader_type canvas_item;
+render_mode unshaded;
+
+uniform vec4 visual_tint : source_color = vec4(1.0);
+uniform vec4 cavity_tint : source_color = vec4(0.018, 0.014, 0.016, 1.0);
+uniform float alpha_threshold = 0.08;
+uniform float darken_strength = 0.28;
+
+void fragment() {
+	vec4 facade = texture(TEXTURE, UV) * visual_tint;
+	if (facade.a <= alpha_threshold) {
+		discard;
+	}
+	float cavity_mix = clamp(darken_strength, 0.0, 1.0);
+	facade.rgb = mix(facade.rgb, cavity_tint.rgb, cavity_mix);
+	COLOR = facade;
+}
+"""
+
+static var _shared_cavity_shader: Shader
 
 var _texture: Texture2D
 var _region_rect: Rect2
@@ -28,6 +52,9 @@ var _patch: Polygon2D
 var _cable_detail: BuildingDamageAttachment2D
 var _pipe_detail: BuildingDamageAttachment2D
 var _detail_mask: int = 0
+var _cavity_material: ShaderMaterial
+var _visual_tint: Color = Color.WHITE
+var _destroyed_stage: bool = false
 
 
 func configure(
@@ -43,13 +70,18 @@ func configure(
 	_cell_size = cell_size
 	_pattern_seed = maxi(pattern_seed, 1)
 	_material_id = material_id
+	_visual_tint = visual_tint
 	z_index = 2
 	_patch = Polygon2D.new()
 	_patch.name = "FractureTexture"
 	_patch.texture = _texture
-	_patch.color = visual_tint
+	_patch.color = Color.WHITE
 	_patch.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_patch.z_index = -1
+	_cavity_material = ShaderMaterial.new()
+	_cavity_material.shader = _get_shared_cavity_shader()
+	_patch.material = _cavity_material
+	_configure_cavity_material()
 	add_child(_patch)
 	_cable_detail = _create_detail_attachment(
 		"DanglingCables",
@@ -79,9 +111,11 @@ func reconfigure(
 	_cell_size = cell_size
 	_pattern_seed = maxi(pattern_seed, 1)
 	_material_id = material_id
+	_visual_tint = visual_tint
 	if _patch != null:
 		_patch.texture = _texture
-		_patch.color = visual_tint
+		_patch.color = Color.WHITE
+	_configure_cavity_material()
 	if _cable_detail != null:
 		_cable_detail.configure_seed(_pattern_seed)
 	if _pipe_detail != null:
@@ -106,7 +140,43 @@ func record_damage(event: DamageEvent, health_ratio: float) -> void:
 	var severity: float = clampf(1.0 - health_ratio, 0.0, 1.0)
 	_generate(local_hit, severity, event_seed)
 	_emit_attachment_effects(event, severity)
+	set_destroyed_stage(health_ratio <= 0.0)
+	visible = true
 	queue_redraw()
+
+
+func ensure_destroyed_pattern() -> void:
+	if _contour.is_empty():
+		var fallback_seed: int = _pattern_seed * 1103515245 + 12345
+		_generate(Vector2.ZERO, 1.0, fallback_seed)
+	set_destroyed_stage(true)
+	visible = true
+	queue_redraw()
+
+
+func set_destroyed_stage(value: bool) -> void:
+	_destroyed_stage = value
+	if value and not _contour.is_empty():
+		_apply_detail_mask(CABLE_DETAIL_BIT | PIPE_DETAIL_BIT, _contour_center())
+	if _cavity_material != null:
+		_cavity_material.set_shader_parameter(
+			"darken_strength",
+			DESTROYED_DARKEN_STRENGTH if value else DAMAGED_DARKEN_STRENGTH
+		)
+
+
+func is_destroyed_stage() -> bool:
+	return _destroyed_stage
+
+
+func cavity_darken_strength() -> float:
+	if _cavity_material == null:
+		return 0.0
+	return float(_cavity_material.get_shader_parameter("darken_strength"))
+
+
+func cavity_material() -> ShaderMaterial:
+	return _cavity_material
 
 
 func contour() -> PackedVector2Array:
@@ -170,9 +240,15 @@ func reset_pattern() -> void:
 	_contour.clear()
 	_cracks.clear()
 	_detail_mask = 0
+	_destroyed_stage = false
 	if _patch != null:
 		_patch.polygon = PackedVector2Array()
 		_patch.uv = PackedVector2Array()
+	if _cavity_material != null:
+		_cavity_material.set_shader_parameter(
+			"darken_strength",
+			DAMAGED_DARKEN_STRENGTH
+		)
 	cull_damage_details()
 	queue_redraw()
 
@@ -356,12 +432,38 @@ func _texture_uvs(points: PackedVector2Array) -> PackedVector2Array:
 	return uvs
 
 
+static func _get_shared_cavity_shader() -> Shader:
+	if _shared_cavity_shader == null:
+		_shared_cavity_shader = Shader.new()
+		_shared_cavity_shader.code = CAVITY_SHADER_CODE
+	return _shared_cavity_shader
+
+
+func _configure_cavity_material() -> void:
+	if _cavity_material == null:
+		return
+	_cavity_material.set_shader_parameter("visual_tint", _visual_tint)
+	_cavity_material.set_shader_parameter("alpha_threshold", FACADE_ALPHA_THRESHOLD)
+	_cavity_material.set_shader_parameter("cavity_tint", _cavity_tint())
+	_cavity_material.set_shader_parameter(
+		"darken_strength",
+		DESTROYED_DARKEN_STRENGTH if _destroyed_stage else DAMAGED_DARKEN_STRENGTH
+	)
+
+
+func _cavity_tint() -> Color:
+	if _material_id == &"glass":
+		return Color(0.012, 0.036, 0.044, 1.0)
+	if _material_id == &"steel":
+		return Color(0.022, 0.026, 0.030, 1.0)
+	return Color(0.018, 0.014, 0.016, 1.0)
+
+
 func _draw() -> void:
 	if _contour.is_empty():
 		return
 	var closed_contour: PackedVector2Array = _contour.duplicate()
 	closed_contour.append(_contour[0])
-	draw_colored_polygon(_contour, Color(0.06, 0.045, 0.04, 0.24))
 	draw_polyline(closed_contour, CRACK_SHADOW, 3.5, true)
 	for crack: PackedVector2Array in _cracks:
 		draw_polyline(crack, CRACK_SHADOW, 4.0, true)

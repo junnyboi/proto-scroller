@@ -119,7 +119,7 @@ func test_destroyed_cell_disables_hurtbox_and_reset_restores_it() -> void:
 	_record_test_execution()
 
 
-func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
+func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> void:
 	var city: CitySlice = await _spawn_city()
 	var cell: Destructible2D = city.building.get_cell(1, 1)
 	var upper_cell: Destructible2D = city.building.get_cell(1, 0)
@@ -129,21 +129,17 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	var pattern: BuildingDamagePattern2D = cell.get_node(
 		^"DamagedVisual"
 	) as BuildingDamagePattern2D
-	var edge: BuildingRubbleEdge2D = cell.get_node(
-		^"RubbleEdgeVisual"
-	) as BuildingRubbleEdge2D
 	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_101, 60.0)))
-	assert_eq(pattern.damage_detail_count(), 2)
-	assert_eq(pattern.damage_effect_activation_count(), 2)
-	assert_eq(pattern.active_damage_effect_count(), 2)
 	assert_true(pattern.visible)
+	assert_gt(pattern.contour().size(), 0)
+	assert_gt(pattern.crack_count(), 0)
+	assert_false(pattern.is_destroyed_stage())
 	var cable: BuildingDamageAttachment2D = pattern.get_node(
 		^"DanglingCables"
 	) as BuildingDamageAttachment2D
 	var pipe: BuildingDamageAttachment2D = pattern.get_node(
 		^"BrokenWaterPipe"
 	) as BuildingDamageAttachment2D
-	assert_true(cable.is_processing())
 	assert_eq(cable.particles.name, "CableSparks")
 	assert_eq(pipe.particles.name, "WaterSpray")
 	assert_eq(pipe.display_size(), Vector2(31.5, 57.0))
@@ -163,10 +159,17 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	assert_lte(absf(pattern.cable_sway_offset()), 0.26)
 	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_102)))
 	assert_true(cell.is_destroyed())
-	assert_false(pattern.visible)
-	assert_eq(pattern.damage_detail_count(), 0)
-	assert_eq(pattern.active_damage_effect_count(), 0)
-	assert_false(cable.is_processing())
+	assert_true(pattern.visible)
+	assert_true(pattern.is_destroyed_stage())
+	assert_eq(pattern.contour().size(), BuildingDamagePattern2D.CONTOUR_POINTS)
+	assert_gt(pattern.crack_count(), 0)
+	assert_eq(pattern.damage_detail_count(), 2)
+	assert_true(cable.is_processing())
+	assert_almost_eq(
+		pattern.cavity_darken_strength(),
+		BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH,
+		0.0001
+	)
 	assert_false(upper_cell.is_destroyed())
 	assert_almost_eq(
 		upper_cell.current_health,
@@ -175,53 +178,34 @@ func test_destroyed_segment_culls_details_and_hollows_full_facade() -> void:
 	)
 	assert_true(upper_pattern.visible)
 	assert_gt(upper_pattern.crack_count(), 0)
-	assert_eq(edge.exposed_edge_count(), 3)
-	assert_eq(edge.exposed_edge_mask(), Vector4(1.0, 1.0, 0.0, 1.0))
-	assert_eq(edge.active_shell_count(), 1)
-	assert_false(edge.is_edge_exposed(BuildingRubbleEdge2D.Edge.BOTTOM))
-	assert_true(edge.visible)
 	var intact_sprite: Sprite2D = cell.get_node(^"IntactVisual") as Sprite2D
-	var hollow_facade: Sprite2D = edge.facade_sprite()
-	assert_not_null(hollow_facade)
-	assert_eq(edge.source_texture(), intact_sprite.texture)
-	assert_eq(edge.source_region(), intact_sprite.region_rect)
-	assert_eq(hollow_facade.texture, intact_sprite.texture)
-	assert_eq(hollow_facade.region_rect, intact_sprite.region_rect)
-	assert_true(hollow_facade.region_enabled)
-	var cell_size: Vector2 = city.building.display_size / Vector2(
-		StructuralBuilding2D.COLUMNS,
-		StructuralBuilding2D.ROWS
-	)
-	assert_lt(
-		(hollow_facade.region_rect.size * hollow_facade.scale - cell_size).length(),
-		0.01
-	)
+	assert_true(intact_sprite.visible)
+	assert_true((cell.get_node(^"RubbleVisual") as Sprite2D).visible)
+	assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
+	var cavity_material: ShaderMaterial = pattern.cavity_material()
+	assert_not_null(cavity_material)
+	assert_not_null(cavity_material.shader)
+	assert_true(cavity_material.shader.code.contains("discard"))
+	assert_true(cavity_material.shader.code.contains("facade.a <= alpha_threshold"))
 	assert_eq(
-		edge.cutout_parameter(&"hole_half_extents"),
-		BuildingRubbleEdge2D.HOLE_HALF_EXTENTS
+		float(cavity_material.get_shader_parameter("alpha_threshold")),
+		BuildingDamagePattern2D.FACADE_ALPHA_THRESHOLD
 	)
-	assert_almost_eq(BuildingRubbleEdge2D.HOLE_HALF_EXTENTS.x, 0.34, 0.0001)
-	assert_almost_eq(BuildingRubbleEdge2D.HOLE_HALF_EXTENTS.y, 0.38, 0.0001)
-	assert_eq(edge.cutout_parameter(&"ground_open"), 1.0)
-	assert_eq(edge.cutout_parameter(&"exposed_edges"), edge.exposed_edge_mask())
-	var texture_size: Vector2 = intact_sprite.texture.get_size()
-	assert_eq(
-		edge.cutout_parameter(&"atlas_region_uv"),
-		Vector4(
-			intact_sprite.region_rect.position.x / texture_size.x,
-			intact_sprite.region_rect.position.y / texture_size.y,
-			intact_sprite.region_rect.size.x / texture_size.x,
-			intact_sprite.region_rect.size.y / texture_size.y
-		)
+	var source: String = FileAccess.get_file_as_string(
+		"res://scripts/destruction/building_damage_pattern_2d.gd"
 	)
-	assert_null(edge.get_node_or_null(^"DestroyedInterior"))
-	var cutout_material: ShaderMaterial = hollow_facade.material as ShaderMaterial
-	assert_not_null(cutout_material)
-	assert_not_null(cutout_material.shader)
-	assert_true(cutout_material.shader.code.contains("discard"))
-	assert_true(cutout_material.shader.code.contains("facade.a <= 0.04"))
-	assert_true(cutout_material.shader.code.contains("exposed_edges"))
-	assert_true(cutout_material.shader.code.contains("top_shell"))
+	assert_false(source.contains("draw_colored_polygon(_contour"))
+	var captured: Dictionary = cell.capture_stream_state()
+	var signature: String = pattern.pattern_signature()
+	cell.restore_stream_state(captured)
+	assert_eq(pattern.pattern_signature(), signature)
+	assert_true(pattern.is_destroyed_stage())
+	assert_eq(pattern.damage_detail_count(), 2)
+	cell.restore_stream_state({"destroyed": true, "health": 0.0})
+	assert_true(cell.is_destroyed())
+	assert_true(pattern.visible)
+	assert_gt(pattern.pattern_signature().length(), 0)
+	assert_eq(pattern.damage_detail_count(), 2)
 	_record_test_execution()
 
 

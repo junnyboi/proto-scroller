@@ -1,6 +1,6 @@
 # Procedural Building Destruction Restoration Plan
 
-**Status:** In progress  
+**Status:** Implementation complete; source integration and deployment in progress
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export  
 **Target branch:** `main`  
 **Applies to:** all 25 district facade variants through the six-instance streamed building pool
@@ -94,4 +94,10 @@ The principal visual risk is drawing dark geometry over transparent facade paddi
 
 ## Completion Record
 
-This section will be updated after implementation with the final source revision, focused test results, deleted assets, export sizes and hashes, WebDev payload routes, and checkpoint ID.
+The implementation deletes `BuildingRubbleEdge2D` and its UID, removes all construction/reconfiguration/neighbor-edge code, and makes `BuildingDamagePattern2D` authoritative in both damaged and destroyed states. Fatal hits now record severity-1 procedural geometry before breaking the cell. The cavity shader discards low-alpha facade texels before darkening; final cracks, cables, broken plumbing, sparks, and water spray persist after failure. A deterministic fallback pattern repairs legacy destroyed states without stored contour data.
+
+The work also corrected a pooled-state reset indentation defect that previously skipped `Destructible2D.restore_stream_state()` whenever the incoming cell array was empty. All six cells now reset on every variant reconfiguration, preventing failed state from leaking between facade identities.
+
+The obsolete `building_intact.png`, `building_damaged.png`, both import files, and the cross-section renderer files were removed. The 25 production facades, shared shallow rubble, cable/pipe attachments, material burst textures, and physical debris remain active.
+
+Four targeted Godot 4.7.2 regressions passed with **2,932 assertions**: alpha-safe procedural destruction with persistent details; natural passage opening; stable pooled reconfiguration across all 25 variants; and fatal destruction of all 150 variant cells with nonempty contours, final cracks, two details, strong cavity darkening, and no cross-section node. Final source revision, export identities, WebDev routes, and checkpoint will be recorded after integration and deployment.

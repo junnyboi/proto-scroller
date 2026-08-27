@@ -35,6 +35,11 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 					)
 					var sprite: Sprite2D = cell.get_node(^"IntactVisual") as Sprite2D
 					assert_eq(sprite.texture, variant.intact_texture)
+					var pattern: BuildingDamagePattern2D = cell.get_node(
+						^"DamagedVisual"
+					) as BuildingDamagePattern2D
+					assert_not_null(pattern.cavity_material())
+					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					assert_lt(
 						(
 							sprite.region_rect.size * sprite.scale
@@ -83,6 +88,31 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 					])
 					await get_tree().physics_frame
 					assert_true(cell.is_destroyed())
+					var pattern: BuildingDamagePattern2D = cell.get_node(
+						^"DamagedVisual"
+					) as BuildingDamagePattern2D
+					assert_true(pattern.visible, String(variant.variant_id))
+					assert_true(pattern.is_destroyed_stage(), String(variant.variant_id))
+					assert_eq(
+						pattern.contour().size(),
+						BuildingDamagePattern2D.CONTOUR_POINTS,
+						String(variant.variant_id)
+					)
+					assert_gt(pattern.crack_count(), 0, String(variant.variant_id))
+					assert_eq(pattern.damage_detail_count(), 2, String(variant.variant_id))
+					assert_almost_eq(
+						pattern.cavity_darken_strength(),
+						BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH,
+						0.0001,
+						String(variant.variant_id)
+					)
+					assert_true(
+						pattern.cavity_material().shader.code.contains(
+							"facade.a <= alpha_threshold"
+						),
+						String(variant.variant_id)
+					)
+					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					var hurtbox: CollisionShape2D = cell.get_node(
 						^"Hurtbox/CollisionShape2D"
 					) as CollisionShape2D

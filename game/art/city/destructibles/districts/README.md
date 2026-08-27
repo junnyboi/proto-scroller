@@ -1,10 +1,10 @@
 # District Destructible Facade Asset Pack
 
-This directory contains the **25 production facade textures** used by the forward city-district catalog. Each PNG is a standalone orthographic building cutout with a transparent background. The runtime divides every texture into the established three-column by two-row structural grid, so the existing hollowed destruction, organic cracks, exposed pipes, dangling electrical cables, rubble edges, material resistance, and causal chain-reaction systems remain active.
+This directory contains the **25 production facade textures** used by the forward city-district catalog. Each PNG is a standalone orthographic building cutout with a transparent background. The runtime divides every texture into the established three-column by two-row structural grid, so alpha-clipped dark cavities, organic cracks, exposed pipes, dangling electrical cables, shallow rubble beds, material resistance, and causal chain-reaction systems remain active without destroyed cross-section images.
 
 ## Provenance and processing
 
-All facades were generated on **2026-08-25** with **GPT Image 2** through the Manus built-in image-generation tool. The generation prompts used the district concept board and the original `building_intact.png` as style references. Prompts required a complete roof-to-ground silhouette, front elevation, no characters, no readable branding, no background, and broad gameplay-readable structural masses.
+All facades were generated on **2026-08-25** with **GPT Image 2** through the Manus built-in image-generation tool. The generation prompts used the district concept board and the original prototype facade—now retained only in Git history—as style references. Prompts required a complete roof-to-ground silhouette, front elevation, no characters, no readable branding, no background, and broad gameplay-readable structural masses.
 
 The generator used neon green as a temporary removal color. Generated outputs were deterministically processed with Pillow to remove connected background pixels and green residue, preserve the complete subject, add transparent padding, resize with Lanczos filtering to a maximum 510-pixel dimension, pad dimensions to multiples of six, and save optimized RGBA PNGs. Raw generation outputs are intentionally excluded from source control. Final assets were reviewed together in a 25-item contact sheet; every texture has transparent corners, no detected green residue, and a distinct silhouette.
 

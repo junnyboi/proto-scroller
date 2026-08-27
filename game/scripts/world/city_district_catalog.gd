@@ -6,13 +6,7 @@ const VARIANTS_PER_DISTRICT: int = 5
 const BUILDING_VARIANT_COUNT: int = DISTRICT_COUNT * VARIANTS_PER_DISTRICT
 const CHUNKS_PER_DISTRICT: int = VARIANTS_PER_DISTRICT
 
-const LEGACY_INTACT: Texture2D = preload(
-	"res://art/city/destructibles/building_intact.png"
-)
-const LEGACY_DAMAGED: Texture2D = preload(
-	"res://art/city/destructibles/building_damaged.png"
-)
-const LEGACY_RUBBLE: Texture2D = preload(
+const SHARED_RUBBLE: Texture2D = preload(
 	"res://art/city/destructibles/building_rubble.png"
 )
 const INITIAL_DISTRICT_TEXTURES: Dictionary = {
@@ -519,13 +513,13 @@ static func _variant(
 	if initial_texture != null:
 		variant.intact_texture = initial_texture
 		variant.damaged_texture = initial_texture
-		variant.rubble_texture = LEGACY_RUBBLE
+		variant.rubble_texture = SHARED_RUBBLE
 	else:
 		var facade_path: String = String(FACADE_TEXTURE_PATHS.get(id, ""))
 		variant.configure_texture_paths(
 			facade_path,
 			facade_path,
-			LEGACY_RUBBLE.resource_path
+			SHARED_RUBBLE.resource_path
 		)
 	variant.display_size = size
 	variant.material_ids = PackedStringArray(materials)

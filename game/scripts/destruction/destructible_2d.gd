@@ -64,7 +64,7 @@ func receive_damage(event: DamageEvent) -> bool:
 	var damage_pattern: BuildingDamagePattern2D = (
 		_damaged_visual as BuildingDamagePattern2D
 	)
-	if damage_pattern != null and current_health > 0.0:
+	if damage_pattern != null:
 		damage_pattern.record_damage(event, current_health / maxf(max_health, 1.0))
 	if current_health <= 0.0:
 		_break(event)
@@ -98,6 +98,8 @@ func restore_stream_state(state: Dictionary) -> void:
 	var damage_pattern: BuildingDamagePattern2D = _damaged_visual as BuildingDamagePattern2D
 	if damage_pattern != null:
 		damage_pattern.restore_stream_state(state.get("pattern", {}) as Dictionary)
+		if _destroyed:
+			damage_pattern.ensure_destroyed_pattern()
 	_apply_stage(
 		current_health <= max_health * damaged_stage_ratio and not _destroyed,
 		_destroyed
@@ -116,14 +118,16 @@ func _break(event: DamageEvent) -> void:
 
 func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
 	if _intact_visual != null:
-		_intact_visual.visible = not show_rubble
+		_intact_visual.visible = true
 	if _damaged_visual != null:
-		_damaged_visual.visible = show_damaged and not show_rubble
+		_damaged_visual.visible = show_damaged or show_rubble
 		var damage_pattern: BuildingDamagePattern2D = (
 			_damaged_visual as BuildingDamagePattern2D
 		)
-		if damage_pattern != null and show_rubble:
-			damage_pattern.cull_damage_details()
+		if damage_pattern != null:
+			damage_pattern.set_destroyed_stage(show_rubble)
+			if not show_damaged and not show_rubble:
+				damage_pattern.cull_damage_details()
 	if _rubble_visual != null:
 		_rubble_visual.visible = show_rubble
 	if _intact_collision != null:

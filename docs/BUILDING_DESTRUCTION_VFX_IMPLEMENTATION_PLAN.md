@@ -85,3 +85,7 @@ The runtime implementation landed in `4c81f0c4122512b9d112ee8874a07ee39e7ff877`.
 - New Game+ clears active bursts.
 - Landscape and portrait captures keep effects inside the world viewport and below the robot/HUD.
 - Fresh exact WASM and PCK payloads are synchronized to the existing fullscreen WebDev host.
+
+## Post-Deployment Facade Presentation Restoration
+
+The generated concrete, glass, steel, dust, and flash assets remain active only as transient section bursts and physical macro debris. Persistent failed facade cells no longer instantiate or display `BuildingRubbleEdge2D`, a second facade shell, or any destroyed cross-section image. `BuildingDamagePattern2D` now remains visible through destruction, records fatal hits before the stage transition, alpha-clips its cavity darkening against the active facade texture, and retains final cracks, broken plumbing, and dangling wires. The shared rubble atlas remains a shallow nonblocking bed beneath the cavity rather than replacement architecture. This restoration applies automatically to all 25 district variants through the existing pooled reconfiguration path.

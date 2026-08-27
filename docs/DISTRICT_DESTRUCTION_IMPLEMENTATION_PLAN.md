@@ -19,7 +19,7 @@ Implement five forward-progressing spatial districts and a deterministic roster 
 | Select district by five-building forward spans | Each district maps one unique facade to each of five chunks; clearing all five unlocks the next span, while Royal starts at chunk 20 and continues indefinitely. |
 | Select one of five district variants deterministically | A stable catalog and seed/chunk hash provide replay without random searching or slot-dependent rerolls. |
 | Reconfigure pooled buildings in place | Texture, size, material grid, crack seed, and metadata change before state restore; cell nodes and physics objects are reused. |
-| Use 25 GPT Image 2 transparent facade sprites | This provides actual architectural variety while the existing procedural system supplies cracks, pipes, cables, hollowing, and shared rubble. |
+| Use 25 GPT Image 2 transparent facade sprites | This provides actual architectural variety while one shared procedural system supplies alpha-clipped cavities, cracks, pipes, cables, and shallow rubble without destroyed cross-section art. |
 | Raise the Web PCK ceiling to **16 MiB** | The current 8 MiB bundle has negligible headroom; the new ceiling remains explicit, tested, and reported rather than silently bypassed. |
 
 ## Work Packages
@@ -46,7 +46,7 @@ Extend `CityChunkBlueprint` with `district_index`, `district_id`, `building_vari
 
 Add `StructuralBuilding2D.apply_variant()` and safe reconfiguration helpers. Existing cell nodes must update facade regions, display size, material profiles, health maxima, collision shapes, rubble geometry, tint, and deterministic damage-pattern seed without allocation.
 
-Add `BuildingDamagePattern2D.reconfigure()` so a pooled cell can adopt a new texture region and variant seed before stream state restore. Structural state gains a schema version and variant ID. Legacy states without identity remain compatible with the original chunk-zero building; incompatible variant state resets rather than crossing identities.
+Add `BuildingDamagePattern2D.reconfigure()` so a pooled cell can adopt a new texture region and variant seed before stream state restore. The same node remains authoritative after cell failure, darkening only opaque facade texels and retaining final cracks, pipes, and cables. Structural state gains a schema version and variant ID. Legacy states without identity remain compatible with the original chunk-zero building; incompatible variant state resets rather than crossing identities.
 
 Update `StreamedDestructibleRuntime` to resolve the blueprint variant, apply it before ledger restore, and expose district/variant metadata. Preserve one building per chunk, all existing relayed signals, and current aliases used by `CitySlice`.
 
@@ -58,7 +58,7 @@ Update `StreamedDestructibleRuntime` to resolve the blueprint variant, apply it 
 
 Generate 25 standalone transparent facade sprites with GPT Image 2 using the approved district boards and current building art as references. Resize and losslessly optimize to a compact gameplay envelope; keep originals out of the source repository if their size is unnecessary. Import runtime sprites without mipmaps.
 
-Wire every catalog entry to its own facade. Use the facade for intact and fracture-patch sampling while retaining shared material-tinted rubble and existing procedural crack/attachment nodes.
+Wire every catalog entry to its own facade. Use the facade for intact and alpha-clipped cavity sampling while retaining shared material-tinted shallow rubble and existing procedural crack/attachment nodes. Do not add a second facade shell or destroyed cross-section sprite.
 
 Add `building_variant_gallery_scenario.gd` to render five buildings per district in deterministic intact and damaged/hollow states. Capture 1280×720 and 720×1280 representative frames. Add catalog digest and district/variant traces to the endless-terrain selftest.
 
@@ -84,7 +84,7 @@ Extend catalog tests to check complete roster coverage across multiple run seeds
 
 ### WP3C — Natural breach traversal and visible facade cycling
 
-Replace per-cell ground collision teardown with a continuous full-height passage contract. Destroying any ground-row structural cell must retain the authored hollow and rubble visuals while disabling every intact collider in that facade, allowing the robot to walk through low and tall silhouettes alike. The passage state must be reconstructed from the mutation ledger after pooled slot reuse.
+Replace per-cell ground collision teardown with a continuous full-height passage contract. Destroying any ground-row structural cell must retain the authored procedural hollow and shallow rubble visuals while disabling every intact collider in that facade, allowing the robot to walk through low and tall silhouettes alike. The passage state must be reconstructed from the mutation ledger after pooled slot reuse.
 
 Add a non-teleport unit regression that destroys one ground cell, advances the robot with normal horizontal physics, and requires the next facade variant to become active. Add an Xvfb visual scenario that naturally reaches all five Business facades at their intact gameplay approach points and captures five unique landscape plus five unique portrait frames. This gate exists because the previous all-25 traversal test teleported between chunks and therefore could validate data mapping while stepping around a physical wall.
 
@@ -105,7 +105,7 @@ Refresh the existing `proto-scroller` WebDev project only; preserve its fullscre
 | Data | 5 districts, 25 globally unique variants, six valid material cells each |
 | Determinism | Stable district/variant output by seed and logical chunk; direct addressability of all entries |
 | Runtime shape | 6 streamed buildings, 36 damage-pattern nodes, zero post-warm creation, constant node count |
-| Destruction | Cracks, cable/pipe details, hollow cells, rubble edges, support transfer, floor and steel chains; any ground breach opens a full-height walkable passage |
+| Destruction | Alpha-clipped dark hollows, cracks, cable/pipe details, shallow rubble beds, support transfer, floor and steel chains; any ground breach opens a full-height walkable passage; no destroyed cross-section art |
 | Persistence | District/variant identity, health, destroyed mask, crack signature, and detail mask restored after recycling |
 | Visual | Five district galleries, five naturally reached Business facades, and representative landscape and portrait gameplay frames inspected |
 | Export | Nonempty HTML/JS/WASM/PCK; PCK ≤ 16 MiB; checksum manifest recorded |
@@ -129,6 +129,7 @@ The primary risk is package growth. Runtime facade sprites are therefore compact
 | WP3C | Completed | `c1c9c5b99ab6af47c8751774426d1b011039fa1a` | Root cause confirmed as intact neighboring and overhead cell colliders retaining a physical wall after a visible ground breach. The non-teleport passage test and ten natural traversal screenshots require all five Business facades to become actual gameplay targets. The pushed-revision full gate passed in 667 s with 301/301 tests and 28,786 assertions; five distinct landscape and five distinct portrait approach frames passed; Web PCK measured 14,105,752 bytes; Chromium gameplay smoke passed. |
 | WP4 | Completed | `c85fb134d7a03d83b93e8692dceaf5469fff0a25` | 279/279 GUT tests and 27,935 assertions passed; full harness passed in 607 s; PCK 13,766,156 bytes; mission-card, district, mobile, melee-audio, export, and Chromium lanes passed; WebDev checkpoint `6f4645ed` published |
 | Post-WP4 presentation maintenance | Completed | This maintenance commit | Replaced the English title hook with the user-approved payback story, expanded responsive story bounds, and lifted only the robot visual root to a tested 15–16 px road-line clearance. Full gate passed in 711 s with 296/296 tests and 28,672 assertions; title and gameplay landscape/portrait renders, 9-file Web export, 13,823,212-byte PCK, and Chromium gameplay smoke passed. |
+| Procedural facade restoration | Completed | This maintenance commit | Deleted the facade-resampled cross-section renderer and obsolete legacy intact/damaged art. All 25 variants now retain the authored facade while `BuildingDamagePattern2D` alpha-clips a deterministic dark cavity and preserves final cracks, broken plumbing, dangling wires, shallow rubble, passage collision, support transfer, bursts, and debris. Four focused Godot 4.7.2 regressions passed with 2,932 assertions, including all 150 variant cells. |
 
 ## Deployment Record
 
