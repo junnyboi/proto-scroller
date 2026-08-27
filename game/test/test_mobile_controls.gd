@@ -306,6 +306,10 @@ func test_mobile_smash_touch_cancels_dodge_into_half_momentum_melee() -> void:
 	assert_eq(spec.facing, -1)
 	assert_almost_eq(spec.speed_ratio, 0.50, 0.0001)
 	assert_almost_eq(spec.impulse_per_mass, 540.0, 0.001)
+	assert_eq(
+		city.robot.locomotion_state,
+		GiantRobotController.LocomotionState.ATTACK_LOCKED
+	)
 	assert_false(city.robot.dodge_invulnerable)
 	city.contextual_attacks._process(1.0)
 	city.mobile_controls.handle_touch_input(

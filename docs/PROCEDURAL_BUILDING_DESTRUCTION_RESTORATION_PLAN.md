@@ -1,6 +1,6 @@
 # Procedural Building Destruction Restoration Plan
 
-**Status:** Complete and deployed
+**Status:** WP7 implementation in progress
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export  
 **Target branch:** `main`  
 **Applies to:** all 25 district facade variants through the six-instance streamed building pool
@@ -43,6 +43,23 @@ The surviving facade pixels must darken continuously with damage. At terminal de
 Persistence stores normalized hollow progress and also reconstructs it from authoritative health when loading older mutations. Reconfiguration resets the shared material to pristine without replacing the per-cell material instance. All 25 facade variants inherit the behavior through the existing six-cell pooled path.
 
 **Acceptance:** progressive damage produces strictly increasing `hollow_progress`, hollow extents, and darkening; zero damage leaves sprite alpha unchanged; terminal damage reaches progress `1.0`, fully darkens surviving facade pixels, removes the center and lower middle, preserves side and top margins, and retains final cracks plus both attachment details. The shader must perform alpha discard on `IntactVisual` rather than render a replacement facade polygon.
+
+### WP7 — Severe interior VFX, destruction clouds, and impact-shaped cavities
+
+Extend each existing `BuildingDamagePattern2D` with one prewarmed, code-rendered severe-damage child. It remains disabled below 62% cumulative damage, then renders deterministic additive interior fire glow, animated flame tongues, embers, and intermittent electrical arcs strictly inside the active cell. At terminal destruction, fire intensity increases while electrical arcs taper into less frequent residual discharges. The effect must inherit the cell's clipping and alpha-safe facade geometry rather than introduce opaque image backgrounds.
+
+The existing fixed `BuildingSectionBurstPool` remains the only destruction-particle allocator. Each of its twelve prewarmed slots gains a dedicated falling-debris emitter, while the existing dust emitter becomes a broader, longer-lived destruction cloud. A destroyed section restarts fragments, falling debris, dust, and flash exactly once; restoring streamed state must not replay any emitter, and pool saturation must continue recycling the oldest slot without node growth.
+
+The authored-facade erosion shader receives a stable `impact_profile` parameter derived from the most recent accepted structural hit. Punches (`jab_cross` and `punch_shockwave`) produce horizontally biased, blunt cavities with directional side tearing. Missiles and rockets produce rounded blast craters with radial chips. Ground smashes produce low, wide, vertically compressed cavities that breach the lower middle aggressively. Unknown, chain-reaction, and legacy events retain the current balanced generic cavity. The selected profile is captured and restored with cell mutation state so streamed facades preserve their last impact silhouette.
+
+| Attack family | Profile | Cavity behavior |
+|---|---|---|
+| Jab/cross and punch shockwave | `punch` | Wide horizontal crush, directional side notch, moderate vertical loss |
+| Missile and rocket | `missile` | Rounded radial crater, stronger high-frequency edge chipping |
+| Ground smash | `ground_slam` | Very wide lower cavity, shallow vertical radius, early bottom breach |
+| Chain, support, legacy, or unknown | `generic` | Existing balanced center-out jagged erosion |
+
+**Acceptance:** severe nonterminal cells visibly expose animated fire and electrical activity without creating nodes after warm-up; destroyed cells trigger bounded falling debris plus an expanded dust cloud exactly once; punch, missile, and ground-smash events set distinct shader profiles and distinct shape parameters; capture/restore preserves the chosen profile; pooled reset returns every cell to generic profile with severe effects disabled; all 25 facade variants continue sharing the same implementation.
 
 ### WP0 — Plan and contract lock
 

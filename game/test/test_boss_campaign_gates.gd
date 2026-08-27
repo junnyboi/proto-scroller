@@ -89,6 +89,9 @@ func test_interlock_freezes_siege_and_leaves_robot_controls_live() -> void:
 	assert_true(city.robot.can_request_attack())
 	assert_false(siege.is_simulation_paused())
 	assert_true(campaign.active_gate.blocker_collision.disabled)
+	assert_true(city.world_stream._rear_barrier_collision.disabled)
+	assert_eq(city.robot.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_eq(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
 	city.robot.set_physics_process(false)
 	city.robot.collision_mask = 0
 	city.robot.gravity = 0.0
@@ -210,6 +213,9 @@ func test_stop_and_reset_clear_campaign_and_siege_suspension() -> void:
 	assert_false(campaign.interlock.is_owned())
 	assert_false(city.urban_siege.director.is_suspended_for_boss())
 	assert_false(city.world_stream.resident_lease_active())
+	assert_false(city.world_stream._rear_barrier_collision.disabled)
+	assert_ne(city.robot.collision_mask & CityWorldStream.REAR_BARRIER_LAYER, 0)
+	assert_ne(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
 	await _trigger(city, definition)
 	campaign.reset_run()
 	assert_false(campaign.owns_combat())
