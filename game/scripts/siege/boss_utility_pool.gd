@@ -2,6 +2,17 @@
 class_name BossUtilityPool
 extends Node
 
+enum UtilityPresentationRole {
+	NONE,
+	ARCHIVE_TREASURY,
+	EVACUATION_CRADLE,
+	EXTRACTION_CLAMP,
+	SHOW_CONTROL_CABINET,
+	RUBBLE_BED,
+	FREIGHT_RECLAMATION_ANCHOR,
+	SERAPH_PROJECTION,
+}
+
 const MARKER_CAPACITY: int = 8
 const LANE_DAMAGE_AREA_CAPACITY: int = 3
 const LINE_AREA_CAPACITY: int = 2
@@ -11,6 +22,30 @@ const RECLAMATION_ANCHOR_CAPACITY: int = 3
 const PYLON_PRESENTATION_CAPACITY: int = 5
 const PROJECTION_SLOT_CAPACITY: int = 4
 const WRECK_RECEIVER_CAPACITY: int = 2
+const MIMESIS_AFTERIMAGE_TEXTURE: Texture2D = preload(
+	"res://art/siege/mimesis-armed-afterimage.png"
+)
+const ARCHIVE_TREASURY_TEXTURE: Texture2D = preload(
+	"res://art/bosses/utilities/boss-archive-treasury-bracket.png"
+)
+const EVACUATION_CRADLE_TEXTURE: Texture2D = preload(
+	"res://art/bosses/utilities/boss-evacuation-cradle.png"
+)
+const EXTRACTION_CLAMP_TEXTURE: Texture2D = preload(
+	"res://art/bosses/utilities/boss-extraction-clamp.png"
+)
+const SHOW_CONTROL_CABINET_TEXTURE: Texture2D = preload(
+	"res://art/bosses/utilities/boss-show-control-cabinet.png"
+)
+const RUBBLE_BED_TEXTURE: Texture2D = preload(
+	"res://art/bosses/utilities/boss-rubble-bed.png"
+)
+const FREIGHT_RECLAMATION_ANCHOR_TEXTURE: Texture2D = preload(
+	"res://art/bosses/utilities/boss-freight-reclamation-anchor.png"
+)
+const SERAPH_PROJECTION_TEXTURE: Texture2D = preload(
+	"res://art/bosses/utilities/boss-seraph-production-projection.png"
+)
 const CHOIR_PYLON_TEXTURE: Texture2D = preload("res://art/finale/choir-pylon.png")
 const CHOIR_PYLON_OFFSETS: Array[Vector2] = [
 	Vector2(-360.0, -160.0), Vector2(-180.0, -245.0), Vector2(0.0, -280.0),
@@ -44,6 +79,7 @@ var peak_reservations: int = 0
 var _reservations: Dictionary[int, Dictionary] = {}
 var _cleanup_callbacks: Array[Callable] = []
 var _next_reservation_id: int = 1
+
 
 
 func _init() -> void:
@@ -228,12 +264,40 @@ func configure_royal_echo_presentation(
 	presentation.scale = Vector2.ONE * fit
 	presentation.modulate = Color(0.35, 0.98, 1.0, 0.42)
 	presentation.visible = true
+	markers[index].visible = true
 	return true
 
 
 func hide_royal_echo_presentations() -> void:
-	for presentation: Sprite2D in marker_presentations:
-		presentation.visible = false
+	for index: int in range(marker_presentations.size()):
+		_reset_marker_presentation(marker_presentations[index])
+		markers[index].visible = false
+
+
+func configure_utility_presentation(
+	record: Node2D,
+	role: UtilityPresentationRole
+) -> bool:
+	if record == null or record.get_child_count() != 1:
+		return false
+	var sprite: Sprite2D = record.get_child(0) as Sprite2D
+	if sprite == null:
+		return false
+	_reset_utility_presentation(record)
+	var texture: Texture2D = _utility_texture(role)
+	var display_size: Vector2 = _utility_display_size(role)
+	if texture == null or display_size == Vector2.ZERO:
+		return role == UtilityPresentationRole.NONE
+	var texture_size: Vector2 = texture.get_size()
+	sprite.texture = texture
+	sprite.scale = Vector2(
+		display_size.x / maxf(texture_size.x, 1.0),
+		display_size.y / maxf(texture_size.y, 1.0)
+	)
+	sprite.position.y = -display_size.y * 0.5
+	sprite.visible = true
+	record.set_meta(&"presentation_role", role)
+	return true
 
 
 func projection_count() -> int:
@@ -329,7 +393,7 @@ func _prewarm() -> void:
 		pylon.add_child(sprite)
 		pylon_presentations.append(pylon)
 	for index: int in range(PROJECTION_SLOT_CAPACITY):
-		var projection: Node2D = _make_record("ProjectionSlot%02d" % index, rig)
+		var projection: Node2D = _make_visual_record("ProjectionSlot%02d" % index, rig)
 		projection_slots.append(projection)
 	for index: int in range(MARKER_CAPACITY):
 		var marker: Marker2D = Marker2D.new()
@@ -340,13 +404,19 @@ func _prewarm() -> void:
 		presentation.name = "MarkerPresentation%02d" % index
 		presentation.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		presentation.z_index = 5
-		presentation.visible = false
 		marker.add_child(presentation)
+		_reset_marker_presentation(presentation)
 		marker_presentations.append(presentation)
 	for index: int in range(LANE_DAMAGE_AREA_CAPACITY):
-		lane_damage_areas.append(_make_area("LaneDamageArea%02d" % index))
+		lane_damage_areas.append(_make_area(
+			"LaneDamageArea%02d" % index,
+			BossAttackArea2D.PresentationRole.LANE_PLATE
+		))
 	for index: int in range(LINE_AREA_CAPACITY):
-		line_areas.append(_make_area("LineArea%02d" % index))
+		line_areas.append(_make_area(
+			"LineArea%02d" % index,
+			BossAttackArea2D.PresentationRole.LINE_BEAM
+		))
 	for index: int in range(COLLAPSE_LISTENER_CAPACITY):
 		var listener: Node = Node.new()
 		listener.name = "CollapseListener%02d" % index
@@ -358,7 +428,9 @@ func _prewarm() -> void:
 		rig.add_child(pod)
 		pod_visuals.append(pod)
 	for index: int in range(RECLAMATION_ANCHOR_CAPACITY):
-		var anchor: Node2D = _make_record("ReclamationAnchor%02d" % index, arena_adapter)
+		var anchor: Node2D = _make_visual_record(
+			"ReclamationAnchor%02d" % index, arena_adapter
+		)
 		reclamation_anchor_records.append(anchor)
 	motion_echo_recorder = MotionEchoRecorder.new()
 	motion_echo_recorder.name = "MotionEchoRecorder"
@@ -379,9 +451,24 @@ func _make_record(record_name: String, parent: Node) -> Node2D:
 	return record
 
 
-func _make_area(area_name: String) -> BossAttackArea2D:
+func _make_visual_record(record_name: String, parent: Node) -> Node2D:
+	var record: Node2D = _make_record(record_name, parent)
+	var sprite: Sprite2D = Sprite2D.new()
+	sprite.name = "Presentation"
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	sprite.z_index = 4
+	record.add_child(sprite)
+	_reset_utility_presentation(record)
+	return record
+
+
+func _make_area(
+	area_name: String,
+	role: BossAttackArea2D.PresentationRole
+) -> BossAttackArea2D:
 	var area: BossAttackArea2D = BossAttackArea2D.new()
 	area.name = area_name
+	area.set_presentation_role(role)
 	area.collision_layer = 0
 	area.collision_mask = 0
 	area.monitoring = false
@@ -429,15 +516,81 @@ func _deactivate_records() -> void:
 		record.visible = false
 	hide_royal_echo_presentations()
 	for record: Node2D in projection_slots:
-		record.visible = false
+		_reset_utility_presentation(record)
 	for record: Node2D in pod_visuals:
 		record.visible = false
 	for record: Node2D in reclamation_anchor_records:
-		record.visible = false
+		_reset_utility_presentation(record)
 	for receiver: BossWreckReceiver2D in wreck_receivers:
 		receiver.deactivate()
 	for area: BossAttackArea2D in lane_damage_areas + line_areas:
 		area.deactivate()
+	for area: BossAttackArea2D in lane_damage_areas:
+		area.set_presentation_role(BossAttackArea2D.PresentationRole.LANE_PLATE)
+	for area: BossAttackArea2D in line_areas:
+		area.set_presentation_role(BossAttackArea2D.PresentationRole.LINE_BEAM)
+
+
+func _reset_marker_presentation(presentation: Sprite2D) -> void:
+	presentation.texture = MIMESIS_AFTERIMAGE_TEXTURE
+	presentation.position = Vector2.ZERO
+	presentation.rotation = 0.0
+	var texture_size: Vector2 = MIMESIS_AFTERIMAGE_TEXTURE.get_size()
+	presentation.scale = Vector2(48.0 / texture_size.x, 32.0 / texture_size.y)
+	presentation.modulate = Color(0.35, 0.98, 1.0, 0.42)
+	presentation.visible = false
+
+
+func _reset_utility_presentation(record: Node2D) -> void:
+	var sprite: Sprite2D = record.get_child(0) as Sprite2D
+	sprite.texture = null
+	sprite.position = Vector2.ZERO
+	sprite.rotation = 0.0
+	sprite.scale = Vector2.ONE
+	sprite.modulate = Color.WHITE
+	sprite.visible = false
+	record.visible = false
+	record.set_meta(&"presentation_role", UtilityPresentationRole.NONE)
+
+
+func _utility_texture(role: UtilityPresentationRole) -> Texture2D:
+	var texture: Texture2D
+	match role:
+		UtilityPresentationRole.ARCHIVE_TREASURY:
+			texture = ARCHIVE_TREASURY_TEXTURE
+		UtilityPresentationRole.EVACUATION_CRADLE:
+			texture = EVACUATION_CRADLE_TEXTURE
+		UtilityPresentationRole.EXTRACTION_CLAMP:
+			texture = EXTRACTION_CLAMP_TEXTURE
+		UtilityPresentationRole.SHOW_CONTROL_CABINET:
+			texture = SHOW_CONTROL_CABINET_TEXTURE
+		UtilityPresentationRole.RUBBLE_BED:
+			texture = RUBBLE_BED_TEXTURE
+		UtilityPresentationRole.FREIGHT_RECLAMATION_ANCHOR:
+			texture = FREIGHT_RECLAMATION_ANCHOR_TEXTURE
+		UtilityPresentationRole.SERAPH_PROJECTION:
+			texture = SERAPH_PROJECTION_TEXTURE
+	return texture
+
+
+func _utility_display_size(role: UtilityPresentationRole) -> Vector2:
+	var display_size: Vector2 = Vector2.ZERO
+	match role:
+		UtilityPresentationRole.ARCHIVE_TREASURY:
+			display_size = Vector2(128.0, 112.0)
+		UtilityPresentationRole.EVACUATION_CRADLE:
+			display_size = Vector2(152.0, 112.0)
+		UtilityPresentationRole.EXTRACTION_CLAMP:
+			display_size = Vector2(144.0, 64.0)
+		UtilityPresentationRole.SHOW_CONTROL_CABINET:
+			display_size = Vector2(104.0, 136.0)
+		UtilityPresentationRole.RUBBLE_BED:
+			display_size = Vector2(184.0, 64.0)
+		UtilityPresentationRole.FREIGHT_RECLAMATION_ANCHOR:
+			display_size = Vector2(104.0, 80.0)
+		UtilityPresentationRole.SERAPH_PROJECTION:
+			display_size = Vector2(176.0, 112.0)
+	return display_size
 
 
 func _can_reserve(requirements: Dictionary) -> bool:

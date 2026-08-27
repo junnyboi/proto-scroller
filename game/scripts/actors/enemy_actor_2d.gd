@@ -472,7 +472,10 @@ func begin_telegraph(
 	kind: StringName,
 	duration: float,
 	origin: Vector2,
-	target_point: Vector2
+	target_point: Vector2,
+	presentation_variant: StringName = &"",
+	visual_key: StringName = &"",
+	style_data: Dictionary = {}
 ) -> bool:
 	if not attack_gate_enabled or telegraph_presenter == null or _telegraph_id != 0:
 		return false
@@ -489,7 +492,10 @@ func begin_telegraph(
 		kind,
 		attack_telegraph_origin(),
 		target_point,
-		adjusted_duration
+		adjusted_duration,
+		presentation_variant,
+		visual_key,
+		style_data
 	)
 	if _telegraph_id == 0:
 		if projectile_pool != null and _projectile_reservation_id != 0:
@@ -531,7 +537,12 @@ func _rebase_cached_world_state(offset: Vector2) -> void:
 	_telegraph_target += offset
 
 
-func fire_telegraphed_projectile(speed: float, damage: float) -> Projectile2D:
+func fire_telegraphed_projectile(
+	speed: float,
+	damage: float,
+	visual_key: StringName = &"",
+	finish_after_fire: bool = true
+) -> Projectile2D:
 	var projectile: Projectile2D
 	if projectile_pool != null and _projectile_reservation_id != 0:
 		projectile = projectile_pool.acquire_reserved(
@@ -542,7 +553,8 @@ func fire_telegraphed_projectile(speed: float, damage: float) -> Projectile2D:
 			_scale_outgoing_damage(damage),
 			self,
 			projectile_target_mask,
-			_telegraph_kind
+			_telegraph_kind,
+			visual_key
 		)
 	else:
 		request_projectile(
@@ -553,10 +565,9 @@ func fire_telegraphed_projectile(speed: float, damage: float) -> Projectile2D:
 			_telegraph_kind
 		)
 	_projectile_reservation_id = 0
-	finish_telegraph()
+	if finish_after_fire:
+		finish_telegraph()
 	return projectile
-
-
 func cancel_telegraph() -> void:
 	if telegraph_presenter != null and _telegraph_id != 0:
 		telegraph_presenter.cancel(_telegraph_id)

@@ -556,6 +556,9 @@ func _configure_composition_echo(pylon_index: int) -> void:
 			ECHO_SIZES[pylon_index]
 		)
 	# Echo areas are presentation-only exact pooled footprints and never arm collision.
+	utility_pool.line_areas[1].set_presentation_role(
+		BossAttackArea2D.PresentationRole.ECHO_PRESENTATION
+	)
 	utility_pool.line_areas[1].configure_footprint(
 		center + Vector2(0.0, -126.0),
 		Vector2(920.0, 300.0),

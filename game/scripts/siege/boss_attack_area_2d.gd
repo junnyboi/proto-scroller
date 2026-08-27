@@ -8,9 +8,21 @@ enum VisualState {
 	DRY,
 }
 
+enum PresentationRole {
+	GENERIC,
+	LANE_PLATE,
+	LINE_BEAM,
+	ECHO_PRESENTATION,
+}
+
 const ROBOT_LAYER: int = 1 << 1
+const LANE_PLATE_TEXTURE: Texture2D = preload(
+	"res://art/bosses/boss-lane-footprint.png"
+)
+const LINE_BEAM_TEXTURE: Texture2D = preload("res://art/bosses/boss-line-beam.png")
 
 var visual_state: VisualState = VisualState.HIDDEN
+var presentation_role: PresentationRole = PresentationRole.GENERIC
 var footprint_size: Vector2 = Vector2(192.0, 96.0)
 var attack_id: StringName = &""
 
@@ -25,10 +37,16 @@ func configure_footprint(
 	footprint_size = size_value
 	visual_state = state_value
 	attack_id = attack
+	if _is_echo_attack():
+		presentation_role = PresentationRole.ECHO_PRESENTATION
 	var collision: CollisionShape2D = get_node(^"Collision") as CollisionShape2D
 	var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
 	rectangle.size = footprint_size
-	var armed: bool = visual_state == VisualState.ARMED
+	var armed: bool = (
+		visual_state == VisualState.ARMED
+		and presentation_role != PresentationRole.ECHO_PRESENTATION
+		and not _is_echo_attack()
+	)
 	collision.disabled = not armed
 	collision_layer = 0
 	collision_mask = ROBOT_LAYER if armed else 0
@@ -36,6 +54,24 @@ func configure_footprint(
 	monitorable = false
 	visible = visual_state != VisualState.HIDDEN
 	queue_redraw()
+
+
+func set_presentation_role(role: PresentationRole) -> void:
+	if _is_echo_attack() and role != PresentationRole.ECHO_PRESENTATION:
+		return
+	presentation_role = role
+	queue_redraw()
+
+
+func authored_texture() -> Texture2D:
+	if _is_echo_attack():
+		return null
+	match presentation_role:
+		PresentationRole.LANE_PLATE:
+			return LANE_PLATE_TEXTURE
+		PresentationRole.LINE_BEAM:
+			return LINE_BEAM_TEXTURE
+	return null
 
 
 func deactivate() -> void:
@@ -48,7 +84,11 @@ func deactivate() -> void:
 
 
 func contains_world_point(world_point: Vector2) -> bool:
-	if visual_state != VisualState.ARMED:
+	if (
+		visual_state != VisualState.ARMED
+		or presentation_role == PresentationRole.ECHO_PRESENTATION
+		or _is_echo_attack()
+	):
 		return false
 	var local_point: Vector2 = to_local(world_point)
 	return (
@@ -57,10 +97,17 @@ func contains_world_point(world_point: Vector2) -> bool:
 	)
 
 
+func _is_echo_attack() -> bool:
+	return String(attack_id).begins_with("ECHO_")
+
+
 func _draw() -> void:
 	if visual_state == VisualState.HIDDEN:
 		return
 	var rectangle: Rect2 = Rect2(-footprint_size * 0.5, footprint_size)
+	var texture: Texture2D = authored_texture()
+	if texture != null:
+		draw_texture_rect(texture, rectangle, false)
 	var fill: Color = Color(0.08, 0.82, 0.92, 0.10)
 	var edge: Color = Color(0.45, 0.96, 1.0, 0.88)
 	var width: float = 3.0

@@ -1,0 +1,14 @@
+{
+  "texture": "res://art/city/enemies/effects/choir-incubation-payload.png",
+  "dimensions": [512, 512],
+  "regions": {
+    "capsule_closed": [0, 0, 112, 224],
+    "capsule_pressure_bright": [112, 0, 112, 224],
+    "capsule_split_open": [224, 0, 216, 232],
+    "descent_trail": [440, 0, 72, 280],
+    "belly_bay_glow": [112, 240, 304, 104],
+    "ground_hatching_crown": [0, 328, 312, 184],
+    "thorn_halo_mark": [304, 320, 208, 192]
+  },
+  "notes": "Presentation only. Up to three paired-clutch capsules truthfully abstract the current x2 successful child count; mechanics and spawn positions are unchanged."
+}

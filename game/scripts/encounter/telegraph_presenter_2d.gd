@@ -4,6 +4,15 @@ extends Node2D
 const TELEGRAPH_BADGE: Texture2D = preload(
 	"res://art/presentation/telegraph_badge.png"
 )
+const TARGET_MARK_SUPPORT: Texture2D = preload(
+	"res://art/presentation/target_mark_support.png"
+)
+const JAMMER_PULSE: Texture2D = preload(
+	"res://art/city/effects/support/jammer-pulse.png"
+)
+const SHIELD_PULSE: Texture2D = preload(
+	"res://art/city/effects/support/shield-pulse.png"
+)
 
 @export_range(1, 16, 1) var capacity: int = RuntimeBudget.TELEGRAPH_RECORDS
 
@@ -29,7 +38,10 @@ func reserve(
 	kind: StringName,
 	origin: Vector2,
 	target: Vector2,
-	duration: float
+	duration: float,
+	presentation_variant: StringName = &"",
+	visual_key: StringName = &"",
+	style_data: Dictionary = {}
 ) -> int:
 	if p_owner == null or _records.size() >= capacity:
 		denial_count += 1
@@ -45,6 +57,9 @@ func reserve(
 		"target": target,
 		"duration": maxf(duration, 0.01),
 		"remaining": maxf(duration, 0.01),
+		"presentation_variant": presentation_variant,
+		"visual_key": visual_key,
+		"style_data": style_data.duplicate(true),
 	})
 	peak_active_count = maxi(peak_active_count, _records.size())
 	queue_redraw()
@@ -99,6 +114,11 @@ func _draw() -> void:
 		var target: Vector2 = to_local(record.target)
 		var base_color: Color = Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56)
 		var kind: StringName = record.kind
+		var presentation_variant: StringName = StringName(
+			record.get("presentation_variant", &"")
+		)
+		if _draw_support_variant(presentation_variant, origin, target, progress):
+			continue
 		if kind == &"shell" or kind == &"rocket":
 			var badge_size: Vector2 = Vector2.ONE * (38.0 + progress * 10.0)
 			draw_texture_rect(
@@ -120,3 +140,42 @@ func _draw() -> void:
 		else:
 			draw_line(origin, target, Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45), 2.0, true)
 			draw_circle(origin, 5.0 + progress * 4.0, base_color)
+
+
+func _draw_support_variant(
+	variant: StringName,
+	origin: Vector2,
+	target: Vector2,
+	progress: float
+) -> bool:
+	if variant in [&"scan", &"choir_ring"]:
+		var start_size: float = 46.0 if variant == &"scan" else 92.0
+		var end_size: float = 66.0 if variant == &"scan" else 132.0
+		var mark_size: Vector2 = Vector2.ONE * lerpf(start_size, end_size, progress)
+		draw_line(origin, target, Color(1.0, 0.72, 0.34, 0.34 + progress * 0.42), 2.0, true)
+		draw_set_transform(target, 0.0, Vector2.ONE)
+		draw_texture_rect(
+			TARGET_MARK_SUPPORT,
+			Rect2(-mark_size * 0.5, mark_size),
+			false,
+			Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48)
+		)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return true
+	if variant == &"jammer_pulse" or variant == &"shield_pulse":
+		var pulse_texture: Texture2D = JAMMER_PULSE if variant == &"jammer_pulse" else SHIELD_PULSE
+		var display_size: Vector2 = (
+			Vector2(320.0, 184.0)
+			if variant == &"jammer_pulse"
+			else Vector2(400.0, 256.0)
+		)
+		var envelope: float = lerpf(0.72, 1.0, progress)
+		var pulse_size: Vector2 = display_size * envelope
+		draw_texture_rect(
+			pulse_texture,
+			Rect2(origin - pulse_size * 0.5, pulse_size),
+			false,
+			Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55)
+		)
+		return true
+	return false

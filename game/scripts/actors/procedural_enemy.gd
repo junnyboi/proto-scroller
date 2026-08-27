@@ -11,6 +11,40 @@ enum State {
 const GRAVITY: float = 1400.0
 const MARK_DURATION: float = 3.0
 const SUPPORT_RADIUS: float = 520.0
+const REPAIR_SUPPORT_PULSE: Texture2D = preload(
+	"res://art/city/enemies/effects/repair-support-pulse.png"
+)
+const NEMESIS_MELEE_LANCE: Texture2D = preload(
+	"res://art/city/enemies/attacks/nemesis_melee_lance.png"
+)
+const CHOIR_CONTACT_BRACE: Texture2D = preload(
+	"res://art/presentation/choir_contact_brace.png"
+)
+const CHOIR_CONTACT_LEAP: Texture2D = preload(
+	"res://art/presentation/choir_contact_leap.png"
+)
+const CHOIR_CONTACT_DROP: Texture2D = preload(
+	"res://art/presentation/choir_contact_drop.png"
+)
+const CHOIR_CONTACT_FOOTPRINT: Texture2D = preload(
+	"res://art/presentation/choir_contact_footprint.png"
+)
+const CONVENTIONAL_DEPLOYMENT: Texture2D = preload(
+	"res://art/city/enemies/deployment/conventional-reinforcement-deploy.png"
+)
+const CHOIR_INCUBATION_PAYLOAD: Texture2D = preload(
+	"res://art/city/enemies/effects/choir-incubation-payload.png"
+)
+const MULE_RAMP_OPEN_REGION: Rect2 = Rect2(632.0, 8.0, 192.0, 168.0)
+const SOLDIER_DISPATCH_REGION: Rect2 = Rect2(824.0, 32.0, 128.0, 128.0)
+const HIVE_BAY_OPEN_REGION: Rect2 = Rect2(704.0, 200.0, 240.0, 184.0)
+const HOUND_LAUNCH_POD_REGION: Rect2 = Rect2(336.0, 384.0, 176.0, 112.0)
+const SERAPH_BAY_REGION: Rect2 = Rect2(112.0, 240.0, 304.0, 104.0)
+const SERAPH_CLUTCH_REGIONS: Array[Rect2] = [
+	Rect2(0.0, 0.0, 112.0, 224.0),
+	Rect2(112.0, 0.0, 112.0, 224.0),
+]
+const PRESENTATION_SPRITE_COUNT: int = 5
 
 var archetype_id: StringName = &""
 var profile: Dictionary = {}
@@ -47,6 +81,8 @@ var _spawned_children: int = 0
 var _attack_sequence: int = 0
 var _lane_y: float = 190.0
 var _extra_projectile_reservations: Array[int] = []
+var _presentation_sprites: Array[Sprite2D] = []
+var _presentation_remaining: float = 0.0
 
 
 func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> void:
@@ -133,12 +169,14 @@ func configure_boss_support(presentation_id: StringName) -> bool:
 
 
 func _ready() -> void:
+	_create_presentation_sprites()
 	super._ready()
 	set_meta(&"enemy_archetype", archetype_id)
 	set_meta(&"enemy_family", family)
 
 
 func _physics_process(delta: float) -> void:
+	_update_completion_presentation(delta)
 	if dead or not active:
 		return
 	_state_time += delta
@@ -291,12 +329,21 @@ func _begin_attack() -> void:
 	if attack_style == &"bomb_drop":
 		target_point += Vector2(target.velocity.x * 0.35, 55.0)
 	var telegraph_kind: StringName = projectile_kind
+	var presentation_variant: StringName = &""
 	if attack_style in [
 		&"scan", &"repair", &"jammer_pulse", &"shield_pulse", &"deploy", &"drone_launch",
 		&"shock_brace", &"marked_leap", &"choir_ring", &"drop_lunge", &"incubation_drop",
+		&"lance_thrust",
 	]:
 		telegraph_kind = &"support"
-	if not begin_telegraph(telegraph_kind, anticipation_duration, origin, target_point):
+		presentation_variant = &"melee_lance" if attack_style == &"lance_thrust" else attack_style
+	if not begin_telegraph(
+		telegraph_kind,
+		anticipation_duration,
+		origin,
+		target_point,
+		presentation_variant
+	):
 		_cooldown = 0.2
 		return
 	var extra_shots: int = 0
@@ -318,14 +365,22 @@ func _complete_attack() -> void:
 	_attack_kick = 1.0
 	if _complete_support_attack() or _complete_melee_attack():
 		return
+	var visual_key: StringName = (
+		ProjectileVisualCatalog.ENEMY_ROCKET_SALVO
+		if attack_style in [&"pod_salvo", &"fortress_barrage"]
+		else &""
+	)
 	var first: Projectile2D = fire_telegraphed_projectile(
 		projectile_speed,
-		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier
+		projectile_damage * projectile_damage_multiplier * aura_damage_multiplier,
+		visual_key,
+		not attack_style in [&"pod_salvo", &"fortress_barrage"]
 	)
 	if first == null:
 		return
 	if attack_style in [&"pod_salvo", &"fortress_barrage"]:
 		_fire_spread_projectiles(2 if attack_style == &"pod_salvo" else 3)
+		finish_telegraph()
 
 
 func _complete_support_attack() -> bool:
@@ -335,7 +390,14 @@ func _complete_support_attack() -> bool:
 		finish_telegraph()
 		return true
 	if attack_style == &"repair":
-		_repair_nearest_ally()
+		var repaired: EnemyActor2D = _repair_nearest_ally()
+		if repaired != null:
+			_show_world_completion(
+				REPAIR_SUPPORT_PULSE,
+				repaired.global_position,
+				Vector2(72.0, 36.0),
+				0.20
+			)
 		finish_telegraph()
 		return true
 	if attack_style in [&"jammer_pulse", &"shield_pulse"]:
@@ -355,11 +417,13 @@ func _complete_carrier_attack() -> bool:
 		if encounter_runtime != null:
 			encounter_runtime.apply_target_mark(MARK_DURATION + 2.0)
 			encounter_runtime.emit_hybrid_event(&"seraph_payload", self)
-		_try_spawn_reinforcements(EnemySpawnTuning.scaled_count(3))
+		var deployed: int = _try_spawn_reinforcements(EnemySpawnTuning.scaled_count(3))
+		_show_seraph_deployment(deployed)
 		finish_telegraph()
 		return true
 	if attack_style in [&"deploy", &"drone_launch"]:
-		_try_spawn_reinforcements(EnemySpawnTuning.QUANTITY_MULTIPLIER)
+		var deployed: int = _try_spawn_reinforcements(EnemySpawnTuning.QUANTITY_MULTIPLIER)
+		_show_conventional_deployment(deployed)
 		finish_telegraph()
 		return true
 	return false
@@ -367,15 +431,17 @@ func _complete_carrier_attack() -> bool:
 
 func _complete_melee_attack() -> bool:
 	if attack_style in [&"shock_brace", &"marked_leap", &"drop_lunge"]:
+		var committed_hit: bool = false
 		if global_position.distance_to(target.global_position) <= preferred_range + 45.0:
 			_commit_melee_damage(attack_style, 420.0)
+			committed_hit = true
+		_show_choir_contact(attack_style, committed_hit)
 		finish_telegraph()
 		return true
-	if (
-		attack_style == &"lance_thrust"
-		and global_position.distance_to(target.global_position) <= 245.0
-	):
-		_commit_melee_damage(&"lance", 520.0)
+	if attack_style == &"lance_thrust":
+		if global_position.distance_to(target.global_position) <= 245.0:
+			_commit_melee_damage(&"lance", 520.0)
+			_show_lance_completion()
 		finish_telegraph()
 		return true
 	return false
@@ -420,13 +486,19 @@ func _fire_spread_projectiles(extra_count: int) -> void:
 			),
 			self,
 			projectile_target_mask,
-			projectile_kind
+			projectile_kind,
+			ProjectileVisualCatalog.ENEMY_ROCKET_SALVO
 		)
 
 
 func cancel_telegraph() -> void:
 	_release_extra_projectile_reservations()
 	super.cancel_telegraph()
+
+
+func deactivate() -> void:
+	_reset_presentation_sprites()
+	super.deactivate()
 
 
 func _reserve_extra_projectiles(count: int) -> bool:
@@ -478,9 +550,9 @@ func _try_spawn_reinforcements(requested: int) -> int:
 	return deployed
 
 
-func _repair_nearest_ally() -> void:
+func _repair_nearest_ally() -> EnemyActor2D:
 	if encounter_runtime == null:
-		return
+		return null
 	var best: EnemyActor2D
 	var best_distance: float = SUPPORT_RADIUS
 	for actor: EnemyActor2D in encounter_runtime.all_actors():
@@ -496,6 +568,184 @@ func _repair_nearest_ally() -> void:
 			best.visual.modulate = Color("9bffd1")
 			var tween: Tween = best.create_tween()
 			tween.tween_property(best.visual, "modulate", Color.WHITE, 0.2)
+	return best
+
+
+func _create_presentation_sprites() -> void:
+	if not _presentation_sprites.is_empty():
+		return
+	for index: int in range(PRESENTATION_SPRITE_COUNT):
+		var sprite: Sprite2D = Sprite2D.new()
+		sprite.name = "EmissionPresentation%02d" % index
+		sprite.z_index = 3
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		sprite.visible = false
+		add_child(sprite)
+		_presentation_sprites.append(sprite)
+
+
+func _reset_presentation_sprites() -> void:
+	_presentation_remaining = 0.0
+	for sprite: Sprite2D in _presentation_sprites:
+		sprite.visible = false
+		sprite.texture = null
+		sprite.region_enabled = false
+		sprite.region_rect = Rect2()
+		sprite.position = Vector2.ZERO
+		sprite.rotation = 0.0
+		sprite.scale = Vector2.ONE
+		sprite.flip_h = false
+		sprite.modulate = Color.WHITE
+
+
+func _configure_presentation_sprite(
+	index: int,
+	texture: Texture2D,
+	display_size: Vector2,
+	local_position: Vector2,
+	region: Rect2 = Rect2()
+) -> Sprite2D:
+	var sprite: Sprite2D = _presentation_sprites[index]
+	sprite.texture = texture
+	sprite.region_enabled = region.size != Vector2.ZERO
+	sprite.region_rect = region
+	var source_size: Vector2 = region.size if sprite.region_enabled else texture.get_size()
+	sprite.scale = display_size / source_size
+	sprite.position = local_position
+	sprite.rotation = 0.0
+	sprite.flip_h = false
+	sprite.modulate = Color.WHITE
+	sprite.visible = true
+	return sprite
+
+
+func _show_world_completion(
+	texture: Texture2D,
+	world_position: Vector2,
+	display_size: Vector2,
+	duration: float
+) -> void:
+	_reset_presentation_sprites()
+	_configure_presentation_sprite(
+		0,
+		texture,
+		display_size,
+		to_local(world_position)
+	)
+	_presentation_remaining = duration
+
+
+func _show_lance_completion() -> void:
+	_reset_presentation_sprites()
+	var lance: Sprite2D = _configure_presentation_sprite(
+		0,
+		NEMESIS_MELEE_LANCE,
+		Vector2(245.0, 61.0),
+		Vector2(float(facing) * 122.5, -18.0)
+	)
+	lance.flip_h = facing < 0
+	_presentation_remaining = 0.20
+
+
+func _show_choir_contact(style: StringName, committed_hit: bool) -> void:
+	_reset_presentation_sprites()
+	var texture: Texture2D = CHOIR_CONTACT_BRACE
+	var display_size: Vector2 = Vector2(300.0, 120.0)
+	if style == &"marked_leap":
+		texture = CHOIR_CONTACT_LEAP
+		display_size = Vector2(360.0, 175.0)
+	elif style == &"drop_lunge":
+		texture = CHOIR_CONTACT_DROP
+		display_size = Vector2(140.0, 230.0)
+	var contact: Sprite2D = _configure_presentation_sprite(
+		0,
+		texture,
+		display_size,
+		to_local((global_position + target.global_position) * 0.5)
+	)
+	contact.flip_h = facing < 0 and style != &"drop_lunge"
+	if committed_hit:
+		var footprint_size: Vector2 = (
+			Vector2(220.0, 84.0)
+			if style == &"drop_lunge"
+			else Vector2(150.0, 64.0)
+		)
+		_configure_presentation_sprite(
+			1,
+			CHOIR_CONTACT_FOOTPRINT,
+			footprint_size,
+			to_local(target.global_position + Vector2(0.0, 38.0))
+		)
+	_presentation_remaining = 0.24
+
+
+func _show_conventional_deployment(successful_count: int) -> void:
+	_reset_presentation_sprites()
+	var carrier_region: Rect2
+	var carrier_size: Vector2
+	var payload_region: Rect2
+	var payload_size: Vector2
+	if attack_style == &"deploy":
+		carrier_region = MULE_RAMP_OPEN_REGION
+		carrier_size = Vector2(150.0, 112.5)
+		payload_region = SOLDIER_DISPATCH_REGION
+		payload_size = Vector2(54.0, 96.0)
+	else:
+		carrier_region = HIVE_BAY_OPEN_REGION
+		carrier_size = Vector2(145.0, 80.0)
+		payload_region = HOUND_LAUNCH_POD_REGION
+		payload_size = Vector2(110.0, 48.0)
+	_configure_presentation_sprite(
+		0,
+		CONVENTIONAL_DEPLOYMENT,
+		carrier_size,
+		Vector2(0.0, 18.0),
+		carrier_region
+	)
+	for index: int in range(mini(successful_count, 2)):
+		var payload: Sprite2D = _configure_presentation_sprite(
+			index + 1,
+			CONVENTIONAL_DEPLOYMENT,
+			payload_size,
+			Vector2(-float(facing) * (70.0 + float(index) * 52.0), 42.0),
+			payload_region
+		)
+		payload.flip_h = facing < 0
+	_presentation_remaining = 0.30
+
+
+func _show_seraph_deployment(successful_count: int) -> void:
+	_reset_presentation_sprites()
+	_configure_presentation_sprite(
+		0,
+		CHOIR_INCUBATION_PAYLOAD,
+		Vector2(112.0, 48.0),
+		Vector2(0.0, 30.0),
+		SERAPH_BAY_REGION
+	)
+	# Each authored capsule represents one paired clutch; mechanics remain the current x2 count.
+	var clutch_count: int = mini(ceili(float(successful_count) / 2.0), 3)
+	for index: int in range(clutch_count):
+		_configure_presentation_sprite(
+			index + 1,
+			CHOIR_INCUBATION_PAYLOAD,
+			Vector2(56.0, 88.0),
+			Vector2((float(index) - float(clutch_count - 1) * 0.5) * 62.0, 88.0),
+			SERAPH_CLUTCH_REGIONS[index % SERAPH_CLUTCH_REGIONS.size()]
+		)
+	_presentation_remaining = 0.36
+
+
+func _update_completion_presentation(delta: float) -> void:
+	if _presentation_remaining <= 0.0:
+		return
+	_presentation_remaining = maxf(_presentation_remaining - delta, 0.0)
+	var alpha: float = clampf(_presentation_remaining / 0.12, 0.0, 1.0)
+	for sprite: Sprite2D in _presentation_sprites:
+		if sprite.visible:
+			sprite.modulate.a = alpha
+	if is_zero_approx(_presentation_remaining):
+		_reset_presentation_sprites()
 
 
 func _animate_visual(delta: float) -> void:
@@ -587,6 +837,7 @@ func _animate_visual(delta: float) -> void:
 
 
 func _reset_archetype_state() -> void:
+	_reset_presentation_sprites()
 	state = State.APPROACH
 	_cooldown = 0.35
 	_state_time = 0.0

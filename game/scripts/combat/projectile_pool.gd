@@ -46,9 +46,12 @@ func acquire(
 	damage: float,
 	source: Node,
 	target_mask: int,
-	kind: StringName
+	kind: StringName,
+	visual_key: StringName = &""
 ) -> Projectile2D:
-	return _acquire_internal(origin, direction, speed, damage, source, target_mask, kind, false)
+	return _acquire_internal(
+		origin, direction, speed, damage, source, target_mask, kind, false, visual_key
+	)
 
 
 func reserve(kind: StringName) -> int:
@@ -74,7 +77,8 @@ func acquire_reserved(
 	damage: float,
 	source: Node,
 	target_mask: int,
-	kind: StringName
+	kind: StringName,
+	visual_key: StringName = &""
 ) -> Projectile2D:
 	if not _reservations.has(reservation_id):
 		denial_count += 1
@@ -84,7 +88,9 @@ func acquire_reserved(
 		denial_count += 1
 		return null
 	_reservations.erase(reservation_id)
-	return _acquire_internal(origin, direction, speed, damage, source, target_mask, kind, true)
+	return _acquire_internal(
+		origin, direction, speed, damage, source, target_mask, kind, true, visual_key
+	)
 
 
 func _acquire_internal(
@@ -95,7 +101,8 @@ func _acquire_internal(
 	source: Node,
 	target_mask: int,
 	kind: StringName,
-	reserved: bool
+	reserved: bool,
+	visual_key: StringName
 ) -> Projectile2D:
 	var partition: StringName = _partition_for_kind(kind)
 	var available: int = available_count(partition)
@@ -111,7 +118,9 @@ func _acquire_internal(
 		release(projectile)
 		recycle_count += 1
 	_active_order.append(projectile)
-	projectile.activate(origin, direction, speed, damage, source, target_mask, kind)
+	projectile.activate(
+		origin, direction, speed, damage, source, target_mask, kind, visual_key
+	)
 	last_acquired = projectile
 	return projectile
 

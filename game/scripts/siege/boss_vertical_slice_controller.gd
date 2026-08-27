@@ -548,6 +548,9 @@ func _configure_common_targets() -> void:
 
 func _configure_business() -> void:
 	var archive: Node2D = utility_pool.reclamation_anchor_records[0]
+	utility_pool.configure_utility_presentation(
+		archive, BossUtilityPool.UtilityPresentationRole.ARCHIVE_TREASURY
+	)
 	archive.global_position = center + Vector2(294.0, -244.0)
 	archive.visible = true
 	for pod: BossPodVisual2D in utility_pool.pod_visuals:
@@ -562,6 +565,9 @@ func _configure_residential() -> void:
 			POD_OFFSETS[index]
 		)
 	var cradle: Node2D = utility_pool.reclamation_anchor_records[0]
+	utility_pool.configure_utility_presentation(
+		cradle, BossUtilityPool.UtilityPresentationRole.EVACUATION_CRADLE
+	)
 	cradle.global_position = center + Vector2(0.0, -126.0)
 	cradle.visible = true
 	for lane_index: int in range(LANE_COUNT):
@@ -668,6 +674,9 @@ func _configure_residential_attack(attack: StringName) -> void:
 func _configure_extraction_clamp(pod_index: int) -> void:
 	var pod: BossPodVisual2D = utility_pool.pod_visuals[pod_index]
 	var clamp_record: Node2D = utility_pool.reclamation_anchor_records[1]
+	utility_pool.configure_utility_presentation(
+		clamp_record, BossUtilityPool.UtilityPresentationRole.EXTRACTION_CLAMP
+	)
 	clamp_record.global_position = Vector2(pod.global_position.x, center.y + 6.0)
 	clamp_record.visible = true
 

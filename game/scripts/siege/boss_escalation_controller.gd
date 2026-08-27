@@ -379,6 +379,9 @@ func create_freight_anchor(world_position: Vector2 = Vector2.INF) -> int:
 		return -1
 	var index: int = anchors_created
 	var anchor: Node2D = utility_pool.reclamation_anchor_records[index]
+	utility_pool.configure_utility_presentation(
+		anchor, BossUtilityPool.UtilityPresentationRole.FREIGHT_RECLAMATION_ANCHOR
+	)
 	anchor.global_position = (
 		center + Vector2(LANE_CENTERS[index], -12.0)
 		if not world_position.is_finite()
@@ -611,9 +614,15 @@ func _configure_common_targets() -> void:
 func _configure_entertainment() -> void:
 	show_control_cabinet_available = true
 	var cabinet: Node2D = utility_pool.reclamation_anchor_records[0]
+	utility_pool.configure_utility_presentation(
+		cabinet, BossUtilityPool.UtilityPresentationRole.SHOW_CONTROL_CABINET
+	)
 	cabinet.global_position = center + Vector2(316.0, -196.0)
 	cabinet.visible = true
 	var rubble: Node2D = utility_pool.reclamation_anchor_records[1]
+	utility_pool.configure_utility_presentation(
+		rubble, BossUtilityPool.UtilityPresentationRole.RUBBLE_BED
+	)
 	rubble.global_position = center + Vector2(-312.0, -10.0)
 	rubble.visible = true
 	if recorder != null:
@@ -626,6 +635,9 @@ func _configure_military() -> void:
 	seraph_environment_count = 3
 	for index: int in range(mini(seraph_environment_count, utility_pool.projection_slots.size())):
 		var projection: Node2D = utility_pool.projection_slots[index]
+		utility_pool.configure_utility_presentation(
+			projection, BossUtilityPool.UtilityPresentationRole.SERAPH_PROJECTION
+		)
 		projection.global_position = center + Vector2(-440.0 + float(index) * 440.0, -330.0)
 		projection.visible = true
 
@@ -753,6 +765,9 @@ func _restore_anchor_records() -> void:
 		return
 	for index: int in range(utility_pool.reclamation_anchor_records.size()):
 		var anchor: Node2D = utility_pool.reclamation_anchor_records[index]
+		utility_pool.configure_utility_presentation(
+			anchor, BossUtilityPool.UtilityPresentationRole.FREIGHT_RECLAMATION_ANCHOR
+		)
 		anchor.global_position = center + Vector2(LANE_CENTERS[index], -12.0)
 		anchor.visible = index < anchors_created and reclamation_consumed[index] == 0
 

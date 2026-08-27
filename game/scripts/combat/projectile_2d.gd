@@ -21,6 +21,7 @@ var lifetime: float = 2.5
 var projectile_color: Color = Color("ffb45e")
 var projectile_radius: float = 5.0
 var damage_type: StringName = &"projectile"
+var visual_key: StringName = &""
 var active: bool = false
 var _attack_id: int
 var _root_attack_id: int
@@ -39,9 +40,10 @@ func setup(
 	p_damage: float,
 	p_source: Node,
 	target_mask: int,
-	kind: StringName = &"bullet"
+	kind: StringName = &"bullet",
+	p_visual_key: StringName = &""
 ) -> void:
-	activate(origin, direction, speed, p_damage, p_source, target_mask, kind)
+	activate(origin, direction, speed, p_damage, p_source, target_mask, kind, p_visual_key)
 
 
 func activate(
@@ -51,7 +53,8 @@ func activate(
 	p_damage: float,
 	p_source: Node,
 	target_mask: int,
-	kind: StringName = &"bullet"
+	kind: StringName = &"bullet",
+	p_visual_key: StringName = &""
 ) -> void:
 	_next_attack_id += 1
 	_attack_id = _next_attack_id
@@ -67,6 +70,11 @@ func activate(
 	collision_layer = 0
 	collision_mask = target_mask
 	damage_type = kind
+	visual_key = (
+		p_visual_key
+		if not p_visual_key.is_empty()
+		else ProjectileVisualCatalog.default_key(kind)
+	)
 	if kind == &"shell":
 		projectile_radius = 9.0
 		projectile_color = Color("ff7d3e")
@@ -112,6 +120,12 @@ func deactivate() -> void:
 	collision_mask = 0
 	source = null
 	lifetime = 2.5
+	visual_key = &""
+	projectile_color = Color("ffb45e")
+	projectile_radius = 5.0
+	damage_type = &"projectile"
+	modulate = Color.WHITE
+	queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
@@ -139,10 +153,31 @@ func _draw() -> void:
 			false
 		)
 		return
+	var visual_spec: Dictionary = ProjectileVisualCatalog.spec(visual_key)
+	if not visual_spec.is_empty():
+		var texture: Texture2D = visual_spec.get("texture") as Texture2D
+		var display_size: Vector2 = visual_spec.get("display_size", Vector2.ZERO)
+		if texture != null and display_size.x > 0.0 and display_size.y > 0.0:
+			draw_set_transform(
+				Vector2.ZERO,
+				visual_angle(),
+				Vector2.ONE
+			)
+			draw_texture_rect(
+				texture,
+				Rect2(-display_size * 0.5, display_size),
+				false
+			)
+			return
 	var trail: float = maxf(14.0, projectile_radius * 3.0)
 	var backward: Vector2 = -velocity.normalized() * trail
 	draw_line(Vector2.ZERO, backward, projectile_color.darkened(0.35), projectile_radius)
 	draw_circle(Vector2.ZERO, projectile_radius, projectile_color)
+
+
+func visual_angle() -> float:
+	var visual_spec: Dictionary = ProjectileVisualCatalog.spec(visual_key)
+	return velocity.angle() + float(visual_spec.get("canonical_angle", 0.0))
 
 
 func _build_collision() -> void:

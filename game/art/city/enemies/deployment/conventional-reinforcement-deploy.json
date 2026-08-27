@@ -1,0 +1,14 @@
+{
+  "texture": "res://art/city/enemies/deployment/conventional-reinforcement-deploy.png",
+  "dimensions": [1024, 512],
+  "regions": {
+    "mule_ramp_closed": [96, 8, 176, 160],
+    "mule_ramp_open": [632, 8, 192, 168],
+    "soldier_dispatch": [824, 32, 128, 128],
+    "hive_bay_closed": [80, 200, 208, 176],
+    "hive_bay_open": [704, 200, 240, 184],
+    "hound_launch_pod": [336, 384, 176, 112],
+    "dispatch_flash": [552, 384, 128, 120]
+  },
+  "notes": "Presentation only. Successful spawn count remains authoritative. Runtime uses open carrier state plus one payload sprite per successful acquisition."
+}

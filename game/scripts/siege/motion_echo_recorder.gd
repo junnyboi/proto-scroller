@@ -7,6 +7,8 @@ const QUANTIZATION: float = 64.0
 const FOOTPRINT_SIZE: Vector2 = Vector2(144.0, 96.0)
 const CYAN_FILL: Color = Color(0.08, 0.82, 0.92, 0.12)
 const CYAN_EDGE: Color = Color(0.45, 0.96, 1.0, 0.92)
+const HISTORY_DISPLAY_SIZE: Vector2 = Vector2(48.0, 32.0)
+const SELECTED_DISPLAY_SIZE: Vector2 = Vector2(60.0, 40.0)
 
 var count: int = 0
 var armed_index: int = -1
@@ -46,6 +48,7 @@ func deactivate() -> void:
 		marker.visible = false
 	if _damage_area != null:
 		_damage_area.deactivate()
+	_sync_marker_presentations()
 	queue_redraw()
 
 
@@ -99,12 +102,14 @@ func arm_marker(index: int, attack_id: StringName) -> bool:
 		return false
 	armed_index = index
 	armed_active = false
+	_damage_area.set_presentation_role(BossAttackArea2D.PresentationRole.GENERIC)
 	_damage_area.configure_footprint(
 		_positions[index],
 		FOOTPRINT_SIZE,
 		BossAttackArea2D.VisualState.TELEGRAPH,
 		attack_id
 	)
+	_sync_marker_presentations()
 	queue_redraw()
 	return true
 
@@ -128,6 +133,7 @@ func disarm() -> void:
 	armed_active = false
 	if _damage_area != null:
 		_damage_area.deactivate()
+	_sync_marker_presentations()
 	queue_redraw()
 
 
@@ -201,7 +207,27 @@ func _sync_markers() -> void:
 		marker.visible = visible and index < count
 		if index < count:
 			marker.global_position = _positions[index]
+	_sync_marker_presentations()
 	queue_redraw()
+
+
+func _sync_marker_presentations() -> void:
+	for index: int in range(_markers.size()):
+		var presentation: Sprite2D = _markers[index].get_child(0) as Sprite2D
+		if presentation == null or presentation.texture == null:
+			continue
+		var display_size: Vector2 = (
+			SELECTED_DISPLAY_SIZE if index == armed_index else HISTORY_DISPLAY_SIZE
+		)
+		var texture_size: Vector2 = presentation.texture.get_size()
+		presentation.scale = Vector2(
+			display_size.x / maxf(texture_size.x, 1.0),
+			display_size.y / maxf(texture_size.y, 1.0)
+		)
+		presentation.modulate = Color(
+			0.35, 0.98, 1.0, 0.58 if index == armed_index else 0.42
+		)
+		presentation.visible = visible and index < count
 
 
 func _draw() -> void:
