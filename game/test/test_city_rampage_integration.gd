@@ -79,6 +79,28 @@ func test_physical_enemy_copies_normalize_score_and_combo_until_player_damage() 
 	_record_test_execution()
 
 
+func test_density_scaled_combo_ring_coexists_with_rear_barrier_vignette() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.gameplay_hud.set_combo(2, ComboTracker.GRACE_SECONDS)
+	assert_almost_eq(city.gameplay_hud.combo_ring.ratio, 1.0, 0.0001)
+	city.gameplay_hud.show_rear_barrier_warning()
+	assert_true(city.gameplay_hud.rear_barrier_warning.visible)
+	var warning_material: ShaderMaterial = (
+		city.gameplay_hud.rear_barrier_warning.material as ShaderMaterial
+	)
+	assert_almost_eq(
+		float(warning_material.get_shader_parameter(&"intensity")),
+		1.0,
+		0.0001
+	)
+	city.gameplay_hud._process(GameplayHud.REAR_BARRIER_WARNING_DURATION + 0.01)
+	assert_false(city.gameplay_hud.rear_barrier_warning.visible)
+	assert_almost_eq(city.gameplay_hud.combo_ring.ratio, 1.0, 0.0001)
+	_record_test_execution()
+
+
 func test_approved_event_values_and_surge_acceleration_reach_live_scene() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)

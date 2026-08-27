@@ -57,6 +57,10 @@ func test_runtime_snapshot_matches_every_approved_cap() -> void:
 	assert_eq(snapshot.narrative_directors, RuntimeBudget.NARRATIVE_DIRECTORS)
 	assert_eq(snapshot.transmission_toasts, RuntimeBudget.TRANSMISSION_TOASTS)
 	assert_eq(snapshot.facade_reveal_slots, RuntimeBudget.FACADE_REVEAL_SLOTS)
+	assert_eq(
+		snapshot.rear_barrier_warning_overlays,
+		RuntimeBudget.REAR_BARRIER_WARNING_OVERLAYS
+	)
 	assert_eq(snapshot.streamed_buildings, RuntimeBudget.STREAMED_BUILDINGS)
 	assert_eq(snapshot.streamed_props, RuntimeBudget.STREAMED_PROPS)
 	assert_eq(snapshot.repair_pickup_slots, RuntimeBudget.REPAIR_PICKUP_SLOTS)

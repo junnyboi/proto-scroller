@@ -13,6 +13,23 @@ const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
 const MUTED_COLOR: Color = Color("b7c4cb")
 const COMBO_GRACE_SECONDS: float = RampageRewardTuning.COMBO_GRACE_SECONDS
+const REAR_BARRIER_WARNING_DURATION: float = 0.72
+const REAR_BARRIER_VIGNETTE_SHADER: String = """
+shader_type canvas_item;
+render_mode unshaded;
+
+uniform float intensity : hint_range(0.0, 1.0) = 0.0;
+
+void fragment() {
+	float left_edge = 1.0 - smoothstep(0.0, 0.36, UV.x);
+	float right_edge = smoothstep(0.82, 1.0, UV.x) * 0.20;
+	float top_edge = (1.0 - smoothstep(0.0, 0.24, UV.y)) * 0.44;
+	float bottom_edge = smoothstep(0.76, 1.0, UV.y) * 0.44;
+	float edge = max(left_edge, max(right_edge, max(top_edge, bottom_edge)));
+	float pulse = 0.94 + sin(TIME * 31.0 + UV.y * 18.0) * 0.06;
+	COLOR = vec4(0.92, 0.015, 0.01, edge * intensity * pulse * 0.78);
+}
+"""
 const FIRST_RUN_TUTORIAL_SCRIPT: Script = preload(
 	"res://scripts/ui/first_run_combat_tutorial.gd"
 )
@@ -57,6 +74,7 @@ var momentum_track: ColorRect
 var score_panel: ColorRect
 var score_caption: Label
 var terminal_panel: ColorRect
+var rear_barrier_warning: ColorRect
 var _robot: GiantRobotController
 var _contextual_attacks: ContextualAttackController
 var _pulse_age: float = 0.0
@@ -69,6 +87,7 @@ var _displayed_overdrive_key: String = ""
 var _displayed_overdrive_seconds: String = ""
 var _campaign_dossier_count: int = 0
 var _continuity_generation: int = 0
+var _rear_barrier_warning_remaining: float = 0.0
 
 
 func setup(
@@ -82,6 +101,7 @@ func setup(
 func _ready() -> void:
 	name = "HUD"
 	layer = 20
+	_build_rear_barrier_warning()
 	_build_status_panel()
 	_build_momentum_panel()
 	_build_experience_bar()
@@ -109,8 +129,17 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_pulse_age += delta
+	_update_rear_barrier_warning(delta)
 	if status_label != null:
 		status_label.modulate.a = 0.86 + sin(_pulse_age * 2.2) * 0.14
+
+
+func show_rear_barrier_warning() -> void:
+	if rear_barrier_warning == null:
+		return
+	_rear_barrier_warning_remaining = REAR_BARRIER_WARNING_DURATION
+	rear_barrier_warning.visible = true
+	_set_rear_barrier_warning_intensity(1.0)
 
 
 func set_health(current: float, maximum: float) -> void:
@@ -482,6 +511,44 @@ func _on_attack_mode_selected(mode: int, _attack_id: int) -> void:
 func _on_attack_committed(mode: int, _attack_id: int) -> void:
 	if mode == AttackSpec.Mode.JAB_CROSS:
 		set_objective("hud.jab_cross_committed")
+
+
+func _build_rear_barrier_warning() -> void:
+	rear_barrier_warning = ColorRect.new()
+	rear_barrier_warning.name = "RearBarrierWarning"
+	rear_barrier_warning.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rear_barrier_warning.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rear_barrier_warning.color = Color.WHITE
+	var shader: Shader = Shader.new()
+	shader.code = REAR_BARRIER_VIGNETTE_SHADER
+	var shader_material: ShaderMaterial = ShaderMaterial.new()
+	shader_material.shader = shader
+	shader_material.set_shader_parameter(&"intensity", 0.0)
+	rear_barrier_warning.material = shader_material
+	rear_barrier_warning.visible = false
+	add_child(rear_barrier_warning)
+
+
+func _update_rear_barrier_warning(delta: float) -> void:
+	if rear_barrier_warning == null or _rear_barrier_warning_remaining <= 0.0:
+		return
+	_rear_barrier_warning_remaining = maxf(
+		_rear_barrier_warning_remaining - delta,
+		0.0
+	)
+	var decay: float = pow(
+		_rear_barrier_warning_remaining / REAR_BARRIER_WARNING_DURATION,
+		1.65
+	)
+	_set_rear_barrier_warning_intensity(decay)
+	if _rear_barrier_warning_remaining <= 0.0:
+		rear_barrier_warning.visible = false
+
+
+func _set_rear_barrier_warning_intensity(intensity: float) -> void:
+	var shader_material: ShaderMaterial = rear_barrier_warning.material as ShaderMaterial
+	if shader_material != null:
+		shader_material.set_shader_parameter(&"intensity", clampf(intensity, 0.0, 1.0))
 
 
 func _build_status_panel() -> void:

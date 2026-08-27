@@ -43,6 +43,7 @@ func reserve(
 		"kind": kind,
 		"origin": origin,
 		"target": target,
+		"thickness_scale": p_owner.attack_telegraph_thickness_scale(),
 		"duration": maxf(duration, 0.01),
 		"remaining": maxf(duration, 0.01),
 	})
@@ -99,6 +100,7 @@ func _draw() -> void:
 		var target: Vector2 = to_local(record.target)
 		var base_color: Color = Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56)
 		var kind: StringName = record.kind
+		var thickness_scale: float = float(record.thickness_scale)
 		if kind == &"shell" or kind == &"rocket":
 			var badge_size: Vector2 = Vector2.ONE * (38.0 + progress * 10.0)
 			draw_texture_rect(
@@ -108,15 +110,62 @@ func _draw() -> void:
 				Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38)
 			)
 		if kind == &"shell":
-			draw_line(origin, target, base_color, 8.0, true)
-			draw_line(origin, target, Color(1.0, 0.82, 0.42, 0.86), 2.0, true)
+			draw_line(origin, target, base_color, 8.0 * thickness_scale, true)
+			draw_line(
+				origin,
+				target,
+				Color(1.0, 0.82, 0.42, 0.86),
+				2.0 * thickness_scale,
+				true
+			)
 			draw_circle(target, 26.0 + progress * 10.0, Color(1.0, 0.28, 0.10, 0.20))
-			draw_arc(target, 31.0, 0.0, TAU * progress, 32, base_color, 4.0, true)
+			draw_arc(
+				target,
+				31.0,
+				0.0,
+				TAU * progress,
+				32,
+				base_color,
+				4.0 * thickness_scale,
+				true
+			)
 		elif kind == &"rocket":
-			draw_dashed_line(origin, target, base_color, 3.0, 12.0, true)
-			draw_arc(target, 42.0, 0.0, TAU * progress, 36, base_color, 5.0, true)
-			draw_line(target + Vector2(-18.0, 0.0), target + Vector2(18.0, 0.0), base_color, 3.0)
-			draw_line(target + Vector2(0.0, -18.0), target + Vector2(0.0, 18.0), base_color, 3.0)
+			draw_dashed_line(
+				origin,
+				target,
+				base_color,
+				3.0 * thickness_scale,
+				12.0,
+				true
+			)
+			draw_arc(
+				target,
+				42.0,
+				0.0,
+				TAU * progress,
+				36,
+				base_color,
+				5.0 * thickness_scale,
+				true
+			)
+			draw_line(
+				target + Vector2(-18.0, 0.0),
+				target + Vector2(18.0, 0.0),
+				base_color,
+				3.0 * thickness_scale
+			)
+			draw_line(
+				target + Vector2(0.0, -18.0),
+				target + Vector2(0.0, 18.0),
+				base_color,
+				3.0 * thickness_scale
+			)
 		else:
-			draw_line(origin, target, Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45), 2.0, true)
+			draw_line(
+				origin,
+				target,
+				Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45),
+				2.0 * thickness_scale,
+				true
+			)
 			draw_circle(origin, 5.0 + progress * 4.0, base_color)
