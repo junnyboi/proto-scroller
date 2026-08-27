@@ -20,6 +20,7 @@ const SPECS: Dictionary = {
 		"collision_radius_contract": 5.0,
 		"canonical_angle": 0.0,
 		"trail_mode": TrailMode.NONE,
+		"impact_key": &"enemy_bullet_impact",
 	},
 	ENEMY_SHELL: {
 		"texture": preload("res://art/combat/projectiles/straight_shell.png"),
@@ -28,6 +29,7 @@ const SPECS: Dictionary = {
 		"collision_radius_contract": 9.0,
 		"canonical_angle": 0.0,
 		"trail_mode": TrailMode.NONE,
+		"impact_key": &"enemy_shell_impact",
 	},
 	ENEMY_ROCKET_DIRECT: {
 		"texture": preload("res://art/city/projectiles/enemy_direct_rocket.png"),
@@ -36,6 +38,7 @@ const SPECS: Dictionary = {
 		"collision_radius_contract": 7.0,
 		"canonical_angle": 0.0,
 		"trail_mode": TrailMode.NONE,
+		"impact_key": &"enemy_rocket_direct_impact",
 	},
 	ENEMY_ROCKET_SALVO: {
 		"texture": preload("res://art/city/projectiles/hostile-spread-rocket.png"),
@@ -44,6 +47,7 @@ const SPECS: Dictionary = {
 		"collision_radius_contract": 7.0,
 		"canonical_angle": 0.0,
 		"trail_mode": TrailMode.NONE,
+		"impact_key": &"enemy_rocket_salvo_impact",
 	},
 }
 
@@ -85,6 +89,7 @@ static func debug_validate() -> bool:
 		var display_size: Vector2 = item.get("display_size", Vector2.ZERO)
 		var region: Rect2i = item.get("region", Rect2i())
 		var radius: float = float(item.get("collision_radius_contract", 0.0))
+		var impact_key: StringName = StringName(item.get("impact_key", &""))
 		if texture == null or Vector2i(texture.get_size()) != source_size:
 			return false
 		if source_size.x <= 0 or source_size.y <= 0:
@@ -97,6 +102,8 @@ static func debug_validate() -> bool:
 			if region.end.x > source_size.x or region.end.y > source_size.y:
 				return false
 		if not is_equal_approx(radius, _expected_collision_radius(visual_key)):
+			return false
+		if impact_key.is_empty() or EnemyAttackVfxCatalog.impact_spec_for_key(impact_key).is_empty():
 			return false
 	return true
 

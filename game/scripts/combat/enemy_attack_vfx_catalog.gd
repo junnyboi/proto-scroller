@@ -10,10 +10,69 @@ const IMPACT_ATLAS: Texture2D = preload(
 const ATTACK_ATLAS: Texture2D = preload(
 	"res://art/city/enemies/choir-attacks/district-attack-vfx.webp"
 )
+const ENEMY_BULLET_IMPACT_ATLAS: Texture2D = preload(
+	"res://art/enemies/impacts/enemy_bullet_impact.png"
+)
+const ENEMY_SHELL_IMPACT_ATLAS: Texture2D = preload(
+	"res://art/enemies/impacts/enemy_shell_impact.png"
+)
+const ENEMY_ROCKET_DIRECT_IMPACT_ATLAS: Texture2D = preload(
+	"res://art/enemies/impacts/enemy_rocket_direct_impact.png"
+)
+const ENEMY_ROCKET_SALVO_IMPACT_ATLAS: Texture2D = preload(
+	"res://art/enemies/impacts/enemy_rocket_salvo_impact.png"
+)
 const ATLAS_SIZE: Vector2i = Vector2i(360, 288)
 const CELL_SIZE: Vector2i = Vector2i(72, 72)
 const COLUMNS: int = 5
 const HOSTILE_IMPACT_DURATION: float = 0.24
+
+const CANONICAL_IMPACT_SPECS: Dictionary = {
+	&"enemy_bullet_impact": {
+		"visual_key": &"enemy_bullet_impact",
+		"texture": ENEMY_BULLET_IMPACT_ATLAS,
+		"frame_cell_size": Vector2i(48, 32),
+		"frame_count": 10,
+		"columns": 5,
+		"playback_fps": 30.0,
+		"display_size": Vector2(44.0, 32.0),
+		"pivot_normalized": Vector2(0.68, 0.5),
+		"tint": Color.WHITE,
+	},
+	&"enemy_shell_impact": {
+		"visual_key": &"enemy_shell_impact",
+		"texture": ENEMY_SHELL_IMPACT_ATLAS,
+		"frame_cell_size": Vector2i(64, 48),
+		"frame_count": 10,
+		"columns": 5,
+		"playback_fps": 24.0,
+		"display_size": Vector2(64.0, 48.0),
+		"pivot_normalized": Vector2(0.65, 0.5),
+		"tint": Color.WHITE,
+	},
+	&"enemy_rocket_direct_impact": {
+		"visual_key": &"enemy_rocket_direct_impact",
+		"texture": ENEMY_ROCKET_DIRECT_IMPACT_ATLAS,
+		"frame_cell_size": Vector2i(96, 64),
+		"frame_count": 10,
+		"columns": 5,
+		"playback_fps": 30.0,
+		"display_size": Vector2(84.0, 56.0),
+		"pivot_normalized": Vector2(0.78, 0.5),
+		"tint": Color.WHITE,
+	},
+	&"enemy_rocket_salvo_impact": {
+		"visual_key": &"enemy_rocket_salvo_impact",
+		"texture": ENEMY_ROCKET_SALVO_IMPACT_ATLAS,
+		"frame_cell_size": Vector2i(72, 56),
+		"frame_count": 10,
+		"columns": 5,
+		"playback_fps": 30.0,
+		"display_size": Vector2(60.0, 44.0),
+		"pivot_normalized": Vector2(0.5, 0.5),
+		"tint": Color.WHITE,
+	},
+}
 
 const RANGED_IDS: Array[StringName] = [
 	&"covenant_warden",
@@ -263,6 +322,8 @@ static func validation_errors() -> PackedStringArray:
 static func _build_cached_specs() -> void:
 	if not _projectile_specs.is_empty():
 		return
+	for impact_key: StringName in CANONICAL_IMPACT_SPECS:
+		_impact_specs[impact_key] = CANONICAL_IMPACT_SPECS[impact_key]
 	for archetype_id: StringName in RANGED_IDS:
 		var item: Dictionary = spec(archetype_id)
 		var shot_key: StringName = StringName(item.projectile_key)
@@ -286,6 +347,7 @@ static func _build_cached_specs() -> void:
 			"display_size": impact_phase.display_size,
 			"lifetime": HOSTILE_IMPACT_DURATION,
 			"tint": Color.WHITE,
+			"visual_key": hit_key,
 		}
 
 

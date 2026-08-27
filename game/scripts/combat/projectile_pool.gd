@@ -20,6 +20,8 @@ var last_acquired: Projectile2D
 var machine_gun_impacts: Array[WeaponImpactEffect2D] = []
 var hostile_impacts: Array[WeaponImpactEffect2D] = []
 var last_machine_gun_impact_position: Vector2 = Vector2.ZERO
+var last_hostile_impact_position: Vector2 = Vector2.ZERO
+var last_hostile_impact_key: StringName = &""
 var _projectiles: Array[Projectile2D] = []
 var _active_order: Array[Projectile2D] = []
 var _reservations: Dictionary[int, StringName] = {}
@@ -175,6 +177,8 @@ func release_partition(kind: StringName) -> void:
 			release(projectile)
 	if partition == &"player_bullet":
 		_release_machine_gun_impacts()
+	else:
+		_release_hostile_impacts()
 
 
 func active_count(kind: StringName = &"") -> int:
@@ -235,6 +239,10 @@ func active_hostile_impact_count() -> int:
 		if impact.active:
 			total += 1
 	return total
+
+
+func hostile_impact_slot_count() -> int:
+	return hostile_impacts.size()
 
 
 func _prewarm_partition(partition: StringName, count: int) -> void:
@@ -312,4 +320,6 @@ func _on_impact_requested(
 	if not impact.configure_from_spec(impact_spec):
 		return
 	impact.activate(world_position, direction)
+	last_hostile_impact_position = world_position
+	last_hostile_impact_key = impact_key
 	_hostile_impact_cursor = (_hostile_impact_cursor + 1) % hostile_impacts.size()

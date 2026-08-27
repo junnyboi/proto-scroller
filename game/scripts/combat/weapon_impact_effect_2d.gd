@@ -6,10 +6,18 @@ var paused: bool = false
 var age: float = 0.0
 var lifetime: float = 0.24
 var activation_count: int = 0
+var visual_key: StringName = &""
+var current_frame: int = 0
 var sprite: Sprite2D
 var particles: GPUParticles2D
 var _base_scale: Vector2 = Vector2.ONE
 var _uses_atlas_region: bool = false
+var _uses_frame_sequence: bool = false
+var _frame_cell_size: Vector2i = Vector2i.ONE
+var _frame_count: int = 1
+var _frame_columns: int = 1
+var _playback_fps: float = 30.0
+var _pivot_normalized: Vector2 = Vector2(0.5, 0.5)
 
 
 func setup(
@@ -22,6 +30,7 @@ func setup(
 	_ensure_nodes(p_lifetime, particle_amount)
 	z_as_relative = false
 	z_index = p_z_index
+	_reset_animation_spec()
 	_configure_visual(texture, Rect2i(), display_size, p_lifetime, Color.WHITE)
 	deactivate()
 
@@ -32,9 +41,21 @@ func configure_from_spec(spec: Dictionary) -> bool:
 	var display_size: Vector2 = spec.get("display_size", Vector2.ZERO)
 	var next_lifetime: float = float(spec.get("lifetime", 0.24))
 	var tint: Color = spec.get("tint", Color.WHITE)
+	var frame_cell_size: Vector2i = spec.get("frame_cell_size", Vector2i.ZERO)
+	var frame_count: int = int(spec.get("frame_count", 1))
 	if texture == null or display_size.x <= 0.0 or display_size.y <= 0.0:
 		return false
 	_ensure_nodes(next_lifetime, 1)
+	_reset_animation_spec()
+	visual_key = StringName(spec.get("visual_key", &""))
+	if frame_count > 1 and frame_cell_size.x > 0 and frame_cell_size.y > 0:
+		_uses_frame_sequence = true
+		_frame_cell_size = frame_cell_size
+		_frame_count = frame_count
+		_frame_columns = maxi(int(spec.get("columns", frame_count)), 1)
+		_playback_fps = maxf(float(spec.get("playback_fps", 30.0)), 1.0)
+		_pivot_normalized = spec.get("pivot_normalized", Vector2(0.5, 0.5))
+		next_lifetime = float(_frame_count) / _playback_fps
 	_configure_visual(texture, region, display_size, next_lifetime, tint)
 	return true
 
@@ -47,9 +68,12 @@ func activate(world_position: Vector2, direction: Vector2 = Vector2.RIGHT) -> vo
 	active = true
 	visible = true
 	sprite.visible = true
-	sprite.scale = _base_scale * 0.76
+	current_frame = 0
+	sprite.scale = _base_scale if _uses_frame_sequence else _base_scale * 0.76
 	sprite.modulate.a = 1.0
-	if not _uses_atlas_region and particles.amount > 0:
+	if _uses_frame_sequence:
+		_update_animation_frame()
+	elif not _uses_atlas_region and particles.amount > 0:
 		particles.restart()
 		particles.emitting = true
 	activation_count += 1
@@ -60,6 +84,8 @@ func deactivate() -> void:
 	active = false
 	paused = false
 	age = 0.0
+	current_frame = 0
+	visual_key = &""
 	visible = false
 	rotation = 0.0
 	set_process(false)
@@ -67,6 +93,7 @@ func deactivate() -> void:
 		sprite.visible = false
 		sprite.scale = _base_scale
 		sprite.rotation = 0.0
+		sprite.position = Vector2.ZERO
 		sprite.modulate.a = 1.0
 	if particles != null:
 		particles.emitting = false
@@ -76,6 +103,15 @@ func _process(delta: float) -> void:
 	if not active or paused:
 		return
 	age += delta
+	if _uses_frame_sequence:
+		var next_frame: int = floori(age * _playback_fps)
+		if next_frame >= _frame_count:
+			deactivate()
+			return
+		if next_frame != current_frame:
+			current_frame = next_frame
+			_update_animation_frame()
+		return
 	var progress: float = clampf(age / lifetime, 0.0, 1.0)
 	sprite.scale = _base_scale * lerpf(0.76, 1.18, progress)
 	sprite.modulate.a = 1.0 - progress
@@ -120,20 +156,52 @@ func _configure_visual(
 	tint: Color
 ) -> void:
 	lifetime = p_lifetime
-	_uses_atlas_region = region.size != Vector2i.ZERO
+	_uses_atlas_region = region.size != Vector2i.ZERO or _uses_frame_sequence
 	sprite.texture = texture
 	sprite.region_enabled = _uses_atlas_region
-	sprite.region_rect = Rect2(region) if _uses_atlas_region else Rect2()
-	var source_size: Vector2 = Vector2(region.size) if _uses_atlas_region else texture.get_size()
+	if _uses_frame_sequence:
+		sprite.region_rect = Rect2(Vector2.ZERO, Vector2(_frame_cell_size))
+	else:
+		sprite.region_rect = Rect2(region) if _uses_atlas_region else Rect2()
+	var source_size: Vector2 = texture.get_size()
+	if _uses_frame_sequence:
+		source_size = Vector2(_frame_cell_size)
+	elif _uses_atlas_region:
+		source_size = Vector2(region.size)
 	var fit_scale: float = minf(
 		display_size.x / maxf(source_size.x, 1.0),
 		display_size.y / maxf(source_size.y, 1.0)
 	)
 	_base_scale = Vector2.ONE * fit_scale
 	sprite.scale = _base_scale
+	if _uses_frame_sequence:
+		var fitted_size: Vector2 = source_size * fit_scale
+		sprite.position = (Vector2(0.5, 0.5) - _pivot_normalized) * fitted_size
+	else:
+		sprite.position = Vector2.ZERO
 	sprite.modulate = tint
 	particles.texture = texture if not _uses_atlas_region else null
 	particles.visible = not _uses_atlas_region
 	particles.amount = maxi(particles.amount, 1)
 	particles.lifetime = p_lifetime * 1.15
 	particles.emitting = false
+
+
+func _reset_animation_spec() -> void:
+	_uses_frame_sequence = false
+	_frame_cell_size = Vector2i.ONE
+	_frame_count = 1
+	_frame_columns = 1
+	_playback_fps = 30.0
+	_pivot_normalized = Vector2(0.5, 0.5)
+	current_frame = 0
+	visual_key = &""
+
+
+func _update_animation_frame() -> void:
+	var column: int = current_frame % _frame_columns
+	var row: int = floori(float(current_frame) / float(_frame_columns))
+	sprite.region_rect = Rect2(
+		Vector2(column * _frame_cell_size.x, row * _frame_cell_size.y),
+		Vector2(_frame_cell_size)
+	)
