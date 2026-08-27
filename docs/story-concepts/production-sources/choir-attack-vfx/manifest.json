@@ -1,0 +1,993 @@
+{
+  "atlases": {
+    "projectile": {
+      "path": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+      "size": [
+        960,
+        768
+      ],
+      "bytes": 88382,
+      "sha256": "7bc207a4cea3835de7c6c73bf349a674a9410fb7fa819de4158ea3a3043a9f40"
+    },
+    "impact": {
+      "path": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+      "size": [
+        960,
+        768
+      ],
+      "bytes": 245380,
+      "sha256": "c3c4d21c97f364722fa077ff1f2aef34b35b8da19fc19ffd83dea8f84dba61d8"
+    },
+    "attack": {
+      "path": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+      "size": [
+        960,
+        768
+      ],
+      "bytes": 144400,
+      "sha256": "9b739092fc3948aea7e4d81aca50cef97fe2c54332f665ddcee8ad33609df6c2"
+    }
+  },
+  "variants": [
+    {
+      "number": "01",
+      "id": "covenant_warden",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/01-covenant-warden-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/01-covenant-warden-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            0,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            97
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            0,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            115,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            0,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            95,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "02",
+      "id": "mercy_recovery_cart",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/02-mercy-recovery-cart-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/02-mercy-recovery-cart-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            192,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            75
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            192,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            102,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            192,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            100,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "03",
+      "id": "testament_kite",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/03-testament-kite-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/03-testament-kite-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            384,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            64,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            384,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            124,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            384,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            91,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "04",
+      "id": "receivership_ambulance",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/04-receivership-ambulance-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/04-receivership-ambulance-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            576,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            63,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            576,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            93,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            576,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            92,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "05",
+      "id": "intake_shepherd",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/05-intake-shepherd-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/05-intake-shepherd-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            768,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            60,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            768,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            69,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            768,
+            0,
+            192,
+            192
+          ],
+          "content_size": [
+            79,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "06",
+      "id": "evacuation_litter",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/06-evacuation-litter-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/06-evacuation-litter-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            0,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            80,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            0,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            152,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            0,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            106,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "07",
+      "id": "rainvault_pressure_ward",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/07-rainvault-pressure-ward-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/07-rainvault-pressure-ward-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            192,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            83
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            192,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            100,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            192,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            86,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "08",
+      "id": "balcony_recall_beacon",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/08-balcony-recall-beacon-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/08-balcony-recall-beacon-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            384,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            61,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            384,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            90,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            384,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            84,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "09",
+      "id": "memorial_usher",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/09-memorial-usher-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/09-memorial-usher-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            576,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            64,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            576,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            127,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            576,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            100,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "10",
+      "id": "glassback_double",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/10-glassback-double-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/10-glassback-double-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            768,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            114
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            768,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            120,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            768,
+            192,
+            192,
+            192
+          ],
+          "content_size": [
+            108,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "11",
+      "id": "recall_lantern",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/11-recall-lantern-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/11-recall-lantern-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            0,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            62,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            0,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            120,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            0,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            90,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "12",
+      "id": "marquee_anesthetist",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/12-marquee-anesthetist-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/12-marquee-anesthetist-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            192,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            80
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            192,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            98,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            192,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            91,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "13",
+      "id": "suture_marshal",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/13-suture-marshal-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/13-suture-marshal-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            384,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            63,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            384,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            122,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            384,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            87,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "14",
+      "id": "mercy_raker",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/14-mercy-raker-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/14-mercy-raker-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            576,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            93
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            576,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            91,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            576,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            92,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "15",
+      "id": "revetment_ward",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/15-revetment-ward-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/15-revetment-ward-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            768,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            85
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            768,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            93,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            768,
+            384,
+            192,
+            192
+          ],
+          "content_size": [
+            91,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "16",
+      "id": "triage_kite",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/16-triage-kite-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/16-triage-kite-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            0,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            82
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            0,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            85,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            0,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            89,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "17",
+      "id": "privy_chirurgeon",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/17-privy-chirurgeon-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/17-privy-chirurgeon-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            192,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            55,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            192,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            81,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            192,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            84,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "18",
+      "id": "laureate_courser",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/18-laureate-courser-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/18-laureate-courser-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            384,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            63,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            384,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            133,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            384,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            81,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "19",
+      "id": "ninefold_witness",
+      "delivery": "actor",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/19-ninefold-witness-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/19-ninefold-witness-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            576,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            60,
+            120
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            576,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            80,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            576,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            84,
+            170
+          ]
+        }
+      }
+    },
+    {
+      "number": "20",
+      "id": "regency_conservator",
+      "delivery": "projectile",
+      "master": "docs/story-concepts/production-sources/choir-attack-vfx/20-regency-conservator-attack-master.png",
+      "concept": "docs/concepts/choir-attack-vfx/20-regency-conservator-attack-vfx.png",
+      "regions": {
+        "projectile": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-projectile-vfx.webp",
+          "region": [
+            768,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            170,
+            81
+          ]
+        },
+        "impact": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-impact-vfx.webp",
+          "region": [
+            768,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            88,
+            170
+          ]
+        },
+        "attack": {
+          "atlas": "game/art/city/enemies/choir-attacks/district-attack-vfx.webp",
+          "region": [
+            768,
+            576,
+            192,
+            192
+          ],
+          "content_size": [
+            77,
+            170
+          ]
+        }
+      }
+    }
+  ]
+}
