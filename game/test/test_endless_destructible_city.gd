@@ -78,6 +78,12 @@ func test_one_ground_breach_opens_passage_to_the_next_live_facade() -> void:
 	assert_true(breached_cell.receive_damage(_fatal_event(city, breached_cell, 31_050)))
 	await get_tree().physics_frame
 	assert_true(city.building.ground_passage_open())
+	assert_eq(city.world_stream.district_clear_count(), 1)
+	assert_almost_eq(
+		city.world_stream.district_exit_barrier.position.x,
+		2.0 * CityWorldStream.CHUNK_WIDTH,
+		0.01
+	)
 	for row: int in range(StructuralBuilding2D.ROWS):
 		for column: int in range(StructuralBuilding2D.COLUMNS):
 			assert_true(_cell_collision(city.building, column, row).disabled)
