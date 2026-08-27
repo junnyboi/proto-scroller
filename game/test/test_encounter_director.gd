@@ -222,6 +222,24 @@ func test_warning_and_reservation_cancel_atomically_on_reuse() -> void:
 	assert_eq(city.telegraph_presenter.get_child_count(), 0)
 
 
+func test_warning_pulse_accelerates_and_extreme_threats_shift_red_white() -> void:
+	var city: CitySlice = await _spawn_city()
+	var presenter: TelegraphPresenter2D = city.telegraph_presenter
+	assert_almost_eq(presenter.firing_pulse_amplitude(0.0), 0.04, 0.001)
+	assert_almost_eq(presenter.firing_pulse_amplitude(1.0), 0.32, 0.001)
+	assert_gt(presenter.firing_pulse_brightness(1.0), 1.30)
+	var attack_color: Color = Color(1.0, 0.35, 0.12, 0.72)
+	var standard: Color = presenter.threat_color(attack_color, 1.0, 1.0)
+	var extreme: Color = presenter.threat_color(
+		attack_color,
+		EnemyActor2D.TELEGRAPH_MAXIMUM_COLOR_INTENSITY,
+		1.0
+	)
+	assert_gt(extreme.g, standard.g)
+	assert_gt(extreme.b, standard.b)
+	assert_gt(extreme.r, 0.99)
+
+
 func _spawn_city() -> CitySlice:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
