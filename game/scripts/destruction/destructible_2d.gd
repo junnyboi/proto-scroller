@@ -129,7 +129,7 @@ func _apply_stage(show_damaged: bool, show_rubble: bool) -> void:
 		)
 		if damage_pattern != null:
 			damage_pattern.set_destroyed_stage(show_rubble)
-			if not show_damaged and not show_rubble:
+			if show_rubble or not show_damaged:
 				damage_pattern.cull_damage_details()
 	if _rubble_visual != null:
 		_rubble_visual.visible = show_rubble

@@ -7,6 +7,7 @@ func test_damaged_sections_choose_one_accent_and_terminal_damage_culls_it() -> v
 	var city: CitySlice = await _spawn_city()
 	var fire_cell: Destructible2D
 	var fire_pattern: BuildingDamagePattern2D
+	var damaged_cells: Array[Destructible2D] = []
 	var attack_id: int = 910_001
 	for row: int in range(StructuralBuilding2D.ROWS):
 		for column: int in range(StructuralBuilding2D.COLUMNS):
@@ -31,6 +32,7 @@ func test_damaged_sections_choose_one_accent_and_terminal_damage_culls_it() -> v
 				BuildingDamagePattern2D.PIPE_DETAIL_BIT,
 				BuildingDamagePattern2D.FIRE_DETAIL_BIT,
 			])
+			damaged_cells.append(cell)
 			if mask == BuildingDamagePattern2D.FIRE_DETAIL_BIT:
 				fire_cell = cell
 				fire_pattern = pattern
@@ -48,14 +50,32 @@ func test_damaged_sections_choose_one_accent_and_terminal_damage_culls_it() -> v
 		severe_fx.fire_sprite.sprite_frames.get_frame_count(&"burn"),
 		BuildingSevereDamageFx2D.FIRE_FRAME_COUNT
 	)
-	assert_true(fire_cell.receive_damage(_event(
-		attack_id,
-		fire_cell,
-		fire_cell.current_health + 1.0,
-		&"missile",
-		Vector2.LEFT
-	)))
-	assert_true(fire_cell.is_destroyed())
+	for cell: Destructible2D in damaged_cells:
+		var pattern: BuildingDamagePattern2D = cell.get_node(
+			^"DamagedVisual"
+		) as BuildingDamagePattern2D
+		var cable: BuildingDamageAttachment2D = pattern.get_node(
+			^"DanglingCables"
+		) as BuildingDamageAttachment2D
+		var pipe: BuildingDamageAttachment2D = pattern.get_node(
+			^"BrokenWaterPipe"
+		) as BuildingDamageAttachment2D
+		assert_true(cell.receive_damage(_event(
+			attack_id,
+			cell,
+			cell.current_health + 1.0,
+			&"missile",
+			Vector2.LEFT
+		)))
+		attack_id += 1
+		assert_true(cell.is_destroyed())
+		assert_eq(pattern.damage_detail_count(), 0)
+		assert_eq(pattern.damage_detail_mask(), 0)
+		assert_eq(pattern.active_damage_effect_count(), 0)
+		assert_false(cable.visible)
+		assert_false(pipe.visible)
+		assert_false(cable.particles.emitting)
+		assert_false(pipe.particles.emitting)
 	assert_false(severe_fx.is_active())
 	assert_false(severe_fx.fire_sprite.is_playing())
 	assert_eq(fire_pattern.damage_detail_count(), 0)
