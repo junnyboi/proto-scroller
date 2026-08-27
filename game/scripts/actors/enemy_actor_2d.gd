@@ -487,7 +487,7 @@ func begin_telegraph(
 	_telegraph_id = telegraph_presenter.reserve(
 		self,
 		kind,
-		origin,
+		attack_telegraph_origin(),
 		target_point,
 		adjusted_duration
 	)
@@ -501,6 +501,12 @@ func begin_telegraph(
 	_telegraph_origin = origin
 	_telegraph_target = target_point
 	return true
+
+
+func attack_telegraph_origin() -> Vector2:
+	if visual != null:
+		return visual.global_position
+	return global_position
 
 
 func advance_telegraph(delta: float) -> bool:
