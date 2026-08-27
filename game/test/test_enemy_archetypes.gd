@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
@@ -266,6 +267,54 @@ func test_family_pool_reconfigures_one_shell_without_post_warm_creation() -> voi
 	assert_eq(hive.archetype_id, &"hive")
 	assert_ne(hive.visual.texture, needle_texture)
 	assert_almost_eq(hive.max_health, 400.0, 0.01)
+	assert_eq(runtime.post_warm_creation_count, 0)
+
+
+func test_family_shell_resets_cleanly_across_base_variant_base_cycle() -> void:
+	var baseline: ProceduralEnemy = runtime.acquire(
+		&"basilisk", Vector2(1200.0, 545.0)
+	) as ProceduralEnemy
+	var shell_identity: int = baseline.get_instance_id()
+	runtime.release(baseline)
+	var variant: ProceduralEnemy = runtime.acquire(
+		&"regency_conservator", Vector2(1200.0, 545.0)
+	) as ProceduralEnemy
+	assert_eq(variant.get_instance_id(), shell_identity)
+	assert_eq(variant.archetype_id, &"regency_conservator")
+	assert_eq(variant.base_archetype_id, &"basilisk")
+	assert_eq(variant.get_meta(&"enemy_canonical_archetype"), &"basilisk")
+	variant._cooldown = 0.0
+	variant._state_time = 3.0
+	variant._animation_phase = 2.0
+	variant._attack_kick = 1.0
+	variant._spawned_children = 3
+	variant._attack_sequence = 7
+	variant.visual.position += Vector2(18.0, 9.0)
+	variant.visual.rotation = 0.4
+	variant.visual.modulate = Color.CYAN
+	assert_true(variant._reserve_extra_projectiles(1))
+	runtime.release(variant)
+	assert_eq(city.projectile_root.reservation_count(), 0)
+	var replay: ProceduralEnemy = runtime.acquire(
+		&"basilisk", Vector2(1200.0, 545.0)
+	) as ProceduralEnemy
+	assert_eq(replay.get_instance_id(), shell_identity)
+	var snapshot: Dictionary = replay.reset_debug_snapshot()
+	assert_eq(snapshot.archetype_id, &"basilisk")
+	assert_eq(snapshot.base_archetype_id, &"basilisk")
+	assert_eq(int(snapshot.state), ProceduralEnemy.State.APPROACH)
+	assert_almost_eq(float(snapshot.cooldown), 0.35, 0.001)
+	assert_almost_eq(float(snapshot.state_time), 0.0, 0.001)
+	assert_almost_eq(float(snapshot.animation_phase), 0.0, 0.001)
+	assert_almost_eq(float(snapshot.attack_kick), 0.0, 0.001)
+	assert_eq(int(snapshot.spawned_children), 0)
+	assert_eq(int(snapshot.attack_sequence), 0)
+	assert_eq(int(snapshot.extra_projectile_reservations), 0)
+	assert_false(bool(snapshot.is_telegraphing))
+	assert_eq(snapshot.visual_position, replay._visual_rest_position)
+	assert_eq(snapshot.visual_scale, replay._visual_rest_scale)
+	assert_almost_eq(float(snapshot.visual_rotation), 0.0, 0.001)
+	assert_eq(snapshot.visual_modulate, Color.WHITE)
 	assert_eq(runtime.post_warm_creation_count, 0)
 
 

@@ -18,7 +18,7 @@ BASE_ARCHETYPES: Final = {
     "rainvault_pressure_ward": "basilisk",
     "balcony_recall_beacon": "needle",
     "memorial_usher": "sapper",
-    "glassback_double": "jackal",
+    "glassback_double": "ossuary_crawler",
     "recall_lantern": "choir_siren",
     "marquee_anesthetist": "basilisk",
     "suture_marshal": "sapper",

@@ -13,6 +13,7 @@ const MARK_DURATION: float = 3.0
 const SUPPORT_RADIUS: float = 520.0
 
 var archetype_id: StringName = &""
+var base_archetype_id: StringName = &""
 var profile: Dictionary = {}
 var family: StringName = &""
 var airborne: bool = false
@@ -51,6 +52,7 @@ var _extra_projectile_reservations: Array[int] = []
 
 func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> void:
 	archetype_id = p_archetype_id
+	base_archetype_id = EnemyArchetypeCatalog.canonical_id(archetype_id)
 	boss_support_id = &""
 	profile = p_profile.duplicate(true)
 	display_name = String(profile.get("display_name", String(archetype_id).to_upper()))
@@ -85,6 +87,9 @@ func configure_archetype(p_archetype_id: StringName, p_profile: Dictionary) -> v
 	else:
 		motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED
 		remove_from_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+	set_meta(&"enemy_archetype", archetype_id)
+	set_meta(&"enemy_canonical_archetype", base_archetype_id)
+	set_meta(&"enemy_family", family)
 
 
 func configure_boss_support(presentation_id: StringName) -> bool:
@@ -135,6 +140,7 @@ func configure_boss_support(presentation_id: StringName) -> bool:
 func _ready() -> void:
 	super._ready()
 	set_meta(&"enemy_archetype", archetype_id)
+	set_meta(&"enemy_canonical_archetype", base_archetype_id)
 	set_meta(&"enemy_family", family)
 
 
@@ -178,13 +184,18 @@ func _physics_process(delta: float) -> void:
 
 func receive_damage(event: DamageEvent) -> bool:
 	if (
-		(archetype_id == &"bulwark" or boss_support_id == &"reclaimed_breacher")
+		(
+			archetype_id in [&"bulwark", &"reclaimed_breacher"]
+			or boss_support_id == &"reclaimed_breacher"
+		)
 		and event != null
 		and event.damage_type != &"ground_smash"
 	):
 		var incoming_dot: float = event.direction.normalized().dot(Vector2(float(facing), 0.0))
 		if incoming_dot < -0.35:
-			var damage_ratio: float = 0.28 if archetype_id == &"bulwark" else 0.40
+			var damage_ratio: float = (
+				0.28 if archetype_id == &"bulwark" else 0.40
+			)
 			return super.receive_damage(event.scaled(damage_ratio))
 	return super.receive_damage(event)
 
@@ -596,6 +607,7 @@ func _animate_visual(delta: float) -> void:
 
 
 func _reset_archetype_state() -> void:
+	_release_extra_projectile_reservations()
 	state = State.APPROACH
 	_cooldown = 0.35
 	_state_time = 0.0
@@ -606,4 +618,34 @@ func _reset_archetype_state() -> void:
 	_attack_sequence = 0
 	ablative_armor = maximum_ablative_armor
 	if visual != null:
+		visual.position = _visual_rest_position
+		visual.scale = _visual_rest_scale
+		visual.rotation = 0.0
+		visual.skew = 0.0
 		visual.modulate = Color.WHITE
+	set_meta(&"enemy_archetype", archetype_id)
+	set_meta(&"enemy_canonical_archetype", base_archetype_id)
+	set_meta(&"enemy_family", family)
+
+
+func reset_debug_snapshot() -> Dictionary:
+	return {
+		"archetype_id": archetype_id,
+		"base_archetype_id": base_archetype_id,
+		"family": family,
+		"state": state,
+		"cooldown": _cooldown,
+		"state_time": _state_time,
+		"animation_phase": _animation_phase,
+		"attack_kick": _attack_kick,
+		"pass_side": _pass_side,
+		"spawned_children": _spawned_children,
+		"attack_sequence": _attack_sequence,
+		"ablative_armor": ablative_armor,
+		"extra_projectile_reservations": _extra_projectile_reservations.size(),
+		"is_telegraphing": is_telegraphing(),
+		"visual_position": visual.position if visual != null else Vector2.ZERO,
+		"visual_scale": visual.scale if visual != null else Vector2.ONE,
+		"visual_rotation": visual.rotation if visual != null else 0.0,
+		"visual_modulate": visual.modulate if visual != null else Color.WHITE,
+	}

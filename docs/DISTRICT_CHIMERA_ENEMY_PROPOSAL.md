@@ -40,7 +40,7 @@ The roster deliberately reuses five combat verbs: bounded repair, short target m
 | 7 | Ashwater Commons | **RAINVAULT PRESSURE WARD** | `basilisk` | `heavy` | Slow midrange artillery that dislodges static play while remaining substantially lighter and less durable than late-district siege machines. | 3 |
 | 8 | Ashwater Commons | **BALCONY RECALL BEACON** | `needle` | `air` | Fragile aerial spotter that creates short focus-fire synergies, especially with existing Graft Runners, without directly damaging or disabling the player. | 1 |
 | 9 | The Afterglow Strip | **MEMORIAL USHER** | `sapper` | `infantry` | Fragile ground sustain support that extends a mixed formation's lifespan but contributes no direct damage; it creates a quick target-priority decision without halting forward movement. | 2 |
-| 10 | The Afterglow Strip | **GLASSBACK DOUBLE** | `jackal` | `light` | Fast lateral skirmisher that crosses the player's lane, briefly attacks, and runs through to reset; its repeated passes add tracking pressure while leaving the route open. | 3 |
+| 10 | The Afterglow Strip | **GLASSBACK DOUBLE** | `ossuary_crawler` | `light` | Fast lateral skirmisher that crosses the player's lane, briefly attacks, and runs through to reset; its repeated passes add tracking pressure while leaving the route open. | 3 |
 | 11 | The Afterglow Strip | **RECALL LANTERN** | `choir_siren` | `air` | Airborne marking and hallucination support: a completed pulse applies the existing short target mark and requests harmless memory-decoy presentation, empowering mark-sensitive formations without damaging or disabling PROTOS. | 4 |
 | 12 | The Afterglow Strip | **MARQUEE ANESTHETIST** | `basilisk` | `heavy` | Slow temporal artillery that announces a high-damage arcing shot far in advance, pressures a destination rather than the player's controls, and gives the player a clean window to close distance or change lane. | 4 |
 | 13 | The Iron Corridor | **SUTURE MARSHAL** | `sapper` | `infantry` | Fragile sustain support that prolongs a mixed formation without stopping or disabling the player. | 3 |
@@ -326,7 +326,7 @@ Four readable derivatives of the Strip's rescue, clinical, and show-control infr
 |---|---|
 | Concrete ID | `glassback_double` |
 | District | `ENTERTAINMENT` |
-| Canonical base | `jackal` |
+| Canonical base | `ossuary_crawler` |
 | Family / health / threat | `light` / 185 / 3 |
 | Runtime behavior | `ground_pass` + `wheel_sprint` + `turret_burst` |
 | Projectile contract | `bullet` |

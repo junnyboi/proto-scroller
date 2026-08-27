@@ -236,6 +236,50 @@ func test_hybrid_first_contact_transmission_fires_once_per_run() -> void:
 	assert_eq(transmission_ids.count(&"hybrid_reclaimed_breacher_contact"), 1)
 
 
+func test_variant_support_reuses_exact_repair_and_mark_values() -> void:
+	var repair_target: ProceduralEnemy = runtime.acquire(
+		&"jackal", Vector2(1080.0, 554.0)
+	) as ProceduralEnemy
+	repair_target.current_health = repair_target.max_health - 40.0
+	var shepherd: ProceduralEnemy = runtime.acquire(
+		&"intake_shepherd", Vector2(1040.0, 541.0)
+	) as ProceduralEnemy
+	shepherd._repair_nearest_ally()
+	assert_almost_eq(
+		repair_target.current_health,
+		repair_target.max_health - 18.0,
+		0.01
+	)
+	runtime.release_all()
+	var testament: ProceduralEnemy = runtime.acquire(
+		&"testament_kite", Vector2(1100.0, 175.0)
+	) as ProceduralEnemy
+	assert_true(testament._complete_support_attack())
+	assert_almost_eq(runtime.target_mark_remaining, ProceduralEnemy.MARK_DURATION, 0.01)
+	runtime.release_all()
+	var lantern: ProceduralEnemy = runtime.acquire(
+		&"recall_lantern", Vector2(1100.0, 210.0)
+	) as ProceduralEnemy
+	assert_true(lantern._complete_support_attack())
+	assert_almost_eq(runtime.target_mark_remaining, ProceduralEnemy.MARK_DURATION + 1.0, 0.01)
+
+
+func test_concrete_variant_canonicalizes_first_contact_without_duplicate_event() -> void:
+	city.project_choir_runtime.director.transmission_requested.connect(
+		_capture_transmission
+	)
+	var double: ProceduralEnemy = runtime.acquire(
+		&"glassback_double", Vector2(1100.0, 554.0)
+	) as ProceduralEnemy
+	assert_eq(double.base_archetype_id, &"ossuary_crawler")
+	runtime.release(double)
+	var crawler: ProceduralEnemy = runtime.acquire(
+		&"ossuary_crawler", Vector2(1100.0, 552.0)
+	) as ProceduralEnemy
+	runtime.release(crawler)
+	assert_eq(transmission_ids.count(&"hybrid_ossuary_crawler_contact"), 1)
+
+
 func _capture_transmission(
 	event_id: StringName,
 	_speaker: String,
