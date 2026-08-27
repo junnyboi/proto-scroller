@@ -3,7 +3,7 @@ extends Node2D
 
 const BUSINESS: StringName = &"BUSINESS"
 const CROSSFADE_SECONDS: float = 0.85
-const REPEAT_SIZE: Vector2 = Vector2(1344.0, 0.0)
+const DEPTH_REPEAT_SIZE: Vector2 = Vector2(1344.0, 0.0)
 const REPEAT_TIMES: int = 3
 const SKY_SCROLL_SCALE: Vector2 = Vector2(0.05, 1.0)
 const FAR_SCROLL_SCALE: Vector2 = Vector2(0.18, 1.0)
@@ -28,6 +28,9 @@ const ROYAL_PANORAMA: Texture2D = preload(
 const FAR_TEXTURE: Texture2D = preload("res://art/city/parallax/far_skyline.png")
 const INFRA_TEXTURE: Texture2D = preload("res://art/city/parallax/infrastructure.png")
 const NEAR_TEXTURE: Texture2D = preload("res://art/city/parallax/near_buildings.png")
+const SEAMLESS_PANORAMA_SHADER: Shader = preload(
+	"res://shaders/seamless_panorama.gdshader"
+)
 
 const DISTRICT_TEXTURES: Dictionary = {
 	&"BUSINESS": BUSINESS_PANORAMA,
@@ -147,29 +150,64 @@ func is_transitioning() -> bool:
 	return _transitioning
 
 
+func panorama_repeat_width() -> float:
+	var sky: Parallax2D = get_node_or_null(^"Sky") as Parallax2D
+	return sky.repeat_size.x if sky != null else 0.0
+
+
 func _build_fixed_bands() -> void:
-	var sky: Parallax2D = _create_band("Sky", SKY_SCROLL_SCALE, -50)
+	var panorama_repeat: Vector2 = Vector2(
+		float(BUSINESS_PANORAMA.get_width()),
+		0.0
+	)
+	var sky: Parallax2D = _create_band(
+		"Sky",
+		SKY_SCROLL_SCALE,
+		-50,
+		panorama_repeat
+	)
 	for index: int in range(2):
 		var sprite: Sprite2D = _create_sprite(BUSINESS_PANORAMA, 0.0)
+		var material: ShaderMaterial = ShaderMaterial.new()
+		material.shader = SEAMLESS_PANORAMA_SHADER
+		sprite.material = material
 		sprite.name = "DistrictPanorama%d" % index
 		sprite.visible = index == 0
 		sky.add_child(sprite)
 		_sky_sprites.append(sprite)
-	var far: Parallax2D = _create_band("FarSkyline", FAR_SCROLL_SCALE, -40)
+	var far: Parallax2D = _create_band(
+		"FarSkyline",
+		FAR_SCROLL_SCALE,
+		-40,
+		DEPTH_REPEAT_SIZE
+	)
 	_depth_sprites.append(_add_depth_sprite(far, FAR_TEXTURE, 85.0))
 	var infrastructure: Parallax2D = _create_band(
-		"Infrastructure", INFRA_SCROLL_SCALE, -30
+		"Infrastructure",
+		INFRA_SCROLL_SCALE,
+		-30,
+		DEPTH_REPEAT_SIZE
 	)
 	_depth_sprites.append(_add_depth_sprite(infrastructure, INFRA_TEXTURE, 95.0))
-	var near: Parallax2D = _create_band("NearBuildings", NEAR_SCROLL_SCALE, -20)
+	var near: Parallax2D = _create_band(
+		"NearBuildings",
+		NEAR_SCROLL_SCALE,
+		-20,
+		DEPTH_REPEAT_SIZE
+	)
 	_depth_sprites.append(_add_depth_sprite(near, NEAR_TEXTURE, 116.0))
 
 
-func _create_band(band_name: String, scroll_scale: Vector2, z_value: int) -> Parallax2D:
+func _create_band(
+	band_name: String,
+	scroll_scale: Vector2,
+	z_value: int,
+	repeat_size: Vector2
+) -> Parallax2D:
 	var band: Parallax2D = Parallax2D.new()
 	band.name = band_name
 	band.scroll_scale = scroll_scale
-	band.repeat_size = REPEAT_SIZE
+	band.repeat_size = repeat_size
 	band.repeat_times = REPEAT_TIMES
 	band.z_index = z_value
 	add_child(band)

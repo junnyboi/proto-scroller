@@ -31,11 +31,43 @@ func test_all_five_districts_use_unique_prewarmed_panorama_assets() -> void:
 	assert_eq(runtime.post_warm_creation_count, 0)
 
 
+func test_all_panorama_tiles_repeat_at_imported_width_with_matched_edges() -> void:
+	var city: CitySlice = await _spawn_city()
+	var runtime: DistrictParallaxRuntime = city.get_node(^"ParallaxCity")
+	var sky: Parallax2D = runtime.get_node(^"Sky") as Parallax2D
+	assert_not_null(sky)
+	assert_eq(sky.repeat_times, DistrictParallaxRuntime.REPEAT_TIMES)
+	for child: Node in sky.get_children():
+		var sprite: Sprite2D = child as Sprite2D
+		assert_not_null(sprite)
+		var material: ShaderMaterial = sprite.material as ShaderMaterial
+		assert_not_null(material)
+		assert_eq(
+			material.shader.resource_path,
+			"res://shaders/seamless_panorama.gdshader"
+		)
+	for district_id: StringName in EXPECTED_PATHS:
+		assert_true(runtime.transition_to(district_id, true))
+		var texture: Texture2D = runtime.active_texture()
+		assert_gt(texture.get_width(), 0)
+		assert_almost_eq(
+			runtime.panorama_repeat_width(),
+			float(texture.get_width()),
+			0.001
+		)
+	var far: Parallax2D = runtime.get_node(^"FarSkyline") as Parallax2D
+	assert_eq(far.repeat_size, DistrictParallaxRuntime.DEPTH_REPEAT_SIZE)
+
+
 func test_spatial_transition_crossfades_without_growing_the_scene_tree() -> void:
 	var city: CitySlice = await _spawn_city()
 	var runtime: DistrictParallaxRuntime = city.get_node(^"ParallaxCity")
 	var baseline_nodes: int = _node_count(runtime)
-	city._on_spatial_district_changed(&"BUSINESS", &"RESIDENTIAL", 5)
+	city._on_spatial_district_changed(
+		&"BUSINESS",
+		&"RESIDENTIAL",
+		CityDistrictCatalog.CHUNKS_PER_DISTRICT
+	)
 	assert_true(runtime.is_transitioning())
 	assert_eq(runtime.target_district_id, &"RESIDENTIAL")
 	assert_eq(runtime.transition_count, 1)

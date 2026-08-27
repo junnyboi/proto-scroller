@@ -39,7 +39,11 @@ func test_spatial_district_signal_synchronizes_weather_and_parallax() -> void:
 	var weather: DistrictWeatherRuntime = city.get_node(^"DistrictWeather")
 	var parallax: DistrictParallaxRuntime = city.get_node(^"ParallaxCity")
 	var weather_nodes: int = _node_count(weather)
-	city._on_spatial_district_changed(&"BUSINESS", &"RESIDENTIAL", 5)
+	city._on_spatial_district_changed(
+		&"BUSINESS",
+		&"RESIDENTIAL",
+		CityDistrictCatalog.CHUNKS_PER_DISTRICT
+	)
 	assert_true(weather.is_transitioning())
 	assert_true(parallax.is_transitioning())
 	assert_eq(weather.target_district_id, &"RESIDENTIAL")
