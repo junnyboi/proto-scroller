@@ -48,9 +48,9 @@ func _run() -> void:
 	await process_frame
 	await RenderingServer.frame_post_draw
 	if (
-		city.rampage_session.current_multiplier() != 3
-		or city.score != 600
-		or city.gameplay_hud.combo_label.text != "x3 KILL COMBO"
+		city.rampage_session.current_multiplier() != 2
+		or city.score != 200
+		or city.gameplay_hud.combo_label.text != "x2 KILL COMBO"
 		or not city.gameplay_hud.combo_label.visible
 	):
 		quit(1)
