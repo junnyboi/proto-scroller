@@ -10,6 +10,6 @@ Gemini Omni Flash generated the four-second 16:9 carrier `docs/power-box-detonat
 
 The shipping cue extracts carrier time **0.20–1.70 seconds**, sums to mono, applies a 35 Hz high-pass, 15.5 kHz low-pass, 3:1 compression, EBU R128 loudness normalization, a 4 ms attack fade, and a 200 ms tail fade. The result is a **1.500-second, 48 kHz, mono PCM16 WAV** measuring approximately **−16.5 LUFS integrated** with a **−1.2 dBTP** true peak. Shipping SHA-256: `40892da317cb7105b1af4d280523585b2983ffb5c14077df6ad447cbd486110e`.
 
-At runtime, the cue is registered as a **signature-priority positional SFX** and played through the existing prewarmed eight-voice `ImpactFeedbackPool` exactly when the second-hit destruction delay completes. No audio node or stream is allocated during combat.
+At runtime, Godot imports the PCM16 source master as **QOA** to preserve Web package headroom. The cue is registered as a **signature-priority positional SFX** and played through the existing prewarmed eight-voice `ImpactFeedbackPool` exactly when the second-hit destruction delay completes. No audio node or stream is allocated during combat.
 
 The carrier's generated transcription files are intentionally excluded from source control; their only required finding is that no speech was detected.
