@@ -355,6 +355,36 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	_record_test_execution()
 
 
+func test_async_global_rows_stay_hidden_on_after_action_page() -> void:
+	L10n.set_locale("en")
+	var panel: MatchDebriefPanel = MatchDebriefPanel.new()
+	add_child_autofree(panel)
+	await get_tree().process_frame
+	var summary: RunSummarySnapshot = _make_summary(
+		35_700,
+		3,
+		false,
+		{&"covenant_warden": 17},
+		{&"ENVIRONMENT": 9, &"FLAMETHROWER": 7, &"JAB_CROSS": 6}
+	)
+	panel.present(summary, "GAME OVER", 2, 1)
+	panel.set_page(MatchDebriefPanel.Page.AFTER_ACTION)
+	panel.set_global_state(&"online", [{
+		"rank": 1,
+		"callsign": "Jun",
+		"highest_combo_tier": 3,
+		"best_score": 35_700,
+		"preferred_weapon": "ENVIRONMENT",
+	}], {"rank": 1, "callsign": "Jun"})
+	assert_eq(String(panel.debug_snapshot().page), "AFTER_ACTION")
+	assert_eq((panel.debug_snapshot().global_rows as PackedStringArray).size(), 0)
+	assert_false(panel.global_panel.visible)
+	assert_true(panel.weapon_panel.visible)
+	assert_eq(L10n.t("debrief.weapon.environment"), "COLLATERAL DAMAGE")
+	assert_true(panel.weapon_preferred_label.text.contains("COLLATERAL DAMAGE"))
+	_record_test_execution()
+
+
 func test_leaderboard_bridge_is_native_safe_and_rejects_unsolicited_responses() -> void:
 	L10n.set_locale("en")
 	var store: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
