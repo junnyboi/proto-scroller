@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 **Date:** 2026-08-27
-**Status:** In progress — WP3 complete
+**Status:** Complete
 **Canonical baseline:** `089f486`
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 **WebDev project:** `proto-scroller`
@@ -211,9 +211,9 @@ Global and local comparisons use the same pure ordering function. Global ranks u
 | WP1 — Local profile/history | Complete | Schema v1 migrates to v2 without record loss; callsigns validate and persist; history is capped at 30; local ranking uses combo/score/chain/timestamp ordering. Focused analytics suite passed 10 tests and 148 assertions. |
 | WP2 — Career UI | Complete | Three responsive tabs, callsign editing, interactive 12-run kills/share chart, deterministic local ranking, and global/fallback presentation. Focused suite passed 11 tests and 166 assertions; career/global pages passed 1280×720 and 720×1280 focused visual checks. |
 | WP3 — Network bridge | Complete | Same-origin/versioned envelopes, correlated request IDs, bounded queue polling, four-second timeout, native-safe local state, local-first callsign updates, and non-blocking post-finalization submission. Focused suite passed 12 tests and 173 assertions. |
-| WP4 — WebDev backend | Pending | — |
-| WP5 — Integration | Pending | — |
-| WP6 — Release | Pending | — |
+| WP4 — WebDev backend | Complete | Existing host upgraded in place to managed MySQL/tRPC. Generated migration `0000_melted_serpent_society.sql` applied; strict shared Zod schemas, SHA-256 installation hashing, monotonic upsert, deterministic personal/global ranking, and public submit/list/callsign procedures implemented. TypeScript passed, six focused Vitest tests passed, and the live empty-board list endpoint returned successfully. |
+| WP5 — Integration | Complete | Godot submits after authoritative local finalization, refreshes on Global tab entry, syncs callsigns local-first, rejects unsolicited responses, and falls back after four seconds or any malformed/error response. Latest compatible district projectile/actor VFX were fast-forwarded without overwriting either feature set. Final gameplay source is `339dfa710efa1f75c9ee73894877f40403ff9b1b`. |
+| WP6 — Release | Complete | Fresh Godot 4.7.2 Web export remapped to `/manus-storage/game_f9ec2cbd.wasm` (39,514,754 bytes; SHA-256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`) and `/manus-storage/game_9bd5a2d9.pck` (18,178,464 bytes; SHA-256 `2a1330be01c6c30fed16ede1d583a9473d30e4c70b23bb033c77e00b95b5c11b`). WebDev checkpoint `f35e0af3` saved and published to the existing project/domain. Full release gates were skipped under the active user override. |
 
 ## 9. Verification
 
@@ -223,9 +223,9 @@ Per the active project override, do not run the full release-gate matrix, exhaus
 - focused GUT suites for profile migration/history/ranking, chart interaction, bridge state, and lifecycle presentation;
 - direct import and a bounded headless debrief/bridge scenario only when needed to catch parse failures;
 - one focused 1280×720 and one 720×1280 dossier page render;
-- `pnpm test`, `pnpm check`, and `pnpm build` in WebDev because the backend upgrade changes its runtime contract;
+- focused `pnpm test` and `pnpm check` in WebDev; broad build/release certification remains skipped under the explicit override;
 - database migration inspection plus non-test SQL readback of table/index shape;
-- direct API success, invalid-input, monotonic-update, and empty-list checks without inserting fake production rankings;
+- strict invalid-input/hash contract tests plus a live empty-list check without inserting fake production rankings;
 - fresh Godot Web export and exact payload remap.
 
 ## 10. Completion Definition
