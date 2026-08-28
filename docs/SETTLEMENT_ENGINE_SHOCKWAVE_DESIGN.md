@@ -83,7 +83,7 @@ The attack remains a hazard-tagged enemy event and continues to apply the centra
 | Cleanup | Old multi-front identifiers, locale labels, test assertions, dedicated ring texture, and provenance references are absent. |
 | Deployment | The final shared source is freshly exported and both WebDev runtime payloads are remapped. |
 
-The focused Godot 4.7.2 pass completed **26 tests and 1,160 assertions** across the vertical slice, campaign gates, and runtime budget after the audiovisual update. It proves the 1.45-second timing, exact core-socket anchoring, 72-particle charge, separate cue ownership, exact charge-to-release handoff, single 10-unit camera impulse, one released front, ring-band-only damage, dodge rejection, per-activation deduplication, recurring support cap, boss-campaign continuity, and fixed post-warm node shape. Repository-wide release certification remains intentionally skipped under the project override.
+The focused Godot 4.7.2 pass completed **26 tests and 1,160 assertions** across the vertical slice, campaign gates, and runtime budget after the audiovisual update. It proves the 1.45-second timing, exact core-socket anchoring, 72-particle charge, separate cue ownership, exact charge-to-release handoff, single 10-unit camera impulse, one released front, ring-band-only damage, dodge rejection, per-activation deduplication, recurring support cap, boss-campaign continuity, and fixed post-warm node shape. After semantic integration of the concurrent title-controls cleanup, a lightweight combined pass completed **28 tests and 2,900 assertions** across the vertical slice, title screen, and bilingual localization. Repository-wide release certification remains intentionally skipped under the project override.
 
 ## References
 
