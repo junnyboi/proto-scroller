@@ -212,6 +212,12 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 		BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH,
 		0.0001
 	)
+	assert_gt(BuildingDamagePattern2D.DESTROYED_DARKEN_STRENGTH, 0.30)
+	assert_true(pattern._is_ground_level_ruin())
+	assert_eq(
+		pattern._ruin_rubble_sprite_count(),
+		BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT
+	)
 	assert_false(upper_cell.is_destroyed())
 	assert_almost_eq(
 		upper_cell.current_health,
@@ -231,6 +237,7 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 	assert_true(cavity_material.shader.code.contains("discard"))
 	assert_true(cavity_material.shader.code.contains("facade.a <= alpha_threshold"))
 	assert_true(cavity_material.shader.code.contains("opening_metric < boundary - edge_softness"))
+	assert_true(cavity_material.shader.code.contains("top_break_depth"))
 	assert_eq(
 		float(cavity_material.get_shader_parameter("alpha_threshold")),
 		BuildingDamagePattern2D.FACADE_ALPHA_THRESHOLD
@@ -248,6 +255,10 @@ func test_destroyed_segment_keeps_alpha_safe_procedural_hollow_and_details() -> 
 	cell.restore_stream_state({"destroyed": true, "health": 0.0})
 	assert_true(cell.is_destroyed())
 	assert_true(pattern.visible)
+	assert_eq(
+		pattern._ruin_rubble_sprite_count(),
+		BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT
+	)
 	assert_gt(pattern.pattern_signature().length(), 0)
 	assert_eq(pattern.damage_detail_count(), 0)
 	_record_test_execution()
@@ -259,6 +270,8 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	var pattern: BuildingDamagePattern2D = cell.get_node(
 		^"DamagedVisual"
 	) as BuildingDamagePattern2D
+	assert_false(pattern._is_ground_level_ruin())
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
 	var sprite: Sprite2D = cell.get_node(^"IntactVisual") as Sprite2D
 	assert_eq(sprite.material, pattern.cavity_material())
 	assert_almost_eq(_hollow_progress(pattern), 0.0, 0.0001)
@@ -291,6 +304,7 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_eq(sprite.material, pattern.cavity_material())
 	assert_true(cell.receive_damage(_fatal_event(city, cell, attack_id, cell.current_health)))
 	assert_true(cell.is_destroyed())
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
 	assert_almost_eq(_hollow_progress(pattern), 1.0, 0.0001)
 	assert_almost_eq(
 		pattern.cavity_darken_strength(),

@@ -310,7 +310,8 @@ func _create_damage_pattern(
 		_cell_size(),
 		1 + row * COLUMNS + column,
 		profile.material_id,
-		profile.visual_tint
+		profile.visual_tint,
+		row == ROWS - 1
 	)
 	return pattern
 
@@ -335,7 +336,8 @@ func _reconfigure_cell(column: int, row: int) -> void:
 			_cell_size(),
 			_pattern_seed_for_cell(column, row),
 			profile.material_id,
-			_cell_visual_tint(profile)
+			_cell_visual_tint(profile),
+			row == ROWS - 1
 		)
 		pattern._bind_facade_sprite(intact_visual)
 	_configure_intact_collision(cell, row)

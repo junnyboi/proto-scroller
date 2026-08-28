@@ -24,11 +24,21 @@ const CABLE_TEXTURE: Texture2D = preload(
 const PIPE_TEXTURE: Texture2D = preload(
 	"res://art/destruction/damage_details/broken_water_pipe.png"
 )
+const CONCRETE_RUBBLE_TEXTURE: Texture2D = preload(
+	"res://art/city/destructibles/debris/concrete_chunk.png"
+)
+const GLASS_RUBBLE_TEXTURE: Texture2D = preload(
+	"res://art/city/destructibles/debris/glass_shard.png"
+)
+const STEEL_RUBBLE_TEXTURE: Texture2D = preload(
+	"res://art/city/destructibles/debris/steel_fragment.png"
+)
 const FACADE_ALPHA_THRESHOLD: float = 0.08
 const DAMAGED_DARKEN_STRENGTH: float = 0.12
-const DESTROYED_DARKEN_STRENGTH: float = 0.30
+const DESTROYED_DARKEN_STRENGTH: float = 0.38
 const DESTROYED_HOLLOW_EXTENTS: Vector2 = Vector2(0.37, 0.43)
 const HOLLOW_CENTER_Y: float = 0.56
+const RUIN_RUBBLE_SPRITE_COUNT: int = 4
 const CAVITY_SHADER_CODE: String = """
 shader_type canvas_item;
 render_mode unshaded;
@@ -44,15 +54,24 @@ uniform float hollow_seed = 0.0;
 uniform int impact_profile = 0;
 uniform float impact_direction = 1.0;
 uniform vec4 region_uv_rect = vec4(0.0, 0.0, 1.0, 1.0);
+uniform bool ground_level = false;
 
 void fragment() {
 	vec4 facade = texture(TEXTURE, UV) * visual_tint;
 	if (facade.a <= alpha_threshold) {
 		discard;
 	}
-	if (hollow_progress > 0.0001) {
-		vec2 cell_uv = (UV - region_uv_rect.xy) / max(region_uv_rect.zw, vec2(0.0001));
-		vec2 extents = max(hollow_extents_uv, vec2(0.0001));
+		if (hollow_progress > 0.0001) {
+			vec2 cell_uv = (UV - region_uv_rect.xy) / max(region_uv_rect.zw, vec2(0.0001));
+			if (ground_level && hollow_progress > 0.98) {
+				float top_coarse = 0.5 + 0.5 * sin(cell_uv.x * 31.0 + hollow_seed * 47.0);
+				float top_chips = step(0.66, sin(cell_uv.x * 83.0 - hollow_seed * 71.0));
+				float top_break_depth = 0.012 + top_coarse * 0.020 + top_chips * 0.014;
+				if (cell_uv.y < top_break_depth) {
+					discard;
+				}
+			}
+			vec2 extents = max(hollow_extents_uv, vec2(0.0001));
 			float profile_weight = 1.0 - smoothstep(0.70, 1.0, hollow_progress);
 			if (impact_profile == 1) {
 				extents *= mix(vec2(1.0), vec2(1.20, 0.72), profile_weight);
@@ -115,6 +134,8 @@ var _patch: Polygon2D
 var _cable_detail: BuildingDamageAttachment2D
 var _pipe_detail: BuildingDamageAttachment2D
 var _severe_fx: BuildingSevereDamageFx2D
+var _ruin_rubble_root: Node2D
+var _ruin_rubble_sprites: Array[Sprite2D] = []
 var _detail_mask: int = 0
 var _cavity_material: ShaderMaterial
 var _facade_sprite: Sprite2D
@@ -123,6 +144,7 @@ var _destroyed_stage: bool = false
 var _hollow_progress: float = 0.0
 var _impact_profile: ImpactProfile = ImpactProfile.GENERIC
 var _impact_direction: float = 1.0
+var _ground_level: bool = false
 
 
 func configure(
@@ -131,7 +153,8 @@ func configure(
 	cell_size: Vector2,
 	pattern_seed: int,
 	material_id: StringName,
-	visual_tint: Color
+	visual_tint: Color,
+	ground_level: bool = false
 ) -> void:
 	_texture = texture
 	_region_rect = region_rect
@@ -139,6 +162,7 @@ func configure(
 	_pattern_seed = maxi(pattern_seed, 1)
 	_material_id = material_id
 	_visual_tint = visual_tint
+	_ground_level = ground_level
 	z_index = 2
 	_patch = Polygon2D.new()
 	_patch.name = "HollowGeometry"
@@ -147,6 +171,8 @@ func configure(
 	_cavity_material.shader = _get_shared_cavity_shader()
 	_configure_cavity_material()
 	add_child(_patch)
+	if _ground_level:
+		_create_ruin_rubble_bed()
 	_cable_detail = _create_detail_attachment(
 		"DanglingCables",
 		BuildingDamageAttachment2D.Kind.CABLE,
@@ -172,7 +198,8 @@ func reconfigure(
 	cell_size: Vector2,
 	pattern_seed: int,
 	material_id: StringName,
-	visual_tint: Color
+	visual_tint: Color,
+	ground_level: bool = false
 ) -> void:
 	_texture = texture
 	_region_rect = region_rect
@@ -180,6 +207,7 @@ func reconfigure(
 	_pattern_seed = maxi(pattern_seed, 1)
 	_material_id = material_id
 	_visual_tint = visual_tint
+	_ground_level = ground_level
 	if _patch != null:
 		_configure_cavity_material()
 	if _cable_detail != null:
@@ -188,6 +216,7 @@ func reconfigure(
 		_pipe_detail.configure_seed(_pattern_seed)
 	if _severe_fx != null:
 		_severe_fx.configure(_cell_size, _pattern_seed)
+	_configure_ruin_rubble_bed()
 	reset_pattern()
 	visible = false
 
@@ -243,6 +272,7 @@ func set_destroyed_stage(value: bool) -> void:
 		_apply_detail_mask(0, _contour_center())
 	_update_hollow_material()
 	_update_severe_fx()
+	_update_ruin_rubble_bed()
 
 
 func is_destroyed_stage() -> bool:
@@ -280,6 +310,16 @@ func damage_detail_count() -> int:
 
 func damage_detail_mask() -> int:
 	return _detail_mask
+
+
+func _ruin_rubble_sprite_count() -> int:
+	if _ruin_rubble_root == null or not _ruin_rubble_root.visible:
+		return 0
+	return _ruin_rubble_sprites.size()
+
+
+func _is_ground_level_ruin() -> bool:
+	return _ground_level
 
 
 func damage_effect_activation_count() -> int:
@@ -335,6 +375,7 @@ func reset_pattern() -> void:
 		_patch.polygon = PackedVector2Array()
 		_patch.uv = PackedVector2Array()
 	_update_hollow_material()
+	_update_ruin_rubble_bed()
 	if _severe_fx != null:
 		_severe_fx.reset_effect()
 	cull_damage_details()
@@ -657,7 +698,62 @@ func _configure_cavity_material() -> void:
 	_cavity_material.set_shader_parameter("alpha_threshold", FACADE_ALPHA_THRESHOLD)
 	_cavity_material.set_shader_parameter("cavity_tint", _cavity_tint())
 	_cavity_material.set_shader_parameter("region_uv_rect", _facade_region_uv_rect())
+	_cavity_material.set_shader_parameter("ground_level", _ground_level)
 	_update_hollow_material()
+
+
+func _create_ruin_rubble_bed() -> void:
+	_ruin_rubble_root = Node2D.new()
+	_ruin_rubble_root.name = "RuinRubbleBed"
+	_ruin_rubble_root.z_index = 3
+	_ruin_rubble_root.visible = false
+	add_child(_ruin_rubble_root)
+	for index: int in range(RUIN_RUBBLE_SPRITE_COUNT):
+		var sprite: Sprite2D = Sprite2D.new()
+		sprite.name = "RuinRubble%02d" % index
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_ruin_rubble_root.add_child(sprite)
+		_ruin_rubble_sprites.append(sprite)
+	_configure_ruin_rubble_bed()
+
+
+func _configure_ruin_rubble_bed() -> void:
+	if _ruin_rubble_root == null:
+		return
+	var texture: Texture2D = _ruin_rubble_texture()
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = _pattern_seed * 982451653 + 961748927
+	var half_width: float = _cell_size.x * 0.5
+	for index: int in range(_ruin_rubble_sprites.size()):
+		var sprite: Sprite2D = _ruin_rubble_sprites[index]
+		var weight: float = (float(index) + 0.5) / float(RUIN_RUBBLE_SPRITE_COUNT)
+		var desired_width: float = _cell_size.x * rng.randf_range(0.22, 0.31)
+		var texture_width: float = maxf(texture.get_width(), 1.0)
+		var sprite_scale: float = desired_width / texture_width
+		sprite.texture = texture
+		sprite.position = Vector2(
+			lerpf(-half_width * 0.76, half_width * 0.76, weight)
+				+ rng.randf_range(-_cell_size.x * 0.045, _cell_size.x * 0.045),
+			_cell_size.y * 0.5 + rng.randf_range(5.0, 13.0)
+		)
+		sprite.rotation = rng.randf_range(-0.24, 0.24)
+		sprite.scale = Vector2.ONE * sprite_scale
+		sprite.flip_h = rng.randi_range(0, 1) == 1
+		sprite.modulate = _visual_tint * Color(0.60, 0.58, 0.56, 0.92)
+	_update_ruin_rubble_bed()
+
+
+func _update_ruin_rubble_bed() -> void:
+	if _ruin_rubble_root != null:
+		_ruin_rubble_root.visible = _destroyed_stage and _ground_level
+
+
+func _ruin_rubble_texture() -> Texture2D:
+	if _material_id == &"glass":
+		return GLASS_RUBBLE_TEXTURE
+	if _material_id == &"steel":
+		return STEEL_RUBBLE_TEXTURE
+	return CONCRETE_RUBBLE_TEXTURE
 
 
 func _facade_region_uv_rect() -> Vector4:

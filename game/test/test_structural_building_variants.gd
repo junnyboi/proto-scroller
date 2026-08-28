@@ -197,6 +197,16 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						),
 						String(variant.variant_id)
 					)
+					assert_true(
+						pattern.cavity_material().shader.code.contains("top_break_depth"),
+						String(variant.variant_id)
+					)
+					assert_eq(pattern._is_ground_level_ruin(), row == 1)
+					assert_eq(
+						pattern._ruin_rubble_sprite_count(),
+						BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT if row == 1 else 0,
+						String(variant.variant_id)
+					)
 					assert_null(cell.get_node_or_null(^"RubbleVisual"))
 					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					var hurtbox: CollisionShape2D = cell.get_node(

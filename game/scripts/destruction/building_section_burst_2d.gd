@@ -17,12 +17,14 @@ const FLASH_TEXTURE: Texture2D = preload(
 	"res://art/city/destructibles/debris/impact_flash.png"
 )
 
-const ACTIVE_LIFETIME: float = 1.70
+const ACTIVE_LIFETIME: float = 4.10
 const FLASH_LIFETIME: float = 0.24
+const RUIN_SMOKE_LIFETIME: float = 3.60
 
 var fragments: CPUParticles2D
 var falling_debris: CPUParticles2D
 var dust: CPUParticles2D
+var ruin_smoke: CPUParticles2D
 var flash: Sprite2D
 var material_id: StringName = &"concrete"
 var activation_sequence: int = 0
@@ -55,6 +57,21 @@ func setup() -> void:
 	dust.damping_max = 120.0
 	dust.texture = DUST_TEXTURE
 	add_child(dust)
+	ruin_smoke = _make_particles("RuinSmoke", 7, RUIN_SMOKE_LIFETIME)
+	ruin_smoke.texture = DUST_TEXTURE
+	ruin_smoke.direction = Vector2.UP
+	ruin_smoke.spread = 48.0
+	ruin_smoke.gravity = Vector2(0.0, -8.0)
+	ruin_smoke.initial_velocity_min = 20.0
+	ruin_smoke.initial_velocity_max = 46.0
+	ruin_smoke.damping_min = 5.0
+	ruin_smoke.damping_max = 14.0
+	ruin_smoke.scale_amount_min = 0.32
+	ruin_smoke.scale_amount_max = 0.72
+	ruin_smoke.explosiveness = 0.18
+	ruin_smoke.randomness = 0.70
+	ruin_smoke.color_ramp = _smoke_color_ramp()
+	add_child(ruin_smoke)
 	flash = Sprite2D.new()
 	flash.name = "ImpactFlash"
 	flash.texture = FLASH_TEXTURE
@@ -84,6 +101,7 @@ func activate(
 	_configure_fragments(direction, speed, profile)
 	_configure_falling_debris(direction, speed, profile)
 	_configure_dust(direction, speed, profile)
+	_configure_ruin_smoke(profile)
 	_configure_flash(speed)
 	_age = 0.0
 	_active = true
@@ -92,6 +110,7 @@ func activate(
 	fragments.restart()
 	falling_debris.restart()
 	dust.restart()
+	ruin_smoke.restart()
 
 
 func deactivate() -> void:
@@ -104,6 +123,8 @@ func deactivate() -> void:
 		falling_debris.emitting = false
 	if dust != null:
 		dust.emitting = false
+	if ruin_smoke != null:
+		ruin_smoke.emitting = false
 	if flash != null:
 		flash.visible = false
 	visible = false
@@ -218,6 +239,14 @@ func _configure_falling_debris(
 			falling_debris.scale_amount_max = 0.22
 
 
+func _configure_ruin_smoke(profile: StructuralMaterialProfile) -> void:
+	ruin_smoke.position = Vector2(0.0, 18.0)
+	ruin_smoke.amount = 5 if material_id == &"glass" else 7
+	var profile_tint: Color = profile.debris_primary_color if profile != null else Color.GRAY
+	ruin_smoke.color = profile_tint.lerp(Color(0.16, 0.16, 0.17, 1.0), 0.72)
+	ruin_smoke.color.a = 0.24 if material_id != &"steel" else 0.19
+
+
 func _configure_flash(impact_speed: float) -> void:
 	flash.rotation = float(activation_sequence % 12) * TAU / 12.0
 	flash.scale = Vector2.ONE * 0.18
@@ -241,6 +270,18 @@ func _make_particles(
 	particles.local_coords = false
 	particles.emitting = false
 	return particles
+
+
+func _smoke_color_ramp() -> Gradient:
+	var gradient: Gradient = Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.16, 0.72, 1.0])
+	gradient.colors = PackedColorArray([
+		Color(0.82, 0.82, 0.82, 0.0),
+		Color(0.62, 0.62, 0.62, 0.72),
+		Color(0.36, 0.36, 0.36, 0.30),
+		Color(0.20, 0.20, 0.20, 0.0),
+	])
+	return gradient
 
 
 static func texture_for_material(kind: StringName) -> Texture2D:

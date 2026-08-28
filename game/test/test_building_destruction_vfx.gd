@@ -37,11 +37,17 @@ func test_section_burst_pool_is_fixed_and_recycles_oldest_slot() -> void:
 	assert_eq(third.dust.amount, 5)
 	assert_true(third.falling_debris.emitting)
 	assert_true(third.dust.emitting)
+	assert_not_null(third.ruin_smoke)
+	assert_true(third.ruin_smoke.emitting)
+	assert_eq(third.ruin_smoke.texture, BuildingSectionBurst2D.DUST_TEXTURE)
+	assert_gte(third.ruin_smoke.lifetime, 3.5)
+	assert_lt(third.ruin_smoke.color.a, 0.25)
 	assert_true(third.flash.visible)
 	pool.reset_all()
 	assert_eq(pool.active_count(), 0)
 	assert_eq(pool.spawn_count, 0)
 	assert_eq(pool.recycle_count, 0)
+	assert_false(third.ruin_smoke.emitting)
 
 
 func test_material_profiles_select_distinct_generated_fragment_textures() -> void:
