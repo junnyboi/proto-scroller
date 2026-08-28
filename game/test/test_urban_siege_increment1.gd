@@ -130,11 +130,18 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	assert_true(transformer.discharging)
 	assert_false(transformer.is_fully_destroyed)
 	assert_true(transformer.visual.visible)
+	assert_false(transformer.terminal_rubble_active())
 	assert_eq(transformer.discharge_count, 1)
 	await get_tree().create_timer(Catalyst2D.OBLITERATION_DELAY_SECONDS + 0.02).timeout
 	assert_true(transformer.is_fully_destroyed)
 	assert_false(transformer.armed)
 	assert_false(transformer.visual.visible)
+	assert_true(transformer.terminal_rubble_active())
+	assert_eq(
+		transformer.terminal_rubble_piece_count(),
+		DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
+	)
+	assert_true(transformer.terminal_rubble.uses_only_rubble_fragments())
 	assert_eq(transformer.collision_layer, 0)
 	assert_eq(transformer.trigger_count, 1)
 	assert_eq(catalysts.power_box_scrap_burst_count, 1)

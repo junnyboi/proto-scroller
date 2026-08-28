@@ -204,7 +204,17 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 					assert_eq(pattern._is_ground_level_ruin(), row == 1)
 					assert_eq(
 						pattern._ruin_rubble_sprite_count(),
-						BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT if row == 1 else 0,
+						BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT,
+						String(variant.variant_id)
+					)
+					var rubble_bed: PersistentRubbleBed2D = pattern._ruin_rubble_bed()
+					assert_not_null(rubble_bed, String(variant.variant_id))
+					assert_true(rubble_bed.uses_only_rubble_fragments())
+					assert_eq(rubble_bed.material_id(), variant.material_id_at(column, row))
+					assert_almost_eq(
+						rubble_bed.baseline_y(),
+						variant.display_size.y / 4.0,
+						0.001,
 						String(variant.variant_id)
 					)
 					assert_null(cell.get_node_or_null(^"RubbleVisual"))
