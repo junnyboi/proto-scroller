@@ -155,9 +155,9 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 					var pattern: BuildingDamagePattern2D = cell.get_node(
 						^"DamagedVisual"
 					) as BuildingDamagePattern2D
-					assert_false(pattern.visible, String(variant.variant_id))
+					assert_true(pattern.visible, String(variant.variant_id))
 					assert_true(pattern.is_destroyed_stage(), String(variant.variant_id))
-					assert_false(
+					assert_true(
 						(cell.get_node(^"IntactVisual") as Sprite2D).visible,
 						String(variant.variant_id)
 					)

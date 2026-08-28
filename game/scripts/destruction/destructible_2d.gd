@@ -115,9 +115,9 @@ func _break(event: DamageEvent) -> void:
 
 func _apply_stage(show_damaged: bool, show_destroyed: bool) -> void:
 	if _intact_visual != null:
-		_intact_visual.visible = not show_destroyed
+		_intact_visual.visible = true
 	if _damaged_visual != null:
-		_damaged_visual.visible = show_damaged
+		_damaged_visual.visible = show_damaged or show_destroyed
 		var damage_pattern: BuildingDamagePattern2D = (
 			_damaged_visual as BuildingDamagePattern2D
 		)
