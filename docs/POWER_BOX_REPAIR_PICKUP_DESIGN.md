@@ -12,7 +12,7 @@ Destroying the foreground power transformer should produce a small, immediately 
 
 The **Aegis Patch Cell** is a rugged nanoweld service cartridge ejected when the transformer ruptures. Its cream segmented armor visually belongs to the giant robot, while exposed copper windings, charcoal end caps, and sparse magenta diagnostics connect it to the existing city power cabinet. A cyan-white cross-shaped energy aperture communicates repair at gameplay scale without text or a generic red first-aid box.
 
-The pickup uses a compact 64-pixel presentation envelope, a restrained cyan glow, and a gentle hover pulse. It appears above the spent transformer, remains available for a bounded lifetime, and collects only when the robot is below maximum chassis integrity. Collection restores **5 percent of maximum chassis health**—40 points at the baseline 800 maximum—and never exceeds the current maximum.
+The pickup uses a compact 64-pixel presentation envelope, a restrained cyan glow, and a gentle hover pulse. It appears above the spent transformer, remains available for a bounded lifetime, and collects only when the robot is below maximum chassis integrity. Collection restores **50 chassis-health points** and never exceeds the current maximum.
 
 ## Runtime Contract
 
@@ -20,7 +20,7 @@ The pickup uses a compact 64-pixel presentation envelope, a restrained cyan glow
 |---|---|
 | Source | Transformer catalyst destruction only |
 | Allocation | Two pickup slots prewarmed with the two catalyst slots |
-| Repair | 5% of the robot's current maximum health |
+| Repair | 50 chassis-health points, capped at the current maximum |
 | Full-health contact | Pickup remains active rather than being wasted |
 | Lifetime | 12 seconds before returning to the pool |
 | Collision | Sensor-only overlap with the robot layer |
@@ -33,4 +33,4 @@ Foreground cars and streetlamps remain two-stage pooled `DestructibleProp2D` obj
 
 ## Acceptance Criteria
 
-The transformer must accept player damage, trigger once, spawn one prewarmed Aegis Patch Cell, and preserve its existing delayed blast. A damaged robot must collect the cell and recover exactly 5 percent of maximum chassis integrity without overhealing. A full-health robot must not consume it. Resetting the catalyst runtime must clear every pickup without new node creation. Focused tests, the standard harness, landscape and portrait screenshots, the full Web export, browser smoke, WebDev synchronization, checkpointing, and publication are blocking release gates.
+The transformer must accept player damage, trigger once, spawn one prewarmed Aegis Patch Cell, and preserve its existing delayed blast. A damaged robot must collect the cell and recover exactly 50 chassis-health points without overhealing. A full-health robot must not consume it. Resetting the catalyst runtime must clear every pickup without new node creation. Focused tests, the standard harness, landscape and portrait screenshots, the full Web export, browser smoke, WebDev synchronization, checkpointing, and publication are blocking release gates.
