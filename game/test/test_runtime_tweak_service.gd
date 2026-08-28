@@ -29,7 +29,7 @@ func test_res_baseline_loads_before_valid_user_delta_and_ignores_unknown_ids() -
 	var service: RuntimeTweakService = _new_service(path)
 	assert_eq(service.requested_value(&"player.move.max_speed"), 300.0)
 	assert_eq(service.requested_value(&"player.melee.ground_smash_damage"), 180.0)
-	assert_eq(service.requested_values.size(), 50)
+	assert_eq(service.requested_values.size(), 56)
 
 
 func test_memory_updates_immediately_and_five_edits_debounce_to_one_write() -> void:
@@ -74,6 +74,22 @@ func test_hash_is_stable_and_changes_only_with_canonical_values() -> void:
 	assert_ne(service.requested_configuration_hash(), baseline_hash)
 	service.reset_value(&"player.move.max_speed")
 	assert_eq(service.requested_configuration_hash(), baseline_hash)
+
+
+func test_color_values_canonicalize_persist_and_reset_as_deltas() -> void:
+	var path: String = SAVE_ROOT + "/colors.json"
+	var service: RuntimeTweakService = _new_service(path)
+	assert_true(bool(service.set_value(&"player.visual.tint", "62F5DF").ok))
+	assert_eq(service.requested_value(&"player.visual.tint"), "#62f5df")
+	assert_true(service.flush_now())
+	var saved: Dictionary = _read_json(path)
+	assert_eq((saved.values as Dictionary).get("player.visual.tint"), "#62f5df")
+	var restored: RuntimeTweakService = _new_service(path)
+	assert_eq(restored.requested_value(&"player.visual.tint"), "#62f5df")
+	assert_true(restored.reset_value(&"player.visual.tint"))
+	assert_true(restored.flush_now())
+	saved = _read_json(path)
+	assert_false((saved.values as Dictionary).has("player.visual.tint"))
 
 
 func test_deferred_values_taint_only_when_their_boundary_applies_and_remain_sticky() -> void:

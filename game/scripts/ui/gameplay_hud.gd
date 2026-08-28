@@ -107,6 +107,8 @@ var _continuity_generation: int = 0
 var _rear_barrier_warning_remaining: float = 0.0
 var _boss_armor_ratio: float = 0.0
 var _boss_health_ratio: float = 0.0
+var _hud_tuning_scale: float = 1.0
+var _hud_tuning_tint: Color = Color.WHITE
 
 
 func setup(
@@ -153,6 +155,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_apply_live_visual_tuning()
 	_pulse_age += delta
 	_update_rear_barrier_warning(delta)
 	if status_label != null:
@@ -997,7 +1000,9 @@ func _is_portrait_layout() -> bool:
 
 
 func _apply_responsive_layout() -> void:
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var viewport_size: Vector2 = (
+		get_viewport().get_visible_rect().size / maxf(_hud_tuning_scale, 0.01)
+	)
 	if viewport_size.y > viewport_size.x:
 		_apply_portrait_layout(viewport_size)
 	else:
@@ -1023,6 +1028,24 @@ func _apply_responsive_layout() -> void:
 	if field_briefing != null:
 		field_briefing.apply_responsive_layout(viewport_size)
 	_layout_tweak_controls_button(viewport_size)
+
+
+func _apply_live_visual_tuning() -> void:
+	var next_scale: float = float(RuntimeTweakAccess.live_value(
+		&"interface.hud.scale", 1.0
+	))
+	var next_tint: Color = RuntimeTweakAccess.live_color(
+		&"interface.hud.tint", Color.WHITE
+	)
+	if not is_equal_approx(next_scale, _hud_tuning_scale):
+		_hud_tuning_scale = next_scale
+		transform = Transform2D.IDENTITY.scaled(Vector2.ONE * next_scale)
+		_apply_responsive_layout()
+	if next_tint != _hud_tuning_tint:
+		_hud_tuning_tint = next_tint
+		for child: Node in get_children():
+			if child is CanvasItem:
+				(child as CanvasItem).self_modulate = next_tint
 
 
 func _build_tweak_controls_button() -> void:

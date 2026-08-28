@@ -4,7 +4,7 @@ extends Control
 signal opened
 signal closed
 
-const ROW_POOL_SIZE: int = 8
+const ROW_POOL_SIZE: int = 16
 const SESSION_CATEGORY: StringName = &"SESSION"
 
 var main: Main
@@ -19,6 +19,7 @@ var category_selector: OptionButton
 var search_field: LineEdit
 var reset_all_button: Button
 var close_button: Button
+var rows_scroll: ScrollContainer
 var rows_container: VBoxContainer
 var rows: Array[TweakControlRow] = []
 var sandbox_panel: PanelContainer
@@ -28,13 +29,8 @@ var hazard_selector: OptionButton
 var seed_input: SpinBox
 var sandbox_warning_label: Label
 var sandbox_status_label: Label
-var previous_button: Button
-var next_button: Button
-var page_label: Label
 var copy_hash_button: Button
 var _filtered: Array[RuntimeTweakDescriptor] = []
-var _page: int = 0
-var _page_size: int = 5
 var _portrait: bool = false
 
 
@@ -74,7 +70,6 @@ func open() -> bool:
 	if not pause_adapter.acquire(main.city_slice):
 		return false
 	visible = true
-	_page = 0
 	refresh_locale()
 	_refresh_rows()
 	close_button.call_deferred(&"grab_focus")
@@ -107,8 +102,6 @@ func refresh_locale() -> void:
 	search_field.placeholder_text = L10n.t("tuning.search_placeholder")
 	reset_all_button.text = L10n.t("tuning.action.reset_all")
 	close_button.text = "X" if _portrait else L10n.t("tuning.action.resume")
-	previous_button.text = "<" if _portrait else L10n.t("tuning.action.previous")
-	next_button.text = ">" if _portrait else L10n.t("tuning.action.next")
 	copy_hash_button.text = L10n.t("tuning.action.copy_hash")
 	sandbox_warning_label.text = L10n.t("tuning.session.warning")
 	for child: Node in sandbox_grid.get_children():
@@ -129,23 +122,20 @@ func apply_responsive_layout(viewport_size: Vector2) -> void:
 	position = Vector2.ZERO
 	var portrait: bool = viewport_size.y > viewport_size.x
 	_portrait = portrait
-	var margin: float = 14.0 if portrait else 22.0
-	frame.position = Vector2(margin, margin)
-	frame.size = viewport_size - Vector2.ONE * margin * 2.0
-	_page_size = 8 if portrait else 4
+	var margin: float = 8.0 if portrait else 10.0
 	sandbox_grid.columns = 2 if portrait else 3
-	title_label.add_theme_font_size_override(&"font_size", 21 if portrait else 28)
+	title_label.add_theme_font_size_override(&"font_size", 17 if portrait else 20)
 	run_status_label.visible = not portrait
 	reset_all_button.visible = not portrait
 	save_status_label.visible = not portrait
 	copy_hash_button.visible = not portrait
-	category_selector.custom_minimum_size.x = 150.0 if portrait else 190.0
+	category_selector.custom_minimum_size.x = 136.0 if portrait else 170.0
 	close_button.text = "X" if portrait else L10n.t("tuning.action.resume")
-	previous_button.text = "<" if portrait else L10n.t("tuning.action.previous")
-	next_button.text = ">" if portrait else L10n.t("tuning.action.next")
 	for row: TweakControlRow in rows:
 		row.set_compact(portrait)
 	_refresh_rows()
+	frame.position = Vector2(margin, margin)
+	frame.size = viewport_size - Vector2.ONE * margin * 2.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -184,18 +174,19 @@ func _build_ui() -> void:
 	frame.add_theme_stylebox_override(&"panel", RuntimeTweakTheme.panel_style())
 	add_child(frame)
 	var content: VBoxContainer = VBoxContainer.new()
-	content.add_theme_constant_override(&"separation", 10)
+	content.add_theme_constant_override(&"separation", 4)
 	frame.add_child(content)
 	content.add_child(_build_header())
 	content.add_child(_build_toolbar())
-	var rows_scroll: ScrollContainer = ScrollContainer.new()
+	rows_scroll = ScrollContainer.new()
 	rows_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rows_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rows_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	rows_scroll.follow_focus = true
 	content.add_child(rows_scroll)
 	rows_container = VBoxContainer.new()
 	rows_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rows_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rows_container.add_theme_constant_override(&"separation", 6)
+	rows_container.add_theme_constant_override(&"separation", 2)
 	rows_scroll.add_child(rows_container)
 	for index: int in range(ROW_POOL_SIZE):
 		var row: TweakControlRow = TweakControlRow.new()
@@ -211,10 +202,10 @@ func _build_ui() -> void:
 
 func _build_header() -> Control:
 	var header: HBoxContainer = HBoxContainer.new()
-	header.custom_minimum_size.y = 58.0
+	header.custom_minimum_size.y = 38.0
 	title_label = Label.new()
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_label.add_theme_font_size_override(&"font_size", 28)
+	title_label.add_theme_font_size_override(&"font_size", 20)
 	title_label.add_theme_color_override(&"font_color", RuntimeTweakTheme.TEXT)
 	title_label.clip_text = true
 	title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -223,7 +214,7 @@ func _build_header() -> Control:
 	run_status_label.add_theme_font_size_override(&"font_size", 14)
 	header.add_child(run_status_label)
 	close_button = Button.new()
-	RuntimeTweakTheme.style_button(close_button, true)
+	RuntimeTweakTheme.style_button(close_button, true, true)
 	close_button.pressed.connect(close)
 	header.add_child(close_button)
 	return header
@@ -231,19 +222,19 @@ func _build_header() -> Control:
 
 func _build_toolbar() -> Control:
 	var toolbar: HBoxContainer = HBoxContainer.new()
-	toolbar.add_theme_constant_override(&"separation", 8)
+	toolbar.add_theme_constant_override(&"separation", 4)
 	category_selector = OptionButton.new()
-	category_selector.custom_minimum_size = Vector2(190.0, 46.0)
+	category_selector.custom_minimum_size = Vector2(170.0, 34.0)
 	category_selector.item_selected.connect(_on_filter_changed)
 	toolbar.add_child(category_selector)
 	search_field = LineEdit.new()
 	search_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	search_field.custom_minimum_size.y = 46.0
+	search_field.custom_minimum_size.y = 34.0
 	search_field.clear_button_enabled = true
 	search_field.text_changed.connect(_on_search_changed)
 	toolbar.add_child(search_field)
 	reset_all_button = Button.new()
-	RuntimeTweakTheme.style_button(reset_all_button)
+	RuntimeTweakTheme.style_button(reset_all_button, false, true)
 	reset_all_button.pressed.connect(_on_reset_all_pressed)
 	toolbar.add_child(reset_all_button)
 	return toolbar
@@ -251,26 +242,14 @@ func _build_toolbar() -> Control:
 
 func _build_footer() -> Control:
 	var footer: HBoxContainer = HBoxContainer.new()
-	footer.custom_minimum_size.y = 52.0
-	previous_button = Button.new()
-	RuntimeTweakTheme.style_button(previous_button)
-	previous_button.pressed.connect(_change_page.bind(-1))
-	footer.add_child(previous_button)
-	page_label = Label.new()
-	page_label.custom_minimum_size.x = 120.0
-	page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	footer.add_child(page_label)
-	next_button = Button.new()
-	RuntimeTweakTheme.style_button(next_button)
-	next_button.pressed.connect(_change_page.bind(1))
-	footer.add_child(next_button)
+	footer.custom_minimum_size.y = 34.0
 	save_status_label = Label.new()
 	save_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	save_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	save_status_label.add_theme_color_override(&"font_color", RuntimeTweakTheme.MUTED)
 	footer.add_child(save_status_label)
 	copy_hash_button = Button.new()
-	RuntimeTweakTheme.style_button(copy_hash_button)
+	RuntimeTweakTheme.style_button(copy_hash_button, false, true)
 	copy_hash_button.pressed.connect(_copy_hash)
 	footer.add_child(copy_hash_button)
 	return footer
@@ -280,7 +259,7 @@ func _build_sandbox_panel() -> PanelContainer:
 	var panel: PanelContainer = PanelContainer.new()
 	panel.add_theme_stylebox_override(&"panel", RuntimeTweakTheme.panel_style(true))
 	var column: VBoxContainer = VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 10)
+	column.add_theme_constant_override(&"separation", 5)
 	panel.add_child(column)
 	sandbox_warning_label = Label.new()
 	sandbox_warning_label.text = L10n.t("tuning.session.warning")
@@ -289,15 +268,15 @@ func _build_sandbox_panel() -> PanelContainer:
 	column.add_child(sandbox_warning_label)
 	sandbox_grid = GridContainer.new()
 	sandbox_grid.columns = 3
-	sandbox_grid.add_theme_constant_override(&"h_separation", 8)
-	sandbox_grid.add_theme_constant_override(&"v_separation", 8)
+	sandbox_grid.add_theme_constant_override(&"h_separation", 4)
+	sandbox_grid.add_theme_constant_override(&"v_separation", 4)
 	column.add_child(sandbox_grid)
 	enemy_selector = OptionButton.new()
-	enemy_selector.custom_minimum_size.y = 46.0
+	enemy_selector.custom_minimum_size.y = 34.0
 	sandbox_grid.add_child(enemy_selector)
 	sandbox_grid.add_child(_sandbox_button("tuning.session.spawn_enemy", _spawn_selected_enemy))
 	hazard_selector = OptionButton.new()
-	hazard_selector.custom_minimum_size.y = 46.0
+	hazard_selector.custom_minimum_size.y = 34.0
 	sandbox_grid.add_child(hazard_selector)
 	sandbox_grid.add_child(_sandbox_button("tuning.session.spawn_hazard", _spawn_selected_hazard))
 	sandbox_grid.add_child(_sandbox_button("tuning.session.clear", _clear_transient))
@@ -308,7 +287,7 @@ func _build_sandbox_panel() -> PanelContainer:
 	seed_input.max_value = 2_147_483_647.0
 	seed_input.step = 1.0
 	seed_input.value = 0.0
-	seed_input.custom_minimum_size.y = 46.0
+	seed_input.custom_minimum_size.y = 34.0
 	sandbox_grid.add_child(seed_input)
 	sandbox_grid.add_child(_sandbox_button("tuning.session.restart", _restart_with_seed))
 	sandbox_status_label = Label.new()
@@ -321,7 +300,7 @@ func _sandbox_button(key: String, callback: Callable) -> Button:
 	var button: Button = Button.new()
 	button.text = L10n.t(key)
 	button.set_meta(&"l10n_key", key)
-	RuntimeTweakTheme.style_button(button)
+	RuntimeTweakTheme.style_button(button, false, true)
 	button.pressed.connect(callback)
 	return button
 
@@ -361,10 +340,8 @@ func _refresh_rows() -> void:
 	var category: StringName = StringName(category_selector.get_selected_metadata())
 	var session_active: bool = category == SESSION_CATEGORY
 	rows_container.visible = not session_active
+	rows_scroll.visible = not session_active
 	sandbox_panel.visible = session_active
-	previous_button.visible = not session_active
-	next_button.visible = not session_active
-	page_label.visible = not session_active
 	if session_active:
 		return
 	_filtered.clear()
@@ -373,40 +350,32 @@ func _refresh_rows() -> void:
 		var label: String = L10n.t(entry.label_key)
 		if label == entry.label_key:
 			label = entry.label_fallback()
-		if not search.is_empty() and search not in label.to_lower() and search not in String(entry.id):
+		var description: String = L10n.t(entry.description_key)
+		var searchable: String = "%s %s %s %s" % [
+			label, description, String(entry.id), " ".join(entry.tags),
+		]
+		if not search.is_empty() and search not in searchable.to_lower():
 			continue
 		_filtered.append(entry)
-	var page_count: int = maxi(ceili(float(_filtered.size()) / float(_page_size)), 1)
-	_page = clampi(_page, 0, page_count - 1)
-	var start: int = _page * _page_size
 	for index: int in range(rows.size()):
-		var source_index: int = start + index
-		if index >= _page_size or source_index >= _filtered.size():
+		if index >= _filtered.size():
 			rows[index].bind(null, null, null)
 			continue
-		var entry: RuntimeTweakDescriptor = _filtered[source_index]
+		var entry: RuntimeTweakDescriptor = _filtered[index]
 		rows[index].bind(
 			entry,
 			service.requested_value(entry.id),
 			service.active_value(entry.id)
 		)
-	page_label.text = L10n.t("tuning.page", {"current": _page + 1, "total": page_count})
-	previous_button.disabled = _page == 0
-	next_button.disabled = _page >= page_count - 1
 
 
 func _on_filter_changed(_index: int) -> void:
-	_page = 0
+	rows_scroll.scroll_vertical = 0
 	_refresh_rows()
 
 
 func _on_search_changed(_text: String) -> void:
-	_page = 0
-	_refresh_rows()
-
-
-func _change_page(direction: int) -> void:
-	_page += direction
+	rows_scroll.scroll_vertical = 0
 	_refresh_rows()
 
 
@@ -432,9 +401,14 @@ func _on_reset_all_pressed() -> void:
 	_update_run_status()
 
 
-func _on_service_value_changed(_identifier: StringName, _requested: Variant, _active: Variant) -> void:
-	if visible:
-		_refresh_rows()
+func _on_service_value_changed(identifier: StringName, requested: Variant, active: Variant) -> void:
+	if not visible:
+		return
+	for row: TweakControlRow in rows:
+		if row.descriptor != null and row.descriptor.id == identifier:
+			row.refresh(requested, active)
+			break
+	_update_run_status()
 
 
 func _on_provenance_changed(_snapshot: Dictionary) -> void:

@@ -144,11 +144,15 @@ var _full_charge_announced: bool = false
 var _charge_pulse_elapsed: float = 0.0
 var _release_shockwave_remaining: float = 0.0
 var _full_charge_hit_flash_remaining: float = 0.0
+var _authored_sprite_scale: Vector2 = Vector2.ONE
+var _visual_tuning_scale: float = -1.0
+var _visual_tuning_tint: Color = Color.TRANSPARENT
 
 
 func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	robot = p_robot
 	sprite = p_sprite
+	_authored_sprite_scale = sprite.scale
 	robot.facing_changed.connect(_on_facing_changed)
 	robot.locomotion_changed.connect(_on_locomotion_changed)
 	robot.attack_mode_selected.connect(_on_attack_selected)
@@ -165,6 +169,7 @@ func setup(p_robot: GiantRobotController, p_sprite: AnimatedSprite2D) -> void:
 	_prewarm_charge_particles()
 	_prewarm_charge_visuals()
 	_on_health_changed(robot.current_health, robot.max_health)
+	_apply_live_visual_tuning()
 	_show_idle()
 
 
@@ -268,6 +273,7 @@ func full_charge_hit_flash_visible() -> bool:
 
 
 func _process(delta: float) -> void:
+	_apply_live_visual_tuning()
 	_advance_afterimages(delta)
 	_advance_charge_visuals(delta)
 	if dodging:
@@ -287,6 +293,23 @@ func _process(delta: float) -> void:
 			0.45,
 			1.35
 		)
+
+
+func _apply_live_visual_tuning() -> void:
+	if sprite == null:
+		return
+	var tuned_scale: float = float(RuntimeTweakAccess.live_value(
+		&"player.visual.scale", 1.0
+	))
+	var tuned_tint: Color = RuntimeTweakAccess.live_color(
+		&"player.visual.tint", Color.WHITE
+	)
+	if not is_equal_approx(tuned_scale, _visual_tuning_scale):
+		_visual_tuning_scale = tuned_scale
+		sprite.scale = _authored_sprite_scale * tuned_scale
+	if tuned_tint != _visual_tuning_tint:
+		_visual_tuning_tint = tuned_tint
+		sprite.self_modulate = tuned_tint
 
 
 func _on_facing_changed(_facing: int) -> void:
