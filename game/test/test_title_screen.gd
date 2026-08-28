@@ -242,6 +242,20 @@ func test_first_trusted_title_input_requests_audio_once() -> void:
 	_record_test_execution()
 
 
+func test_fresh_profile_starts_with_eighty_percent_music_volume() -> void:
+	var slider: HSlider = screen.get_node("%MusicVolumeSlider") as HSlider
+	var value_label: Label = screen.get_node("%MusicVolumeValue") as Label
+	assert_almost_eq(slider.value, 80.0, 0.001)
+	assert_eq(value_label.text, "80%")
+	var music_bus_index: int = AudioServer.get_bus_index(GameAudioBus.MUSIC)
+	assert_almost_eq(
+		AudioServer.get_bus_volume_db(music_bus_index),
+		AudioVolumeSettings.percent_to_db(80.0),
+		0.001
+	)
+	_record_test_execution()
+
+
 func test_settings_menu_applies_and_persists_the_complete_audio_mix() -> void:
 	var settings_layer: Control = screen.get_node("%SettingsLayer") as Control
 	var sliders: Dictionary = {

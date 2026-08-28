@@ -37,7 +37,7 @@ const MUTE_PREFERENCE_KEYS: Dictionary = {
 }
 const DEFAULT_PERCENTS: Dictionary = {
 	Channel.MASTER: 100.0,
-	Channel.MUSIC: 70.0,
+	Channel.MUSIC: 80.0,
 	Channel.SFX: 100.0,
 	Channel.VOICE: 100.0,
 }

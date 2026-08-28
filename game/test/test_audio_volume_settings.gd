@@ -36,6 +36,39 @@ func test_production_bus_hierarchy_exists_with_intentional_parent_sends() -> voi
 		assert_eq(AudioServer.get_bus_send(index), expected_sends[bus], bus)
 
 
+func test_unsaved_default_mix_sets_music_to_eighty_percent_below_sfx() -> void:
+	assert_almost_eq(
+		AudioVolumeSettings.default_percent(AudioVolumeSettings.Channel.MUSIC),
+		80.0,
+		0.001
+	)
+	assert_almost_eq(
+		AudioVolumeSettings.default_percent(AudioVolumeSettings.Channel.SFX),
+		100.0,
+		0.001
+	)
+	assert_almost_eq(
+		AudioVolumeSettings.load_percent(
+			AudioVolumeSettings.Channel.MUSIC,
+			TEST_PREFERENCE_PATH
+		),
+		80.0,
+		0.001
+	)
+	var values: Dictionary = AudioVolumeSettings.apply_saved(TEST_PREFERENCE_PATH)
+	assert_almost_eq(
+		float(values[AudioVolumeSettings.Channel.MUSIC]),
+		80.0,
+		0.001
+	)
+	var music_bus_index: int = AudioServer.get_bus_index(GameAudioBus.MUSIC)
+	assert_almost_eq(
+		AudioServer.get_bus_volume_db(music_bus_index),
+		AudioVolumeSettings.percent_to_db(80.0),
+		0.001
+	)
+
+
 func test_volume_conversion_and_all_channel_preferences_are_bounded() -> void:
 	assert_almost_eq(AudioVolumeSettings.percent_to_db(100.0), 0.0, 0.001)
 	assert_almost_eq(
