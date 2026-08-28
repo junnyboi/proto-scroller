@@ -24,6 +24,7 @@ const DEFAULT_GAMEPAD_BUTTONS: Dictionary = {
 	&"stomp": JOY_BUTTON_A,
 	&"dodge": JOY_BUTTON_B,
 }
+const RESERVED_MELEE_KEY: Key = KEY_SPACE
 
 static var _controller_vibration_enabled: bool = true
 
@@ -41,6 +42,8 @@ static func apply_saved(path: String = PREFERENCE_PATH) -> bool:
 		var keyboard_code: Key = int(
 			config.get_value("keyboard", String(action), DEFAULT_KEY_CODES[action])
 		) as Key
+		if keyboard_code == RESERVED_MELEE_KEY and action != &"stomp":
+			keyboard_code = DEFAULT_KEY_CODES[action] as Key
 		var saved_gamepad_button: JoyButton = int(
 			config.get_value(
 				"gamepad",
@@ -55,6 +58,7 @@ static func apply_saved(path: String = PREFERENCE_PATH) -> bool:
 	_controller_vibration_enabled = bool(
 		config.get_value("feedback", "controller_vibration", true)
 	)
+	enforce_spacebar_melee_exclusivity()
 	return true
 
 
@@ -64,6 +68,8 @@ static func set_keyboard_binding(
 	path: String = PREFERENCE_PATH
 ) -> bool:
 	if not ACTIONS.has(action) or keycode == KEY_NONE:
+		return false
+	if keycode == RESERVED_MELEE_KEY and action != &"stomp":
 		return false
 	if keycode == KEY_LEFT and action != &"move_left":
 		return false
@@ -117,6 +123,13 @@ static func set_controller_vibration_enabled(
 
 static func controller_vibration_enabled() -> bool:
 	return _controller_vibration_enabled
+
+
+static func enforce_spacebar_melee_exclusivity() -> void:
+	_remove_spacebar_events(&"ui_accept")
+	for action: StringName in ACTIONS:
+		if action != &"stomp":
+			_remove_spacebar_events(action)
 
 
 static func keyboard_key(action: StringName) -> Key:
@@ -191,6 +204,22 @@ static func _apply_default_bindings() -> void:
 	for action: StringName in ACTIONS:
 		_replace_keyboard_event(action, DEFAULT_KEY_CODES[action] as Key)
 		_replace_gamepad_button(action, DEFAULT_GAMEPAD_BUTTONS[action] as JoyButton)
+	enforce_spacebar_melee_exclusivity()
+
+
+static func _remove_spacebar_events(action: StringName) -> void:
+	if not InputMap.has_action(action):
+		return
+	for event: InputEvent in InputMap.action_get_events(action):
+		var key_event: InputEventKey = event as InputEventKey
+		if key_event == null:
+			continue
+		if (
+			key_event.keycode == RESERVED_MELEE_KEY
+			or key_event.physical_keycode == RESERVED_MELEE_KEY
+			or key_event.unicode == int(RESERVED_MELEE_KEY)
+		):
+			InputMap.action_erase_event(action, event)
 
 
 static func _replace_keyboard_event(action: StringName, keycode: Key) -> void:

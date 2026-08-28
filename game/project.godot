@@ -34,6 +34,10 @@ locale/fallback="en"
 
 [input]
 
+ui_accept={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"keycode":4194309), Object(InputEventKey,"keycode":4194310)]
+}
 move_left={
 "deadzone": 0.3,
 "events": [Object(InputEventKey,"physical_keycode":65,"unicode":97), Object(InputEventKey,"physical_keycode":4194319), Object(InputEventJoypadMotion,"axis":0,"axis_value":-1.0), Object(InputEventJoypadButton,"button_index":13)]

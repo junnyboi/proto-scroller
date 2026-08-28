@@ -105,6 +105,38 @@ func test_launch_scene_contract() -> void:
 	_record_test_execution()
 
 
+func test_spacebar_does_not_activate_the_focused_launch_button() -> void:
+	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
+	initialize_button.grab_focus()
+	var signal_counts: Dictionary = {"start": 0}
+	screen.start_requested.connect(func() -> void: signal_counts.start += 1)
+	var space_press: InputEventKey = InputEventKey.new()
+	space_press.physical_keycode = KEY_SPACE
+	space_press.pressed = true
+	assert_true(InputMap.event_is_action(space_press, &"stomp"))
+	assert_false(InputMap.event_is_action(space_press, &"ui_accept"))
+	Input.parse_input_event(space_press)
+	await get_tree().process_frame
+	assert_eq(signal_counts.start, 0)
+	assert_false(screen.initialized)
+	assert_true(initialize_button.has_focus())
+	var space_release: InputEventKey = space_press.duplicate() as InputEventKey
+	space_release.pressed = false
+	Input.parse_input_event(space_release)
+	var enter_press: InputEventKey = InputEventKey.new()
+	enter_press.keycode = KEY_ENTER
+	enter_press.pressed = true
+	assert_true(InputMap.event_is_action(enter_press, &"ui_accept"))
+	Input.parse_input_event(enter_press)
+	var enter_release: InputEventKey = enter_press.duplicate() as InputEventKey
+	enter_release.pressed = false
+	Input.parse_input_event(enter_release)
+	await get_tree().process_frame
+	assert_eq(signal_counts.start, 1)
+	assert_true(screen.initialized)
+	_record_test_execution()
+
+
 func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> void:
 	var hook: String = (screen.get_node("%InstructionLabel") as Label).text
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
