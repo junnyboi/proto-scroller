@@ -139,6 +139,7 @@ func _draw() -> void:
 				color_intensity,
 				pulse_brightness
 			)
+			continue
 		if _draw_support_variant(
 			presentation_variant,
 			origin,
@@ -149,80 +150,15 @@ func _draw() -> void:
 			pulse_brightness
 		):
 			continue
-		if kind == &"shell" or kind == &"rocket":
-			var badge_size: Vector2 = Vector2.ONE * (38.0 + progress * 10.0)
-			draw_texture_rect(
-				TELEGRAPH_BADGE,
-				Rect2(target - badge_size * 0.5, badge_size),
-				false,
-				_threat_color(
-					Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38),
-					color_intensity,
-					pulse_brightness
-				)
-			)
-		if kind == &"shell":
-			draw_line(origin, target, base_color, 8.0 * thickness_scale, true)
-			draw_line(
+		if kind in [&"shell", &"rocket"]:
+			_draw_projectile_path(
+				kind,
 				origin,
 				target,
-				_threat_color(
-					Color(1.0, 0.82, 0.42, 0.86),
-					color_intensity,
-					pulse_brightness
-				),
-				2.0 * thickness_scale,
-				true
-			)
-			draw_circle(
-				target,
-				26.0 + progress * 10.0,
-				_threat_color(
-					Color(1.0, 0.28, 0.10, 0.20),
-					color_intensity,
-					pulse_brightness
-				)
-			)
-			draw_arc(
-				target,
-				31.0,
-				0.0,
-				TAU * progress,
-				32,
-				base_color,
-				4.0 * thickness_scale,
-				true
-			)
-		elif kind == &"rocket":
-			draw_dashed_line(
-				origin,
-				target,
-				base_color,
-				3.0 * thickness_scale,
-				12.0,
-				true
-			)
-			draw_arc(
-				target,
-				42.0,
-				0.0,
-				TAU * progress,
-				36,
-				base_color,
-				5.0 * thickness_scale,
-				true
-			)
-			draw_line(
-				target + Vector2(-18.0, 0.0),
-				target + Vector2(18.0, 0.0),
-				base_color,
-				3.0 * thickness_scale
-			)
-			draw_line(
-				target + Vector2(0.0, -18.0),
-				target + Vector2(0.0, 18.0),
-				base_color,
-				3.0 * thickness_scale
+				progress,
+				thickness_scale,
+				color_intensity,
+				pulse_brightness
 			)
 		else:
 			draw_line(
@@ -250,33 +186,107 @@ func _draw_boss_volley_paths(
 	var origins: Array = style_data.get(&"origins", []) as Array
 	var targets: Array = style_data.get(&"targets", []) as Array
 	var path_count: int = mini(origins.size(), targets.size())
-	if path_count <= 1:
-		return
-	var path_color: Color = _threat_color(
-		Color(1.0, 0.36, 0.16, 0.42 + progress * 0.46),
+	for index: int in range(path_count):
+		var origin: Vector2 = to_local(origins[index] as Vector2)
+		var target: Vector2 = to_local(targets[index] as Vector2)
+		_draw_projectile_path(
+			StringName(record.kind),
+			origin,
+			target,
+			progress,
+			thickness_scale,
+			color_intensity,
+			pulse_brightness
+		)
+
+
+func _draw_projectile_path(
+	kind: StringName,
+	origin: Vector2,
+	target: Vector2,
+	progress: float,
+	thickness_scale: float,
+	color_intensity: float,
+	pulse_brightness: float
+) -> void:
+	var base_color: Color = _threat_color(
+		Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56),
 		color_intensity,
 		pulse_brightness
 	)
-	for index: int in range(1, path_count):
-		var origin: Vector2 = to_local(origins[index] as Vector2)
-		var target: Vector2 = to_local(targets[index] as Vector2)
+	var badge_size: Vector2 = Vector2.ONE * (38.0 + progress * 10.0)
+	draw_texture_rect(
+		TELEGRAPH_BADGE,
+		Rect2(target - badge_size * 0.5, badge_size),
+		false,
+		_threat_color(
+			Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38),
+			color_intensity,
+			pulse_brightness
+		)
+	)
+	if kind == &"shell":
+		draw_line(origin, target, base_color, 8.0 * thickness_scale, true)
+		draw_line(
+			origin,
+			target,
+			_threat_color(
+				Color(1.0, 0.82, 0.42, 0.86),
+				color_intensity,
+				pulse_brightness
+			),
+			2.0 * thickness_scale,
+			true
+		)
+		draw_circle(
+			target,
+			26.0 + progress * 10.0,
+			_threat_color(
+				Color(1.0, 0.28, 0.10, 0.20),
+				color_intensity,
+				pulse_brightness
+			)
+		)
+		draw_arc(
+			target,
+			31.0,
+			0.0,
+			TAU * progress,
+			32,
+			base_color,
+			4.0 * thickness_scale,
+			true
+		)
+	elif kind == &"rocket":
 		draw_dashed_line(
 			origin,
 			target,
-			path_color,
-			4.0 * thickness_scale,
+			base_color,
+			3.0 * thickness_scale,
 			12.0,
 			true
 		)
 		draw_arc(
 			target,
-			34.0 + progress * 10.0,
+			42.0,
 			0.0,
 			TAU * progress,
-			32,
-			path_color,
-			4.0 * thickness_scale,
+			36,
+			base_color,
+			5.0 * thickness_scale,
 			true
+		)
+		draw_line(
+			target + Vector2(-18.0, 0.0),
+			target + Vector2(18.0, 0.0),
+			base_color,
+			3.0 * thickness_scale
+		)
+		draw_line(
+			target + Vector2(0.0, -18.0),
+			target + Vector2(0.0, 18.0),
+			base_color,
+			3.0 * thickness_scale
 		)
 
 

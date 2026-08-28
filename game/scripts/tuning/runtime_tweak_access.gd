@@ -27,6 +27,15 @@ static func live_value(identifier: StringName, fallback: Variant) -> Variant:
 	return authority.live_value(identifier, fallback) if authority != null else fallback
 
 
+static func live_color(identifier: StringName, fallback: Color = Color.WHITE) -> Color:
+	var candidate: Variant = live_value(identifier, "#%s" % fallback.to_html(false))
+	if candidate is Color:
+		return candidate
+	if candidate is String and Color.html_is_valid(String(candidate)):
+		return Color.from_string(String(candidate), fallback)
+	return fallback
+
+
 static func run_value(identifier: StringName, fallback: Variant) -> Variant:
 	var authority: RuntimeTweakService = service()
 	return authority.run_value(identifier, fallback) if authority != null else fallback

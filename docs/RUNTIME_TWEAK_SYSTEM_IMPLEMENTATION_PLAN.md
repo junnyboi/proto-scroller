@@ -1,7 +1,7 @@
 # Proto Scroller Runtime Tuning Laboratory — Implementation Plan
 
 **Author:** Manus AI
-**Status:** In implementation
+**Status:** Implemented
 **Canonical repository:** `https://github.com/junnyboi/proto-scroller`
 **Planning baseline:** `8cd2c6484eae25e78de7b79508912135f33a00c9`
 **Engine:** Godot `4.7.2-stable`, GL Compatibility, matching non-threaded Web templates
@@ -10,7 +10,7 @@
 
 Implement a production-quality in-game tuning laboratory tailored to Proto Scroller. It must generate controls from one typed metadata catalog, apply values at explicit immutable boundaries, persist only validated user deltas, pause and resume the exact gameplay state, provide a real production-path sandbox, and defend ranked career and leaderboard integrity.
 
-This release enables **50 active controls**. It deliberately does not expose every numeric constant. The selection covers the values with the greatest design leverage while excluding allocation topology, identities, collision contracts, save schemas, deterministic ordering, and other invariants.
+This release enables **56 active controls**. It deliberately does not expose every numeric constant. The selection covers the values with the greatest design leverage while excluding allocation topology, identities, collision contracts, save schemas, deterministic ordering, and other invariants.
 
 ## 2. Architectural contract
 
@@ -22,7 +22,7 @@ This release enables **50 active controls**. It deliberately does not expose eve
 | `RuntimeTweakAccess` | Narrow static bridge to the Main-owned service for boundary reads; falls back to existing constants when no service is bound. |
 | `RuntimeTweakPersistence` | Loads user deltas after the baseline, quarantines corruption, debounces writes, and atomically replaces the delta file. |
 | `RunTuningProvenance` | Records `BASELINE`, `TUNED`, or `SANDBOX`, applied reasons, run seed, catalog revision, and short hash. |
-| `RuntimeTweakPanel` | Responsive metadata renderer with category/search filtering, validation feedback, reset controls, and sandbox actions. No domain balance logic. |
+| `RuntimeTweakPanel` | Responsive metadata renderer with dense one-line controls, continuous category scrolling, cross-field validation feedback, reset controls, and sandbox actions. No domain balance logic. |
 | `TuningPauseAdapter` | Acquires one pause lease, captures previous state, pauses the SceneTree, neutralizes mobile input, and restores exactly. |
 | `SandboxScenarioRunner` | Executes a closed catalog of safe commands through existing game factories and APIs. |
 
@@ -30,7 +30,7 @@ The source constants remain fail-closed defaults. Consumers obtain effective val
 
 ## 3. Enabled descriptor catalog
 
-### 3.1 Player and feedback — 10 controls
+### 3.1 Player and feedback — 12 controls
 
 | ID | Default | Range / step | Mode | Integrity |
 |---|---:|---|---|---|
@@ -44,8 +44,10 @@ The source constants remain fail-closed defaults. Consumers obtain effective val
 | `feedback.full_charge_hit_stop_ms` | 110 ms | 25–110 / 5 | LIVE | COSMETIC |
 | `input.mobile_deadzone` | 0.14 | 0.05–0.30 / 0.01 | LIVE | GAMEPLAY |
 | `input.mobile_response_speed` | 18 | 8–30 / 0.5 | LIVE | GAMEPLAY |
+| `player.visual.scale` | 1.00× | 0.50–1.50 / 0.05 | LIVE | COSMETIC |
+| `player.visual.tint` | `#ffffff` | RGB color | LIVE | COSMETIC |
 
-### 3.2 Opposition and siege — 9 controls
+### 3.2 Opposition and siege — 11 controls
 
 | ID | Default | Range / step | Mode | Integrity |
 |---|---:|---|---|---|
@@ -58,6 +60,8 @@ The source constants remain fail-closed defaults. Consumers obtain effective val
 | `spawn.interval_scale` | 0.50× | 0.50–1.00 / 0.05 | NEXT RUN | SCORE_AFFECTING |
 | `projectile.hostile_lifetime` | 2.5 s | 1.0–3.0 / 0.1 | NEXT ATTACK | GAMEPLAY |
 | `projectile.hostile_impact_pitch_jitter` | 0.035 | 0–0.10 / 0.005 | LIVE | COSMETIC |
+| `enemy.visual.scale` | 1.00× | 0.50–1.75 / 0.05 | LIVE | COSMETIC |
+| `enemy.visual.tint` | `#ffffff` | RGB color | LIVE | COSMETIC |
 
 ### 3.3 Bosses — 6 controls
 
@@ -100,7 +104,7 @@ The source constants remain fail-closed defaults. Consumers obtain effective val
 | `progression.rewards.named_boss_multiplier` | 3× | 1–5 / 1 | NEXT RUN | SCORE_AFFECTING |
 | `progression.shop.price_multiplier` | 1.00× | 0.75–1.25 / 0.05 | NEXT RUN | SCORE_AFFECTING |
 
-### 3.6 Interface — 5 controls
+### 3.6 Interface — 7 controls
 
 | ID | Default | Range / step | Mode | Integrity |
 |---|---:|---|---|---|
@@ -109,6 +113,8 @@ The source constants remain fail-closed defaults. Consumers obtain effective val
 | `interface.title_transition_duration_scale` | 1.00× | 0.50–1.50 / 0.05 | NEXT RUN | COSMETIC |
 | `interface.upgrade_modal_shade_opacity` | 0.88 | 0.65–0.95 / 0.01 | LIVE | COSMETIC |
 | `interface.leaderboard_timeout_seconds` | 4.0 s | 2–10 / 0.5 | LIVE | COSMETIC |
+| `interface.hud.scale` | 1.00× | 0.75–1.35 / 0.05 | LIVE | COSMETIC |
+| `interface.hud.tint` | `#ffffff` | RGB color | LIVE | COSMETIC |
 
 ## 4. Persistence and validation
 
@@ -116,7 +122,7 @@ Startup order is mandatory:
 
 1. Validate `res://config/runtime_tweaks/catalog.json` and construct the complete baseline.
 2. Read `user://runtime_tweaks/v1/current.json` only as an overlay.
-3. Ignore unknown IDs; reject wrong types and non-finite numbers; clamp and quantize numeric values.
+3. Ignore unknown IDs; reject wrong types, invalid HTML colors, and non-finite numbers; clamp and quantize numeric values and canonicalize colors to opaque RGB hex.
 4. Apply the overlay transactionally and compute a canonical hash from stable sorted IDs.
 5. Bind LIVE consumers. Deferred controls wait for their declared boundary.
 
@@ -183,7 +189,13 @@ Route each enabled descriptor at its declared boundary. Preserve constants as fa
 
 **Exit criteria:** every enabled descriptor has one consumer, one boundary assertion, and default equivalence. Fixed pools and RuntimeBudget remain unchanged.
 
-### WP5 — Integration, documentation, release synchronization
+### WP5 — Dense scroll surface and visual controls
+
+Replace page stepping and oversized two-line cards with one-line 42-pixel rows in one natural ScrollContainer. Add a typed `color` descriptor/editor and six LIVE/COSMETIC tint/size controls for player artwork, enemy artwork, and the gameplay HUD. Keep collision, hurtboxes, combat geometry, world transforms, and screen-edge alignment unchanged.
+
+**Exit criteria:** every category fits the fixed 16-row pool; wheel/touch/keyboard scrolling and focus following work without pagination; color values validate, canonicalize, persist, hash, and reset; visual adapters preserve gameplay geometry and ranked eligibility.
+
+### WP6 — Integration, documentation, release synchronization
 
 Run the focused tuning suites and lightweight representative regressions, update this plan with completion evidence, reconcile upstream once, push main, generate a fresh Godot 4.7.2 Web export, patch the title/audio shell, upload fresh WASM and PCK, synchronize the existing Proto Scroller WebDev project, verify payload URLs and live panel behavior, save a checkpoint, and publish when available.
 
@@ -193,12 +205,12 @@ Run the focused tuning suites and lightweight representative regressions, update
 
 | Area | Required assertions |
 |---|---|
-| Catalog | Exactly 50 unique enabled IDs; valid types/ranges/modes/integrity; sorted stable hash; defaults match code fallbacks. |
+| Catalog | Exactly 56 unique enabled IDs; valid numeric/boolean/color types, ranges, modes, and integrity classes; sorted stable hash; defaults match code fallbacks. |
 | Persistence | `res://` baseline always loads first; valid user deltas win; reset deletes keys; malformed values cannot partially apply; one debounce write. |
 | Boundaries | Active charge/projectile/spawn/district/run retains old snapshot; next operation uses the queued value. |
 | Pause | 120 paused frames do not change robot position, charge, projectile lifetime, directive time, hazard state, world clock, or weather phase. |
 | Input | F10/chord opens; Space cannot activate panel buttons; A/Cross confirms; B/Escape closes without dodge or attack leakage. |
-| Responsive UI | Panel and footer fit at 1280×720 and 720×1280; minimum touch target 48 px; English/Chinese text is visible. |
+| Responsive UI | Panel and footer fit at 1280×720 and 720×1280; rows are at most 42 px high; every category scrolls continuously without pagination; English/Chinese text is visible. |
 | Sandbox | Commands use existing pools and APIs, report denial, create no runtime nodes, and mark `SANDBOX`. |
 | Integrity | Gameplay edits are sticky tuned; cosmetic-only edits are ranked; tuned/sandbox summaries cannot update profile or network. |
 | Default parity | Identity profile preserves existing focused gameplay expectations and exact catalog behavior. |
@@ -216,7 +228,8 @@ Per current project directive, repository-wide certification, slow Xvfb matrices
 | WP2 | Complete | `5e09c867726c267763b35ddf1d93779700cb903a` | Added the metadata-driven responsive panel, exact SceneTree pause/restore adapter, F10 input, bilingual UI, modal arbitration, and fixed-pool sandbox. `runtime_tweak_panel`: 5 tests / 47 assertions, including 120 paused frames and both target orientations. |
 | WP3 | Complete | `836c436d6bc7ee1fe569a597ccb7da449b5ee54f` | Added sticky `BASELINE`/`TUNED`/`SANDBOX` run provenance, immutable summary metadata, debrief disclosure, profile suppression, and a final leaderboard network guard. `runtime_tweak_integrity`: 5 tests / 22 assertions. |
 | WP4 | Complete | `c6635a6be2e9b1d070474505f7a7c0e4f666b2b8` | Wired all 50 descriptors to production consumers with default-preserving fallbacks and declared LIVE/NEXT ATTACK/NEXT SPAWN/NEXT RUN snapshots; retained fixed pools, immutable shop catalog data, and attack-local projectile state. Static consumer audit: 50/50. `runtime_tweak_adapters`: 5 tests / 36 assertions; `runtime_tweak_service`: 9 tests / 62 assertions; focused boss, world, progression, budget, localization, panel, and integrity suites passed. |
-| WP5 | Pending | — | — |
+| WP5 | Complete | `ab26f6dfea71004633aae84d8e019eb898f32e4f` | Replaced oversized paged cards with 42-pixel one-line rows, a 16-row fixed pool, continuous scrolling, focus following, and metadata-wide search. Added a validated canonical RGB color type plus player/enemy/HUD tint and visual-size adapters that preserve collision and combat geometry. Static consumer audit: 56/56. `runtime_tweak_catalog`: 4 tests / 525 assertions; `runtime_tweak_service`: 10 / 74; `runtime_tweak_panel`: 8 / 99; `runtime_tweak_adapters`: 6 / 47; `l10n`: 6 / 2,186; `responsive_layout`: 6 / 100. |
+| WP6 | Complete | `db1968432368e182324524e4d0663f958f285669` | Integrated the compact visual-tuning system with the concurrent seven-building district contract and pushed shared main. Managed-browser review confirmed the dense list, then exposed and repaired the detached OptionButton PopupMenu's missing CJK font override. The mandatory fresh export, exact payload mapping, live compact-scroll/color inspection, and checkpoint evidence are recorded in the mapped WebDev release ledger. |
 
 ## References
 

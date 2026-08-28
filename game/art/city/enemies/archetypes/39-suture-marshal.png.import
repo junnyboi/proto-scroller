@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/39-suture-marshal.png-8a6f88a4c3aad35b1f2e4da
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

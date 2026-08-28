@@ -182,6 +182,11 @@ func socket(socket_name: StringName) -> Marker2D:
 	return sockets[index] if index >= 0 and index < sockets.size() else null
 
 
+func attack_telegraph_origin() -> Vector2:
+	var core: Marker2D = socket(&"CORE")
+	return core.global_position if core != null else global_position
+
+
 func configure_orientation(use_portrait: bool) -> void:
 	portrait = use_portrait
 	if active_definition == null:

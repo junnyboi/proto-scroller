@@ -18,7 +18,7 @@ The redesign preserves the boss's armor and body phases, support-soldier cap, ar
 
 | Stage | Duration | Presentation | Damage state |
 | --- | ---: | --- | --- |
-| **Charge** | 1.45 s | Seventy-two cyan-blue photon motes converge from a 300-pixel sphere into the boss's visible `CORE` socket. A blue energy sphere grows from 54 to approximately 238 pixels while a 1.45-second carrier-derived electrical rise accelerates toward release. | Harmless. The particles, sphere, and rising cue are the complete telegraph. |
+| **Charge** | 1.45 s | Seventy-two cyan-blue photon motes converge from a 300-pixel sphere into the boss's visible `CORE` socket. A detailed blue energy sphere grows from 54 to approximately 238 pixels inside a warm target badge and clockwise countdown arc while a 1.45-second carrier-derived electrical rise accelerates toward release. | Harmless. The particles, sphere, countdown, and rising cue are the complete telegraph. |
 | **Release** | 1.05 s | The incoming motes, core sphere, and charge cue stop at one state boundary. One cyan-white circular shockwave expands from the same core to a 900-pixel radius, accompanied by a one-second pressure cue and one restrained 10-unit camera impulse. | Only contact with the moving ring band inflicts damage. |
 | **Recovery** | 0.75 s | The shockwave is culled and the boss completes its recovery animation. | Harmless. S-04 may replenish its bounded support squad. |
 
@@ -26,7 +26,7 @@ The same cycle repeats during armored, exposed, and final-health combat. There i
 
 ## Visual Language
 
-The charge reuses the exact player photon source assets rather than introducing another visual dialect or increasing the Web package budget. `photon_core_orb.png` supplies both the converging motes and the energy sphere. `photon_release_shockwave.png` supplies the expanding release surface. S-04 shifts both toward saturated cyan and electric blue, scales the core far beyond the player's chest orb, and keeps all movement code-owned.[2] [4]
+The charge reuses the exact player photon source assets rather than introducing another visual dialect or increasing the Web package budget. `photon_core_orb.png` supplies both the converging motes and the energy sphere. `photon_release_shockwave.png` supplies the expanding release surface. An additive alpha-and-luminance shader removes the source texture's green bias while retaining internal filaments, so both core and motes read as saturated cyan/electric blue. S-04 scales the core far beyond the player's chest orb, surrounds it with the same warm target/countdown language as ordinary enemy attacks, and keeps all movement code-owned.[2] [4]
 
 The prior dedicated ring texture, amber range fill, road-plane ellipse, range rail, ghost fronts, countdown spokes, delayed extra fronts, and red-white terminal strobe are removed. No generated image replaces them because the requested player-style photon assets already exist in the shipped runtime and provide stronger visual continuity.
 
@@ -54,7 +54,7 @@ The attack remains a hazard-tagged enemy event and continues to apply the centra
 
 `BossVerticalSliceController` now exposes only `CORE_SHOCKWAVE` for S-04 in every combat state. It anchors the pooled `BossAttackArea2D` at `BossRig2D.socket("CORE").global_position`, configures one 1,800-pixel-diameter release, and retains the existing recovery-driven infantry replenishment.[1] [3]
 
-`BossAttackArea2D` prewarms one `CPUParticles2D`, one energy-core sprite, one release sprite, and two positional audio players only for its radial role. The existing fixed radial utility slot is reused, so the attack creates no combat-time nodes. The attack surface emits one `core_shockwave_released` signal after starting the release cue; `CommandBossSession` converts that exact boundary into a restrained vertical impulse through the existing `CameraRig`. Generation cleanup, retry, armor transitions, body defeat, and recovery stop all charge/release presentation.[2] [3] [6]
+`BossAttackArea2D` prewarms one `CPUParticles2D`, one energy-core sprite, one release sprite, and two positional audio players only for its radial role. The existing fixed radial utility slot is reused, so the attack creates no combat-time nodes. `BossUtilityPool` now parents the radial slot and every boss lane/line surface under a dedicated absolute-Z `BossAttackPresentationRoot`; they are no longer descendants of `BossStructuralAdapter`, whose legitimate fallback-visibility suppression previously culled the complete S-04 effect tree. The attack surface emits one `core_shockwave_released` signal after starting the release cue; `CommandBossSession` converts that exact boundary into a restrained vertical impulse through the existing `CameraRig`. Generation cleanup, retry, armor transitions, body defeat, and recovery stop all charge/release presentation.[2] [3] [6]
 
 ## Implementation Phases
 
@@ -71,7 +71,7 @@ The attack remains a hazard-tagged enemy event and continues to apply the centra
 | Area | Acceptance criterion |
 | --- | --- |
 | Attack replacement | S-04 exposes only `CORE_SHOCKWAVE`; no old first-boss pattern can be selected. |
-| Telegraph simplicity | Only converging cyan photons and the growing blue core sphere warn the player. |
+| Telegraph simplicity | Converging cyan photons and the growing blue core sphere communicate charge; one warm target badge and closing arc communicate time-to-release using the ordinary-enemy danger grammar. |
 | Core anchoring | Charge sphere and release share the rig's visible `CORE` socket in landscape and portrait. |
 | Visible release | One cyan-white ring expands continuously from the core to its authored radius. |
 | Collision fidelity | Only the moving ring band damages, at most once per activation. |
@@ -84,6 +84,8 @@ The attack remains a hazard-tagged enemy event and continues to apply the centra
 | Deployment | The final shared source is freshly exported and both WebDev runtime payloads are remapped. |
 
 The focused Godot 4.7.2 pass completed **26 tests and 1,160 assertions** across the vertical slice, campaign gates, and runtime budget after the audiovisual update. It proves the 1.45-second timing, exact core-socket anchoring, 72-particle charge, separate cue ownership, exact charge-to-release handoff, single 10-unit camera impulse, one released front, ring-band-only damage, dodge rejection, per-activation deduplication, recurring support cap, boss-campaign continuity, and fixed post-warm node shape. After semantic integration of the concurrent title-controls cleanup, a lightweight combined pass completed **28 tests and 2,900 assertions** across the vertical slice, title screen, and bilingual localization. Repository-wide release certification remains intentionally skipped under the project override.
+
+The later visibility remediation adds a dedicated render-root assertion, warm countdown metadata, and collision-matched 92-pixel visible-band assertion to the focused S-04 contract. Deterministic 1280×720 and 720×1280 captures now show the complete cyan particle convergence, detailed blue sphere, countdown circumference, and released annulus above the boss and scenery. The broader all-boss rationale and evidence live in [`BOSS_ATTACK_TELEGRAPH_READABILITY_PLAN.md`](BOSS_ATTACK_TELEGRAPH_READABILITY_PLAN.md).
 
 ## References
 

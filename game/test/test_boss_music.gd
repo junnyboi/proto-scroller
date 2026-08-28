@@ -1,5 +1,7 @@
 extends GutTest
 
+const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+
 
 func test_all_five_bosses_have_unique_looping_lyria_tracks() -> void:
 	var director: BossMusicDirector = _director()
@@ -75,9 +77,8 @@ func test_audio_off_keeps_boss_state_and_visual_contract_available() -> void:
 	AudioServer.set_bus_mute(music_bus, was_muted)
 
 
-func test_campaign_signals_drive_and_stop_the_prewarmed_player() -> void:
-	var city_scene: PackedScene = load("res://scenes/gameplay/city_slice.tscn")
-	var city: CitySlice = city_scene.instantiate() as CitySlice
+func test_completed_theme_carries_until_next_boss_then_switches() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
@@ -89,8 +90,44 @@ func test_campaign_signals_drive_and_stop_the_prewarmed_player() -> void:
 		campaign.music_director.stream_for_boss(definition.boss_id)
 	)
 	campaign.boss_completed.emit(definition)
+	assert_eq(campaign.music_director.active_boss_id, definition.boss_id)
+	assert_true(campaign.music_director.player.playing)
+	assert_eq(campaign.music_director.stop_count, 0)
+	var next_definition: BossEncounterDefinition = BossCampaignCatalog.definition(
+		&"CANTOR_31_PALE_ENGINE"
+	)
+	campaign.attempt_started.emit(next_definition)
+	assert_eq(campaign.music_director.active_boss_id, next_definition.boss_id)
+	assert_eq(
+		campaign.music_director.player.stream,
+		campaign.music_director.stream_for_boss(next_definition.boss_id)
+	)
+	assert_eq(campaign.music_director.play_count, 2)
+	campaign.stop()
 	assert_eq(campaign.music_director.active_boss_id, &"")
 	assert_null(campaign.music_director.player.stream)
+
+
+func test_choir_theme_survives_new_game_plus_until_s04_starts() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
+	var choir: BossEncounterDefinition = BossCampaignCatalog.definition(&"CHOIR_PRIME")
+	campaign.attempt_started.emit(choir)
+	assert_true(city.urban_siege.continue_cycle())
+	assert_eq(city.urban_siege.cycle_count, 2)
+	assert_eq(campaign.music_director.active_boss_id, choir.boss_id)
+	assert_true(campaign.music_director.player.playing)
+	var s04: BossEncounterDefinition = BossCampaignCatalog.definition(
+		&"SETTLEMENT_ENGINE_S04"
+	)
+	campaign.attempt_started.emit(s04)
+	assert_eq(campaign.music_director.active_boss_id, s04.boss_id)
+	assert_eq(
+		campaign.music_director.player.stream,
+		campaign.music_director.stream_for_boss(s04.boss_id)
+	)
 
 
 func _director() -> BossMusicDirector:

@@ -24,6 +24,7 @@ const PYLON_PRESENTATION_CAPACITY: int = 5
 const PROJECTION_SLOT_CAPACITY: int = 4
 const WRECK_RECEIVER_CAPACITY: int = 2
 const BOSS_RUBBLE_DISPLAY_SIZE: Vector2 = Vector2(460.0, 150.0)
+const ATTACK_PRESENTATION_Z_INDEX: int = 72
 const MIMESIS_AFTERIMAGE_TEXTURE: Texture2D = preload(
 	"res://art/siege/mimesis-armed-afterimage.png"
 )
@@ -61,6 +62,7 @@ var vertical_slice: BossVerticalSliceController
 var escalation: BossEscalationController
 var motion_echo_recorder: MotionEchoRecorder
 var arena_adapter: BossStructuralAdapter
+var attack_presentation_root: Node2D
 var markers: Array[Marker2D] = []
 var marker_presentations: Array[Sprite2D] = []
 var lane_damage_areas: Array[BossAttackArea2D] = []
@@ -473,6 +475,11 @@ func _prewarm() -> void:
 	add_child(escalation)
 	arena_adapter = BossStructuralAdapter.new()
 	add_child(arena_adapter)
+	attack_presentation_root = Node2D.new()
+	attack_presentation_root.name = "BossAttackPresentationRoot"
+	attack_presentation_root.z_as_relative = false
+	attack_presentation_root.z_index = ATTACK_PRESENTATION_Z_INDEX
+	add_child(attack_presentation_root)
 	for index: int in range(PYLON_PRESENTATION_CAPACITY):
 		var pylon: Node2D = _make_record("PylonPresentation%02d" % index, rig)
 		var sprite: Sprite2D = Sprite2D.new()
@@ -575,7 +582,7 @@ func _make_area(
 	collision.shape = shape
 	collision.disabled = true
 	area.add_child(collision)
-	arena_adapter.add_child(area)
+	attack_presentation_root.add_child(area)
 	area.deactivate()
 	return area
 

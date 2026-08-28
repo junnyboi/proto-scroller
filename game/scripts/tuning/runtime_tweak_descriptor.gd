@@ -1,7 +1,7 @@
 class_name RuntimeTweakDescriptor
 extends RefCounted
 
-const SUPPORTED_TYPES: Array[StringName] = [&"bool", &"int", &"float"]
+const SUPPORTED_TYPES: Array[StringName] = [&"bool", &"int", &"float", &"color"]
 const APPLY_MODES: Array[StringName] = [
 	&"LIVE", &"NEXT_ATTACK", &"NEXT_SPAWN", &"NEXT_DISTRICT", &"NEXT_RUN",
 ]
@@ -59,6 +59,12 @@ static func from_dictionary(raw: Dictionary, errors: PackedStringArray) -> Runti
 	if descriptor.value_type == &"bool":
 		if not descriptor.default_value is bool:
 			errors.append("%s default must be boolean" % prefix)
+	elif descriptor.value_type == &"color":
+		var checked: Dictionary = descriptor.sanitize(descriptor.default_value)
+		if not bool(checked.get("ok", false)):
+			errors.append("%s default must be an HTML color" % prefix)
+		else:
+			descriptor.default_value = checked.value
 	else:
 		if not descriptor.default_value is int and not descriptor.default_value is float:
 			errors.append("%s default must be numeric" % prefix)
@@ -77,6 +83,16 @@ static func from_dictionary(raw: Dictionary, errors: PackedStringArray) -> Runti
 func sanitize(candidate: Variant) -> Dictionary:
 	if value_type == &"bool":
 		return {"ok": candidate is bool, "value": bool(candidate) if candidate is bool else false}
+	if value_type == &"color":
+		var parsed: Color
+		if candidate is Color:
+			parsed = candidate as Color
+		elif candidate is String and Color.html_is_valid(String(candidate)):
+			parsed = Color.from_string(String(candidate), Color.WHITE)
+		else:
+			return {"ok": false, "value": default_value}
+		parsed.a = 1.0
+		return {"ok": true, "value": "#%s" % parsed.to_html(false)}
 	if not candidate is int and not candidate is float:
 		return {"ok": false, "value": default_value}
 	var numeric: float = float(candidate)
@@ -92,6 +108,14 @@ func sanitize(candidate: Variant) -> Dictionary:
 func values_equal(first: Variant, second: Variant) -> bool:
 	if value_type == &"float":
 		return is_equal_approx(float(first), float(second))
+	if value_type == &"color":
+		var first_checked: Dictionary = sanitize(first)
+		var second_checked: Dictionary = sanitize(second)
+		return (
+			bool(first_checked.get("ok", false))
+			and bool(second_checked.get("ok", false))
+			and first_checked.value == second_checked.value
+		)
 	return first == second
 
 

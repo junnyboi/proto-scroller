@@ -118,10 +118,14 @@ func begin_from_origins(
 		_origins.append(origin_points[shot_index])
 		_targets.append(target_points[shot_index])
 		_delays.append(maxf(shot_delays[shot_index], 0.0))
+	var presentation_origin: Vector2 = rig.attack_telegraph_origin()
+	var presentation_origins: Array[Vector2] = []
+	presentation_origins.resize(_origins.size())
+	presentation_origins.fill(presentation_origin)
 	telegraph_id = encounter_runtime.telegraphs.reserve(
 		owner,
 		kind,
-		_origins[0],
+		presentation_origin,
 		_targets[0],
 		maxf(telegraph_seconds, 0.01),
 		base_damage * float(_reservation_ids.size()),
@@ -130,7 +134,8 @@ func begin_from_origins(
 		{
 			&"volley_count": _reservation_ids.size(),
 			&"presentation_scale": presentation_scale,
-			&"origins": _origins.duplicate(),
+			&"origins": presentation_origins,
+			&"projectile_origins": _origins.duplicate(),
 			&"targets": _targets.duplicate(),
 		}
 	)

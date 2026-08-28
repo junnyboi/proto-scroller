@@ -181,7 +181,7 @@ func continue_cycle() -> bool:
 	finale_arc_completed = false
 	finale_boss_completed = false
 	if boss_campaign != null:
-		boss_campaign.reset_run()
+		boss_campaign.reset_run(true)
 	_prepare_cycle()
 	return true
 

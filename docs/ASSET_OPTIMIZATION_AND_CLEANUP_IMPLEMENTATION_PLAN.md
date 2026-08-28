@@ -22,8 +22,8 @@ The package cleanup is conservative. Dynamically constructed dossier resources a
 | Phase | Scope | Primary technique | Measured opportunity | Risk | Status |
 |---:|---|---|---:|---|---|
 | 1 | Safe runtime-package cleanup and eight PCM SFX imports | Web-preset exclusions plus QOA import | **832,068 bytes (0.794 MiB) measured** | Low–moderate | **Complete** |
-| 2 | Lossless enemy archetypes and upgrade icons | Convert eligible PNG imports to lossy quality `0.70` | Approximately 1.80 MiB combined | Moderate | Planned |
-| 3 | Existing boss and robot atlas compression | Boss quality `0.70→0.55`; robot `0.80→0.60` | Approximately 1.13 MiB combined | Moderate | Planned |
+| 2 | Lossless enemy archetypes and upgrade icons | Convert eligible PNG imports to lossy quality `0.70` | **1,941,024 bytes (1.851 MiB) measured** | Moderate | **Complete** |
+| 3 | Existing boss and robot atlas compression | Boss quality `0.70→0.55`; robot `0.80→0.60` | **1,185,888 bytes (1.131 MiB) measured** | Moderate | **Complete** |
 | 4 | Selective audio bandwidth reduction | Voice-first 24 kHz trial, then bounded SFX expansion | 0.18–1.11 MiB depending scope | Moderate–high | Planned |
 | 5 | Grid-preserving atlas repacks | 75% boss-cell repack and robot idle-row split | At least 3.57 MiB for bosses; robot TBD | High | Planned |
 | 6 | Permanent package-budget enforcement | Inventory manifest, allowlists, and CI/export regression thresholds | Prevents recurrence | Low | Planned |
@@ -73,11 +73,15 @@ Phase 2 converts eligible lossless PNG imports in `art/city/enemies/archetypes/`
 
 Acceptance requires representative galleries covering all affected archetypes, transparent-edge inspection against dark and bright districts, portrait and landscape checks, and pixel-difference review focused on halos, one-pixel silhouettes, weapon tips, and UI glyph-like edges. Any texture with unacceptable fringe or contour loss stays lossless through an explicit exception list. The phase ends with a measured fresh-export delta, source push, WebDev remap, checkpoint, and publication.
 
+The completed Phase 2 scope contains only the **thirty textures that were still lossless** at canonical baseline `f68e076`: twenty enemy archetypes (`27`–`46`) and ten upgrade icons. Earlier enemy assets with intentional lossy qualities `0.35` or `0.75`, plus the directional-shockwave icon at `0.30`, remain unchanged. The generated manifest records each candidate's UID, dimensions, alpha coverage, source hash, import policy, imported artifact hash, and before/after bytes. Source masters and dimensions are identical; imported payload fell from 2,706,542 to 765,538 bytes. The same-tree Web PCK fell from 26,343,504 to **24,402,480 bytes**, a reduction of **1,941,024 bytes (1.851 MiB; 7.3681 percent)**. Full gallery, Xvfb, and browser certification remain omitted under the project release-gate override; deterministic source-identity, import-policy, and fresh-export checks are complete.
+
 ## 6. Phase 3 — Boss and robot atlas quality tuning
 
 Phase 3 changes only import quality: five boss atlases move from `0.70` to `0.55`, and `grunt_horizontal_atlas.png` moves from `0.80` to `0.60`. Dimensions, frame grids, expected cell sizes, source files, alpha, and runtime slicing code remain unchanged.
 
 Acceptance covers every boss moving and attacking east/west, white-hit flash, telegraph-to-active transitions, road grounding, defeat freeze, and title/responsive presentation where applicable. Robot validation covers all six 25-frame rows, idle, jab-cross, ground slam, charge hold/release, flash states, and outline stability. Failed visual comparisons revert individual atlases rather than weakening the entire threshold. The phase ends with the standard source push and exact WebDev synchronization.
+
+The completed Phase 3 changes only six tracked quality values. All five 8×4 boss atlases move from `0.70` to `0.55`, while the 25×7 robot atlas moves from `0.80` to `0.60`. Source bytes, hashes, dimensions, alpha coverage, UIDs, high-quality flags, size limits, and exact cell geometry are unchanged. Imported payload fell from 12,121,866 to 10,935,982 bytes. Against post-Phase-2 canonical baseline `89b4f2f`, the Web PCK fell from 24,402,560 to **23,216,672 bytes**, a reduction of **1,185,888 bytes (1.131 MiB; 4.8596 percent)**. Relative to the pre-Phase-2 `f68e076` PCK, Phases 2 and 3 together reduce the package by 3,126,832 bytes after accounting for 80 bytes of concurrent upstream growth. Full Xvfb, animation-gallery, and browser certification remain omitted under the release-gate override; deterministic source-identity, grid-geometry, policy, and fresh-export checks are complete.
 
 ## 7. Phase 4 — Selective sample-rate reduction
 
@@ -108,8 +112,8 @@ No phase may claim additive savings by summing overlapping standalone experiment
 | Phase | Source status | Export status | WebDev status |
 |---:|---|---|---|
 | 1 | Implemented in `af5dc4a` and preserved through combined gameplay head `6d2f48d` | Candidate measured at 26,317,184 bytes before final combined export | Complete through the companion WebDev checkpoint and published host |
-| 2 | Planned | Not started | Not started |
-| 3 | Planned | Not started | Not started |
+| 2 | Thirty lossless textures normalized at quality `0.70` | 24,402,480-byte candidate; 1,941,024-byte same-tree reduction | Complete through the companion Phase 2 checkpoint |
+| 3 | Five boss atlases at `0.55`; robot atlas at `0.60` | 23,216,672-byte candidate; 1,185,888-byte same-tree reduction | Complete through the companion Phase 3 checkpoint |
 | 4 | Planned | Not started | Not started |
 | 5 | Planned | Not started | Not started |
 | 6 | Planned | Not started | Not started |

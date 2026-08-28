@@ -48,7 +48,6 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	add_child(arena_barrier)
 	attempt_started.connect(music_director.play_definition)
 	attempt_retried.connect(music_director.play_definition)
-	boss_completed.connect(music_director.stop_music)
 	salvage_trigger = BossSalvageTrigger2D.new()
 	salvage_trigger.claimed.connect(_on_salvage_claimed)
 	add_child(salvage_trigger)
@@ -118,8 +117,8 @@ func advance() -> void:
 		break
 
 
-func reset_run() -> void:
-	stop()
+func reset_run(preserve_music: bool = false) -> void:
+	stop(preserve_music)
 	_triggered_ids.clear()
 	_completed_ids.clear()
 	handoff_state = HANDOFF_NONE
@@ -128,8 +127,8 @@ func reset_run() -> void:
 		gate.reset_gate()
 
 
-func stop() -> void:
-	if music_director != null:
+func stop(preserve_music: bool = false) -> void:
+	if music_director != null and not preserve_music:
 		music_director.stop_music()
 	if siege != null and siege.boss_session != null:
 		siege.boss_session.stop()
@@ -321,7 +320,6 @@ func _try_commit_completion() -> bool:
 	active_gate.consume()
 	attempt_snapshot.clear()
 	attempt_failed = false
-	music_director.stop_music()
 	siege.dependencies.gameplay_hud.hide_boss_status()
 	handoff_state = HANDOFF_SALVAGE
 	if completed_definition.boss_id == &"CHOIR_PRIME":

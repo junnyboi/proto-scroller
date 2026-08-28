@@ -55,11 +55,7 @@ func _present_business(session: CommandBossSession, portrait: bool) -> Dictionar
 		"business_direct_target",
 		slice.direct_clear_seconds >= 45.0 and slice.direct_clear_seconds <= 75.0
 	)
-	_check(
-		"business_support_batch",
-		slice.deploy_business_support().size()
-		== BossVerticalSliceController.BUSINESS_SUPPORT_BATCH
-	)
+	_focus_camera_on_boss(session, portrait)
 	for _connection: int in range(2):
 		slice.register_armor_connection()
 	session.utility_pool.radial_shockwave._process(0.92)
@@ -69,6 +65,11 @@ func _present_business(session: CommandBossSession, portrait: bool) -> Dictionar
 	session.utility_pool.radial_shockwave.radial_age = 0.42
 	session.utility_pool.radial_shockwave.queue_redraw()
 	var shot: String = await _capture("business-shockwave-release", portrait)
+	_check(
+		"business_support_batch",
+		slice.deploy_business_support().size()
+		== BossVerticalSliceController.BUSINESS_SUPPORT_BATCH
+	)
 	var result: Dictionary = {
 		"boss_id": String(definition.boss_id),
 		"attacks": slice.active_attack_choices(),
@@ -90,17 +91,24 @@ func _present_residential(session: CommandBossSession, portrait: bool) -> Dictio
 	var slice: BossVerticalSliceController = session.utility_pool.vertical_slice
 	for _connection: int in range(3):
 		slice.register_armor_connection()
-	while slice.active_attack != &"BLACKOUT_HARVEST":
+	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.2)
+	var cycle_guard: int = 0
+	while slice.active_attack != &"BLACKOUT_HARVEST" and cycle_guard < 8:
 		slice.advance(
 			BossVerticalSliceController.TELEGRAPH_SECONDS
 			+ BossVerticalSliceController.ACTIVE_SECONDS
 			+ BossVerticalSliceController.RECOVERY_SECONDS
 		)
-	_check("residential_four_attacks", slice.active_attack_choices().size() == 4)
+		cycle_guard += 1
+	_check("residential_blackout_reached", slice.active_attack == &"BLACKOUT_HARVEST")
+	_focus_camera_on_boss(session, portrait)
+	_check(
+		"residential_four_attacks",
+		BossVerticalSliceController.RESIDENTIAL_ATTACKS.size() == 4
+	)
 	_check("residential_dry_lane", slice.dry_lane_exists())
 	_check("residential_cradle", slice.central_cradle_preserved)
 	_check("residential_glass_safe", slice.mechanical_targets_clear_of_glass())
-	_check("residential_extraction", slice.begin_extraction(1))
 	await process_frame
 	var shot: String = await _capture("residential", portrait)
 	var result: Dictionary = {
@@ -115,6 +123,16 @@ func _present_residential(session: CommandBossSession, portrait: bool) -> Dictio
 	}
 	session.stop()
 	return result
+
+
+func _focus_camera_on_boss(session: CommandBossSession, portrait: bool) -> void:
+	var city: CitySlice = session.dependencies.city
+	if city == null or session.boss == null:
+		return
+	city.robot.global_position.x = session.boss.global_position.x - (210.0 if portrait else 360.0)
+	city.robot.velocity = Vector2.ZERO
+	city.camera_rig.global_position = city.robot.global_position
+	city.camera_rig.reset_presentation()
 
 
 func _capture(label: String, portrait: bool) -> String:

@@ -107,7 +107,14 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	target_mark_remaining = maxf(target_mark_remaining - delta, 0.0)
 	var actors: Array[EnemyActor2D] = all_actors()
+	var visual_tint: Color = RuntimeTweakAccess.live_color(
+		&"enemy.visual.tint", Color.WHITE
+	)
+	var visual_scale: float = float(RuntimeTweakAccess.live_value(
+		&"enemy.visual.scale", 1.0
+	))
 	for actor: EnemyActor2D in actors:
+		actor.apply_live_visual_tuning(visual_tint, visual_scale)
 		actor.aura_attack_interval_multiplier = 1.0
 		actor.aura_damage_multiplier = 1.0
 		actor.incoming_damage_multiplier = 1.0
@@ -425,7 +432,7 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 			LAND_ENEMY_VISUAL_BASELINE_Y
 		)
 	enemy._visual_rest_position = visual.position
-	enemy._visual_rest_scale = visual.scale
+	enemy.set_authored_visual_scale(visual.scale)
 	enemy.collision_layer = ENEMY_LAYER
 	enemy.collision_mask = 0 if enemy.airborne else WORLD_LAYER | DEBRIS_LAYER
 	enemy._base_collision_layer = enemy.collision_layer
