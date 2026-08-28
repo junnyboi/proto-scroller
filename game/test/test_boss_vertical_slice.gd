@@ -63,6 +63,12 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 	)
 	var initial_charge: Dictionary = shockwave.shockwave_snapshot()
 	assert_eq(initial_charge.mode, &"CORE_CHARGE_RELEASE")
+	assert_eq(initial_charge.render_parent, &"BossAttackPresentationRoot")
+	assert_true(bool(initial_charge.visible_in_tree))
+	assert_gt(
+		session.utility_pool.attack_presentation_root.z_index,
+		session.utility_pool.rig.z_index
+	)
 	assert_eq(int(initial_charge.front_count), 1)
 	assert_eq(
 		String(initial_charge.core_texture),
@@ -101,6 +107,8 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 	shockwave._process(BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS * 0.55)
 	var charged: Dictionary = shockwave.shockwave_snapshot()
 	assert_between(float(charged.charge_progress), 0.54, 0.56)
+	assert_between(float(charged.countdown_progress), 0.54, 0.56)
+	assert_gt(float(charged.countdown_radius), 140.0)
 	assert_gt(float(charged.core_diameter), 140.0)
 	assert_true(bool(charged.charge_particles_emitting))
 	var health_before: float = city.robot.current_health
@@ -123,6 +131,11 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 	)
 	shockwave._process(0.42)
 	var released: Dictionary = shockwave.shockwave_snapshot()
+	assert_almost_eq(
+		float(released.visible_band_thickness),
+		shockwave.shockwave_band_thickness,
+		0.001
+	)
 	var released_radii: PackedFloat32Array = released.radii
 	var front_radius: float = float(released_radii[0])
 	assert_gt(front_radius, 300.0)
@@ -224,6 +237,12 @@ func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() ->
 	assert_almost_eq(projectile.presentation_scale, 1.5, 0.001)
 	assert_eq(projectile.planned, 1)
 	assert_gt(projectile.telegraph_id, 0)
+	var warning: Dictionary = city.telegraph_presenter.snapshot(projectile.telegraph_id)
+	assert_eq(warning.origin, session.utility_pool.rig.attack_telegraph_origin())
+	assert_eq(warning.presentation_variant, BossProjectileVolley.TELEGRAPH_PRESENTATION_VARIANT)
+	assert_eq((warning.style_data.origins as Array).size(), 1)
+	assert_eq((warning.style_data.origins as Array)[0], warning.origin)
+	var projectile_origin: Vector2 = (warning.style_data.projectile_origins as Array)[0]
 	assert_eq(slice.active_attack_choices(), [&"TRIAGE_SWEEP", &"PRESSURE_SENTENCE"])
 	assert_true(slice.central_cradle_preserved)
 	assert_true(slice.mechanical_targets_clear_of_glass())
@@ -232,6 +251,7 @@ func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() ->
 	assert_not_null(fired)
 	assert_eq(fired.source, session.boss)
 	assert_eq(fired.damage_type, &"shell")
+	assert_eq(fired.global_position, projectile_origin)
 	assert_almost_eq(fired.presentation_scale, 1.5, 0.001)
 	for area: BossAttackArea2D in (
 		session.utility_pool.lane_damage_areas + session.utility_pool.line_areas

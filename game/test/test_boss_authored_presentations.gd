@@ -10,6 +10,16 @@ func test_area_roles_keep_geometry_and_echo_presentation_collisionless() -> void
 	add_child_autofree(pool)
 	var lane: BossAttackArea2D = pool.lane_damage_areas[0]
 	var line: BossAttackArea2D = pool.line_areas[0]
+	assert_false(pool.arena_adapter.visible)
+	assert_same(lane.get_parent(), pool.attack_presentation_root)
+	assert_same(line.get_parent(), pool.attack_presentation_root)
+	assert_false(pool.attack_presentation_root.z_as_relative)
+	assert_eq(
+		pool.attack_presentation_root.z_index,
+		BossUtilityPool.ATTACK_PRESENTATION_Z_INDEX
+	)
+	assert_gt(pool.attack_presentation_root.z_index, pool.rig.z_index)
+	assert_lt(pool.attack_presentation_root.z_index, 80)
 	assert_eq(lane.presentation_role, BossAttackArea2D.PresentationRole.LANE_PLATE)
 	assert_eq(line.presentation_role, BossAttackArea2D.PresentationRole.LINE_BEAM)
 	assert_not_null(lane.authored_texture())
@@ -24,6 +34,7 @@ func test_area_roles_keep_geometry_and_echo_presentation_collisionless() -> void
 	assert_false(collision.disabled)
 	assert_true(lane.monitoring)
 	assert_eq(lane.collision_mask, BossAttackArea2D.ROBOT_LAYER)
+	assert_true(lane.is_visible_in_tree())
 	var echo: BossAttackArea2D = pool.line_areas[1]
 	echo.configure_footprint(
 		Vector2.ZERO,

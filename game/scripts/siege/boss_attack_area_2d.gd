@@ -41,14 +41,21 @@ const CHARGE_PARTICLE_CAPACITY: int = 72
 const CHARGE_PARTICLE_RADIUS: float = 300.0
 const CHARGE_CORE_MIN_DIAMETER: float = 54.0
 const CHARGE_CORE_MAX_DIAMETER: float = 238.0
+const CORE_COUNTDOWN_RADIUS: float = 156.0
+const CORE_TARGET_BADGE: Texture2D = preload(
+	"res://art/presentation/telegraph_badge.png"
+)
 const CORE_COLOR_SHIFT_SHADER_CODE: String = """
 shader_type canvas_item;
-uniform vec3 shift_color = vec3(0.05, 0.63, 1.0);
+render_mode blend_add;
+uniform vec4 shift_color : source_color = vec4(0.04, 0.62, 1.0, 1.0);
 void fragment() {
 	vec4 source = texture(TEXTURE, UV);
 	float luminance = dot(source.rgb, vec3(0.299, 0.587, 0.114));
-	vec3 shifted = shift_color * (0.38 + luminance * 1.16);
-	COLOR = vec4(shifted, source.a) * COLOR;
+	float detail = clamp(luminance * 1.7, 0.0, 1.0);
+	float energy = 0.24 + detail * 1.16;
+	float alpha = source.a * (0.12 + detail * 0.88);
+	COLOR = vec4(shift_color.rgb * energy, alpha * shift_color.a * COLOR.a);
 }
 """
 
@@ -279,29 +286,21 @@ func _draw() -> void:
 	var rectangle: Rect2 = Rect2(-footprint_size * 0.5, footprint_size)
 	var texture: Texture2D = authored_texture()
 	if texture != null:
-		draw_texture_rect(texture, rectangle, false)
-	var fill: Color = Color(0.08, 0.82, 0.92, 0.10)
-	var edge: Color = Color(0.45, 0.96, 1.0, 0.88)
-	var width: float = 3.0
+		draw_texture_rect(texture, rectangle, false, Color(0.54, 0.96, 1.0, 0.18))
+	var fill: Color = Color(0.04, 0.58, 0.68, 0.055)
+	var edge: Color = Color(0.38, 0.92, 1.0, 0.62)
+	var width: float = 2.5
 	if visual_state == VisualState.ARMED:
-		fill = Color(0.94, 0.08, 0.72, 0.30)
-		edge = Color(1.0, 0.32, 0.86, 0.98)
-		width = 6.0
+		fill = Color(1.0, 0.20, 0.07, 0.18)
+		edge = Color(1.0, 0.80, 0.44, 0.96)
+		width = 5.0
 	elif visual_state == VisualState.DRY:
-		fill = Color(0.92, 0.96, 1.0, 0.08)
-		edge = Color(0.94, 1.0, 1.0, 0.94)
+		fill = Color(0.70, 0.98, 1.0, 0.04)
+		edge = Color(0.88, 1.0, 1.0, 0.82)
 		width = 4.0
 	draw_rect(rectangle, fill, true)
 	draw_rect(rectangle, edge, false, width)
-	if visual_state == VisualState.TELEGRAPH:
-		for stripe: int in range(4):
-			var stripe_x: float = rectangle.position.x + 24.0 + float(stripe) * 48.0
-			draw_line(
-				Vector2(stripe_x, rectangle.position.y),
-				Vector2(stripe_x + 32.0, rectangle.end.y),
-				Color(1.0, 0.72, 0.16, 0.82),
-				3.0
-			)
+	_draw_area_notches(rectangle, edge, visual_state == VisualState.DRY)
 
 
 func shockwave_snapshot() -> Dictionary:
@@ -329,6 +328,11 @@ func shockwave_snapshot() -> Dictionary:
 		"release_sfx_play_count": shockwave_release_sfx_play_count,
 		"charge_sfx_playing": _charge_sfx_player != null and _charge_sfx_player.playing,
 		"release_sfx_playing": _release_sfx_player != null and _release_sfx_player.playing,
+		"render_parent": get_parent().name if get_parent() != null else &"",
+		"visible_in_tree": is_visible_in_tree(),
+		"countdown_progress": _charge_progress(),
+		"countdown_radius": CORE_COUNTDOWN_RADIUS,
+		"visible_band_thickness": shockwave_band_thickness,
 	}
 
 
@@ -348,6 +352,23 @@ func _draw_core_shockwave() -> void:
 			3.0 + progress * 4.0,
 			true
 		)
+		var badge_size: Vector2 = Vector2.ONE * (CORE_COUNTDOWN_RADIUS * 1.72)
+		draw_texture_rect(
+			CORE_TARGET_BADGE,
+			Rect2(-badge_size * 0.5, badge_size),
+			false,
+			Color(1.0, 0.78, 0.40, 0.22 + progress * 0.24)
+		)
+		draw_arc(
+			Vector2.ZERO,
+			CORE_COUNTDOWN_RADIUS,
+			-PI * 0.5,
+			-PI * 0.5 + TAU * progress,
+			SHOCKWAVE_SEGMENTS,
+			Color(1.0, 0.36, 0.12, 0.72 + pulse * 0.26),
+			5.0 + progress * 3.0,
+			true
+		)
 		return
 	if visual_state != VisualState.ARMED:
 		return
@@ -356,7 +377,16 @@ func _draw_core_shockwave() -> void:
 		return
 	var travel_ratio: float = clampf(radial_age / shockwave_travel_seconds, 0.0, 1.0)
 	var alpha: float = pow(1.0 - travel_ratio, 0.24)
-	draw_circle(Vector2.ZERO, front_radius, Color(0.04, 0.58, 1.0, alpha * 0.035))
+	draw_arc(
+		Vector2.ZERO,
+		front_radius,
+		0.0,
+		TAU,
+		SHOCKWAVE_SEGMENTS,
+		Color(0.02, 0.50, 1.0, alpha * 0.16),
+		shockwave_band_thickness,
+		true
+	)
 	draw_arc(
 		Vector2.ZERO,
 		front_radius,
@@ -364,7 +394,7 @@ func _draw_core_shockwave() -> void:
 		TAU,
 		SHOCKWAVE_SEGMENTS,
 		Color(0.82, 0.98, 1.0, alpha),
-		10.0,
+		14.0,
 		true
 	)
 	draw_arc(
@@ -374,9 +404,35 @@ func _draw_core_shockwave() -> void:
 		TAU,
 		SHOCKWAVE_SEGMENTS,
 		Color(0.02, 0.54, 1.0, alpha * 0.72),
-		16.0,
+		20.0,
 		true
 	)
+
+
+func _draw_area_notches(rectangle: Rect2, edge: Color, safe: bool) -> void:
+	var notch: float = minf(24.0, minf(rectangle.size.x, rectangle.size.y) * 0.22)
+	for x_side: float in [-1.0, 1.0]:
+		for y_side: float in [-1.0, 1.0]:
+			var corner: Vector2 = Vector2(
+				rectangle.get_center().x + rectangle.size.x * 0.5 * x_side,
+				rectangle.get_center().y + rectangle.size.y * 0.5 * y_side
+			)
+			draw_line(corner, corner - Vector2(notch * x_side, 0.0), edge, 4.0)
+			draw_line(corner, corner - Vector2(0.0, notch * y_side), edge, 4.0)
+	if not safe:
+		return
+	var chevron_color: Color = Color(0.88, 1.0, 1.0, 0.76)
+	for x_offset: float in [-18.0, 18.0]:
+		draw_polyline(
+			PackedVector2Array([
+				Vector2(x_offset - 10.0, 6.0),
+				Vector2(x_offset, -6.0),
+				Vector2(x_offset + 10.0, 6.0),
+			]),
+			chevron_color,
+			3.0,
+			true
+		)
 
 
 func _shockwave_front_radius() -> float:
@@ -431,10 +487,13 @@ func _ensure_radial_charge_vfx() -> void:
 	_charge_particles.damping_max = 36.0
 	_charge_particles.scale_amount_min = 0.025
 	_charge_particles.scale_amount_max = 0.070
-	_charge_particles.color = Color(0.22, 0.84, 1.0, 0.96)
+	_charge_particles.color = Color.WHITE
 	_charge_particles.z_index = 1
-	var particle_material: CanvasItemMaterial = CanvasItemMaterial.new()
-	particle_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var particle_shader: Shader = Shader.new()
+	particle_shader.code = CORE_COLOR_SHIFT_SHADER_CODE
+	var particle_material: ShaderMaterial = ShaderMaterial.new()
+	particle_material.shader = particle_shader
+	particle_material.set_shader_parameter(&"shift_color", Color(0.05, 0.65, 1.0, 0.92))
 	_charge_particles.material = particle_material
 	_charge_particles.emitting = false
 	_charge_particles.visible = false
@@ -448,7 +507,7 @@ func _ensure_radial_charge_vfx() -> void:
 	core_shader.code = CORE_COLOR_SHIFT_SHADER_CODE
 	var core_material: ShaderMaterial = ShaderMaterial.new()
 	core_material.shader = core_shader
-	core_material.set_shader_parameter(&"shift_color", Vector3(0.05, 0.63, 1.0))
+	core_material.set_shader_parameter(&"shift_color", Color(0.03, 0.50, 1.0, 1.0))
 	_charge_core.material = core_material
 	_charge_core.visible = false
 	add_child(_charge_core)

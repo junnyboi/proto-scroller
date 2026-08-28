@@ -48,25 +48,34 @@ func _present_entertainment(
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(&"MIMESIS_04")
 	_check("entertainment_started", session.start_definition(definition))
 	var escalation: BossEscalationController = session.utility_pool.escalation
+	_focus_camera_on_boss(session, portrait)
 	var recorder: MotionEchoRecorder = session.utility_pool.motion_echo_recorder
 	for index: int in range(10):
 		recorder.record_motion(
 			session.boss.global_position + Vector2(float(index) * 64.0 - 256.0, 0.0),
 			float(index) * 0.1
 		)
-	_check("entertainment_four_attacks", escalation.active_attack_choices().size() == 4)
+	_check(
+		"entertainment_four_attacks",
+		BossEscalationController.ENTERTAINMENT_ATTACKS.size() == 4
+	)
 	_check("entertainment_eight_markers", recorder.count == 8)
 	_check("entertainment_cyan_safe", not recorder.history_can_damage())
 	_check("entertainment_arm", recorder.arm_marker(5, &"ARMED_AFTERIMAGE"))
 	_check("entertainment_magenta", recorder.activate_armed_footprint())
 	_check("entertainment_footprint", recorder.damage_footprint_matches_collision())
 	_check("entertainment_siren", escalation.deploy_siren() != null)
+	_advance_attack_cycle(escalation)
+	while escalation.active_attack != &"DEAD_AIR_SWEEP":
+		_advance_attack_cycle(escalation)
 	for _connection: int in range(3):
 		escalation.register_armor_connection()
 	_check("entertainment_record", escalation.continuity_record_played)
 	_check("entertainment_direct_target", escalation.direct_clear_seconds >= 45.0 and (
 		escalation.direct_clear_seconds <= 75.0
 	))
+	if escalation.attack_stage == &"TELEGRAPH":
+		escalation.advance(BossEscalationController.TELEGRAPH_SECONDS * 0.55)
 	await process_frame
 	var shot: String = await _capture("entertainment", portrait)
 	var result: Dictionary = {
@@ -89,13 +98,18 @@ func _present_military(session: CommandBossSession, portrait: bool) -> Dictionar
 	)
 	_check("military_started", session.start_definition(definition))
 	var escalation: BossEscalationController = session.utility_pool.escalation
+	_focus_camera_on_boss(session, portrait)
+	_advance_attack_cycle(escalation)
 	while escalation.active_attack != &"SUTURE_SALVO":
 		escalation.advance(
 			BossEscalationController.TELEGRAPH_SECONDS
 			+ BossEscalationController.ACTIVE_SECONDS
 			+ BossEscalationController.RECOVERY_SECONDS
 		)
-	_check("military_four_attacks", escalation.active_attack_choices().size() == 4)
+	_check(
+		"military_four_attacks",
+		BossEscalationController.MILITARY_ATTACKS.size() == 4
+	)
 	_check("military_safe_lane", escalation.safe_lane_exists())
 	_check("military_runner", escalation.request_dispatch() != null)
 	_check("military_one_aux", escalation.live_auxiliary_count() == 1)
@@ -115,6 +129,8 @@ func _present_military(session: CommandBossSession, portrait: bool) -> Dictionar
 	_check("military_direct_target", escalation.direct_clear_seconds >= 45.0 and (
 		escalation.direct_clear_seconds <= 75.0
 	))
+	if escalation.attack_stage == &"TELEGRAPH":
+		escalation.advance(BossEscalationController.TELEGRAPH_SECONDS * 0.55)
 	await process_frame
 	var shot: String = await _capture("military", portrait)
 	var result: Dictionary = {
@@ -129,6 +145,22 @@ func _present_military(session: CommandBossSession, portrait: bool) -> Dictionar
 	}
 	session.stop()
 	return result
+
+
+func _advance_attack_cycle(escalation: BossEscalationController) -> void:
+	escalation.advance(BossEscalationController.TELEGRAPH_SECONDS)
+	escalation.advance(BossEscalationController.ACTIVE_SECONDS)
+	escalation.advance(BossEscalationController.RECOVERY_SECONDS)
+
+
+func _focus_camera_on_boss(session: CommandBossSession, portrait: bool) -> void:
+	var city: CitySlice = session.dependencies.city
+	if city == null or session.boss == null:
+		return
+	city.robot.global_position.x = session.boss.global_position.x - (210.0 if portrait else 360.0)
+	city.robot.velocity = Vector2.ZERO
+	city.camera_rig.global_position = city.robot.global_position
+	city.camera_rig.reset_presentation()
 
 
 func _capture(label: String, portrait: bool) -> String:

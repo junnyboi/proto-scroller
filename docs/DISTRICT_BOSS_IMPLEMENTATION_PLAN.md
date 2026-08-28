@@ -331,6 +331,20 @@ The existing WebDev host was semantically merged with concurrent source `789e031
 
 **Exit gate:** Passed. Source revision, export bytes, checkpoint `cadac459`, and public deployment refer to the same boss-complete tree and immutable payloads.
 
+### WP9 — Post-launch attack-telegraph readability remediation
+
+**Purpose:** Make all boss attack warnings reuse the proven ordinary-enemy danger grammar and repair the invisible S-04 charge/release presentation.
+
+**Status: Implementation, focused contracts, and responsive visual certification complete (2026-08-28).** Investigation reproduced fully active S-04 charge/release state with no visible pixels. The radial attack area, every lane, and every line were descendants of `BossStructuralAdapter`; that adapter correctly hides itself when no fallback conductor is required, unintentionally tree-culling the complete attack subtree. `BossUtilityPool` now owns one prewarmed absolute-Z `BossAttackPresentationRoot` above boss/scenery art and below the shared projectile warning layer. All attack areas moved there without changing capacity, collision, cleanup, or floating-origin ownership.
+
+`BossProjectileVolley` now distinguishes warning origin from firing origin. Each volley snapshots one visible rig-core origin for presentation but retains authored emitter/marker coordinates for actual shell and rocket spawn. `TelegraphPresenter2D` renders every promised boss path through the exact ordinary shell/rocket helper—badge, line or dash, closing arc, crosshair where applicable, firing pulse, damage intensity, and size-scaled width—then stops before generic fallback can duplicate the first shot. Environmental rectangles were reduced to cool low-alpha outlines/notches; white-cyan dry lanes receive safe chevrons and never borrow the warm danger palette.
+
+S-04 retains one attack but adds a warm target badge and clockwise release countdown around its cyan charge. Both reused photon surfaces pass through one additive alpha-and-luminance shader to remove inherited green tint without flattening energy filaments. The released annulus now includes one broad translucent 92-pixel band matching collision plus crisp cyan-white edges. The self-tests were made deterministic and frame bosses before capturing fresh post-move target snapshots.
+
+Focused Godot 4.7.2 contracts pass for the dedicated render root, S-04 charge/countdown/release/collision metadata, one visible-center path per boss projectile, authored socket preservation, representative Mimesis/Cantor volleys, CHOIR Prime rockets, and unchanged ordinary tank warnings. Deterministic vertical-slice and escalation scenarios pass in 1280×720 and 720×1280. Visual review accepted S-04's particles/sphere/countdown/ring and representative Mimesis/Cantor path/badge/safe-lane hierarchy. The repository-wide gate remains skipped under the explicit release override. Detailed investigation and capture notes are in [`BOSS_ATTACK_TELEGRAPH_READABILITY_PLAN.md`](BOSS_ATTACK_TELEGRAPH_READABILITY_PLAN.md).
+
+**Exit gate:** Boss combat feedback no longer depends on structural-adapter visibility; boss projectile warnings use one ordinary-enemy grammar; S-04 charge/release is visible in both orientations; no firing socket or collision authority moves; fixed capacities remain unchanged.
+
 ## Verification matrix
 
 | Area | Required evidence |
@@ -350,6 +364,7 @@ The existing WebDev host was semantically merged with concurrent source `789e031
 | Defeat handoff | All corpse damage rejected; body death drops the right wall and starts one bounded path-clear camera reveal; stationary hold, movement-triggered return, origin rebasing, and reset cleanup are deterministic; the 2.95-second spectacle emits one completion; rubble, drops, persistence, and salvage advance exactly once. |
 | Narrative | Lines trigger deterministically, do not seize control, and repeat immutable facts in capstone dossiers. |
 | Accessibility | Shape, luminance, sound, and footprint redundancy; reduced saturation; audio-off; no mobile-control overlap. |
+| Telegraph readability | Dedicated visible boss attack root; visible-core warning origins; one ordinary-style path per promised projectile; authored socket spawn preserved; S-04 charge/countdown/contact band visible in both orientations. |
 | Localization | English/Chinese key parity, named placeholders, shipped-font glyph coverage. |
 | Web | Godot 4.7.2 non-threaded export; HTTP-only smoke; exact artifact sizes; clean browser console and requests. |
 | WebDev sync | Local shell, loader, worklets, icons, loading assets, remote WASM/PCK, hashes, sizes, source revision, memory, structure, and asset manifests all match the certified export. |

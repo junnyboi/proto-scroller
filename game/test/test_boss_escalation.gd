@@ -216,10 +216,19 @@ func test_mimesis_fires_scaled_marquee_shells_and_rotates_entertainment_support(
 	assert_eq(planned.visual_key, BossEscalationController.ENTERTAINMENT_PROJECTILE_VISUAL)
 	assert_almost_eq(planned.presentation_scale, 1.5, 0.001)
 	assert_gt(planned.telegraph_id, 0)
+	var warning: Dictionary = city.telegraph_presenter.snapshot(planned.telegraph_id)
+	assert_eq(warning.origin, session.utility_pool.rig.attack_telegraph_origin())
+	assert_eq(warning.presentation_variant, BossProjectileVolley.TELEGRAPH_PRESENTATION_VARIANT)
+	assert_eq((warning.style_data.origins as Array).size(), planned.planned)
+	assert_eq((warning.style_data.targets as Array).size(), planned.planned)
+	for warning_origin: Vector2 in warning.style_data.origins as Array:
+		assert_eq(warning_origin, warning.origin)
+	var projectile_origin: Vector2 = (warning.style_data.projectile_origins as Array)[0]
 	escalation.advance(BossEscalationController.TELEGRAPH_SECONDS)
 	var shell: Projectile2D = city.projectile_root.last_acquired
 	assert_not_null(shell)
 	assert_eq(shell.source, session.boss)
+	assert_eq(shell.global_position, projectile_origin)
 	assert_almost_eq(shell.presentation_scale, 1.5, 0.001)
 	for area: BossAttackArea2D in (
 		session.utility_pool.lane_damage_areas + session.utility_pool.line_areas
@@ -247,6 +256,13 @@ func test_cantor_reserves_atomic_three_shell_rosary_and_continuous_military_supp
 	var planned: Dictionary = escalation.projectile_signature()
 	assert_eq(planned.planned, 3)
 	assert_eq(planned.pending, 3)
+	var warning: Dictionary = city.telegraph_presenter.snapshot(planned.telegraph_id)
+	assert_eq(warning.origin, session.utility_pool.rig.attack_telegraph_origin())
+	assert_eq((warning.style_data.origins as Array).size(), 3)
+	assert_eq((warning.style_data.targets as Array).size(), 3)
+	assert_eq((warning.style_data.projectile_origins as Array).size(), 3)
+	for warning_origin: Vector2 in warning.style_data.origins as Array:
+		assert_eq(warning_origin, warning.origin)
 	assert_eq(city.projectile_root.reservation_count(&"shell"), 3)
 	escalation.advance(BossEscalationController.TELEGRAPH_SECONDS)
 	assert_eq(city.projectile_root.active_count(&"shell"), 1)
