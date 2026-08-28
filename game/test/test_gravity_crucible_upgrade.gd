@@ -34,6 +34,7 @@ func test_all_debris_in_1000px_are_captured_nearest_first_at_every_rank() -> voi
 	assert_eq(GravityCrucibleRuntime.CAPTURE_RADII, [0.0, 1000.0, 1000.0, 1000.0])
 	assert_eq(GravityCrucibleRuntime.THROW_SPEEDS, [0.0, 1450.0, 1750.0, 2050.0])
 	assert_eq(GravityCrucibleRuntime.IMPACT_DAMAGE, [0.0, 30.0, 42.0, 56.0])
+	assert_eq(GravityCrucibleRuntime.MAX_CHARGE_ATTACK_MULTIPLIER, 2.0)
 	assert_eq(GravityCrucibleRuntime.EXPLOSION_VISUAL_CAPACITY, 12)
 	assert_true(runtime.apply_rank(1))
 	var spec: AttackSpec = _attack(41_002)
@@ -133,7 +134,12 @@ func test_charge_amount_scales_force_accuracy_and_trajectory() -> void:
 	var weak_direct: Vector2 = weak.global_position.direction_to(target.global_position)
 	runtime.call(&"_on_charge_released", weak_spec, 0.5, 1.25)
 	assert_almost_eq(weak.linear_velocity.length(), 512.5, 0.01)
-	assert_almost_eq(float(weak.get("_crucible_damage")), 14.0, 0.001)
+	assert_almost_eq(float(weak.get("_crucible_damage")), 17.5, 0.001)
+	assert_almost_eq(
+		GravityCrucibleRuntime.attack_multiplier_for_charge(0.25),
+		1.25,
+		0.001
+	)
 	assert_almost_eq(weak.angular_velocity, 2.5, 0.001)
 	assert_almost_eq(weak.gravity_scale, 1.0125, 0.0001)
 	assert_between(weak.linear_velocity.normalized().dot(weak_direct), 0.96, 0.98)
@@ -153,7 +159,12 @@ func test_charge_amount_scales_force_accuracy_and_trajectory() -> void:
 	var full_direct: Vector2 = full.global_position.direction_to(target.global_position)
 	runtime.call(&"_on_charge_released", full_spec, 2.0, 2.0)
 	assert_almost_eq(full.linear_velocity.length(), 2050.0, 0.01)
-	assert_almost_eq(float(full.get("_crucible_damage")), 56.0, 0.001)
+	assert_almost_eq(float(full.get("_crucible_damage")), 112.0, 0.001)
+	assert_almost_eq(
+		GravityCrucibleRuntime.attack_multiplier_for_charge(1.0),
+		2.0,
+		0.001
+	)
 	assert_gt(full.linear_velocity.normalized().dot(full_direct), 0.9999)
 	assert_eq(full.gravity_scale, 0.0)
 	assert_almost_eq(
@@ -274,13 +285,13 @@ func test_release_restores_physics_and_delivers_one_tagged_hit_per_body() -> voi
 	target.current_health = 1000.0
 	debris.linear_velocity = Vector2(2050.0, 0.0)
 	debris.call(&"_resolve_crucible_impact", target)
-	assert_almost_eq(target.current_health, 938.0, 0.001)
+	assert_almost_eq(target.current_health, 882.0, 0.001)
 	assert_eq(city.debris_pool.active_count(), 0)
 	assert_eq(runtime.explosion_count_total, 1)
 	assert_true(runtime.explosion_visuals[0].active)
 	assert_almost_eq(runtime.explosion_visuals[0].scale.x, 1.35, 0.001)
 	debris.call(&"_resolve_crucible_impact", target)
-	assert_almost_eq(target.current_health, 938.0, 0.001)
+	assert_almost_eq(target.current_health, 882.0, 0.001)
 	assert_eq(runtime.explosion_count_total, 1)
 	assert_eq(runtime.release_count_total, 1)
 

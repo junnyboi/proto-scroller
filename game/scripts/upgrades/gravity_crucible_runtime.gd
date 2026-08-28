@@ -17,6 +17,7 @@ const RELEASE_TARGET_RADIUS: float = 1000.0
 const LOW_CHARGE_GRAVITY_MULTIPLIER: float = 1.35
 const MAX_LOW_CHARGE_SPREAD_RADIANS: float = PI * 0.10
 const FULL_CHARGE_STRAIGHT_SECONDS: float = 0.85
+const MAX_CHARGE_ATTACK_MULTIPLIER: float = 2.0
 const AIM_SPREAD_PATTERN: Array[float] = [
 	-1.0, 0.72, -0.48, 1.0, -0.82, 0.36, 0.58, -0.24,
 ]
@@ -133,6 +134,14 @@ func captured_count() -> int:
 		if body != null:
 			count += 1
 	return count
+
+
+static func attack_multiplier_for_charge(charge_progress: float) -> float:
+	return lerpf(
+		1.0,
+		MAX_CHARGE_ATTACK_MULTIPLIER,
+		clampf(charge_progress, 0.0, 1.0)
+	)
 
 
 func snapshot() -> Dictionary:
@@ -309,7 +318,11 @@ func _update_orbits(delta: float) -> void:
 
 func _release_capture(spec: AttackSpec, charge_progress: float) -> void:
 	var launch_speed: float = THROW_SPEEDS[current_rank] * charge_progress
-	var impact_damage: float = IMPACT_DAMAGE[current_rank] * charge_progress
+	var impact_damage: float = (
+		IMPACT_DAMAGE[current_rank]
+		* charge_progress
+		* attack_multiplier_for_charge(charge_progress)
+	)
 	var gravity_multiplier: float = lerpf(
 		LOW_CHARGE_GRAVITY_MULTIPLIER,
 		0.0,
