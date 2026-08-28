@@ -148,6 +148,7 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 	var checked_variants: int = 0
 	for district: CityDistrictProfile in CityDistrictCatalog.districts():
 		for variant: StructuralBuildingVariant in district.building_variants:
+			assert_eq(variant.district_id, district.district_id)
 			assert_true(building.apply_variant(variant))
 			var source_image: Image = variant.intact_texture.get_image()
 			assert_not_null(source_image)
@@ -238,6 +239,12 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						assert_not_null(rubble_bed, String(variant.variant_id))
 						assert_true(rubble_bed.uses_only_rubble_fragments())
 						assert_eq(rubble_bed.material_id(), variant.material_id_at(column, row))
+						assert_eq(pattern._district_style_id(), district.district_id)
+						assert_eq(rubble_bed.district_id(), district.district_id)
+						assert_eq(
+							rubble_bed.district_tint(),
+							PersistentRubbleBed2D.tint_for_district(district.district_id)
+						)
 						assert_almost_eq(
 							rubble_bed.baseline_y(),
 							variant.display_size.y / 4.0,

@@ -9,6 +9,7 @@ func test_cars_and_streetlamps_require_multiple_hits_then_fragment() -> void:
 	await get_tree().process_frame
 	var debris_before: int = city.debris_pool.active_count()
 	var debris_nodes_before: int = city.debris_pool.get_child_count()
+	var dust_before: int = city.building_section_burst_pool.rubble_dust_spawn_count
 	assert_eq(city.car.get_meta(&"street_destructible_kind"), &"car")
 	assert_eq(city.streetlamp.get_meta(&"street_destructible_kind"), &"streetlamp")
 	assert_eq(city.car.max_health, 260.0)
@@ -31,6 +32,9 @@ func test_cars_and_streetlamps_require_multiple_hits_then_fragment() -> void:
 		DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
 	)
 	assert_true(city.car.terminal_rubble.uses_only_rubble_fragments())
+	assert_eq(city.car.terminal_rubble.district_id(), &"BUSINESS")
+	assert_eq(city.building_section_burst_pool.rubble_dust_spawn_count, dust_before + 1)
+	assert_true(city.building_section_burst_pool.active_slots()[-1].dust_only)
 	assert_eq(city.debris_pool.active_count(), debris_before + 5)
 	assert_true(city.streetlamp.receive_damage(
 		_prop_hit(city, city.streetlamp, 6120, 80.0)
@@ -53,10 +57,32 @@ func test_cars_and_streetlamps_require_multiple_hits_then_fragment() -> void:
 		DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
 	)
 	assert_true(city.streetlamp.terminal_rubble.uses_only_rubble_fragments())
+	assert_eq(city.streetlamp.terminal_rubble.district_id(), &"BUSINESS")
+	assert_eq(city.building_section_burst_pool.rubble_dust_spawn_count, dust_before + 2)
 	assert_eq(city.debris_pool.active_count(), debris_before + 8)
 	assert_eq(city.debris_pool.get_child_count(), debris_nodes_before)
 	for debris: DebrisBody2D in city.debris_pool.active_bodies():
 		assert_eq(debris.material_id(), &"steel")
+
+
+func test_streamed_props_support_all_five_district_rubble_palettes() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	var observed_tints: Dictionary[StringName, Color] = {}
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		city.car.configure_terminal_district(district.district_id)
+		city.streetlamp.configure_terminal_district(district.district_id)
+		assert_eq(city.car.terminal_rubble.district_id(), district.district_id)
+		assert_eq(city.streetlamp.terminal_rubble.district_id(), district.district_id)
+		assert_eq(
+			city.car.terminal_rubble.district_tint(),
+			PersistentRubbleBed2D.tint_for_district(district.district_id)
+		)
+		observed_tints[district.district_id] = city.car.terminal_rubble.piece_tint(0)
+	assert_eq(observed_tints.size(), CityDistrictCatalog.DISTRICT_COUNT)
+	assert_ne(observed_tints[&"BUSINESS"], observed_tints[&"ENTERTAINMENT"])
+	assert_ne(observed_tints[&"RESIDENTIAL"], observed_tints[&"ROYAL"])
 
 
 func test_ground_smash_blackens_props_then_next_hit_reduces_them_to_rubble() -> void:
@@ -94,10 +120,17 @@ func test_ground_smash_blackens_props_then_next_hit_reduces_them_to_rubble() -> 
 	assert_true(city.streetlamp.terminal_rubble_active())
 	assert_true(city.streetlamp.collision_shape.disabled)
 	assert_eq(city.debris_pool.active_count(), debris_before + 8)
+	var dust_count_after_live_destruction: int = (
+		city.building_section_burst_pool.rubble_dust_spawn_count
+	)
 	var terminal_state: Dictionary = city.car.capture_stream_state()
 	city.car.restore_stream_state(city.car.position, terminal_state)
 	assert_true(city.car.terminal_rubble_active())
 	assert_false(city.car.visual.visible)
+	assert_eq(
+		city.building_section_burst_pool.rubble_dust_spawn_count,
+		dust_count_after_live_destruction
+	)
 	city.car.restore_stream_state(city.car.position, {})
 	assert_false(city.car.terminal_rubble_active())
 	assert_true(city.car.visual.visible)

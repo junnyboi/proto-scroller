@@ -54,6 +54,16 @@ func lease_count() -> int:
 	return _leases.size()
 
 
+func lease_reasons() -> Array[StringName]:
+	var reasons: Array[StringName] = []
+	for reason: StringName in _leases.values():
+		reasons.append(reason)
+	reasons.sort_custom(func(first: StringName, second: StringName) -> bool:
+		return String(first) < String(second)
+	)
+	return reasons
+
+
 func _apply_pause(paused: bool) -> void:
 	dependencies.city.mobile_controls.set_controls_enabled(true)
 	dependencies.encounter_runtime.set_attack_gate(not paused)

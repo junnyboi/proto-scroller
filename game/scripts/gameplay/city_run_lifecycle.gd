@@ -86,6 +86,7 @@ func _boss_attempt_summary() -> RunSummarySnapshot:
 		city.overdrive_session.activation_count,
 		run_metrics
 	)
+	summary = _with_tuning_provenance(summary)
 	if city.combat_profile != null:
 		summary = summary.with_career_result({
 			"new_combo_record": false,
@@ -341,6 +342,7 @@ func _finish_run(completed: bool, ending_id: StringName = &"NONE") -> void:
 		city.overdrive_session.activation_count,
 		run_metrics
 	)
+	summary = _with_tuning_provenance(summary)
 	if city.combat_profile != null:
 		summary = city.combat_profile.enrich_and_submit(summary)
 		city.rampage_session.frozen_summary = summary
@@ -351,3 +353,10 @@ func _finish_run(completed: bool, ending_id: StringName = &"NONE") -> void:
 		city.gameplay_hud.show_district_complete(summary)
 	else:
 		city.gameplay_hud.show_game_over(summary)
+
+
+func _with_tuning_provenance(summary: RunSummarySnapshot) -> RunSummarySnapshot:
+	var authority: RuntimeTweakService = RuntimeTweakAccess.service()
+	if authority == null:
+		return summary
+	return summary.with_tuning_provenance(authority.provenance_snapshot())

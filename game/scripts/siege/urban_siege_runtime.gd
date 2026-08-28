@@ -305,7 +305,8 @@ func _on_milestone_reached(milestone: StringName) -> void:
 			dependencies.encounter_runtime.resolve_spawn_position(
 				selected_recipe.gas_main_position,
 				&"WORLD"
-			)
+			),
+			_current_district_id()
 		)
 		dependencies.encounter_runtime.set_catalyst_target(gas_main)
 
@@ -337,10 +338,13 @@ func _on_world_window_changed(logical_chunk: int) -> void:
 
 
 func _offer_current_district_once() -> void:
-	var district_id: StringName = &"BUSINESS"
+	_offer_district_once(_current_district_id())
+
+
+func _current_district_id() -> StringName:
 	if dependencies.city.world_stream != null:
-		district_id = dependencies.city.world_stream.current_district_id
-	_offer_district_once(district_id)
+		return dependencies.city.world_stream.current_district_id
+	return &"BUSINESS"
 
 
 func _offer_district_once(district_id: StringName) -> void:
@@ -431,7 +435,8 @@ func _prepare_cycle() -> void:
 		dependencies.encounter_runtime.resolve_spawn_position(
 			selected_recipe.transformer_position,
 			&"WORLD"
-		)
+		),
+		_current_district_id()
 	)
 	dependencies.encounter_runtime.set_catalyst_target(transformer)
 	director.start()

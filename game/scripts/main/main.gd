@@ -3,6 +3,9 @@ extends Node
 
 const TITLE_SCENE: PackedScene = preload("res://scenes/title_screen.tscn")
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+const RUNTIME_TWEAK_PANEL_SCENE: PackedScene = preload(
+	"res://scenes/ui/runtime_tweak_panel.tscn"
+)
 const RESPONSIVE_VIEWPORT_SCRIPT: Script = preload(
 	"res://scripts/main/responsive_viewport.gd"
 )
@@ -31,6 +34,8 @@ var responsive_viewport: ResponsiveViewport
 var campaign_progress: CampaignProgressStore
 var combat_profile: PlayerCombatProfileStore
 var runtime_tweak_service: RuntimeTweakService
+var runtime_tweak_panel: RuntimeTweakPanel
+var forced_next_run_seed: int = -1
 var title_transition_active: bool = false
 var title_transition_duration_scale: float = 1.0
 var transition_kind: StringName = &"idle"
@@ -70,6 +75,9 @@ func _ready() -> void:
 	add_child(runtime_tweak_service)
 	var tuning_errors: PackedStringArray = runtime_tweak_service.setup()
 	assert(tuning_errors.is_empty(), "Runtime tuning setup failed: %s" % [tuning_errors])
+	runtime_tweak_panel = RUNTIME_TWEAK_PANEL_SCENE.instantiate() as RuntimeTweakPanel
+	add_child(runtime_tweak_panel)
+	runtime_tweak_panel.configure(self, runtime_tweak_service)
 	_show_title()
 	_publish_title_transition_phase("idle")
 	if not background_music_player.tree_exiting.is_connected(_release_background_music):
@@ -312,6 +320,13 @@ func retry_game() -> void:
 		_spawn_city_slice()
 
 
+func retry_game_with_tuning_seed(seed: int) -> void:
+	forced_next_run_seed = maxi(seed, 0)
+	if runtime_tweak_service != null:
+		runtime_tweak_service.mark_next_run_sandbox(&"restart_seed")
+	retry_game()
+
+
 func _return_to_title() -> void:
 	if city_slice != null:
 		var previous_city: CitySlice = city_slice
@@ -324,9 +339,12 @@ func _return_to_title() -> void:
 func _spawn_city_slice() -> void:
 	city_slice = CITY_SCENE.instantiate() as CitySlice
 	city_slice.name = "CitySlice"
-	var run_seed: int = CityWorldBuilder.initial_run_seed(
-		city_slice._web_gameplay_smoke_requested()
-	)
+	var run_seed: int = forced_next_run_seed
+	if run_seed < 0:
+		run_seed = CityWorldBuilder.initial_run_seed(
+			city_slice._web_gameplay_smoke_requested()
+		)
+	forced_next_run_seed = -1
 	city_slice.launch_run_seed = run_seed
 	if runtime_tweak_service != null:
 		runtime_tweak_service.freeze_run(run_seed)

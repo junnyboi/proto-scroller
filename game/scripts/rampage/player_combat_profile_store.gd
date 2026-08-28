@@ -94,6 +94,12 @@ func local_leaderboard(limit: int = 10) -> Array[Dictionary]:
 func enrich_and_submit(summary: RunSummarySnapshot) -> RunSummarySnapshot:
 	if summary == null:
 		return summary
+	if not summary.tuning_ranked_eligible:
+		return summary.with_career_result({
+			"new_combo_record": false,
+			"new_score_record": false,
+			"career_snapshot": snapshot(),
+		})
 	var previous_best_score: int = int(_profile.get("best_score", 0))
 	var previous_combo_tier: int = int(_profile.get("highest_combo_tier", 0))
 	_profile["total_runs"] = _bounded_sum(int(_profile.get("total_runs", 0)), 1)
@@ -142,7 +148,7 @@ func leaderboard_candidate(
 	summary: RunSummarySnapshot,
 	build_revision: String = "development"
 ) -> Dictionary:
-	if summary == null:
+	if summary == null or not summary.tuning_ranked_eligible:
 		return {}
 	return {
 		"schema_version": SCHEMA_VERSION,
@@ -178,6 +184,12 @@ func _load_profile() -> Dictionary:
 
 
 func _save_profile() -> bool:
+	var save_directory: String = ProjectSettings.globalize_path(save_path.get_base_dir())
+	if (
+		not DirAccess.dir_exists_absolute(save_directory)
+		and DirAccess.make_dir_recursive_absolute(save_directory) != OK
+	):
+		return false
 	var temporary_path: String = save_path + ".tmp"
 	var backup_path: String = save_path + ".bak"
 	var file: FileAccess = FileAccess.open(temporary_path, FileAccess.WRITE)

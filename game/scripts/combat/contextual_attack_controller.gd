@@ -259,7 +259,7 @@ func cancel_attack() -> void:
 func _run_attack(spec: AttackSpec) -> void:
 	_apply_windup_pose(spec)
 	if spec.anticipation_seconds > 0.0:
-		await get_tree().create_timer(spec.anticipation_seconds).timeout
+		await get_tree().create_timer(spec.anticipation_seconds, false).timeout
 	if current_spec != spec:
 		return
 	phase = Phase.ACTIVE
@@ -281,13 +281,13 @@ func _run_attack(spec: AttackSpec) -> void:
 	_robot.notify_attack_committed(spec.mode, spec.attack_id)
 	attack_active.emit(spec)
 	if spec.active_seconds > 0.0:
-		await get_tree().create_timer(spec.active_seconds).timeout
+		await get_tree().create_timer(spec.active_seconds, false).timeout
 	if current_spec != spec:
 		return
 	phase = Phase.RECOVERY
 	_apply_recovery_pose(spec)
 	if spec.recovery_seconds > 0.0:
-		await get_tree().create_timer(spec.recovery_seconds).timeout
+		await get_tree().create_timer(spec.recovery_seconds, false).timeout
 	if current_spec != spec:
 		return
 	_restore_pose()

@@ -20,6 +20,7 @@ var persistence_state: StringName = &"SAVED"
 var persistence_message: String = ""
 var run_active: bool = false
 var last_error: String = ""
+var next_run_sandbox_reason: StringName = &""
 var _save_remaining_seconds: float = -1.0
 
 
@@ -154,6 +155,9 @@ func freeze_run(seed: int) -> Dictionary[StringName, Variant]:
 	for entry: RuntimeTweakDescriptor in catalog.descriptors():
 		if entry.apply_mode in [&"LIVE", &"NEXT_RUN"]:
 			_mark_applied_if_tuned(entry, run_values[entry.id])
+	if not next_run_sandbox_reason.is_empty():
+		provenance.mark_sandbox(next_run_sandbox_reason)
+		next_run_sandbox_reason = &""
 	run_provenance_changed.emit(provenance.snapshot())
 	return run_values.duplicate(true)
 
@@ -191,6 +195,10 @@ func mark_sandbox(reason: StringName) -> void:
 		return
 	provenance.mark_sandbox(reason)
 	run_provenance_changed.emit(provenance.snapshot())
+
+
+func mark_next_run_sandbox(reason: StringName) -> void:
+	next_run_sandbox_reason = reason
 
 
 func provenance_snapshot() -> Dictionary:

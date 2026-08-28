@@ -13,6 +13,7 @@ const QUEUE_NAME: String = "__PROTO_SCROLLER_LEADERBOARD_RESPONSES__"
 var profile_store: PlayerCombatProfileStore
 var panel: MatchDebriefPanel
 var state: StringName = &"native_local"
+var last_submission_blocked: bool = false
 var _request_counter: int = 0
 var _pending: Dictionary = {}
 
@@ -36,6 +37,11 @@ func setup(store: PlayerCombatProfileStore, debrief_panel: MatchDebriefPanel) ->
 func submit_summary(summary: RunSummarySnapshot) -> void:
 	if profile_store == null or summary == null:
 		return
+	if not summary.tuning_ranked_eligible:
+		last_submission_blocked = true
+		_set_state(&"unranked")
+		return
+	last_submission_blocked = false
 	if not OS.has_feature("web"):
 		_set_state(&"native_local")
 		return
@@ -62,6 +68,7 @@ func debug_snapshot() -> Dictionary:
 		"state": String(state),
 		"pending_count": _pending.size(),
 		"request_counter": _request_counter,
+		"last_submission_blocked": last_submission_blocked,
 	}
 
 

@@ -45,8 +45,13 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
+func arm(
+	p_profile: CatalystProfile,
+	world_position: Vector2,
+	district_id: StringName = &"BUSINESS"
+) -> void:
 	profile = p_profile
+	configure_terminal_district(district_id)
 	global_position = world_position
 	set_meta(&"street_destructible_kind", &"power_box")
 	max_health = profile.max_health
@@ -148,7 +153,7 @@ func _start_obliteration(event: DamageEvent) -> void:
 
 
 func _finish_obliteration_after_delay(event: DamageEvent, generation: int) -> void:
-	await get_tree().create_timer(OBLITERATION_DELAY_SECONDS).timeout
+	await get_tree().create_timer(OBLITERATION_DELAY_SECONDS, false).timeout
 	if generation != _activation_generation or not discharging or is_fully_destroyed:
 		return
 	discharging = false

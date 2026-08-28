@@ -19,7 +19,7 @@ func test_section_burst_pool_is_fixed_and_recycles_oldest_slot() -> void:
 		Vector2(30.0, 40.0), Vector2.LEFT, 520.0, glass
 	)
 	var third: BuildingSectionBurst2D = pool.spawn(
-		Vector2(50.0, 60.0), Vector2.UP, 620.0, steel
+		Vector2(50.0, 60.0), Vector2.UP, 620.0, steel, &"MILITARY"
 	)
 	assert_not_null(first)
 	assert_not_null(second)
@@ -28,8 +28,10 @@ func test_section_burst_pool_is_fixed_and_recycles_oldest_slot() -> void:
 	assert_eq(pool.active_count(), 2)
 	assert_eq(pool.recycle_count, 1)
 	assert_eq(pool.spawn_count, 3)
+	assert_eq(pool.rubble_dust_spawn_count, 3)
 	assert_eq(pool.get_child_count(), child_count)
 	assert_eq(pool.last_material_id, &"steel")
+	assert_eq(pool.last_district_id, &"MILITARY")
 	assert_eq(pool.last_origin, Vector2(50.0, 60.0))
 	assert_same(third.fragments.texture, BuildingSectionBurst2D.STEEL_TEXTURE)
 	assert_eq(third.fragments.amount, 6)
@@ -37,6 +39,14 @@ func test_section_burst_pool_is_fixed_and_recycles_oldest_slot() -> void:
 	assert_eq(third.dust.amount, 5)
 	assert_true(third.falling_debris.emitting)
 	assert_true(third.dust.emitting)
+	assert_eq(third.district_id, &"MILITARY")
+	assert_eq(
+		third.dust.color,
+		BuildingSectionBurst2D._district_dust_color(
+			Color(1.0, 0.58, 0.24, 0.45),
+			&"MILITARY"
+		)
+	)
 	assert_not_null(third.ruin_smoke)
 	assert_true(third.ruin_smoke.emitting)
 	assert_eq(third.ruin_smoke.texture, BuildingSectionBurst2D.DUST_TEXTURE)
@@ -46,8 +56,100 @@ func test_section_burst_pool_is_fixed_and_recycles_oldest_slot() -> void:
 	pool.reset_all()
 	assert_eq(pool.active_count(), 0)
 	assert_eq(pool.spawn_count, 0)
+	assert_eq(pool.rubble_dust_spawn_count, 0)
 	assert_eq(pool.recycle_count, 0)
 	assert_false(third.ruin_smoke.emitting)
+
+
+func test_rubble_formation_dust_is_subtle_district_tinted_and_fixed_pool() -> void:
+	var pool: BuildingSectionBurstPool = BuildingSectionBurstPool.new()
+	pool.capacity = 1
+	add_child_autofree(pool)
+	await get_tree().process_frame
+	var child_count: int = pool.get_child_count()
+	var first: BuildingSectionBurst2D = pool.spawn_rubble_dust(
+		Vector2(80.0, 90.0),
+		180.0,
+		&"ENTERTAINMENT"
+	)
+	assert_not_null(first)
+	assert_true(first.dust_only)
+	assert_eq(first.district_id, &"ENTERTAINMENT")
+	assert_true(first.dust.emitting)
+	assert_false(first.fragments.emitting)
+	assert_false(first.falling_debris.emitting)
+	assert_false(first.ruin_smoke.emitting)
+	assert_false(first.flash.visible)
+	assert_eq(first.dust.amount, 9)
+	assert_almost_eq(first.dust.lifetime, BuildingSectionBurst2D.RUBBLE_DUST_LIFETIME, 0.001)
+	assert_lt(first.dust.color.a, 0.30)
+	assert_eq(
+		first.dust.color,
+		BuildingSectionBurst2D.dust_color_for_district(&"ENTERTAINMENT")
+	)
+	assert_eq(pool.spawn_count, 0)
+	assert_eq(pool.rubble_dust_spawn_count, 1)
+	assert_eq(pool.last_material_id, &"rubble_dust")
+	assert_eq(pool.last_district_id, &"ENTERTAINMENT")
+	var recycled: BuildingSectionBurst2D = pool.spawn_rubble_dust(
+		Vector2(100.0, 110.0),
+		220.0,
+		&"ROYAL"
+	)
+	assert_same(recycled, first)
+	assert_eq(pool.recycle_count, 1)
+	assert_eq(pool.rubble_dust_spawn_count, 2)
+	assert_eq(pool.get_child_count(), child_count)
+	var full_burst: BuildingSectionBurst2D = pool.spawn(
+		Vector2(120.0, 130.0),
+		Vector2.RIGHT,
+		420.0,
+		StructuralMaterialProfile.concrete(),
+		&"BUSINESS"
+	)
+	assert_same(full_burst, first)
+	assert_false(full_burst.dust_only)
+	assert_true(full_burst.fragments.emitting)
+	assert_true(full_burst.ruin_smoke.emitting)
+	assert_almost_eq(full_burst.dust.damping_min, 58.0, 0.001)
+	assert_almost_eq(full_burst.dust.damping_max, 120.0, 0.001)
+
+
+func test_persistent_rubble_has_five_distinct_district_style_tints() -> void:
+	var rubble: PersistentRubbleBed2D = PersistentRubbleBed2D.new()
+	add_child_autofree(rubble)
+	var district_ids: Array[StringName] = [
+		&"BUSINESS",
+		&"RESIDENTIAL",
+		&"ENTERTAINMENT",
+		&"MILITARY",
+		&"ROYAL",
+	]
+	var piece_tints: Dictionary[StringName, Color] = {}
+	for district_id: StringName in district_ids:
+		rubble.configure(
+			Vector2(180.0, 90.0),
+			&"concrete",
+			Color.WHITE,
+			612_441,
+			45.0,
+			34.0,
+			4,
+			district_id
+		)
+		assert_eq(rubble.district_id(), district_id)
+		assert_eq(
+			rubble.district_tint(),
+			PersistentRubbleBed2D.tint_for_district(district_id)
+		)
+		assert_gt(rubble.piece_tint(0).a, 0.85)
+		piece_tints[district_id] = rubble.piece_tint(0)
+	for first_index: int in range(district_ids.size()):
+		for second_index: int in range(first_index + 1, district_ids.size()):
+			assert_ne(
+				piece_tints[district_ids[first_index]],
+				piece_tints[district_ids[second_index]]
+			)
 
 
 func test_material_profiles_select_distinct_generated_fragment_textures() -> void:
