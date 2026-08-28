@@ -46,6 +46,9 @@ func validate_callsign(candidate: String) -> StringName:
 		)
 		if not allowed:
 			return &"invalid_characters"
+	var moderation: StringName = CallsignModeration.validate(normalized)
+	if moderation != &"ok":
+		return moderation
 	return &"ok"
 
 
