@@ -111,6 +111,9 @@ func refresh_locale() -> void:
 	_update_run_status()
 	_on_persistence_state_changed(service.persistence_state, service.persistence_message)
 	L10n.apply_locale_font(self)
+	L10n.apply_locale_popup_font(category_selector.get_popup())
+	L10n.apply_locale_popup_font(enemy_selector.get_popup())
+	L10n.apply_locale_popup_font(hazard_selector.get_popup())
 
 
 func apply_responsive_layout(viewport_size: Vector2) -> void:

@@ -169,6 +169,28 @@ func test_parameter_list_is_dense_scroll_first_and_color_editable() -> void:
 	assert_eq(main.runtime_tweak_service.requested_value(&"player.visual.tint"), "#62f5df")
 
 
+func test_category_popup_receives_and_releases_the_cjk_font_override() -> void:
+	L10n.set_locale("zh-CN")
+	main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	var panel: RuntimeTweakPanel = main.runtime_tweak_panel
+	panel.refresh_locale()
+	var popup: PopupMenu = panel.category_selector.get_popup()
+	var player_index: int = -1
+	for index: int in range(panel.category_selector.item_count):
+		if StringName(panel.category_selector.get_item_metadata(index)) == &"PLAYER":
+			player_index = index
+			break
+	assert_gte(player_index, 0)
+	assert_true(popup.has_theme_font_override(&"font"))
+	assert_eq(panel.category_selector.get_item_text(player_index), "玩家")
+	L10n.set_locale("en")
+	panel.refresh_locale()
+	assert_false(popup.has_theme_font_override(&"font"))
+	assert_eq(panel.category_selector.get_item_text(player_index), "PLAYER")
+
+
 func test_sandbox_denial_is_clean_and_success_marks_run_without_node_growth() -> void:
 	main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)
