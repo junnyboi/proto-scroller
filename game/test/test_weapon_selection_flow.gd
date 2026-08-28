@@ -11,6 +11,7 @@ const WEAPON_IDS: Array[StringName] = [
 
 func test_live_selection_arms_every_weapon_against_procedural_targets() -> void:
 	var city: CitySlice = await _spawn_isolated_city()
+	assert_false(city.gameplay_hud.weapon_status_strip.visible)
 	var assembler: PlayerUpgradeAssembler = city.upgrade_assembler
 	var session: UpgradeSession = assembler.session
 	var machine: MachineGunRuntime = assembler.runtimes[&"MACHINE_GUN"] as MachineGunRuntime

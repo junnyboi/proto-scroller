@@ -20,6 +20,7 @@ var ranks: Dictionary[StringName, int] = {}
 
 func _ready() -> void:
 	name = "WeaponStatusStrip"
+	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label = Label.new()
 	label.add_theme_font_size_override(&"font_size", 15)
