@@ -20,6 +20,7 @@ const ARMOR: float = 330.0
 const HEALTH: float = 320.0
 const SCREEN_DURATION: float = 4.0
 const TARGET_DURATION: float = 60.0
+const CORE_SHOCKWAVE_CAMERA_IMPULSE: float = 10.0
 const BOSS_REPAIR_DROP_OFFSETS: Array[Vector2] = [
 	Vector2(-82.0, -96.0),
 	Vector2(0.0, -126.0),
@@ -37,6 +38,7 @@ var elapsed_seconds: float = 0.0
 var generation_token: int = 0
 var last_completed_wreck_position: Vector2 = Vector2.ZERO
 var last_repair_drop_count: int = 0
+var core_shockwave_camera_impulse_count: int = 0
 var _state_elapsed: float = 0.0
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
@@ -59,6 +61,9 @@ func setup(p_dependencies: UrbanSiegeDependencies) -> void:
 	)
 	utility_pool.vertical_slice.attack_changed.connect(_on_boss_attack_changed)
 	utility_pool.escalation.attack_changed.connect(_on_boss_attack_changed)
+	utility_pool.radial_shockwave.core_shockwave_released.connect(
+		_on_core_shockwave_released
+	)
 	royal_finale = BossRoyalFinaleController.new()
 	royal_finale.name = "BossRoyalFinaleController"
 	royal_finale.setup(utility_pool, dependencies.encounter_runtime)
@@ -638,6 +643,21 @@ func _on_boss_attack_changed(_attack_id: StringName, stage: StringName) -> void:
 	if utility_pool == null or utility_pool.rig == null:
 		return
 	utility_pool.rig.play_attacking(stage, _rig_facing())
+
+
+func _on_core_shockwave_released() -> void:
+	if (
+		active_definition == null
+		or active_definition.boss_id != BossVerticalSliceController.BUSINESS_ID
+		or dependencies == null
+		or dependencies.city == null
+		or dependencies.city.camera_rig == null
+	):
+		return
+	dependencies.city.camera_rig.add_impact_impulse(
+		Vector2(0.0, -CORE_SHOCKWAVE_CAMERA_IMPULSE)
+	)
+	core_shockwave_camera_impulse_count += 1
 
 
 func _on_royal_boss_attack_changed(
