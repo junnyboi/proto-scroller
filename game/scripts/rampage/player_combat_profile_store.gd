@@ -184,6 +184,12 @@ func _load_profile() -> Dictionary:
 
 
 func _save_profile() -> bool:
+	var save_directory: String = ProjectSettings.globalize_path(save_path.get_base_dir())
+	if (
+		not DirAccess.dir_exists_absolute(save_directory)
+		and DirAccess.make_dir_recursive_absolute(save_directory) != OK
+	):
+		return false
 	var temporary_path: String = save_path + ".tmp"
 	var backup_path: String = save_path + ".bak"
 	var file: FileAccess = FileAccess.open(temporary_path, FileAccess.WRITE)

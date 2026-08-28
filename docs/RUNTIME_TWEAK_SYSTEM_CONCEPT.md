@@ -1,7 +1,7 @@
 # Proto Scroller Runtime Tuning Laboratory — Concept Design
 
-**Author:** Manus AI  
-**Status:** Accepted implementation concept  
+**Author:** Manus AI
+**Status:** Accepted implementation concept
 **Source baseline:** `8cd2c6484eae25e78de7b79508912135f33a00c9`
 
 ## Design intent

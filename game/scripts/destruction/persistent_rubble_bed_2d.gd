@@ -49,16 +49,25 @@ func configure(
 	rng.seed = maxi(pattern_seed, 1) * 982451653 + 961748927
 	var half_width: float = maxf(footprint.x, 1.0) * 0.5
 	var bounded_height: float = maxf(bed_height, 8.0)
+	var width_range: Vector2 = Vector2(0.30, 0.42)
+	if material_id == &"glass":
+		width_range = Vector2(0.18, 0.26)
+	elif material_id == &"steel":
+		width_range = Vector2(0.25, 0.35)
 	var material_tint: Color = _material_tint(material_id)
 	var district_tint: Color = tint_for_district(district_id)
 	var authored_tint: Color = visual_tint.lerp(Color.WHITE, 0.72)
 	var rubble_tint: Color = material_tint.lerp(district_tint, DISTRICT_TINT_BLEND)
+	rubble_tint = rubble_tint.lerp(Color.WHITE, 0.48)
 	rubble_tint *= authored_tint
 	rubble_tint.a = 0.92
 	for index: int in range(_pieces.size()):
 		var sprite: Sprite2D = _pieces[index]
 		var weight: float = (float(index) + 0.5) / float(_pieces.size())
-		var desired_width: float = footprint.x * rng.randf_range(0.22, 0.31)
+		var desired_width: float = footprint.x * rng.randf_range(
+			width_range.x,
+			width_range.y
+		)
 		var texture_width: float = maxf(texture.get_width(), 1.0)
 		var texture_height: float = maxf(texture.get_height(), 1.0)
 		var horizontal_scale: float = desired_width / texture_width

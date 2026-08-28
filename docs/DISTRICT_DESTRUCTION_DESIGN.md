@@ -106,7 +106,7 @@ Sprites are imported without mipmaps and resized to a compact gameplay resolutio
 
 ## Acceptance Criteria
 
-The implementation is complete when all five districts are selected deterministically by forward chunk progress; all 25 stable building IDs are addressable; six live building slots are reused with no post-warm allocation; every variant retains six destructible cells, staged cracks, pipe/cable details, alpha-safe procedural hollows, support transfer, chain collapse, and state persistence; every terminal cell and persistent destructible prop/catalyst leaves bounded rubble fragments without any texture-backed destroyed-cell background; district and variant identity survive stream-out and restore; landscape and portrait galleries are visually inspected; and the release Web bundle passes browser/network/runtime checks.
+The implementation is complete when all five districts are selected deterministically by forward chunk progress; all 25 stable building IDs are addressable; six live building slots are reused with no post-warm allocation; every variant retains six destructible cells, staged cracks, pipe/cable details, alpha-safe procedural hollows, support transfer, chain collapse, and state persistence; every terminal ground bay plus every terminal persistent destructible prop/catalyst leaves bounded rubble fragments without any texture-backed destroyed-cell background, while upper facade bays add no floating rubble; district and variant identity survive stream-out and restore; landscape and portrait galleries are visually inspected; and the release Web bundle passes browser/network/runtime checks.
 
 ## References
 

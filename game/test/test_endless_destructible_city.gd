@@ -77,7 +77,7 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	_record_test_execution()
 
 
-func test_upper_cell_terminal_rubble_derives_from_restored_structural_state() -> void:
+func test_upper_cell_terminal_ruin_restores_without_floating_rubble() -> void:
 	var city: CitySlice = await _spawn_city()
 	var building: StructuralBuilding2D = city.building
 	var cell: Destructible2D = building.get_cell(0, 0)
@@ -87,22 +87,16 @@ func test_upper_cell_terminal_rubble_derives_from_restored_structural_state() ->
 	assert_false(pattern._is_ground_level_ruin())
 	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
 	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_004)))
-	assert_eq(
-		pattern._ruin_rubble_sprite_count(),
-		BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT
-	)
-	assert_true(pattern._ruin_rubble_bed().uses_only_rubble_fragments())
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
+	assert_null(pattern._ruin_rubble_bed())
 	var terminal_state: Dictionary = building.capture_stream_state()
 	building.restore_stream_state({})
 	assert_false(cell.is_destroyed())
 	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
 	building.restore_stream_state(terminal_state)
 	assert_true(cell.is_destroyed())
-	assert_eq(
-		pattern._ruin_rubble_sprite_count(),
-		BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT
-	)
-	assert_true(pattern._ruin_rubble_bed().uses_only_rubble_fragments())
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
+	assert_null(pattern._ruin_rubble_bed())
 	_record_test_execution()
 
 
@@ -333,12 +327,9 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_eq(sprite.material, pattern.cavity_material())
 	assert_true(cell.receive_damage(_fatal_event(city, cell, attack_id, cell.current_health)))
 	assert_true(cell.is_destroyed())
-	assert_eq(
-		pattern._ruin_rubble_sprite_count(),
-		BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT
-	)
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
 	assert_false(pattern._is_ground_level_ruin())
-	assert_true(pattern._ruin_rubble_bed().uses_only_rubble_fragments())
+	assert_null(pattern._ruin_rubble_bed())
 	assert_almost_eq(_hollow_progress(pattern), 1.0, 0.0001)
 	assert_almost_eq(
 		pattern.cavity_darken_strength(),
@@ -364,7 +355,7 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_true(shader_code.contains("terminal_arch_blend"))
 	assert_true(shader_code.contains("discard"))
 	cell.restore_stream_state({})
-	assert_false(pattern._ruin_rubble_bed().is_active())
+	assert_null(pattern._ruin_rubble_bed())
 	_record_test_execution()
 
 

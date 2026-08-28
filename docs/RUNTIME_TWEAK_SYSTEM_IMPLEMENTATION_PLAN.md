@@ -1,9 +1,9 @@
 # Proto Scroller Runtime Tuning Laboratory — Implementation Plan
 
-**Author:** Manus AI  
-**Status:** In implementation  
-**Canonical repository:** `https://github.com/junnyboi/proto-scroller`  
-**Planning baseline:** `8cd2c6484eae25e78de7b79508912135f33a00c9`  
+**Author:** Manus AI
+**Status:** In implementation
+**Canonical repository:** `https://github.com/junnyboi/proto-scroller`
+**Planning baseline:** `8cd2c6484eae25e78de7b79508912135f33a00c9`
 **Engine:** Godot `4.7.2-stable`, GL Compatibility, matching non-threaded Web templates
 
 ## 1. Objective

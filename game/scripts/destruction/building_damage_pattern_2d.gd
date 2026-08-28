@@ -30,8 +30,8 @@ const DESTROYED_DARKEN_STRENGTH: float = 0.38
 const DESTROYED_HOLLOW_EXTENTS: Vector2 = Vector2(0.37, 0.43)
 const HOLLOW_CENTER_Y: float = 0.56
 const RUIN_RUBBLE_SPRITE_COUNT: int = 4
+const RUIN_SILHOUETTE_VARIANT_COUNT: int = 6
 const GROUND_RUBBLE_HEIGHT: float = 50.0
-const UPPER_RUBBLE_HEIGHT: float = 32.0
 const CAVITY_SHADER_CODE: String = """
 shader_type canvas_item;
 render_mode unshaded;
@@ -48,6 +48,7 @@ uniform int impact_profile = 0;
 uniform float impact_direction = 1.0;
 uniform vec4 region_uv_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform bool ground_level = false;
+uniform int silhouette_variant = 0;
 
 void fragment() {
 	vec4 facade = texture(TEXTURE, UV) * visual_tint;
@@ -57,9 +58,46 @@ void fragment() {
 		if (hollow_progress > 0.0001) {
 			vec2 cell_uv = (UV - region_uv_rect.xy) / max(region_uv_rect.zw, vec2(0.0001));
 			if (ground_level && hollow_progress > 0.98) {
-				float top_coarse = 0.5 + 0.5 * sin(cell_uv.x * 31.0 + hollow_seed * 47.0);
-				float top_chips = step(0.66, sin(cell_uv.x * 83.0 - hollow_seed * 71.0));
-				float top_break_depth = 0.012 + top_coarse * 0.020 + top_chips * 0.014;
+				float top_frequency = 31.0;
+				float chip_frequency = 83.0;
+				float top_shape = 0.0;
+				if (silhouette_variant == 1) {
+					top_frequency = 23.0;
+					chip_frequency = 67.0;
+					top_shape = (1.0 - cell_uv.x) * 0.014;
+				} else if (silhouette_variant == 2) {
+					top_frequency = 27.0;
+					chip_frequency = 79.0;
+					top_shape = cell_uv.x * 0.014;
+				} else if (silhouette_variant == 3) {
+					top_frequency = 19.0;
+					chip_frequency = 59.0;
+					top_shape = step(0.46, cell_uv.x) * 0.010;
+				} else if (silhouette_variant == 4) {
+					top_frequency = 37.0;
+					chip_frequency = 97.0;
+					top_shape = step(
+						0.58,
+						sin(cell_uv.x * 53.0 + hollow_seed * 29.0)
+					) * 0.016;
+				} else if (silhouette_variant == 5) {
+					top_frequency = 21.0;
+					chip_frequency = 73.0;
+					top_shape = (
+						1.0 - smoothstep(0.0, 0.10, abs(cell_uv.x - 0.31))
+						+ 1.0 - smoothstep(0.0, 0.10, abs(cell_uv.x - 0.72))
+					) * 0.014;
+				}
+				float top_coarse = 0.5 + 0.5 * sin(
+					cell_uv.x * top_frequency + hollow_seed * 47.0
+				);
+				float top_chips = step(
+					0.66,
+					sin(cell_uv.x * chip_frequency - hollow_seed * 71.0)
+				);
+				float top_break_depth = (
+					0.010 + top_coarse * 0.019 + top_chips * 0.013 + top_shape
+				);
 				if (cell_uv.y < top_break_depth) {
 					discard;
 				}
@@ -75,10 +113,48 @@ void fragment() {
 			}
 		vec2 delta = cell_uv - hollow_center_uv;
 		float angle = atan(delta.y, delta.x);
-		float coarse = sin(angle * 5.0 + hollow_seed * 19.0);
-		float chips = sin(angle * 11.0 - hollow_seed * 31.0);
-		float notches = step(0.70, sin(angle * 17.0 + hollow_seed * 43.0));
-		float boundary = 1.0 + coarse * 0.075 + chips * 0.035 - notches * 0.055;
+		float coarse_frequency = 5.0;
+		float chip_frequency = 11.0;
+		float notch_frequency = 17.0;
+		float silhouette_shape = 0.0;
+		if (silhouette_variant == 1) {
+			coarse_frequency = 4.0;
+			chip_frequency = 9.0;
+			notch_frequency = 15.0;
+			silhouette_shape = delta.x / extents.x * 0.070;
+		} else if (silhouette_variant == 2) {
+			coarse_frequency = 6.0;
+			chip_frequency = 13.0;
+			notch_frequency = 19.0;
+			silhouette_shape = -delta.x / extents.x * 0.070;
+		} else if (silhouette_variant == 3) {
+			coarse_frequency = 3.0;
+			chip_frequency = 10.0;
+			notch_frequency = 14.0;
+			silhouette_shape = sin(angle * 3.0 + hollow_seed * 23.0) * 0.075;
+		} else if (silhouette_variant == 4) {
+			coarse_frequency = 7.0;
+			chip_frequency = 15.0;
+			notch_frequency = 23.0;
+			silhouette_shape = step(
+				0.60,
+				sin(angle * 13.0 - hollow_seed * 37.0)
+			) * 0.055;
+		} else if (silhouette_variant == 5) {
+			coarse_frequency = 4.0;
+			chip_frequency = 12.0;
+			notch_frequency = 21.0;
+			silhouette_shape = cos(angle * 2.0 + hollow_seed * 17.0) * 0.060;
+		}
+		float coarse = sin(angle * coarse_frequency + hollow_seed * 19.0);
+		float chips = sin(angle * chip_frequency - hollow_seed * 31.0);
+		float notches = step(
+			0.70,
+			sin(angle * notch_frequency + hollow_seed * 43.0)
+		);
+		float boundary = (
+			1.0 + coarse * 0.075 + chips * 0.035 - notches * 0.055 + silhouette_shape
+		);
 		if (impact_profile == 1) {
 			float side = delta.x / extents.x * impact_direction;
 			boundary += smoothstep(-0.18, 0.94, side) * 0.16;
@@ -318,6 +394,10 @@ func _ruin_rubble_bed() -> PersistentRubbleBed2D:
 
 func _is_ground_level_ruin() -> bool:
 	return _ground_level
+
+
+func _ruin_silhouette_variant() -> int:
+	return posmod(_pattern_seed, RUIN_SILHOUETTE_VARIANT_COUNT)
 
 
 func _district_style_id() -> StringName:
@@ -701,10 +781,16 @@ func _configure_cavity_material() -> void:
 	_cavity_material.set_shader_parameter("cavity_tint", _cavity_tint())
 	_cavity_material.set_shader_parameter("region_uv_rect", _facade_region_uv_rect())
 	_cavity_material.set_shader_parameter("ground_level", _ground_level)
+	_cavity_material.set_shader_parameter(
+		"silhouette_variant",
+		_ruin_silhouette_variant()
+	)
 	_update_hollow_material()
 
 
 func _create_ruin_rubble_bed() -> void:
+	if not _ground_level:
+		return
 	_ruin_rubble_root = PersistentRubbleBed2D.new()
 	_ruin_rubble_root.name = "RuinRubbleBed"
 	_ruin_rubble_root.z_index = 3
@@ -721,7 +807,7 @@ func _configure_ruin_rubble_bed() -> void:
 		_visual_tint,
 		_pattern_seed,
 		_cell_size.y * 0.5,
-		GROUND_RUBBLE_HEIGHT if _ground_level else UPPER_RUBBLE_HEIGHT,
+		GROUND_RUBBLE_HEIGHT,
 		RUIN_RUBBLE_SPRITE_COUNT,
 		_district_id
 	)
@@ -730,7 +816,7 @@ func _configure_ruin_rubble_bed() -> void:
 
 func _update_ruin_rubble_bed() -> void:
 	if _ruin_rubble_root != null:
-		_ruin_rubble_root.set_active(_destroyed_stage)
+		_ruin_rubble_root.set_active(_destroyed_stage and _ground_level)
 
 
 func _facade_region_uv_rect() -> Vector4:

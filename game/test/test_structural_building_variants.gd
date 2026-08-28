@@ -76,6 +76,7 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 			cell_ids.append(building.get_cell(column, row).get_instance_id())
 	var baseline_child_count: int = building.get_child_count()
 	var configured_count: int = 0
+	var silhouette_variants: Dictionary[int, bool] = {}
 	for district: CityDistrictProfile in CityDistrictCatalog.districts():
 		for variant: StructuralBuildingVariant in district.building_variants:
 			assert_true(building.apply_variant(variant))
@@ -99,6 +100,21 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 					assert_not_null(pattern.cavity_material())
 					assert_eq(sprite.material, pattern.cavity_material())
 					assert_almost_eq(_hollow_progress(pattern), 0.0, 0.0001)
+					var silhouette_variant: int = pattern._ruin_silhouette_variant()
+					assert_gte(silhouette_variant, 0)
+					assert_lt(
+						silhouette_variant,
+						BuildingDamagePattern2D.RUIN_SILHOUETTE_VARIANT_COUNT
+					)
+					assert_eq(
+						int(
+							pattern.cavity_material().get_shader_parameter(
+								"silhouette_variant"
+							)
+						),
+						silhouette_variant
+					)
+					silhouette_variants[silhouette_variant] = true
 					var uv_region: Vector4 = _region_uv_rect(pattern)
 					assert_almost_eq(uv_region.x, float(column) / 3.0, 0.0001)
 					assert_almost_eq(uv_region.y, float(row) / 2.0, 0.0001)
@@ -116,6 +132,10 @@ func test_all_twenty_five_variants_reconfigure_one_cell_tree_in_place() -> void:
 					cell_index += 1
 			configured_count += 1
 	assert_eq(configured_count, CityDistrictCatalog.BUILDING_VARIANT_COUNT)
+	assert_eq(
+		silhouette_variants.size(),
+		BuildingDamagePattern2D.RUIN_SILHOUETTE_VARIANT_COUNT
+	)
 
 
 func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> void:
@@ -202,28 +222,40 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						pattern.cavity_material().shader.code.contains("top_break_depth"),
 						String(variant.variant_id)
 					)
+					assert_true(
+						pattern.cavity_material().shader.code.contains(
+							"silhouette_variant == 5"
+						),
+						String(variant.variant_id)
+					)
 					assert_eq(pattern._is_ground_level_ruin(), row == 1)
 					assert_eq(
 						pattern._ruin_rubble_sprite_count(),
-						BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT,
+						BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT if row == 1 else 0,
 						String(variant.variant_id)
 					)
 					var rubble_bed: PersistentRubbleBed2D = pattern._ruin_rubble_bed()
-					assert_not_null(rubble_bed, String(variant.variant_id))
-					assert_true(rubble_bed.uses_only_rubble_fragments())
-					assert_eq(rubble_bed.material_id(), variant.material_id_at(column, row))
-					assert_eq(pattern._district_style_id(), district.district_id)
-					assert_eq(rubble_bed.district_id(), district.district_id)
-					assert_eq(
-						rubble_bed.district_tint(),
-						PersistentRubbleBed2D.tint_for_district(district.district_id)
-					)
-					assert_almost_eq(
-						rubble_bed.baseline_y(),
-						variant.display_size.y / 4.0,
-						0.001,
-						String(variant.variant_id)
-					)
+					if row == 1:
+						assert_not_null(rubble_bed, String(variant.variant_id))
+						assert_true(rubble_bed.uses_only_rubble_fragments())
+						assert_eq(rubble_bed.material_id(), variant.material_id_at(column, row))
+						assert_eq(pattern._district_style_id(), district.district_id)
+						assert_eq(rubble_bed.district_id(), district.district_id)
+						assert_eq(
+							rubble_bed.district_tint(),
+							PersistentRubbleBed2D.tint_for_district(district.district_id)
+						)
+						assert_almost_eq(
+							rubble_bed.baseline_y(),
+							variant.display_size.y / 4.0,
+							0.001,
+							String(variant.variant_id)
+						)
+						assert_eq(rubble_bed.z_index, 3)
+						for rubble: Sprite2D in rubble_bed.get_children():
+							assert_gt(rubble.modulate.get_luminance(), 0.50)
+					else:
+						assert_null(rubble_bed, String(variant.variant_id))
 					assert_null(cell.get_node_or_null(^"RubbleVisual"))
 					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					var hurtbox: CollisionShape2D = cell.get_node(
