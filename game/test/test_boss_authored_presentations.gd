@@ -57,7 +57,9 @@ func test_area_roles_keep_geometry_and_echo_presentation_collisionless() -> void
 	assert_false(echo.contains_world_point(Vector2.ZERO))
 	var generic: BossAttackArea2D = BossAttackArea2D.new()
 	add_child_autofree(generic)
-	assert_true(generic.uses_procedural_rendering())
+	assert_false(generic.uses_procedural_rendering())
+	for pod: BossPodVisual2D in pool.pod_visuals:
+		assert_false(pod.uses_procedural_rendering())
 
 
 func test_mimesis_markers_reset_before_choir_reuse() -> void:

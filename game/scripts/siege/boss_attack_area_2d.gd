@@ -186,7 +186,7 @@ func authored_texture() -> Texture2D:
 
 
 func uses_procedural_rendering() -> bool:
-	return presentation_role == PresentationRole.GENERIC
+	return false
 
 
 func deactivate() -> void:
@@ -290,23 +290,6 @@ func _draw() -> void:
 	var texture: Texture2D = authored_texture()
 	if texture != null:
 		draw_texture_rect(texture, rectangle, false, _authored_texture_tint())
-		return
-	if not uses_procedural_rendering():
-		return
-	var fill: Color = Color(0.04, 0.64, 0.76, 0.075)
-	var edge: Color = Color(0.48, 0.96, 1.0, 0.74)
-	var width: float = 2.5
-	if visual_state == VisualState.ARMED:
-		fill = Color(1.0, 0.24, 0.08, 0.24)
-		edge = Color(1.0, 0.88, 0.54, 1.0)
-		width = 5.0
-	elif visual_state == VisualState.DRY:
-		fill = Color(0.70, 0.98, 1.0, 0.055)
-		edge = Color(0.92, 1.0, 1.0, 0.90)
-		width = 4.0
-	draw_rect(rectangle, fill, true)
-	draw_rect(rectangle, edge, false, width)
-	_draw_area_notches(rectangle, edge, visual_state == VisualState.DRY)
 
 
 func _authored_texture_tint() -> Color:
@@ -350,32 +333,6 @@ func shockwave_snapshot() -> Dictionary:
 		"trail_visible_count": _visible_trail_count(),
 		"trail_spacing_seconds": SHOCKWAVE_TRAIL_SPACING_SECONDS,
 	}
-
-
-func _draw_area_notches(rectangle: Rect2, edge: Color, safe: bool) -> void:
-	var notch: float = minf(24.0, minf(rectangle.size.x, rectangle.size.y) * 0.22)
-	for x_side: float in [-1.0, 1.0]:
-		for y_side: float in [-1.0, 1.0]:
-			var corner: Vector2 = Vector2(
-				rectangle.get_center().x + rectangle.size.x * 0.5 * x_side,
-				rectangle.get_center().y + rectangle.size.y * 0.5 * y_side
-			)
-			draw_line(corner, corner - Vector2(notch * x_side, 0.0), edge, 4.0)
-			draw_line(corner, corner - Vector2(0.0, notch * y_side), edge, 4.0)
-	if not safe:
-		return
-	var chevron_color: Color = Color(0.88, 1.0, 1.0, 0.76)
-	for x_offset: float in [-18.0, 18.0]:
-		draw_polyline(
-			PackedVector2Array([
-				Vector2(x_offset - 10.0, 6.0),
-				Vector2(x_offset, -6.0),
-				Vector2(x_offset + 10.0, 6.0),
-			]),
-			chevron_color,
-			3.0,
-			true
-		)
 
 
 func _shockwave_front_radius() -> float:
