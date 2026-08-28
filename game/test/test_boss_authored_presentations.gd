@@ -24,6 +24,9 @@ func test_area_roles_keep_geometry_and_echo_presentation_collisionless() -> void
 	assert_eq(line.presentation_role, BossAttackArea2D.PresentationRole.LINE_BEAM)
 	assert_not_null(lane.authored_texture())
 	assert_not_null(line.authored_texture())
+	assert_false(lane.uses_procedural_rendering())
+	assert_false(line.uses_procedural_rendering())
+	assert_false(pool.radial_shockwave.uses_procedural_rendering())
 	var lane_size: Vector2 = Vector2(272.0, 112.0)
 	lane.configure_footprint(
 		Vector2(128.0, 64.0), lane_size, BossAttackArea2D.VisualState.ARMED, &"LANE"
@@ -46,11 +49,15 @@ func test_area_roles_keep_geometry_and_echo_presentation_collisionless() -> void
 	rectangle = collision.shape as RectangleShape2D
 	assert_eq(echo.presentation_role, BossAttackArea2D.PresentationRole.ECHO_PRESENTATION)
 	assert_null(echo.authored_texture())
+	assert_false(echo.uses_procedural_rendering())
 	assert_eq(rectangle.size, Vector2(920.0, 300.0))
 	assert_true(collision.disabled)
 	assert_false(echo.monitoring)
 	assert_eq(echo.collision_mask, 0)
 	assert_false(echo.contains_world_point(Vector2.ZERO))
+	var generic: BossAttackArea2D = BossAttackArea2D.new()
+	add_child_autofree(generic)
+	assert_true(generic.uses_procedural_rendering())
 
 
 func test_mimesis_markers_reset_before_choir_reuse() -> void:

@@ -54,6 +54,7 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 		BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK
 	)
 	assert_eq(shockwave.visual_state, BossAttackArea2D.VisualState.TELEGRAPH)
+	assert_false(shockwave.uses_procedural_rendering())
 	assert_almost_eq(
 		shockwave.global_position.distance_to(
 			session.utility_pool.rig.socket(&"CORE").global_position
@@ -114,8 +115,6 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 	shockwave._process(BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS * 0.55)
 	var charged: Dictionary = shockwave.shockwave_snapshot()
 	assert_between(float(charged.charge_progress), 0.54, 0.56)
-	assert_between(float(charged.countdown_progress), 0.54, 0.56)
-	assert_gt(float(charged.countdown_radius), 140.0)
 	assert_gt(float(charged.core_diameter), 140.0)
 	assert_true(bool(charged.charge_particles_emitting))
 	var health_before: float = city.robot.current_health

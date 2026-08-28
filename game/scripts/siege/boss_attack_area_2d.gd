@@ -36,17 +36,12 @@ const CORE_CHARGE_SFX: AudioStream = preload(
 const SHOCKWAVE_RELEASE_SFX: AudioStream = preload(
 	"res://audio/sfx/boss/s04_shockwave_release.ogg"
 )
-const SHOCKWAVE_SEGMENTS: int = 96
 const SHOCKWAVE_TRAIL_COUNT: int = 4
 const SHOCKWAVE_TRAIL_SPACING_SECONDS: float = 0.065
 const CHARGE_PARTICLE_CAPACITY: int = 72
 const CHARGE_PARTICLE_RADIUS: float = 300.0
 const CHARGE_CORE_MIN_DIAMETER: float = 54.0
 const CHARGE_CORE_MAX_DIAMETER: float = 238.0
-const CORE_COUNTDOWN_RADIUS: float = 156.0
-const CORE_TARGET_BADGE: Texture2D = preload(
-	"res://art/presentation/telegraph_badge.png"
-)
 const CORE_COLOR_SHIFT_SHADER_CODE: String = """
 shader_type canvas_item;
 render_mode blend_add;
@@ -190,6 +185,10 @@ func authored_texture() -> Texture2D:
 	return null
 
 
+func uses_procedural_rendering() -> bool:
+	return presentation_role == PresentationRole.GENERIC
+
+
 func deactivate() -> void:
 	configure_footprint(
 		global_position,
@@ -284,12 +283,16 @@ func _draw() -> void:
 	if visual_state == VisualState.HIDDEN:
 		return
 	if presentation_role == PresentationRole.RADIAL_SHOCKWAVE:
-		_draw_core_shockwave()
+		# The core charge and released wave are presented by authored sprites and
+		# particles. Avoid layering procedural cyan rings over that presentation.
 		return
 	var rectangle: Rect2 = Rect2(-footprint_size * 0.5, footprint_size)
 	var texture: Texture2D = authored_texture()
 	if texture != null:
-		draw_texture_rect(texture, rectangle, false, Color(0.60, 0.98, 1.0, 0.24))
+		draw_texture_rect(texture, rectangle, false, _authored_texture_tint())
+		return
+	if not uses_procedural_rendering():
+		return
 	var fill: Color = Color(0.04, 0.64, 0.76, 0.075)
 	var edge: Color = Color(0.48, 0.96, 1.0, 0.74)
 	var width: float = 2.5
@@ -304,6 +307,15 @@ func _draw() -> void:
 	draw_rect(rectangle, fill, true)
 	draw_rect(rectangle, edge, false, width)
 	_draw_area_notches(rectangle, edge, visual_state == VisualState.DRY)
+
+
+func _authored_texture_tint() -> Color:
+	match visual_state:
+		VisualState.ARMED:
+			return Color(1.0, 0.66, 0.38, 1.0)
+		VisualState.DRY:
+			return Color(0.72, 1.0, 1.0, 0.58)
+	return Color(0.68, 0.98, 1.0, 0.90)
 
 
 func shockwave_snapshot() -> Dictionary:
@@ -333,102 +345,11 @@ func shockwave_snapshot() -> Dictionary:
 		"release_sfx_playing": _release_sfx_player != null and _release_sfx_player.playing,
 		"render_parent": get_parent().name if get_parent() != null else &"",
 		"visible_in_tree": is_visible_in_tree(),
-		"countdown_progress": _charge_progress(),
-		"countdown_radius": CORE_COUNTDOWN_RADIUS,
 		"visible_band_thickness": shockwave_band_thickness,
 		"trail_count": SHOCKWAVE_TRAIL_COUNT,
 		"trail_visible_count": _visible_trail_count(),
 		"trail_spacing_seconds": SHOCKWAVE_TRAIL_SPACING_SECONDS,
 	}
-
-
-func _draw_core_shockwave() -> void:
-	if visual_state == VisualState.TELEGRAPH:
-		var progress: float = _charge_progress()
-		var pulse: float = 0.5 + 0.5 * sin(radial_age * lerpf(5.0, 15.0, progress))
-		var aura_radius: float = _core_diameter() * 0.5 + 10.0 + pulse * 8.0
-		draw_circle(Vector2.ZERO, aura_radius, Color(0.04, 0.68, 1.0, 0.10 + progress * 0.11))
-		draw_arc(
-			Vector2.ZERO,
-			aura_radius,
-			0.0,
-			TAU,
-			SHOCKWAVE_SEGMENTS,
-			Color(0.56, 0.98, 1.0, 0.62 + pulse * 0.36),
-			3.0 + progress * 4.0,
-			true
-		)
-		var badge_size: Vector2 = Vector2.ONE * (CORE_COUNTDOWN_RADIUS * 1.72)
-		draw_texture_rect(
-			CORE_TARGET_BADGE,
-			Rect2(-badge_size * 0.5, badge_size),
-			false,
-			Color(1.0, 0.84, 0.48, 0.34 + progress * 0.34)
-		)
-		draw_arc(
-			Vector2.ZERO,
-			CORE_COUNTDOWN_RADIUS,
-			-PI * 0.5,
-			-PI * 0.5 + TAU * progress,
-			SHOCKWAVE_SEGMENTS,
-			Color(1.0, 0.46, 0.16, 0.80 + pulse * 0.20),
-			5.0 + progress * 3.0,
-			true
-		)
-		return
-	if visual_state != VisualState.ARMED:
-		return
-	var front_radius: float = _shockwave_front_radius()
-	if front_radius < 0.0:
-		return
-	var travel_ratio: float = clampf(radial_age / shockwave_travel_seconds, 0.0, 1.0)
-	var alpha: float = pow(1.0 - travel_ratio, 0.24)
-	for trail_index: int in range(SHOCKWAVE_TRAIL_COUNT):
-		var trail_age: float = radial_age - float(trail_index + 1) * SHOCKWAVE_TRAIL_SPACING_SECONDS
-		var trail_radius: float = _shockwave_radius_at_age(trail_age)
-		if trail_radius < 0.0:
-			continue
-		var trail_depth: float = float(trail_index) / float(maxi(SHOCKWAVE_TRAIL_COUNT - 1, 1))
-		draw_arc(
-			Vector2.ZERO,
-			trail_radius,
-			0.0,
-			TAU,
-			SHOCKWAVE_SEGMENTS,
-			Color(0.02, 0.46, 1.0, alpha * lerpf(0.16, 0.025, trail_depth)),
-			lerpf(shockwave_band_thickness * 0.42, 14.0, trail_depth),
-			true
-		)
-	draw_arc(
-		Vector2.ZERO,
-		front_radius,
-		0.0,
-		TAU,
-		SHOCKWAVE_SEGMENTS,
-		Color(0.02, 0.56, 1.0, alpha * 0.20),
-		shockwave_band_thickness,
-		true
-	)
-	draw_arc(
-		Vector2.ZERO,
-		front_radius,
-		0.0,
-		TAU,
-		SHOCKWAVE_SEGMENTS,
-		Color(0.88, 1.0, 1.0, alpha),
-		14.0,
-		true
-	)
-	draw_arc(
-		Vector2.ZERO,
-		maxf(front_radius - shockwave_band_thickness * 0.32, 6.0),
-		0.0,
-		TAU,
-		SHOCKWAVE_SEGMENTS,
-		Color(0.02, 0.62, 1.0, alpha * 0.82),
-		20.0,
-		true
-	)
 
 
 func _draw_area_notches(rectangle: Rect2, edge: Color, safe: bool) -> void:
