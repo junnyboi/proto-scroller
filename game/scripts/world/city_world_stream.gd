@@ -80,9 +80,14 @@ var _corridor_district_index: int = -1
 var _campaign_handoff_complete: bool = false
 
 
-func setup(p_robot: GiantRobotController, p_run_seed: int = 0) -> void:
+func setup(
+	p_robot: GiantRobotController,
+	p_run_seed: int = 0,
+	p_initial_origin_chunk: int = 0
+) -> void:
 	robot = p_robot
 	run_seed = p_run_seed
+	floating_origin.origin_chunk = maxi(p_initial_origin_chunk, 0)
 
 
 func _ready() -> void:

@@ -831,7 +831,7 @@ func test_ground_enemies_bounce_only_while_moving() -> void:
 	_record_test_execution()
 
 
-func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> void:
+func test_game_over_retry_restarts_current_district_with_zero_rampage_credit() -> void:
 	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)
 	await get_tree().process_frame
@@ -839,6 +839,14 @@ func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> voi
 	await get_tree().process_frame
 	main.title_transition_duration_scale = 0.18
 	var first_city: CitySlice = main.city_slice
+	var retry_district: CityDistrictProfile = CityDistrictCatalog.districts()[2]
+	first_city.robot.global_position.x = (
+		first_city.world_stream.runtime_x_for_logical_index(retry_district.start_chunk)
+		+ CityWorldBuilder.ROBOT_START_POSITION.x
+	)
+	first_city.world_stream.advance_stream()
+	first_city.world_stream.unlocked_district_index = retry_district.district_index
+	assert_eq(first_city.world_stream.current_district_id, retry_district.district_id)
 	first_city._add_score(500)
 	first_city.rampage_session.publish(GameplayEvent.new(
 		&"retry_seed",
@@ -864,8 +872,16 @@ func test_game_over_retry_replaces_the_city_with_fresh_health_and_score() -> voi
 	await get_tree().process_frame
 	assert_ne(main.city_slice, first_city)
 	assert_false(main.city_slice.game_over_active)
+	assert_eq(main.city_slice.world_stream.current_district_id, retry_district.district_id)
+	assert_eq(main.city_slice.world_stream.current_logical_chunk, retry_district.start_chunk)
+	assert_eq(
+		main.city_slice.world_stream.floating_origin.origin_chunk,
+		retry_district.start_chunk
+	)
+	assert_lt(main.city_slice.robot.global_position.x, CityWorldStream.CHUNK_WIDTH)
 	assert_eq(main.city_slice.robot.current_health, main.city_slice.robot.max_health)
 	assert_eq(main.city_slice.score, 0)
+	assert_eq(main.city_slice.weapon_shop_assembler.session.run_score.score, 0)
 	assert_eq(main.city_slice.rampage_session.current_multiplier(), 1)
 	assert_eq(main.city_slice.rampage_session.momentum_value(), 0.0)
 	_record_test_execution()

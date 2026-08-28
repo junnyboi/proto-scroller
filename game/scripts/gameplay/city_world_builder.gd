@@ -45,18 +45,26 @@ static func build_environment(parent: Node2D) -> void:
 	parent.add_child(weather)
 
 
-static func transition_environment(parent: Node2D, district_id: StringName) -> bool:
-	var parallax_changed: bool = transition_parallax(parent, district_id)
+static func transition_environment(
+	parent: Node2D,
+	district_id: StringName,
+	immediate: bool = false
+) -> bool:
+	var parallax_changed: bool = transition_parallax(parent, district_id, immediate)
 	var weather: DistrictWeatherRuntime = _weather(parent)
 	var weather_changed: bool = (
-		weather.transition_to(district_id) if weather != null else false
+		weather.transition_to(district_id, immediate) if weather != null else false
 	)
 	return parallax_changed or weather_changed
 
 
-static func transition_parallax(parent: Node2D, district_id: StringName) -> bool:
+static func transition_parallax(
+	parent: Node2D,
+	district_id: StringName,
+	immediate: bool = false
+) -> bool:
 	var backdrop: DistrictParallaxRuntime = _parallax(parent)
-	return backdrop.transition_to(district_id) if backdrop != null else false
+	return backdrop.transition_to(district_id, immediate) if backdrop != null else false
 
 
 static func compensate_parallax(parent: Node2D, offset: Vector2) -> void:

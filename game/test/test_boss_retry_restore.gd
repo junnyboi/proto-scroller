@@ -98,7 +98,7 @@ func test_retry_stays_suspended_with_controls_live_and_no_competing_state() -> v
 	assert_false(city.game_over_active)
 
 
-func test_boss_defeat_presents_full_nonfinal_dossier_and_retry_restores_play() -> void:
+func test_boss_defeat_presents_dossier_and_retry_requests_fresh_city() -> void:
 	var kill: GameplayEvent = GameplayEvent.new(
 		&"boss_attempt_dossier_kill",
 		82_300,
@@ -121,12 +121,12 @@ func test_boss_defeat_presents_full_nonfinal_dossier_and_retry_restores_play() -
 	assert_true(city.gameplay_hud.match_debrief.visible)
 	assert_eq(city.gameplay_hud.match_debrief.presented_summary.total_enemies_defeated, 1)
 	assert_null(city.rampage_session.frozen_summary)
+	var retry_request_count: Array[int] = [0]
+	city.retry_requested.connect(func() -> void: retry_request_count[0] += 1)
 	city.gameplay_hud.retry_pressed.emit()
-	assert_false(city.game_over_active)
-	assert_false(campaign.attempt_failed)
-	assert_false(city.gameplay_hud.game_over_overlay.visible)
-	assert_false(city.gameplay_hud.match_debrief.visible)
-	assert_eq(city.urban_siege.boss_session.state, CommandBossSession.STATE_SCREEN)
+	assert_eq(retry_request_count[0], 1)
+	assert_true(city.game_over_active)
+	assert_true(campaign.attempt_failed)
 
 
 func test_repeated_failure_retry_keeps_runtime_counts_and_one_gate_lease() -> void:

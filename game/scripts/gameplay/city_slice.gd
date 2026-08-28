@@ -88,6 +88,7 @@ var urban_siege: UrbanSiegeRuntime
 var campaign_progress: CampaignProgressStore
 var combat_profile: PlayerCombatProfileStore
 var launch_run_seed: int = -1
+var launch_district_index: int = 0
 var project_choir_runtime: ProjectChoirRuntime
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
@@ -255,10 +256,21 @@ func _build_destructibles() -> void:
 func _build_world_stream() -> void:
 	world_stream = WORLD_STREAM_SCRIPT.new() as CityWorldStream
 	world_stream.name = "CityWorldStream"
-	world_stream.setup(robot)
+	var districts: Array[CityDistrictProfile] = CityDistrictCatalog.districts()
+	var district: CityDistrictProfile = districts[clampi(
+		launch_district_index,
+		0,
+		districts.size() - 1
+	)]
+	world_stream.setup(
+		robot,
+		maxi(launch_run_seed, 0),
+		district.start_chunk
+	)
 	world_stream.origin_shift_requested.connect(_on_origin_shift_requested)
 	world_stream.window_changed.connect(_on_stream_window_changed)
 	add_child(world_stream)
+	CityWorldBuilder.transition_environment(self, district.district_id, true)
 	district_transition_banner = DISTRICT_TRANSITION_SCRIPT.new()
 	add_child(district_transition_banner)
 	world_stream.district_changed.connect(_on_spatial_district_changed)
@@ -681,7 +693,6 @@ func present_defeat() -> void:
 func _on_retry_pressed() -> void:
 	if not game_over_active:
 		return
-	if urban_siege.boss_campaign != null and urban_siege.boss_campaign.retry_attempt(): return
 	retry_requested.emit()
 
 

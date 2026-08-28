@@ -37,6 +37,7 @@ var runtime_tweak_service: RuntimeTweakService
 var runtime_tweak_layer: CanvasLayer
 var runtime_tweak_panel: RuntimeTweakPanel
 var forced_next_run_seed: int = -1
+var forced_next_district_index: int = -1
 var title_transition_active: bool = false
 var title_transition_duration_scale: float = 1.0
 var transition_kind: StringName = &"idle"
@@ -319,6 +320,11 @@ func _run_full_black_transition(kind: StringName, swap_action: Callable) -> void
 
 func retry_game() -> void:
 	if city_slice != null:
+		forced_next_district_index = (
+			city_slice.world_stream.unlocked_district_index
+			if city_slice.world_stream != null
+			else 0
+		)
 		if runtime_tweak_service != null:
 			runtime_tweak_service.end_run()
 		var previous_city: CitySlice = city_slice
@@ -356,6 +362,8 @@ func _spawn_city_slice() -> void:
 		)
 	forced_next_run_seed = -1
 	city_slice.launch_run_seed = run_seed
+	city_slice.launch_district_index = maxi(forced_next_district_index, 0)
+	forced_next_district_index = -1
 	if runtime_tweak_service != null:
 		runtime_tweak_service.freeze_run(run_seed)
 		var tuned_transition_scale: float = float(runtime_tweak_service.run_value(
