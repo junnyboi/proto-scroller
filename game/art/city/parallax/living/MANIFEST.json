@@ -1,19 +1,7 @@
 {
   "generator": "GPT Image 2",
-  "purpose": "fixed-allocation moving cloud and distant air-traffic parallax",
+  "purpose": "fixed-allocation distant air-traffic parallax",
   "entries": [
-    {
-      "id": "cloud_bank",
-      "generator": "GPT Image 2",
-      "source": "docs/concepts/living-skies/district-cloud-bank.png",
-      "source_dimensions": "2688x1152",
-      "source_sha256": "468250af7c6b87b5258151993ddaf471609a0513e4f166a6d09a0405e8c32476",
-      "runtime": "game/art/city/parallax/living/cloud_bank.webp",
-      "runtime_dimensions": "1024x265",
-      "runtime_bytes": 58008,
-      "runtime_sha256": "8a638e64ceebaef13252c887bb6306371e6648be80311446fed41f60375f8df2",
-      "processing": "existing-alpha key decontamination (green); alpha-aware crop; Lanczos resize; 0.35 px alpha soften; WebP quality 78"
-    },
     {
       "id": "courier_shuttle",
       "generator": "GPT Image 2",

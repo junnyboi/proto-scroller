@@ -13,9 +13,9 @@ Extend the five district panoramas with fixed-allocation atmospheric motion, dis
 
 The city should feel inhabited at skyline scale rather than busy at gameplay scale. A **slow cloud band** drifts between the base panorama and far skyline. A faster **air-traffic band** carries two distant vehicle silhouettes on staggered altitudes and repeat intervals. Both bands are decorative, collisionless, and created once during startup. Their tint, opacity, and velocity interpolate with the same eased weight as the district panorama, so the atmosphere changes as one coherent place rather than as independently switched effects.
 
-The day/night clock completes one cycle in six minutes. It starts in late dusk to preserve the existing visual opening, progresses through blue night, muted dawn, cool day, and copper dusk, then loops without discontinuity. Time affects panorama saturation, brightness, cloud tint, air-traffic visibility, and shared depth-band colors. It does not modulate the HUD, combat telegraphs, actors, damage effects, collision, weather authority, or title presentation.
+The day/night clock completes one cycle in six minutes. It starts in late dusk to preserve the existing visual opening, progresses through blue night, muted dawn, cool day, and copper dusk, then loops without discontinuity. Time affects panorama saturation, brightness, air-traffic visibility, and shared depth-band colors. It does not modulate the HUD, combat telegraphs, actors, damage effects, collision, weather authority, or title presentation.
 
-| District | Cloud behavior | Air traffic | Transition grade |
+| District | Atmospheric character | Air traffic | Transition grade |
 |---|---|---|---|
 | Business | Restrained high-altitude smog moving east | Regular courier lanes | Cool steel cyan with restrained contrast |
 | Residential | Broader humid utility cloud moving steadily | Sparse service shuttles | Desaturated aqua-gray |
@@ -31,8 +31,7 @@ GPT Image 2 supplies one wide transparent smoky cloud bank and two transparent s
 
 | Component | Responsibility | Fixed budget |
 |---|---|---:|
-| `DistrictSkyLifeRuntime` | Own time-of-day state, district atmosphere profiles, cloud/traffic movement, wrapping, reset, and floating-origin compensation | 1 runtime |
-| `CloudLife` | One `Parallax2D` band with one transparent cloud-bank sprite | 1 band / 1 sprite |
+| `DistrictSkyLifeRuntime` | Own time-of-day state, district atmosphere profiles, traffic movement, wrapping, reset, and floating-origin compensation | 1 runtime |
 | `AirTraffic` | One `Parallax2D` band with two staggered vehicle sprites | 1 band / 2 sprites |
 | `DistrictParallaxRuntime` | Continue panorama/depth crossfade; apply district grade and sampled day/night state to sky shader and depth bands | Existing bands/sprites unchanged |
 | `seamless_panorama.gdshader` | Preserve exact edge equalization, then apply district grade, cycle tint, brightness, and saturation | 2 existing materials |
@@ -71,7 +70,7 @@ The GPT Image 2 concept and runtime-asset phase was pushed as `639eea7acfedacec3
 
 ### Cloud-motion retirement
 
-The later annotation-driven polish pass removes the drifting cloud bank entirely because its constant lateral motion overloaded the already active weather, parallax, and air-traffic composition. The original generated cloud asset remains archived in source provenance, but the runtime no longer preloads or mounts it. District grading, the six-minute day/night cycle, both air vehicles, seamless panoramas, weather, and floating-origin compensation remain active.
+The later annotation-driven polish pass removes the drifting cloud bank entirely because its constant lateral motion overloaded the already active weather, parallax, and air-traffic composition. The original concept remains under documentation provenance; its obsolete runtime derivative, import metadata, manifest record, and processing job were removed during the 2026-08-28 media audit. District grading, the six-minute day/night cycle, both air vehicles, seamless panoramas, weather, and floating-origin compensation remain active.
 
 ## Acceptance Matrix
 

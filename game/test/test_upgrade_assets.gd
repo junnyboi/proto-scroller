@@ -10,7 +10,7 @@ func test_art_manifest_covers_all_required_assets_with_bounded_bytes() -> void:
 	var manifest_text: String = FileAccess.get_file_as_string(MANIFEST_PATH)
 	var manifest: Dictionary = JSON.parse_string(manifest_text) as Dictionary
 	var assets: Array = manifest.assets as Array
-	assert_eq(assets.size(), 32)
+	assert_eq(assets.size(), 29)
 	var total_bytes: int = 0
 	for record_variant: Variant in assets:
 		var record: Dictionary = record_variant as Dictionary
