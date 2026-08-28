@@ -77,7 +77,7 @@ func test_blueprints_are_seeded_by_run_and_logical_chunk_not_pool_slot() -> void
 	_record_test_execution()
 
 
-func test_ten_shuffled_buildings_arm_boss_then_unlock_after_clear_corridor() -> void:
+func test_seven_shuffled_buildings_arm_boss_then_unlock_after_clear_corridor() -> void:
 	var city: CitySlice = await _spawn_city()
 	var stream: CityWorldStream = city.world_stream
 	var business: CityDistrictProfile = CityDistrictCatalog.districts()[0]
@@ -117,14 +117,14 @@ func test_ten_shuffled_buildings_arm_boss_then_unlock_after_clear_corridor() -> 
 		EPSILON
 	)
 	assert_true(stream.begin_post_boss_corridor(0))
-	assert_false(stream.should_present_chunk_content(10))
-	assert_false(stream.should_present_chunk_content(11))
-	assert_true(stream.should_present_chunk_content(12))
+	assert_false(stream.should_present_chunk_content(7))
+	assert_false(stream.should_present_chunk_content(8))
+	assert_true(stream.should_present_chunk_content(9))
 	assert_true(stream.post_boss_corridor_is_clear(0))
 	assert_true(stream.complete_district_handoff(0))
 	assert_true(stream.district_exit_is_unlocked(0))
 	assert_eq(stream.unlocked_district_index, 1)
-	assert_true(stream.should_present_chunk_content(12))
+	assert_true(stream.should_present_chunk_content(9))
 	assert_almost_eq(
 		stream.district_exit_barrier.position.x,
 		float(CityDistrictCatalog.CHUNKS_PER_DISTRICT + 1)
@@ -158,9 +158,9 @@ func test_out_of_order_district_clears_are_recorded_without_route_blocking() -> 
 		if district_index == 1:
 			assert_eq(stream.unlocked_district_index, 0)
 	assert_eq(stream.unlocked_district_index, 0)
-	assert_eq(stream.district_clear_count(&"RESIDENTIAL"), 10)
-	_move_to_logical_chunk(city, 27)
-	assert_eq(stream.current_logical_chunk, 27)
+	assert_eq(stream.district_clear_count(&"RESIDENTIAL"), 7)
+	_move_to_logical_chunk(city, 20)
+	assert_eq(stream.current_logical_chunk, 20)
 	assert_eq(stream.current_district_id, &"ENTERTAINMENT")
 	_record_test_execution()
 

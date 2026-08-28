@@ -2,7 +2,24 @@ class_name BossCampaignCatalog
 extends RefCounted
 
 const DEFINITION_COUNT: int = 5
-const CANONICAL_TRIGGERS: Array[int] = [9, 21, 33, 45, 57]
+const CANONICAL_TRIGGERS: Array[int] = [
+	CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT - 1,
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT
+	+ CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT - 1,
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT * 2
+	+ CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT - 1,
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT * 3
+	+ CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT - 1,
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT * 4
+	+ CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT - 1,
+]
+const CANONICAL_UNLOCKS: Array[int] = [
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT,
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT * 2,
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT * 3,
+	CityDistrictCatalog.CHUNKS_PER_DISTRICT * 4,
+	-1,
+]
 const CANONICAL_EVIDENCE: Array[StringName] = [
 	&"LEDGER", &"NURSERY", &"STAGE", &"ARSENAL", &"CROWN",
 ]
@@ -160,8 +177,8 @@ static func _ensure_catalog() -> void:
 			_make_definition(
 					&"SETTLEMENT_ENGINE_S04",
 					&"BUSINESS",
-					9,
-					12,
+					CANONICAL_TRIGGERS[0],
+					CANONICAL_UNLOCKS[0],
 			"boss.settlement_engine_s04.name",
 			"SETTLEMENT ENGINE S-04 — The Fiduciary Saint",
 			&"business_crown_reserve_treasury",
@@ -182,8 +199,8 @@ static func _ensure_catalog() -> void:
 				_make_definition(
 						&"SAMARITAN_15",
 						&"RESIDENTIAL",
-						21,
-						24,
+						CANONICAL_TRIGGERS[1],
+						CANONICAL_UNLOCKS[1],
 			"boss.samaritan_15.name",
 			"SAMARITAN-15 — The Last Evacuation",
 			&"residential_nightglass_mutual_clinic",
@@ -208,8 +225,8 @@ static func _ensure_catalog() -> void:
 				_make_definition(
 						&"MIMESIS_04",
 						&"ENTERTAINMENT",
-						33,
-						36,
+						CANONICAL_TRIGGERS[2],
+						CANONICAL_UNLOCKS[2],
 			"boss.mimesis_04.name",
 			"MIMESIS-04 — The Afterimage Conductor",
 			&"entertainment_house_of_static",
@@ -231,8 +248,8 @@ static func _ensure_catalog() -> void:
 				_make_definition(
 						&"CANTOR_31_PALE_ENGINE",
 						&"MILITARY",
-						45,
-						48,
+						CANONICAL_TRIGGERS[3],
+						CANONICAL_UNLOCKS[3],
 			"boss.cantor_31.name",
 			"CANTOR-31 / PALE ENGINE — The Export Surgeon",
 			&"military_prefect_war_keep",
@@ -256,8 +273,8 @@ static func _ensure_catalog() -> void:
 				_make_definition(
 						&"CHOIR_PRIME",
 						&"ROYAL",
-						57,
-			-1,
+						CANONICAL_TRIGGERS[4],
+						CANONICAL_UNLOCKS[4],
 			"boss.choir_prime.name",
 			"CHOIR Prime — The Last Sovereign",
 			&"royal_palace_last_sovereign",

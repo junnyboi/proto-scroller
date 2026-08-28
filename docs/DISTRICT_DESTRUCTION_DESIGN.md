@@ -8,17 +8,17 @@
 
 Proto Scroller’s endless city becomes a directed campaign through five visually and mechanically distinct spatial districts: **Business**, **Residential**, **Entertainment / Nightlife**, **Military**, and **Royal / Noble**. Each district owns five deterministic destructible-building archetypes, producing a roster of **25 buildings** while preserving the game’s current six-cell hollowing model, staged cracks, leaking pipes, dangling electrical cables, nonblocking rubble, material-specific debris, support transfer, and chain-collapse behavior.[1] [2]
 
-The district model is deliberately separate from the existing siege `DistrictDefinition`, whose six acts represent combat cadence rather than geography.[3] Each spatial district now presents ten forward facade encounters—two deterministic, independently shuffled passes through its five authored facade types—before two road-only transition chunks. Boss readiness requires all ten encounters, while the unique catalog remains exactly twenty-five building types. The existing encounter arc remains intact.
+The district model is deliberately separate from the existing siege `DistrictDefinition`, whose six acts represent combat cadence rather than geography.[3] Each spatial district now presents seven forward facade encounters—one deterministic shuffled pass through all five authored facade types plus two distinct repeats from an independently shuffled second pass—before two road-only transition chunks. Boss readiness requires all seven encounters, while the unique catalog remains exactly twenty-five building types. The existing encounter arc remains intact.
 
 ## Campaign Progression
 
 | District | Forward chunks | Combat purpose | Visual identity |
 |---|---:|---|---|
-| **The Ledger Spine — Business** | 0–11 | Teaches material reading, selective support failure, and safe chain reactions | Disciplined corporate verticality, cyan finance glass, oxidized service trunks |
-| **Ashwater Commons — Residential** | 12–23 | Adds lived-in cover geometry and domestic utility hazards | Prefab housing, cisterns, laundry gantries, warm windows, municipal teal |
-| **The Afterglow Strip — Entertainment / Nightlife** | 24–35 | Escalates environmental crossfire and delayed utility reactions | Failing neon, theaters, hotels, arenas, show-control machinery |
-| **The Iron Corridor — Military** | 36–47 | Introduces steel-heavy targets and hardened logistics architecture | Blast shells, armories, repair gantries, command relays, field olive armor |
-| **The Crownward — Royal / Noble** | 48+ | Culminating monumental destruction and elite combined-arms arenas | Palace-bunkers, tribunals, ceremonial brass, gargantuan stepped silhouettes |
+| **The Ledger Spine — Business** | 0–8 | Teaches material reading, selective support failure, and safe chain reactions | Disciplined corporate verticality, cyan finance glass, oxidized service trunks |
+| **Ashwater Commons — Residential** | 9–17 | Adds lived-in cover geometry and domestic utility hazards | Prefab housing, cisterns, laundry gantries, warm windows, municipal teal |
+| **The Afterglow Strip — Entertainment / Nightlife** | 18–26 | Escalates environmental crossfire and delayed utility reactions | Failing neon, theaters, hotels, arenas, show-control machinery |
+| **The Iron Corridor — Military** | 27–35 | Introduces steel-heavy targets and hardened logistics architecture | Blast shells, armories, repair gantries, command relays, field olive armor |
+| **The Crownward — Royal / Noble** | 36+ | Culminating monumental destruction and elite combined-arms arenas | Palace-bunkers, tribunals, ceremonial brass, gargantuan stepped silhouettes |
 
 ## Shared Destruction Language
 
