@@ -204,6 +204,24 @@ func configure_one_hit_melee_finisher(p_fatal_event: DamageEvent = fatal_event) 
 	)
 
 
+func configure_automatic_scrap() -> void:
+	finisher_requires_ground_smash = false
+	finisher_damage_types = PackedStringArray()
+	_seen_attacks.clear()
+	_seen_root_attacks.clear()
+	_finisher_receiver_active = false
+	collision_layer = 0
+
+
+func scrap_automatically(event: DamageEvent) -> bool:
+	if scrapped_state or event == null:
+		return false
+	_finisher_receiver_active = false
+	current_scrap_health = 0.0
+	_turn_to_scrap(event)
+	return true
+
+
 func set_wreck_visual_visible(visible_value: bool) -> void:
 	var visual: Sprite2D = get_node_or_null(^"WreckVisual") as Sprite2D
 	if visual != null:

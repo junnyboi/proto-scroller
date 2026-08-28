@@ -2,7 +2,7 @@
 
 **Author:** Manus AI
 
-**Status:** Complete — source `bd16ad0`, WebDev checkpoint `cadac459`, public deployment live
+**Status:** Complete; post-launch defeat flow revised on 2026-08-28 to automatic post-spectacle rubble and evidence-aware Royal resolution
 
 **Companion design:** `docs/DISTRICT_BOSS_ENCOUNTER_PROPOSAL.md`
 
@@ -14,7 +14,7 @@
 
 ## Objective
 
-Implement five district-ending bosses at logical chunks **7, 15, 23, 31, and 39** without weakening Proto Scroller’s destruction power fantasy, deterministic streaming, fixed runtime budgets, portrait/landscape equivalence, or Web release discipline. Each boss must express one district truth, use the existing movement and attack verbs, interact safely with the current six-cell structural model, commit one capstone dossier/evidence result, and terminate through a fresh ground-smash action.
+Implement five district-ending bosses at logical chunks **7, 15, 23, 31, and 39** without weakening Proto Scroller’s destruction power fantasy, deterministic streaming, fixed runtime budgets, portrait/landscape equivalence, or Web release discipline. Each boss must express one district truth, use the existing movement and attack verbs, interact safely with the current six-cell structural model, commit one capstone dossier/evidence result, and terminate automatically when its fixed destruction spectacle completes.
 
 This plan treats the new Project CHOIR lore as authoritative. It therefore includes **twenty-five facade dossiers**, **five evidence flags**, **PILOT ECHO P-01**, a gradually escalating engineered-horror language, and all three final outcomes: **PURGE**, eligible **DISENTANGLE**, and warned ineligible **ASCENSION FAILURE**.[1]
 
@@ -41,11 +41,11 @@ This plan treats the new Project CHOIR lore as authoritative. It therefore inclu
 3. **No new player verb.** Move, dash, charged `jab_cross`, ground smash, and autonomous weapons are the complete control set.
 4. **Direct damage always works after armor.** Structural and environmental interactions are optional interrupts or capped accelerants. Every legal facade mask must retain a direct completion route.
 5. **Six chunks remain six.** Arena gates lease already resident stream objects. They do not create a seventh chunk, duplicate a boss building, or disable floating-origin rebasing.
-6. **Every wreck requires a fresh smash.** A lethal-frame or already-active attack ID cannot commit the wreck or any Royal outcome.
+6. **No defeated boss waits for a finisher.** Body death begins the fixed 2.95-second spectacle; its one completion signal commits rubble, rewards, and progression exactly once without accepting corpse damage.
 7. **Narrative observes combat.** Story systems may react to combat signals but cannot own combat state, input, camera, or timing.
-8. **Orientation parity is mechanical parity.** Landscape and portrait use the same definitions, hit volumes, timings, and target order. Visual limbs telescope; mechanics do not.
+8. **The live boss owns the east lane.** One player-only wall sits 520 pixels right of every boss and drops at body death; landscape and portrait use the same placement and collision contract.
 9. **Optional evidence never blocks progression.** Destroyed evidence can use the approved elite-drop recovery rule.
-10. **Royal retains three outcomes.** An ineligible disentanglement attempt is warned and deliberate, but remains selectable so ASCENSION FAILURE exists in canon.
+10. **Royal resolves the best valid evidence outcome automatically.** Eligible snapshots commit DISENTANGLE; incomplete snapshots commit PURGE. ASCENSION FAILURE remains a historical canon branch but is not entered by the no-input completion path.
 
 ## Target architecture
 
@@ -109,7 +109,7 @@ Existing projectile, enemy, debris, telegraph, and wreck pools remain authoritat
 
 The existing `DamageEvent.effect_flags` gains `FLAG_FULL_CHARGE`; `JabCrossImpact` copies `AttackSpec.is_fully_charged()` into that flag. `EnemyActor2D.configure_boss()` gains an optional armor-policy argument. The default legacy policy remains amount-based and preserves the current test where one 330-point `jab_cross` removes all armor. Data-driven campaign bosses select `FULL_CHARGE_FIXED_STEP`, which rejects unflagged strikes and deducts exactly 110 armor per accepted attack ID regardless of upgrade-scaled event amount. Exposed bodies accept all currently approved direct and autonomous damage. Environmental bonuses call the same damage API with explicit caps and source IDs. Exact threshold, overshoot, and lethal-threshold cases transition once. Every transition increments a generation token and cancels stale callbacks, damage areas, projectiles, support actors, and reservations before enabling the next phase.
 
-A wreck receiver stores both the lethal `attack_id` and `root_attack_id` and rejects either chain. `EnemyWreck2D` seeds both fatal IDs before the corpse can accept damage, suppresses its generic tank sprite, and accepts only a later player `jab_cross` or `ground_smash`. The authentic boss atlas freezes on attack frame seven and uses the ordinary defeated-unit dark tint until that one fresh melee converts it into a prewarmed rubble bed. The first two bosses release two fixed 50-HP repair cells; the final three release three from the shared five-slot pickup pool. Royal keeps separated PURGE and DISENTANGLE receivers and commits exactly one eligible outcome on the same fresh melee before rubble conversion.
+At body death, `EnemyWreck2D` suppresses its generic tank sprite and disables every damage receiver. The authentic boss atlas freezes on attack frame seven and uses the ordinary defeated-unit dark tint while `BossDefeatSpectacle2D` runs. Its exact 2.95-second completion signal invokes `scrap_automatically()` once, preserving the existing remains-factory signal path, prewarmed rubble bed, pooled scrap, completion transaction, and repair drops. The first two bosses release two fixed 150-HP repair cells; the final three release three from the shared five-slot pickup pool. Royal snapshots eligibility before wreck entry and automatically commits DISENTANGLE when valid or PURGE otherwise before the same rubble conversion. One shared player-only wall remains 520 pixels right of the live rig and is removed at body death.
 
 ## Phase integration and push policy
 
@@ -277,6 +277,8 @@ Every implementation work package follows the same shared-branch protocol. Befor
 
 **Status: Complete (2026-08-27).** CHOIR Prime now presents five distinct Ledger, Nursery, Stage, Arsenal, and Crown pylons across three charged armor connections, with one serialized pylon mechanic and one noncolliding composition echo drawn from the fixed eight-marker pool. Royal combat acquires no live support actors and never records player motion history. All 64 structural masks retain the Palace lower route, upper crownfall, direct-core fallback, and valid finisher path. The third connection atomically records CROWN-05 and CROWN before the body phase; the dossier/evidence snapshot is then persisted before wreck entry and remains immutable across later progress and reloads. Separated PURGE and DISENTANGLE receivers prevent one smash from selecting both outcomes. PURGE completes from any evidence state; ineligible DISENTANGLE is explicitly warned and resolves ASCENSION FAILURE while PURGE remains focused and visible; eligible DISENTANGLE repeats five pressure windows without a global timeout, moves the severance receiver, cancels each completed sequence, and commits one idempotent ending transaction referencing the Crown transaction. ECHO-7 remains unresolved below twenty dossiers. Focused Godot 4.7.2 coverage passed the canonical finale suite (**10 tests, 461 assertions**), shared chassis (**9 tests, 1,588 assertions**), legacy command boss (**8 tests, 87 assertions**), campaign gate/HUD (**7 tests, 115 assertions**), campaign evidence (**4 tests, 72 assertions**), crash recovery (**9 tests, 47 assertions**), boss narrative (**6 tests, 122 assertions**), Project CHOIR narrative (**7 tests, 351 assertions**), and localization (**4 tests, 1,925 assertions**) with zero new Chinese glyphs. The authored Royal scenario passed headless, 1280×720, and 720×1280 runs with orientation-identical mechanics and three captures per orientation. Repository-wide release gates remained skipped by user directive.
 
+**Post-launch revision (2026-08-28):** the no-finisher policy supersedes the interactive wreck receiver stage. Both prewarmed receiver areas remain inactive and invisible. Spectacle completion commits DISENTANGLE for a valid immutable eligibility snapshot or PURGE for any incomplete snapshot, preserving one idempotent ending transaction while eliminating an indefinite corpse gate. The universal player-only wall now sits 520 pixels right of every 1.5× rig and drops at body death. Returning from game over explicitly restarts the title BGM from sample zero. A focused Godot 4.7.2 pass completed **81 tests and 4,050 assertions** across command/shared boss runtime, all five boss controllers, campaign gates, Royal outcome resolution, title audio, and fade transitions; repository-wide release certification remained skipped under the project override.
+
 **Implementation:**
 
 - Build CHOIR Prime as an environmental engine with five distinct pylons mapped to three armor connections.
@@ -284,20 +286,19 @@ Every implementation work package follows the same shared-branch protocol. Befor
 - Bind the Palace lower route and upper crownfall to all legal masks with direct-core fallback.
 - Commit CROWN-05 and the CROWN evidence flag idempotently when the mandatory third armor connection severs the Crown pylon, before exposed-body completion.
 - Snapshot dossier/evidence eligibility immediately before wreck entry, after the Crown pylon transaction has completed.
-- Add separated PURGE and severance receivers plus a three-result outcome coordinator.
-- Implement eligible DISENTANGLE’s repeating five severance windows with no overall timeout while CHOIR continues one serialized pylon mechanic and composition echo per window; a successful severance cancels the current sequence.
-- Implement warned ineligible ASCENSION FAILURE while leaving PURGE visibly available.
-- Commit the selected ending atomically while referencing the already persisted CROWN-05 transaction.
+- Retain the immutable pre-wreck eligibility snapshot and ending transaction coordinator.
+- Disable the former PURGE and severance receiver areas during the transient wreck spectacle.
+- At spectacle completion, immediately complete severance and commit DISENTANGLE when eligible; otherwise cancel wreck pressure and commit PURGE.
+- Commit the deterministic ending atomically while referencing the already persisted CROWN-05 transaction.
 
 **Exit gate:**
 
-- PURGE succeeds for every evidence state.
-- DISENTANGLE succeeds only with at least twenty dossiers and all five flags.
-- Every 19-dossier, incomplete-flag, and lower ineligible matrix state produces the warned failure route when intentionally selected.
+- PURGE automatically succeeds for every ineligible evidence state.
+- DISENTANGLE automatically succeeds only with at least twenty dossiers and all five flags.
+- No corpse receiver accepts player, autonomous, or stale lethal-chain damage.
 - CROWN evidence exists before the eligibility snapshot; ECHO-7 remains unresolved below twenty dossiers even when that flag is present.
 - Every pylon presents exactly one mechanic plus one noncolliding enemy-composition echo, with no live Royal support actors.
-- DISENTANGLE keeps one readable serialized attack active during every severance window and never stacks a second grammar.
-- One smash cannot intersect two receivers.
+- The spectacle completion signal commits one outcome and one rubble transition exactly once.
 - Reload cannot change the pre-wreck eligibility snapshot or duplicate an ending.
 
 ### WP7 — Content completion, accessibility, audio, and packaging
@@ -335,7 +336,7 @@ The existing WebDev host was semantically merged with concurrent source `789e031
 | Area | Required evidence |
 |---|---|
 | Catalog | Five unique IDs, five exact triggers, unique capstone/evidence mapping, valid maximum-concurrency budget. |
-| Damage | Three 110-point charged armor hits; exposed-body damage; threshold exact/overshoot/lethal cases; fresh wreck smash. |
+| Damage | Three 110-point charged armor hits; exposed-body damage; threshold exact/overshoot/lethal cases; automatic rubble only after spectacle completion. |
 | Armor compatibility | Legacy amount-based command boss unchanged; campaign full-charge flag required; oversized charged events still consume one fixed 110-point step. |
 | Streaming | Six resident slots, arena lease cleanup, floating-origin rebasing, no duplicate landmark or post-warm creation. |
 | Structures | All 64 masks per bound facade plus representative multi-building combinations; lower route and direct completion always valid. |
@@ -345,8 +346,8 @@ The existing WebDev host was semantically merged with concurrent source `789e031
 | Residential | Dry lane always exists; protected glass is never required damage; rescue loss cannot block route. |
 | Entertainment | Cyan traces never damage; armed footprint matches collision exactly; eight markers maximum; one Siren. |
 | Military | One auxiliary maximum; three anchors maximum; no live Seraph; reclamation finite. |
-| Royal | No live minions; one mechanic plus one noncolliding composition echo at a time; Crown evidence before snapshot; active DISENTANGLE pressure; three outcomes; receiver separation; eligibility snapshot persistence. |
-| Finisher chain | Fatal attack ID rejected; a different attack sharing the fatal root ID rejected; only a later fresh-root ground smash accepted. |
+| Royal | No live minions; one mechanic plus one noncolliding composition echo at a time; Crown evidence before snapshot; eligible auto-DISENTANGLE; ineligible auto-PURGE; eligibility snapshot persistence. |
+| Defeat handoff | All corpse damage rejected; the 2.95-second spectacle emits one completion; rubble, drops, persistence, and salvage advance exactly once. |
 | Narrative | Lines trigger deterministically, do not seize control, and repeat immutable facts in capstone dossiers. |
 | Accessibility | Shape, luminance, sound, and footprint redundancy; reduced saturation; audio-off; no mobile-control overlap. |
 | Localization | English/Chinese key parity, named placeholders, shipped-font glyph coverage. |
@@ -363,7 +364,7 @@ The existing WebDev host was semantically merged with concurrent source `789e031
 | Structural pre-destruction removes a required interaction | Soft lock | Exhaustive six-cell mask tests; same-position conductors; mirrored or omitted optional bonus; direct damage route. |
 | Optional evidence blocks finale or route | Unfair campaign lock | Evidence affects outcome eligibility only; district completion always proceeds; elite-drop recovery. |
 | Interrupted save partially applies completion | Duplicated reward, missing evidence, or inconsistent route | Checksummed copy-on-write snapshots, atomic rename, transaction/reward IDs, recovery of valid temporary files, and one backup. |
-| Royal failure feels accidental | Player distrust | Separate receiver beyond smash radius, fractured geometry, warning cadence, explicit incomplete-evidence state, PURGE still visible. |
+| Automatic Royal resolution surprises the player | Narrative ambiguity | Preserve the immutable eligibility snapshot, select only a valid outcome, and expose the committed ending in the existing finale presentation. |
 | Bio-horror becomes exploitative spectacle | Conflicts with canon and tone | Containment, rescue equipment, intact silhouettes, synthetic membrane, memory light; prohibit gore and fantasy mutation. |
 | Concept art inflates export | PCK breach | Documentation-only concepts; trimmed runtime atlases; no mipmaps; shared effects; 1.75 MiB feature allocation. |
 | Orientation-specific tuning forks | Mechanical inconsistency | One definition; normalized anchors; presentation-only telescoping; parity assertions. |

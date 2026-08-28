@@ -32,6 +32,7 @@ var title_transition_duration_scale: float = 1.0
 var transition_kind: StringName = &"idle"
 var transition_boom_play_count: int = 0
 var transition_boom_last_alpha: float = -1.0
+var title_music_restart_count: int = 0
 var _title_transition_started_msec: int = 0
 var _transition_sequence_id: int = 0
 var _title_music_sync_pending: bool = false
@@ -308,7 +309,7 @@ func _return_to_title() -> void:
 		city_slice = null
 		remove_child(previous_city)
 		previous_city.queue_free()
-	_show_title()
+	_show_title(true)
 
 
 func _spawn_city_slice() -> void:
@@ -322,13 +323,16 @@ func _spawn_city_slice() -> void:
 	add_child(city_slice)
 
 
-func _show_title() -> void:
+func _show_title(restart_music: bool = false) -> void:
 	_cancel_title_music_sync("show-title")
-	var music_was_playing: bool = background_music_player.playing
-	_start_background_music()
-	_title_music_committed = music_was_playing or (
-		not OS.has_feature("web") and background_music_player.playing
-	)
+	if restart_music:
+		_restart_title_music_for_environment(OS.has_feature("web"))
+	else:
+		var music_was_playing: bool = background_music_player.playing
+		_start_background_music()
+		_title_music_committed = music_was_playing or (
+			not OS.has_feature("web") and background_music_player.playing
+		)
 	title_screen = TITLE_SCENE.instantiate() as TitleScreen
 	title_screen.configure_campaign(campaign_progress.snapshot())
 	title_screen.audio_activation_requested.connect(
@@ -336,6 +340,21 @@ func _show_title() -> void:
 	)
 	title_screen.start_requested.connect(start_game_with_transition)
 	add_child(title_screen)
+
+
+func _restart_title_music_for_environment(is_web: bool) -> void:
+	background_music_player.stop()
+	_title_music_committed = false
+	_title_music_commit_msec = 0
+	if is_web:
+		if _title_web_window == null:
+			_title_web_window = JavaScriptBridge.get_interface("window")
+		if _title_web_window != null:
+			_title_web_window.protoScrollerResumeTitleAudio()
+	_start_background_music_for_environment(is_web)
+	_title_music_committed = background_music_player.playing
+	_title_music_commit_msec = Time.get_ticks_msec()
+	title_music_restart_count += 1
 
 
 func _play_transition_boom() -> void:
