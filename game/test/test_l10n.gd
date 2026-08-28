@@ -64,6 +64,12 @@ func test_named_placeholders_are_substituted() -> void:
 	assert_true(L10n.t(dash_profile.description).contains("300 毫秒"))
 
 
+func test_tuning_launcher_has_exact_bilingual_copy() -> void:
+	assert_eq(L10n.t("tuning.action.open"), "TWEAK CONTROLS")
+	assert_true(L10n.set_locale("zh-CN"))
+	assert_eq(L10n.t("tuning.action.open"), "调校控制")
+
+
 func test_simplified_chinese_shop_catalog_has_no_english_fallbacks() -> void:
 	var shop_keys: PackedStringArray = []
 	var english_values: Dictionary[String, String] = {}
