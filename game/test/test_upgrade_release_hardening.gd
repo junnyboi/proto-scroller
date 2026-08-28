@@ -5,14 +5,14 @@ const SOAK_STEPS: int = 720
 const STEP_SECONDS: float = 1.0 / 60.0
 
 
-func test_all_40_ranks_survive_mixed_combat_pause_and_pool_saturation() -> void:
+func test_all_43_ranks_survive_mixed_combat_pause_and_pool_saturation() -> void:
 	var city: CitySlice = await _spawn_isolated_city()
 	var assembler: PlayerUpgradeAssembler = city.upgrade_assembler
 	var rank_total: int = 0
 	for runtime: UpgradeRuntime in assembler.runtimes.values():
 		assert_true(runtime.apply_rank(runtime.max_rank()))
 		rank_total += runtime.current_rank
-	assert_eq(rank_total, 40)
+	assert_eq(rank_total, 43)
 	var machine: MachineGunRuntime = (
 		assembler.runtimes[&"MACHINE_GUN"] as MachineGunRuntime
 	)
