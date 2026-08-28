@@ -4,13 +4,13 @@
 
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 
-**Runtime source total:** 20,017,608 bytes
+**Runtime source total:** 20,004,182 bytes
 
-**Measured 2× Web PCK:** 27,106,300 bytes
+**Measured 2× Web PCK:** 27,070,880 bytes
 
 **Legacy presentation ceiling:** 16,777,216 bytes
 
-**Explicit 2× fidelity override:** 10,329,084 bytes above the legacy presentation ceiling
+**Explicit 2× fidelity override:** 10,293,664 bytes above the legacy presentation ceiling
 
 The five canonical animated boss atlases began with **GPT Image 2** 2560×1440 keyframes and locked-camera 1280×720 Veo carriers; the five instrumental themes were generated with **Lyria 3 Pro**. Every atlas cell is exactly twice its predecessor in both axes while the on-screen display envelope remains unchanged. Concept plates and generation masters remain outside the Web PCK. Runtime art is stored as transparent high-quality WebP atlases; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter. All five preloaded boss themes are explicitly retained by the Web preset; excluding their directory leaves the preloaded runtime script unable to compile.
 
@@ -42,7 +42,7 @@ The two particle textures were generated with **GPT Image 2**. `defeat_fx/boss-e
 
 | Artifact | Bytes | SHA-256 |
 |---|---:|---|
-| `game.html` | 17,891 | `8ce8bcc864b082e531da82f744ce5678ab37c85e9755fc536f1d070ccfd049b2` |
-| `game.js` | 279,995 | `9b24675ee72bfd4b2427106b651ce7648e2900350f91ce6c32e2f5e23b4ed11d` |
+| `game.html` | 5,439 | `63ef5b121e47fa0c2517b7ad823bf995a0895e18aa7bc29944ee900b6d972ced` |
+| `game.js` | 279,815 | `33c94cb3175f3333b82e2a3be5e8e86f77986f0aa2042b1631f6367a4e5bb6ba` |
 | `game.wasm` | 39,514,754 | `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` |
-| `game.pck` | 27,106,300 | `d7f1fdacbd72d55a5d63f55ed62dd3ddba08ab60fdb5f6167bc15535b2bf6cc0` |
+| `game.pck` | 27,070,880 | `c6aa70e1da8ac2e1301a28c964559cfc9aee0cbe36d669e6fc38d070f3ae76c3` |
