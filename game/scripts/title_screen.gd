@@ -573,7 +573,6 @@ func _apply_localized_text() -> void:
 
 func _refresh_control_copy() -> void:
 	var bindings: Dictionary = InputBindingSettings.display_placeholders()
-	(%ControlsLabel as Label).text = L10n.t("title.controls_compact", bindings)
 	($SemanticContract/BriefingControlsLabel as Label).text = L10n.t(
 		"title.controls_body",
 		bindings
@@ -601,7 +600,6 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	_set_rect(%InstructionLabel, Rect2(52.0, 326.0 + vertical_offset, 740.0, 145.0))
 	_set_rect(initialize_button, Rect2(52.0, 480.0 + vertical_offset, 360.0, 80.0))
 	_set_rect(language_selector, Rect2(52.0, 576.0 + vertical_offset, 282.0, 48.0))
-	_set_rect($StatusRail, Rect2(52.0, 636.0 + vertical_offset, 760.0, 74.0))
 	_set_rect(
 		briefing_toggle,
 		Rect2(viewport_size.x - 430.0, viewport_size.y - 72.0, 398.0, 58.0)
@@ -639,10 +637,6 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 		Rect2(horizontal_center - 186.0, 920.0 + vertical_offset, 372.0, 52.0)
 	)
 	_set_rect(
-		$StatusRail,
-		Rect2(horizontal_center - 306.0, 992.0 + vertical_offset, 612.0, 160.0)
-	)
-	_set_rect(
 		briefing_toggle,
 		Rect2(horizontal_center - 186.0, viewport_size.y - 90.0, 372.0, 58.0)
 	)
@@ -675,10 +669,6 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 		var label: Label = label_node as Label
 		label.add_theme_font_size_override(&"font_size", body_size)
 	(%TitleLabel as Label).add_theme_font_size_override(&"font_size", title_size)
-	(%ControlsLabel as Label).add_theme_font_size_override(
-		&"font_size",
-		maxi(18, body_size - 4)
-	)
 	initialize_button.add_theme_font_size_override(&"font_size", button_size)
 	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
 	settings_button.add_theme_font_size_override(&"font_size", body_size)
