@@ -307,6 +307,9 @@ func test_warning_pulse_accelerates_and_extreme_threats_shift_red_white() -> voi
 	assert_almost_eq(presenter.firing_pulse_amplitude(1.0), 0.32, 0.001)
 	assert_gt(presenter.firing_pulse_brightness(1.0), 1.30)
 	var attack_color: Color = Color(1.0, 0.35, 0.12, 0.72)
+	var opening: Color = presenter.threat_color(Color(1.0, 0.42, 0.16, 0.46), 1.0, 0.0)
+	assert_gt(opening.a, 0.45)
+	assert_gt(opening.g, 0.44)
 	var standard: Color = presenter.threat_color(attack_color, 1.0, 1.0)
 	var extreme: Color = presenter.threat_color(
 		attack_color,
@@ -316,6 +319,7 @@ func test_warning_pulse_accelerates_and_extreme_threats_shift_red_white() -> voi
 	assert_gt(extreme.g, standard.g)
 	assert_gt(extreme.b, standard.b)
 	assert_gt(extreme.r, 0.99)
+	assert_gt(standard.a, attack_color.a)
 
 
 func _spawn_city() -> CitySlice:

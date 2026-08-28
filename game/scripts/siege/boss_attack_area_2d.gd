@@ -37,6 +37,8 @@ const SHOCKWAVE_RELEASE_SFX: AudioStream = preload(
 	"res://audio/sfx/boss/s04_shockwave_release.ogg"
 )
 const SHOCKWAVE_SEGMENTS: int = 96
+const SHOCKWAVE_TRAIL_COUNT: int = 4
+const SHOCKWAVE_TRAIL_SPACING_SECONDS: float = 0.065
 const CHARGE_PARTICLE_CAPACITY: int = 72
 const CHARGE_PARTICLE_RADIUS: float = 300.0
 const CHARGE_CORE_MIN_DIAMETER: float = 54.0
@@ -79,6 +81,7 @@ var _damaged_target_ids: Dictionary[int, bool] = {}
 var _charge_particles: CPUParticles2D
 var _charge_core: Sprite2D
 var _release_shockwave: Sprite2D
+var _release_trail: Array[Sprite2D] = []
 var _charge_sfx_player: AudioStreamPlayer2D
 var _release_sfx_player: AudioStreamPlayer2D
 
@@ -286,17 +289,17 @@ func _draw() -> void:
 	var rectangle: Rect2 = Rect2(-footprint_size * 0.5, footprint_size)
 	var texture: Texture2D = authored_texture()
 	if texture != null:
-		draw_texture_rect(texture, rectangle, false, Color(0.54, 0.96, 1.0, 0.18))
-	var fill: Color = Color(0.04, 0.58, 0.68, 0.055)
-	var edge: Color = Color(0.38, 0.92, 1.0, 0.62)
+		draw_texture_rect(texture, rectangle, false, Color(0.60, 0.98, 1.0, 0.24))
+	var fill: Color = Color(0.04, 0.64, 0.76, 0.075)
+	var edge: Color = Color(0.48, 0.96, 1.0, 0.74)
 	var width: float = 2.5
 	if visual_state == VisualState.ARMED:
-		fill = Color(1.0, 0.20, 0.07, 0.18)
-		edge = Color(1.0, 0.80, 0.44, 0.96)
+		fill = Color(1.0, 0.24, 0.08, 0.24)
+		edge = Color(1.0, 0.88, 0.54, 1.0)
 		width = 5.0
 	elif visual_state == VisualState.DRY:
-		fill = Color(0.70, 0.98, 1.0, 0.04)
-		edge = Color(0.88, 1.0, 1.0, 0.82)
+		fill = Color(0.70, 0.98, 1.0, 0.055)
+		edge = Color(0.92, 1.0, 1.0, 0.90)
 		width = 4.0
 	draw_rect(rectangle, fill, true)
 	draw_rect(rectangle, edge, false, width)
@@ -333,6 +336,9 @@ func shockwave_snapshot() -> Dictionary:
 		"countdown_progress": _charge_progress(),
 		"countdown_radius": CORE_COUNTDOWN_RADIUS,
 		"visible_band_thickness": shockwave_band_thickness,
+		"trail_count": SHOCKWAVE_TRAIL_COUNT,
+		"trail_visible_count": _visible_trail_count(),
+		"trail_spacing_seconds": SHOCKWAVE_TRAIL_SPACING_SECONDS,
 	}
 
 
@@ -341,14 +347,14 @@ func _draw_core_shockwave() -> void:
 		var progress: float = _charge_progress()
 		var pulse: float = 0.5 + 0.5 * sin(radial_age * lerpf(5.0, 15.0, progress))
 		var aura_radius: float = _core_diameter() * 0.5 + 10.0 + pulse * 8.0
-		draw_circle(Vector2.ZERO, aura_radius, Color(0.04, 0.62, 1.0, 0.07 + progress * 0.08))
+		draw_circle(Vector2.ZERO, aura_radius, Color(0.04, 0.68, 1.0, 0.10 + progress * 0.11))
 		draw_arc(
 			Vector2.ZERO,
 			aura_radius,
 			0.0,
 			TAU,
 			SHOCKWAVE_SEGMENTS,
-			Color(0.48, 0.94, 1.0, 0.48 + pulse * 0.42),
+			Color(0.56, 0.98, 1.0, 0.62 + pulse * 0.36),
 			3.0 + progress * 4.0,
 			true
 		)
@@ -357,7 +363,7 @@ func _draw_core_shockwave() -> void:
 			CORE_TARGET_BADGE,
 			Rect2(-badge_size * 0.5, badge_size),
 			false,
-			Color(1.0, 0.78, 0.40, 0.22 + progress * 0.24)
+			Color(1.0, 0.84, 0.48, 0.34 + progress * 0.34)
 		)
 		draw_arc(
 			Vector2.ZERO,
@@ -365,7 +371,7 @@ func _draw_core_shockwave() -> void:
 			-PI * 0.5,
 			-PI * 0.5 + TAU * progress,
 			SHOCKWAVE_SEGMENTS,
-			Color(1.0, 0.36, 0.12, 0.72 + pulse * 0.26),
+			Color(1.0, 0.46, 0.16, 0.80 + pulse * 0.20),
 			5.0 + progress * 3.0,
 			true
 		)
@@ -377,13 +383,29 @@ func _draw_core_shockwave() -> void:
 		return
 	var travel_ratio: float = clampf(radial_age / shockwave_travel_seconds, 0.0, 1.0)
 	var alpha: float = pow(1.0 - travel_ratio, 0.24)
+	for trail_index: int in range(SHOCKWAVE_TRAIL_COUNT):
+		var trail_age: float = radial_age - float(trail_index + 1) * SHOCKWAVE_TRAIL_SPACING_SECONDS
+		var trail_radius: float = _shockwave_radius_at_age(trail_age)
+		if trail_radius < 0.0:
+			continue
+		var trail_depth: float = float(trail_index) / float(maxi(SHOCKWAVE_TRAIL_COUNT - 1, 1))
+		draw_arc(
+			Vector2.ZERO,
+			trail_radius,
+			0.0,
+			TAU,
+			SHOCKWAVE_SEGMENTS,
+			Color(0.02, 0.46, 1.0, alpha * lerpf(0.16, 0.025, trail_depth)),
+			lerpf(shockwave_band_thickness * 0.42, 14.0, trail_depth),
+			true
+		)
 	draw_arc(
 		Vector2.ZERO,
 		front_radius,
 		0.0,
 		TAU,
 		SHOCKWAVE_SEGMENTS,
-		Color(0.02, 0.50, 1.0, alpha * 0.16),
+		Color(0.02, 0.56, 1.0, alpha * 0.20),
 		shockwave_band_thickness,
 		true
 	)
@@ -393,7 +415,7 @@ func _draw_core_shockwave() -> void:
 		0.0,
 		TAU,
 		SHOCKWAVE_SEGMENTS,
-		Color(0.82, 0.98, 1.0, alpha),
+		Color(0.88, 1.0, 1.0, alpha),
 		14.0,
 		true
 	)
@@ -403,7 +425,7 @@ func _draw_core_shockwave() -> void:
 		0.0,
 		TAU,
 		SHOCKWAVE_SEGMENTS,
-		Color(0.02, 0.54, 1.0, alpha * 0.72),
+		Color(0.02, 0.62, 1.0, alpha * 0.82),
 		20.0,
 		true
 	)
@@ -438,9 +460,13 @@ func _draw_area_notches(rectangle: Rect2, edge: Color, safe: bool) -> void:
 func _shockwave_front_radius() -> float:
 	if visual_state != VisualState.ARMED:
 		return -1.0
-	if radial_age < 0.0 or radial_age > shockwave_travel_seconds:
+	return _shockwave_radius_at_age(radial_age)
+
+
+func _shockwave_radius_at_age(age: float) -> float:
+	if age < 0.0 or age > shockwave_travel_seconds:
 		return -1.0
-	var travel_ratio: float = clampf(radial_age / shockwave_travel_seconds, 0.0, 1.0)
+	var travel_ratio: float = clampf(age / shockwave_travel_seconds, 0.0, 1.0)
 	var radius: float = maxf(footprint_size.x, footprint_size.y) * 0.5
 	return lerpf(
 		CHARGE_CORE_MAX_DIAMETER * 0.34,
@@ -519,6 +545,16 @@ func _ensure_radial_charge_vfx() -> void:
 	_release_shockwave.modulate = Color(0.48, 0.91, 1.0, 1.0)
 	_release_shockwave.visible = false
 	add_child(_release_shockwave)
+	for trail_index: int in range(SHOCKWAVE_TRAIL_COUNT):
+		var trail: Sprite2D = Sprite2D.new()
+		trail.name = "BossCoreShockwaveTrail%02d" % trail_index
+		trail.texture = PHOTON_RELEASE_SHOCKWAVE_TEXTURE
+		trail.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		trail.z_index = 1
+		trail.modulate = Color(0.10, 0.58, 1.0, 0.0)
+		trail.visible = false
+		add_child(trail)
+		_release_trail.append(trail)
 	_charge_sfx_player = _make_core_audio_player(
 		"BossCoreChargeAudio",
 		CORE_CHARGE_SFX,
@@ -538,6 +574,7 @@ func _start_core_charge() -> void:
 	_charge_sfx_player.play()
 	core_charge_sfx_play_count += 1
 	_release_shockwave.visible = false
+	_hide_release_trail()
 	_charge_core.visible = true
 	_charge_particles.visible = true
 	_charge_particles.restart()
@@ -576,16 +613,19 @@ func _update_radial_vfx() -> void:
 		_charge_core.scale = Vector2.ONE * diameter / maxf(core_size.x, 1.0)
 		_charge_core.rotation = radial_age * lerpf(0.18, 0.52, progress)
 		_release_shockwave.visible = false
+		_hide_release_trail()
 		return
 	_charge_particles.emitting = false
 	_charge_particles.visible = false
 	_charge_core.visible = false
 	if visual_state != VisualState.ARMED:
 		_release_shockwave.visible = false
+		_hide_release_trail()
 		return
 	var front_radius: float = _shockwave_front_radius()
 	if front_radius < 0.0:
 		_release_shockwave.visible = false
+		_hide_release_trail()
 		return
 	var travel_ratio: float = clampf(radial_age / shockwave_travel_seconds, 0.0, 1.0)
 	var texture_size: Vector2 = PHOTON_RELEASE_SHOCKWAVE_TEXTURE.get_size()
@@ -593,6 +633,24 @@ func _update_radial_vfx() -> void:
 	_release_shockwave.scale = Vector2.ONE * (front_radius * 2.0 / maxf(texture_size.x, 1.0))
 	_release_shockwave.modulate = Color(0.48, 0.91, 1.0, pow(1.0 - travel_ratio, 0.24))
 	_release_shockwave.rotation = radial_age * 0.34
+	for trail_index: int in range(_release_trail.size()):
+		var trail: Sprite2D = _release_trail[trail_index]
+		var trail_age: float = radial_age - float(trail_index + 1) * SHOCKWAVE_TRAIL_SPACING_SECONDS
+		var trail_radius: float = _shockwave_radius_at_age(trail_age)
+		if trail_radius < 0.0:
+			trail.visible = false
+			continue
+		var trail_ratio: float = clampf(trail_age / shockwave_travel_seconds, 0.0, 1.0)
+		var trail_depth: float = float(trail_index) / float(maxi(SHOCKWAVE_TRAIL_COUNT - 1, 1))
+		trail.visible = true
+		trail.scale = Vector2.ONE * (trail_radius * 2.0 / maxf(texture_size.x, 1.0))
+		trail.modulate = Color(
+			0.08,
+			lerpf(0.64, 0.40, trail_depth),
+			1.0,
+			pow(1.0 - trail_ratio, 0.32) * lerpf(0.12, 0.025, trail_depth)
+		)
+		trail.rotation = trail_age * 0.34 - float(trail_index + 1) * 0.08
 
 
 func _reset_radial_vfx() -> void:
@@ -606,10 +664,26 @@ func _reset_radial_vfx() -> void:
 		_release_shockwave.visible = false
 		_release_shockwave.scale = Vector2.ONE
 		_release_shockwave.rotation = 0.0
+	_hide_release_trail()
 	if _charge_sfx_player != null:
 		_charge_sfx_player.stop()
 	if _release_sfx_player != null:
 		_release_sfx_player.stop()
+
+
+func _hide_release_trail() -> void:
+	for trail: Sprite2D in _release_trail:
+		trail.visible = false
+		trail.scale = Vector2.ONE
+		trail.rotation = 0.0
+
+
+func _visible_trail_count() -> int:
+	var visible_count: int = 0
+	for trail: Sprite2D in _release_trail:
+		if trail.visible:
+			visible_count += 1
+	return visible_count
 
 
 func _make_core_audio_player(

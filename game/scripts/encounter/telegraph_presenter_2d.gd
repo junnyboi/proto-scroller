@@ -17,6 +17,8 @@ const FIRING_PULSE_MINIMUM_AMPLITUDE: float = 0.04
 const FIRING_PULSE_MAXIMUM_AMPLITUDE: float = 0.32
 const EXTREME_THREAT_START: float = 1.30
 const EXTREME_THREAT_COLOR: Color = Color(1.0, 0.90, 0.86, 1.0)
+const DARK_BACKGROUND_RGB_GAIN: float = 1.16
+const DARK_BACKGROUND_ALPHA_GAIN: float = 1.22
 
 @export_range(1, 16, 1) var capacity: int = RuntimeBudget.TELEGRAPH_RECORDS
 
@@ -124,7 +126,7 @@ func _draw() -> void:
 		var color_intensity: float = float(record.color_intensity)
 		var pulse_brightness: float = firing_pulse_brightness(progress)
 		var base_color: Color = _threat_color(
-			Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56),
+			Color(1.0, 0.42, 0.16, 0.46 + progress * 0.48),
 			color_intensity,
 			pulse_brightness
 		)
@@ -164,8 +166,8 @@ func _draw() -> void:
 			draw_line(
 				origin,
 				target,
-				_threat_color(
-					Color(1.0, 0.72, 0.34, 0.35 + progress * 0.45),
+					_threat_color(
+						Color(1.0, 0.78, 0.42, 0.48 + progress * 0.42),
 					color_intensity,
 					pulse_brightness
 				),
@@ -210,7 +212,7 @@ func _draw_projectile_path(
 	pulse_brightness: float
 ) -> void:
 	var base_color: Color = _threat_color(
-		Color(1.0, 0.35, 0.12, 0.34 + progress * 0.56),
+		Color(1.0, 0.42, 0.16, 0.46 + progress * 0.48),
 		color_intensity,
 		pulse_brightness
 	)
@@ -219,8 +221,8 @@ func _draw_projectile_path(
 		TELEGRAPH_BADGE,
 		Rect2(target - badge_size * 0.5, badge_size),
 		false,
-		_threat_color(
-			Color(1.0, 1.0, 1.0, 0.58 + progress * 0.38),
+			_threat_color(
+				Color(1.0, 1.0, 1.0, 0.70 + progress * 0.28),
 			color_intensity,
 			pulse_brightness
 		)
@@ -230,8 +232,8 @@ func _draw_projectile_path(
 		draw_line(
 			origin,
 			target,
-			_threat_color(
-				Color(1.0, 0.82, 0.42, 0.86),
+				_threat_color(
+					Color(1.0, 0.88, 0.52, 0.96),
 				color_intensity,
 				pulse_brightness
 			),
@@ -242,7 +244,7 @@ func _draw_projectile_path(
 			target,
 			26.0 + progress * 10.0,
 			_threat_color(
-				Color(1.0, 0.28, 0.10, 0.20),
+				Color(1.0, 0.34, 0.12, 0.30),
 				color_intensity,
 				pulse_brightness
 			)
@@ -306,8 +308,8 @@ func _draw_support_variant(
 		draw_line(
 			origin,
 			target,
-			_threat_color(
-				Color(1.0, 0.72, 0.34, 0.34 + progress * 0.42),
+				_threat_color(
+					Color(1.0, 0.78, 0.42, 0.46 + progress * 0.40),
 				color_intensity,
 				pulse_brightness
 			),
@@ -319,8 +321,8 @@ func _draw_support_variant(
 			TARGET_MARK_SUPPORT,
 			Rect2(-mark_size * 0.5, mark_size),
 			false,
-			_threat_color(
-				Color(1.0, 1.0, 1.0, 0.48 + progress * 0.48),
+				_threat_color(
+					Color(1.0, 1.0, 1.0, 0.62 + progress * 0.34),
 				color_intensity,
 				pulse_brightness
 			)
@@ -341,7 +343,7 @@ func _draw_support_variant(
 			Rect2(origin - pulse_size * 0.5, pulse_size),
 			false,
 			_threat_color(
-				Color(1.0, 1.0, 1.0, 0.32 + progress * 0.55),
+					Color(1.0, 1.0, 1.0, 0.44 + progress * 0.50),
 				color_intensity,
 				pulse_brightness
 			)
@@ -397,8 +399,15 @@ func _threat_color(base_color: Color, intensity: float, pulse_brightness: float)
 		clampf(inverse_lerp(0.68, 1.32, pulse_brightness), 0.0, 1.0)
 	)
 	return Color(
-		clampf(threat_rgb.r * pulse_brightness, 0.0, 1.0),
-		clampf(threat_rgb.g * pulse_brightness, 0.0, 1.0),
-		clampf(threat_rgb.b * pulse_brightness, 0.0, 1.0),
-		clampf(base_color.a * lerpf(0.78, 1.15, normalized) * pulse_alpha, 0.0, 1.0)
+		clampf(threat_rgb.r * pulse_brightness * DARK_BACKGROUND_RGB_GAIN, 0.0, 1.0),
+		clampf(threat_rgb.g * pulse_brightness * DARK_BACKGROUND_RGB_GAIN, 0.0, 1.0),
+		clampf(threat_rgb.b * pulse_brightness * DARK_BACKGROUND_RGB_GAIN, 0.0, 1.0),
+		clampf(
+			base_color.a
+			* lerpf(0.78, 1.15, normalized)
+			* pulse_alpha
+			* DARK_BACKGROUND_ALPHA_GAIN,
+			0.0,
+			1.0
+		)
 	)
