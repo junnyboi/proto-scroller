@@ -101,6 +101,10 @@ func setup(city: Node) -> PackedStringArray:
 		runtimes[&"PUNCH_SHOCKWAVE"] as DirectionalPunchShockwaveRuntime
 	)
 	punch_shockwave.setup_combat(attacks, robot)
+	var siege_drill: SiegeDrillRuntime = (
+		runtimes[&"SIEGE_DRILL"] as SiegeDrillRuntime
+	)
+	siege_drill.setup_combat(robot, attacks)
 	siege.pause_coordinator.pause_changed.connect(_on_pause_changed)
 	var errors: PackedStringArray = session.setup(
 		siege.run_seed,
@@ -156,6 +160,8 @@ func _create_runtime(
 			runtime = ShockwaveUpgradeRuntime.new()
 		&"PUNCH_SHOCKWAVE":
 			runtime = DirectionalPunchShockwaveRuntime.new()
+		&"SIEGE_DRILL":
+			runtime = SiegeDrillRuntime.new()
 		&"MACHINE_GUN":
 			runtime = MachineGunRuntime.new()
 		&"LASER":

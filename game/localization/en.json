@@ -269,6 +269,8 @@
   "upgrade.engine.description": "Increase top speed, acceleration, and deceleration without momentum loss.",
   "upgrade.dash_amplifier.name": "DASH AMPLIFIER",
   "upgrade.dash_amplifier.description": "Extend dodge range and duration each rank. Invulnerability remains 300 ms.",
+  "upgrade.siege_drill.name": "SIEGE DRILL",
+  "upgrade.siege_drill.description": "Deploy a power drill while dashing. Each contacted target is struck once per dash.",
   "upgrade.destruction.name": "DESTRUCTION",
   "upgrade.destruction.description": "Every accepted debris burst gains two additional visual debris particles.",
   "shop.credit": "RAMPAGE CREDIT",
