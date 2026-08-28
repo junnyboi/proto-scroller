@@ -11,6 +11,7 @@ const WEAPON_PRIORITY: Array[StringName] = [
 	&"MISSILE",
 	&"LASER",
 	&"FLAMETHROWER",
+	&"TESLA_TOWER",
 	&"ENVIRONMENT",
 	UNKNOWN_WEAPON,
 ]
@@ -95,6 +96,8 @@ static func weapon_id_for_damage_type(damage_type: StringName) -> StringName:
 			return &"LASER"
 		&"flamethrower":
 			return &"FLAMETHROWER"
+		&"tesla_tower":
+			return &"TESLA_TOWER"
 		&"chain_collapse", &"catalyst", &"catalyst_blast", &"crash_impact", \
 		&"debris", &"debris_impact", &"explosion", &"volatile":
 			return &"ENVIRONMENT"

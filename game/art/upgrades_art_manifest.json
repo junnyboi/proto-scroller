@@ -580,6 +580,60 @@
       "encoded_bytes": 121789,
       "shipping_sha256": "9074595570fd2a71f67bb6a1174e1b73cc39c734e22f6395707e8df6df9b7a8e",
       "reviewer": "agent-visual-review-pass"
+    },
+    {
+      "asset_id": "tesla_tower_icon",
+      "subject": "Tesla Tower upgrade icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Three synergy upgrades implementation plan, production asset plan",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/three-upgrades/v1/masters/tesla_tower_icon_master.png",
+      "master_sha256": "75ded11c7904959b2996e78f7969f31add563c0a64d89eeaa7d5b197ee716aa2",
+      "shipping_path": "res://art/ui/upgrades/tesla_tower.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "U2Net-P checkerboard removal; alpha trim; LANCZOS contain; 4px transparent padding; PNG level 9",
+      "encoded_bytes": 43456,
+      "shipping_sha256": "91bb8376089e1d33a6766c287a42ee56710b7c9e33b70b70bbfffb8ebb8a4237",
+      "reviewer": "agent-visual-review-pass"
+    },
+    {
+      "asset_id": "tesla_tower_world",
+      "subject": "Tesla Tower planted world sprite",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Three synergy upgrades implementation plan, production asset plan",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/three-upgrades/v1/masters/tesla_tower_world_master.png",
+      "master_sha256": "251445bb2c1c85cc9e59f5890cc7207f2b6151693258e342baa68e855f37b456",
+      "shipping_path": "res://art/player/upgrades/tesla_tower.png",
+      "dimensions": [
+        192,
+        256
+      ],
+      "derivative": "U2Net-P checkerboard removal; alpha trim; LANCZOS contain; 4px transparent padding; PNG level 9",
+      "encoded_bytes": 44629,
+      "shipping_sha256": "354a41d13ecdcb9a59e96f75847f83e63ecc8966bd1b3d7e0da73fe5b05273ef",
+      "reviewer": "agent-visual-review-pass"
+    },
+    {
+      "asset_id": "tesla_tower_arc",
+      "subject": "Tesla Tower reusable lightning arc",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Three synergy upgrades implementation plan, production asset plan",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/three-upgrades/v1/masters/tesla_arc_master.png",
+      "master_sha256": "fd4e75ccfb57e3303f02a90768f4e3800a56d3bc2ede8d89067de59b92be1fc3",
+      "shipping_path": "res://art/player/upgrades/tesla_arc.png",
+      "dimensions": [
+        256,
+        64
+      ],
+      "derivative": "U2Net-P checkerboard removal; alpha trim; LANCZOS contain; authored-form brightness and contrast correction; 4px transparent padding; PNG level 9",
+      "encoded_bytes": 11393,
+      "shipping_sha256": "56ce8e8f9bf30e1d38c1b8469999fda0db06bb8b59027c8d73508429273084bb",
+      "reviewer": "agent-visual-review-pass"
     }
   ],
   "optional_assets_omitted": [

@@ -139,6 +139,8 @@ Generate and process the Tesla Tower icon, world sprite, and arc sprite. Add the
 
 **Phase 3 acceptance:** Any fully charged melee release plants one grounded tower at the robot’s release position even with no targets; at most one tower exists; it selects only living enemies; at most three reusable arcs appear; tower damage cannot deploy another tower; the catalog totals 14 profiles and 49 ranks.
 
+**Phase 3 status — implemented:** One prewarmed tower listens directly to `charge_released`, deploys at `VisualGroundOrigin` on every fully charged release including whiffs, and replaces itself without creating another node. After its fixed arming delay it scans the encounter registry in stable base/family order, keeps the nearest one to three living candidates in fixed arrays, and sends zero-impulse `tesla_tower` damage with dedicated pulse IDs, the melee deployment root, and `FLAG_TESLA_TOWER`. Three reusable GPT Image 2 arc sprites transform between endpoint snapshots and fade without procedural drawing. Focused evidence passed 6 tests / 51 assertions; catalog, localization, 49-rank soak, debrief analytics, manifest, icon, and alpha-border contracts passed 29 tests / 11,588 assertions.
+
 ### Phase 4 — Integrated Web Release
 
 Fast-forward or semantically merge the newest shared `main` once, preserving all compatible concurrent feature contracts. Run lightweight focused integration checks in accordance with the project’s release-gate override: direct import/parse, bounded boot, the three new upgrade suites, upgrade catalog/assets/localization/session/budget/hardening suites, and a concise visual inspection of drill, crucible, and tower behavior. Do not run the full repository certification gate unless explicitly requested.

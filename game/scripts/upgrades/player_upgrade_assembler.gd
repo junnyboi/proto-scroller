@@ -114,6 +114,14 @@ func setup(city: Node) -> PackedStringArray:
 		debris_pool,
 		city.get("enemy_remains_factory") as EnemyRemainsFactory
 	)
+	var tesla_tower: TeslaTowerRuntime = (
+		runtimes[&"TESLA_TOWER"] as TeslaTowerRuntime
+	)
+	tesla_tower.setup_combat(
+		robot,
+		attacks,
+		city.get("encounter_runtime") as EncounterRuntime
+	)
 	siege.pause_coordinator.pause_changed.connect(_on_pause_changed)
 	var errors: PackedStringArray = session.setup(
 		siege.run_seed,
@@ -173,6 +181,8 @@ func _create_runtime(
 			runtime = SiegeDrillRuntime.new()
 		&"GRAVITY_CRUCIBLE":
 			runtime = GravityCrucibleRuntime.new()
+		&"TESLA_TOWER":
+			runtime = TeslaTowerRuntime.new()
 		&"MACHINE_GUN":
 			runtime = MachineGunRuntime.new()
 		&"LASER":

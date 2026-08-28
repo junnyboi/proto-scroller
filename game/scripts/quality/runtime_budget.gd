@@ -115,6 +115,8 @@ const SHOCKWAVE_RING_SLOTS: int = 10
 const DIRECTIONAL_SHOCKWAVE_SLOTS: int = DirectionalPunchShockwaveRuntime.CAPACITY
 const SIEGE_DRILL_HITBOX_SLOTS: int = SiegeDrillRuntime.HITBOX_CAPACITY
 const GRAVITY_CRUCIBLE_SLOTS: int = GravityCrucibleRuntime.CAPACITY
+const TESLA_TOWER_SLOTS: int = TeslaTowerRuntime.TOWER_CAPACITY
+const TESLA_ARC_SLOTS: int = TeslaTowerRuntime.ARC_CAPACITY
 const PLAYER_ARSENALS: int = 1
 const WEAPON_DRONES: int = 19
 const MACHINE_GUN_IMPACT_SLOTS: int = ProjectilePool.MACHINE_GUN_IMPACT_CAPACITY
@@ -337,6 +339,8 @@ static func snapshot(city: CitySlice) -> Dictionary:
 			"directional_shockwave_slots": DirectionalPunchShockwaveRuntime.CAPACITY,
 			"siege_drill_hitbox_slots": _siege_drill_hitbox_slots(city),
 			"gravity_crucible_slots": _gravity_crucible_slots(city),
+			"tesla_tower_slots": _tesla_tower_slots(city),
+			"tesla_arc_slots": _tesla_arc_slots(city),
 			"player_arsenals": (
 			1
 			if city.upgrade_assembler.get_node_or_null(^"PlayerArsenalRuntime") != null
@@ -541,6 +545,8 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	_check_equal(errors, data, "directional_shockwave_slots", DIRECTIONAL_SHOCKWAVE_SLOTS)
 	_check_equal(errors, data, "siege_drill_hitbox_slots", SIEGE_DRILL_HITBOX_SLOTS)
 	_check_equal(errors, data, "gravity_crucible_slots", GRAVITY_CRUCIBLE_SLOTS)
+	_check_equal(errors, data, "tesla_tower_slots", TESLA_TOWER_SLOTS)
+	_check_equal(errors, data, "tesla_arc_slots", TESLA_ARC_SLOTS)
 	_check_equal(errors, data, "player_arsenals", PLAYER_ARSENALS)
 	_check_equal(errors, data, "weapon_drones", WEAPON_DRONES)
 	_check_equal(
@@ -641,6 +647,24 @@ static func _gravity_crucible_slots(city: CitySlice) -> int:
 		) as GravityCrucibleRuntime
 	)
 	return runtime.CAPACITY if runtime != null else 0
+
+
+static func _tesla_tower_slots(city: CitySlice) -> int:
+	if city.upgrade_assembler == null:
+		return 0
+	var runtime: TeslaTowerRuntime = (
+		city.upgrade_assembler.runtimes.get(&"TESLA_TOWER") as TeslaTowerRuntime
+	)
+	return runtime.TOWER_CAPACITY if runtime != null and runtime.tower != null else 0
+
+
+static func _tesla_arc_slots(city: CitySlice) -> int:
+	if city.upgrade_assembler == null:
+		return 0
+	var runtime: TeslaTowerRuntime = (
+		city.upgrade_assembler.runtimes.get(&"TESLA_TOWER") as TeslaTowerRuntime
+	)
+	return runtime.tower.arcs.size() if runtime != null and runtime.tower != null else 0
 
 
 static func _weather_runtime(city: CitySlice) -> DistrictWeatherRuntime:

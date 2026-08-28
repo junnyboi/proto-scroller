@@ -40,6 +40,9 @@ const MARK_DAMAGE_MULTIPLIER: float = 1.15
 const STATIC_INTERVAL_MULTIPLIER: float = 0.82
 const AEGIS_DAMAGE_MULTIPLIER: float = 0.65
 const AEGIS_RADIUS: float = 560.0
+const PROCEDURAL_FAMILY_ORDER: Array[StringName] = [
+	&"infantry", &"light", &"heavy", &"air", &"siege",
+]
 static var _visual_content_rect_cache: Dictionary[String, Rect2] = {}
 
 var robot: GiantRobotController
@@ -216,6 +219,34 @@ func all_actors() -> Array[EnemyActor2D]:
 		for value: Variant in pool:
 			actors.append(value as EnemyActor2D)
 	return actors
+
+
+func actor_registry_count() -> int:
+	var count: int = soldiers.size() + tanks.size() + helicopters.size()
+	for family: StringName in PROCEDURAL_FAMILY_ORDER:
+		count += (procedural_pools.get(family, []) as Array).size()
+	return count
+
+
+func actor_at_registry_index(index: int) -> EnemyActor2D:
+	if index < 0:
+		return null
+	var local_index: int = index
+	if local_index < soldiers.size():
+		return soldiers[local_index]
+	local_index -= soldiers.size()
+	if local_index < tanks.size():
+		return tanks[local_index]
+	local_index -= tanks.size()
+	if local_index < helicopters.size():
+		return helicopters[local_index]
+	local_index -= helicopters.size()
+	for family: StringName in PROCEDURAL_FAMILY_ORDER:
+		var pool: Array = procedural_pools.get(family, []) as Array
+		if local_index < pool.size():
+			return pool[local_index] as EnemyActor2D
+		local_index -= pool.size()
+	return null
 
 
 func active_count(kind: StringName = &"") -> int:

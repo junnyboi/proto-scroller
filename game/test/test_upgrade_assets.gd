@@ -10,7 +10,7 @@ func test_art_manifest_covers_all_required_assets_with_bounded_bytes() -> void:
 	var manifest_text: String = FileAccess.get_file_as_string(MANIFEST_PATH)
 	var manifest: Dictionary = JSON.parse_string(manifest_text) as Dictionary
 	var assets: Array = manifest.assets as Array
-	assert_eq(assets.size(), 32)
+	assert_eq(assets.size(), 35)
 	var total_bytes: int = 0
 	for record_variant: Variant in assets:
 		var record: Dictionary = record_variant as Dictionary
@@ -32,7 +32,7 @@ func test_every_upgrade_profile_has_a_generated_icon() -> void:
 	) as UpgradeCatalog
 	var english_keys: PackedStringArray = L10n.keys_for_locale("en")
 	var chinese_keys: PackedStringArray = L10n.keys_for_locale("zh-CN")
-	assert_eq(catalog.profiles.size(), 13)
+	assert_eq(catalog.profiles.size(), 14)
 	for profile: UpgradeProfile in catalog.profiles:
 		assert_has(english_keys, profile.display_name, "%s English name" % profile.upgrade_id)
 		assert_has(chinese_keys, profile.display_name, "%s Chinese name" % profile.upgrade_id)
@@ -78,6 +78,9 @@ func test_directional_icon_drone_and_fist_projectile_have_clear_borders() -> voi
 	_assert_clear_border("res://art/ui/upgrades/directional_shockwave_icon.png")
 	_assert_clear_border("res://art/ui/upgrades/siege_drill.png")
 	_assert_clear_border("res://art/ui/upgrades/gravity_crucible.png")
+	_assert_clear_border("res://art/ui/upgrades/tesla_tower.png")
+	_assert_clear_border("res://art/player/upgrades/tesla_tower.png")
+	_assert_clear_border("res://art/player/upgrades/tesla_arc.png")
 	_assert_clear_border("res://art/player/drones/weapon_drone_chassis_east.png")
 	_assert_clear_border("res://art/player/weapons/directional_punch_fist.png")
 

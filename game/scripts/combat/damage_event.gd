@@ -13,6 +13,7 @@ const FLAG_HAZARD: int = 1 << 6
 const FLAG_FULL_CHARGE: int = 1 << 7
 const FLAG_UNBLOCKABLE: int = 1 << 8
 const FLAG_GRAVITY_CRUCIBLE: int = 1 << 9
+const FLAG_TESLA_TOWER: int = 1 << 10
 const MAX_CAUSAL_DEPTH: int = 3
 
 var attack_id: int
