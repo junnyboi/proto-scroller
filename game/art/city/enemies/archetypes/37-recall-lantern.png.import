@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/37-recall-lantern.png-5e341b85638e96d830827eb
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
