@@ -48,9 +48,8 @@ func _present_business(session: CommandBossSession, portrait: bool) -> Dictionar
 	)
 	_check("business_started", session.start_definition(definition))
 	var slice: BossVerticalSliceController = session.utility_pool.vertical_slice
-	_check("business_shockwave_suite", slice.active_attack_choices() == [
-		BossVerticalSliceController.BUSINESS_ASSESSMENT_ATTACK,
-		BossVerticalSliceController.BUSINESS_DOUBLE_ATTACK,
+	_check("business_core_shockwave_only", slice.active_attack_choices() == [
+		BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK,
 	])
 	_check(
 		"business_direct_target",
@@ -63,12 +62,13 @@ func _present_business(session: CommandBossSession, portrait: bool) -> Dictionar
 	)
 	for _connection: int in range(2):
 		slice.register_armor_connection()
+	session.utility_pool.radial_shockwave._process(0.92)
 	await process_frame
-	var telegraph_shot: String = await _capture("business-shockwave-telegraph", portrait)
-	slice.advance(BossVerticalSliceController.ASSESSMENT_TELEGRAPH_SECONDS)
-	session.utility_pool.radial_shockwave.radial_age = 0.36
+	var telegraph_shot: String = await _capture("business-core-charge", portrait)
+	slice.advance(BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS)
+	session.utility_pool.radial_shockwave.radial_age = 0.42
 	session.utility_pool.radial_shockwave.queue_redraw()
-	var shot: String = await _capture("business", portrait)
+	var shot: String = await _capture("business-shockwave-release", portrait)
 	var result: Dictionary = {
 		"boss_id": String(definition.boss_id),
 		"attacks": slice.active_attack_choices(),
