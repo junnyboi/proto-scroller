@@ -8,22 +8,9 @@ signal rescue_tally_changed(rescued: int, lost: int)
 
 const BUSINESS_ID: StringName = &"SETTLEMENT_ENGINE_S04"
 const RESIDENTIAL_ID: StringName = &"SAMARITAN_15"
-const BUSINESS_ASSESSMENT_ATTACK: StringName = &"ASSESSMENT_LEVY"
-const BUSINESS_DOUBLE_ATTACK: StringName = &"DOUBLE_ENTRY_RUPTURE"
-const BUSINESS_COMPOUND_ATTACK: StringName = &"COMPOUND_DEFAULT"
+const BUSINESS_CORE_SHOCKWAVE_ATTACK: StringName = &"CORE_SHOCKWAVE"
 const BUSINESS_ATTACKS: Array[StringName] = [
-	BUSINESS_ASSESSMENT_ATTACK,
-	BUSINESS_DOUBLE_ATTACK,
-	BUSINESS_COMPOUND_ATTACK,
-]
-const BUSINESS_ARMORED_ATTACKS: Array[StringName] = [
-	BUSINESS_ASSESSMENT_ATTACK, BUSINESS_DOUBLE_ATTACK,
-]
-const BUSINESS_EXPOSED_ATTACKS: Array[StringName] = [
-	BUSINESS_DOUBLE_ATTACK, BUSINESS_COMPOUND_ATTACK,
-]
-const BUSINESS_FINAL_ATTACKS: Array[StringName] = [
-	BUSINESS_COMPOUND_ATTACK, BUSINESS_DOUBLE_ATTACK,
+	BUSINESS_CORE_SHOCKWAVE_ATTACK,
 ]
 const RESIDENTIAL_ATTACKS: Array[StringName] = [
 	&"TRIAGE_SWEEP",
@@ -61,22 +48,11 @@ const RESIDENTIAL_PROJECTILE_SOCKETS: Array[StringName] = [
 	&"LEFT_EMITTER", &"UPPER", &"RIGHT_EMITTER", &"CORE",
 ]
 const RESIDENTIAL_AIM_OFFSETS: Array[float] = [-150.0, 0.0, 150.0, 0.0]
-const ASSESSMENT_SHOCKWAVE_DIAMETER: float = 1520.0
-const ASSESSMENT_SHOCKWAVE_DAMAGE: float = 60.0
-const ASSESSMENT_TELEGRAPH_SECONDS: float = 0.9
-const ASSESSMENT_ACTIVE_SECONDS: float = 0.95
-const ASSESSMENT_TRAVEL_SECONDS: float = 0.82
-const DOUBLE_SHOCKWAVE_DIAMETER: float = 1660.0
-const DOUBLE_SHOCKWAVE_DAMAGE: float = 66.0
-const DOUBLE_TELEGRAPH_SECONDS: float = 1.05
-const DOUBLE_ACTIVE_SECONDS: float = 1.24
-const DOUBLE_TRAVEL_SECONDS: float = 0.90
-const COMPOUND_SHOCKWAVE_DIAMETER: float = 1800.0
-const COMPOUND_SHOCKWAVE_DAMAGE: float = 72.0
-const COMPOUND_TELEGRAPH_SECONDS: float = 1.16
-const COMPOUND_ACTIVE_SECONDS: float = 1.50
-const COMPOUND_TRAVEL_SECONDS: float = 0.96
-const SHOCKWAVE_VERTICAL_RATIO: float = 0.22
+const BUSINESS_SHOCKWAVE_DIAMETER: float = 1800.0
+const BUSINESS_SHOCKWAVE_DAMAGE: float = 66.0
+const BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS: float = 1.70
+const BUSINESS_SHOCKWAVE_ACTIVE_SECONDS: float = 1.05
+const BUSINESS_SHOCKWAVE_TRAVEL_SECONDS: float = 1.00
 const SHOCKWAVE_BAND_THICKNESS: float = 92.0
 const BUSINESS_SUPPORT_OFFSETS: Array[Vector2] = [
 	Vector2(-540.0, 0.0), Vector2(540.0, 0.0),
@@ -277,13 +253,7 @@ func active_attack_choices() -> Array[StringName]:
 	if active_definition == null:
 		return []
 	if active_definition.boss_id == BUSINESS_ID:
-		if combat_state != CommandBossSession.STATE_EXPOSED:
-			return BUSINESS_ARMORED_ATTACKS.duplicate()
-		return (
-			BUSINESS_EXPOSED_ATTACKS.duplicate()
-			if body_health_ratio > 0.33
-			else BUSINESS_FINAL_ATTACKS.duplicate()
-		)
+		return BUSINESS_ATTACKS.duplicate()
 	if combat_state != CommandBossSession.STATE_EXPOSED:
 		return RESIDENTIAL_ARMORED_ATTACKS.duplicate()
 	return (
@@ -333,7 +303,7 @@ func trigger_treasury_slab() -> float:
 		not active()
 		or active_definition.boss_id != BUSINESS_ID
 		or treasury_slab_used
-		or not active_attack in [BUSINESS_DOUBLE_ATTACK, BUSINESS_COMPOUND_ATTACK]
+		or active_attack != BUSINESS_CORE_SHOCKWAVE_ATTACK
 	):
 		return 0.0
 	treasury_slab_used = true
@@ -802,65 +772,41 @@ func _configure_attack(attack: StringName) -> void:
 
 
 func _configure_business_attack(attack: StringName) -> void:
-	var diameter: float = ASSESSMENT_SHOCKWAVE_DIAMETER
-	var damage: float = ASSESSMENT_SHOCKWAVE_DAMAGE
-	var front_count: int = 1
-	var release_delays: PackedFloat32Array = PackedFloat32Array([0.0])
-	var travel_seconds: float = ASSESSMENT_TRAVEL_SECONDS
-	match attack:
-		BUSINESS_DOUBLE_ATTACK:
-			diameter = DOUBLE_SHOCKWAVE_DIAMETER
-			damage = DOUBLE_SHOCKWAVE_DAMAGE
-			front_count = 2
-			release_delays = PackedFloat32Array([0.0, 0.30])
-			travel_seconds = DOUBLE_TRAVEL_SECONDS
-		BUSINESS_COMPOUND_ATTACK:
-			diameter = COMPOUND_SHOCKWAVE_DIAMETER
-			damage = COMPOUND_SHOCKWAVE_DAMAGE
-			front_count = 3
-			release_delays = PackedFloat32Array([0.0, 0.24, 0.48])
-			travel_seconds = COMPOUND_TRAVEL_SECONDS
-	match attack:
-		BUSINESS_ASSESSMENT_ATTACK, BUSINESS_DOUBLE_ATTACK, BUSINESS_COMPOUND_ATTACK:
-			utility_pool.radial_shockwave.damage_amount = (
-				damage * encounter_runtime.cycle_attack_multiplier
-			)
-			utility_pool.radial_shockwave.configure_traveling_shockwave(
-				front_count,
-				release_delays,
-				travel_seconds,
-				SHOCKWAVE_VERTICAL_RATIO,
-				SHOCKWAVE_BAND_THICKNESS,
-				_telegraph_seconds_for(attack)
-			)
-			utility_pool.radial_shockwave.configure_footprint(
-				Vector2(center.x, CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y),
-				Vector2.ONE * diameter,
-				BossAttackArea2D.VisualState.TELEGRAPH,
-				attack
-			)
+	if attack != BUSINESS_CORE_SHOCKWAVE_ATTACK:
+		return
+	utility_pool.radial_shockwave.damage_amount = (
+		BUSINESS_SHOCKWAVE_DAMAGE * encounter_runtime.cycle_attack_multiplier
+	)
+	utility_pool.radial_shockwave.configure_core_shockwave(
+		BUSINESS_SHOCKWAVE_TRAVEL_SECONDS,
+		SHOCKWAVE_BAND_THICKNESS,
+		BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS
+	)
+	utility_pool.radial_shockwave.configure_footprint(
+		_business_core_world_position(),
+		Vector2.ONE * BUSINESS_SHOCKWAVE_DIAMETER,
+		BossAttackArea2D.VisualState.TELEGRAPH,
+		attack
+	)
 
 
 func _telegraph_seconds_for(attack: StringName) -> float:
 	match attack:
-		BUSINESS_ASSESSMENT_ATTACK:
-			return ASSESSMENT_TELEGRAPH_SECONDS
-		BUSINESS_DOUBLE_ATTACK:
-			return DOUBLE_TELEGRAPH_SECONDS
-		BUSINESS_COMPOUND_ATTACK:
-			return COMPOUND_TELEGRAPH_SECONDS
+		BUSINESS_CORE_SHOCKWAVE_ATTACK:
+			return BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS
 	return TELEGRAPH_SECONDS
 
 
 func _active_seconds_for(attack: StringName) -> float:
 	match attack:
-		BUSINESS_ASSESSMENT_ATTACK:
-			return ASSESSMENT_ACTIVE_SECONDS
-		BUSINESS_DOUBLE_ATTACK:
-			return DOUBLE_ACTIVE_SECONDS
-		BUSINESS_COMPOUND_ATTACK:
-			return COMPOUND_ACTIVE_SECONDS
+		BUSINESS_CORE_SHOCKWAVE_ATTACK:
+			return BUSINESS_SHOCKWAVE_ACTIVE_SECONDS
 	return ACTIVE_SECONDS
+
+
+func _business_core_world_position() -> Vector2:
+	var core_socket: Marker2D = utility_pool.rig.socket(&"CORE")
+	return core_socket.global_position if core_socket != null else center + Vector2(0.0, -174.0)
 
 
 func _configure_residential_attack(attack: StringName) -> void:

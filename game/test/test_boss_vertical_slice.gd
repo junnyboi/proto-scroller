@@ -35,7 +35,7 @@ func test_business_and_residential_each_cover_all_64_facade_masks() -> void:
 		assert_eq(rows, 64)
 
 
-func test_business_uses_visible_traveling_shockwaves_and_capped_recurring_soldiers() -> void:
+func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers() -> void:
 	_start(&"SETTLEMENT_ENGINE_S04")
 	assert_almost_eq(
 		session.boss.global_position.y,
@@ -44,55 +44,82 @@ func test_business_uses_visible_traveling_shockwaves_and_capped_recurring_soldie
 	)
 	assert_eq(session.utility_pool.rig.scale, Vector2.ONE * 1.5)
 	assert_eq(slice.active_attack_choices(), [
-		BossVerticalSliceController.BUSINESS_ASSESSMENT_ATTACK,
-		BossVerticalSliceController.BUSINESS_DOUBLE_ATTACK,
+		BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK,
 	])
 	var shockwave: BossAttackArea2D = session.utility_pool.radial_shockwave
 	assert_not_null(shockwave)
 	assert_eq(shockwave.presentation_role, BossAttackArea2D.PresentationRole.RADIAL_SHOCKWAVE)
 	assert_eq(
 		shockwave.attack_id,
-		BossVerticalSliceController.BUSINESS_ASSESSMENT_ATTACK
+		BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK
 	)
 	assert_eq(shockwave.visual_state, BossAttackArea2D.VisualState.TELEGRAPH)
-	var assessment: Dictionary = shockwave.shockwave_snapshot()
-	assert_eq(int(assessment.front_count), 1)
-	assert_eq(
-		String(assessment.authored_texture),
-		"res://art/bosses/attacks/settlement-shockwave-ring.webp"
+	assert_almost_eq(
+		shockwave.global_position.distance_to(
+			session.utility_pool.rig.socket(&"CORE").global_position
+		),
+		0.0,
+		0.001
 	)
+	var initial_charge: Dictionary = shockwave.shockwave_snapshot()
+	assert_eq(initial_charge.mode, &"CORE_CHARGE_RELEASE")
+	assert_eq(int(initial_charge.front_count), 1)
+	assert_eq(
+		String(initial_charge.core_texture),
+		"res://art/player/vfx/photon_core_orb.png"
+	)
+	assert_eq(
+		String(initial_charge.authored_texture),
+		"res://art/player/vfx/photon_release_shockwave.png"
+	)
+	assert_eq(
+		int(initial_charge.charge_particle_capacity),
+		BossAttackArea2D.CHARGE_PARTICLE_CAPACITY
+	)
+	assert_true(bool(initial_charge.charge_particles_emitting))
+	assert_true(bool(initial_charge.core_visible))
+	shockwave._process(BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS * 0.55)
+	var charged: Dictionary = shockwave.shockwave_snapshot()
+	assert_between(float(charged.charge_progress), 0.54, 0.56)
+	assert_gt(float(charged.core_diameter), 140.0)
+	assert_true(bool(charged.charge_particles_emitting))
 	var health_before: float = city.robot.current_health
-	city.robot.global_position.x = shockwave.global_position.x + 640.0
-	slice.advance(BossVerticalSliceController.ASSESSMENT_TELEGRAPH_SECONDS)
+	slice.advance(BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS)
 	assert_eq(shockwave.visual_state, BossAttackArea2D.VisualState.ARMED)
 	assert_false(shockwave.try_damage_body(city.robot))
-	shockwave._process(0.35)
+	var released_charge: Dictionary = shockwave.shockwave_snapshot()
+	assert_false(bool(released_charge.charge_particles_emitting))
+	assert_false(bool(released_charge.core_visible))
+	shockwave._process(0.42)
 	var released: Dictionary = shockwave.shockwave_snapshot()
 	var released_radii: PackedFloat32Array = released.radii
 	var front_radius: float = float(released_radii[0])
-	assert_gt(front_radius, 200.0)
-	city.robot.global_position.x = shockwave.global_position.x + front_radius
+	assert_gt(front_radius, 300.0)
+	var vertical_offset: float = city.robot.global_position.y - shockwave.global_position.y
+	var horizontal_offset: float = sqrt(maxf(
+		front_radius * front_radius - vertical_offset * vertical_offset,
+		0.0
+	))
+	city.robot.global_position.x = shockwave.global_position.x + horizontal_offset
 	assert_true(city.robot._start_dodge())
 	assert_false(shockwave.try_damage_body(city.robot))
 	assert_almost_eq(city.robot.current_health, health_before, 0.001)
 	city.robot.physics_step(0.0, city.robot.dodge_invulnerability_seconds + 0.01)
-	city.robot.global_position.x = shockwave.global_position.x + front_radius
+	city.robot.global_position.x = shockwave.global_position.x + horizontal_offset
 	assert_true(shockwave.try_damage_body(city.robot))
 	assert_almost_eq(
 		city.robot.current_health,
 		health_before - (
-			BossVerticalSliceController.ASSESSMENT_SHOCKWAVE_DAMAGE
+			BossVerticalSliceController.BUSINESS_SHOCKWAVE_DAMAGE
 			* EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
 		),
 		0.001
 	)
 	assert_false(shockwave.try_damage_body(city.robot))
-	slice.advance(BossVerticalSliceController.ASSESSMENT_ACTIVE_SECONDS)
+	slice.advance(BossVerticalSliceController.BUSINESS_SHOCKWAVE_ACTIVE_SECONDS)
 	slice.advance(BossVerticalSliceController.RECOVERY_SECONDS)
-	assert_eq(slice.active_attack, BossVerticalSliceController.BUSINESS_DOUBLE_ATTACK)
-	var double_wave: Dictionary = shockwave.shockwave_snapshot()
-	assert_eq(int(double_wave.front_count), 2)
-	assert_eq(double_wave.release_delays, PackedFloat32Array([0.0, 0.30]))
+	assert_eq(slice.active_attack, BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK)
+	assert_eq(shockwave.visual_state, BossAttackArea2D.VisualState.TELEGRAPH)
 	var first_wave: Array[EnemyActor2D] = slice.deploy_business_support()
 	var second_wave: Array[EnemyActor2D] = slice.deploy_business_support()
 	assert_eq(first_wave.size(), BossVerticalSliceController.BUSINESS_SUPPORT_BATCH)
@@ -112,21 +139,12 @@ func test_business_uses_visible_traveling_shockwaves_and_capped_recurring_soldie
 	assert_eq(city.encounter_runtime.active_family_count(&"light"), 0)
 	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.8)
 	assert_eq(slice.active_attack_choices(), [
-		BossVerticalSliceController.BUSINESS_DOUBLE_ATTACK,
-		BossVerticalSliceController.BUSINESS_COMPOUND_ATTACK,
+		BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK,
 	])
 	slice.set_combat_state(CommandBossSession.STATE_EXPOSED, 0.2)
 	assert_eq(slice.active_attack_choices(), [
-		BossVerticalSliceController.BUSINESS_COMPOUND_ATTACK,
-		BossVerticalSliceController.BUSINESS_DOUBLE_ATTACK,
+		BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK,
 	])
-	slice.advance(BossVerticalSliceController.DOUBLE_TELEGRAPH_SECONDS)
-	slice.advance(BossVerticalSliceController.DOUBLE_ACTIVE_SECONDS)
-	slice.advance(BossVerticalSliceController.RECOVERY_SECONDS)
-	assert_eq(slice.active_attack, BossVerticalSliceController.BUSINESS_COMPOUND_ATTACK)
-	var compound: Dictionary = shockwave.shockwave_snapshot()
-	assert_eq(int(compound.front_count), 3)
-	assert_eq(compound.release_delays, PackedFloat32Array([0.0, 0.24, 0.48]))
 
 
 func test_business_boss_has_complete_damage_and_visible_finisher_path() -> void:

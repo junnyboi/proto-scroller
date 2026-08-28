@@ -36,7 +36,7 @@ locale/fallback="en"
 
 ui_accept={
 "deadzone": 0.5,
-"events": [Object(InputEventKey,"keycode":4194309), Object(InputEventKey,"keycode":4194310)]
+"events": [Object(InputEventKey,"keycode":4194309), Object(InputEventKey,"keycode":4194310), Object(InputEventJoypadButton,"button_index":0)]
 }
 move_left={
 "deadzone": 0.3,
@@ -48,7 +48,7 @@ move_right={
 }
 stomp={
 "deadzone": 0.3,
-"events": [Object(InputEventKey,"physical_keycode":32,"unicode":32), Object(InputEventJoypadButton,"button_index":0)]
+"events": [Object(InputEventKey,"physical_keycode":32,"unicode":32), Object(InputEventJoypadButton,"button_index":2)]
 }
 dodge={
 "deadzone": 0.3,
