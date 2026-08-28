@@ -271,6 +271,8 @@
   "upgrade.dash_amplifier.description": "每阶延长闪避距离与持续时间。无敌时间仍为 300 毫秒。",
   "upgrade.siege_drill.name": "攻城钻头",
   "upgrade.siege_drill.description": "冲刺时部署动力钻头。每次冲刺对接触到的每个目标造成一次打击。",
+  "upgrade.gravity_crucible.name": "重力熔炉",
+  "upgrade.gravity_crucible.description": "近战蓄力时捕获附近碎片与残骸，释放攻击时将其抛射出去。",
   "upgrade.destruction.name": "强化破坏",
   "upgrade.destruction.description": "每次有效的碎片爆发都会额外生成两块视觉碎片。",
   "shop.credit": "破坏积分",

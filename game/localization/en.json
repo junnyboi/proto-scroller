@@ -271,6 +271,8 @@
   "upgrade.dash_amplifier.description": "Extend dodge range and duration each rank. Invulnerability remains 300 ms.",
   "upgrade.siege_drill.name": "SIEGE DRILL",
   "upgrade.siege_drill.description": "Deploy a power drill while dashing. Each contacted target is struck once per dash.",
+  "upgrade.gravity_crucible.name": "GRAVITY CRUCIBLE",
+  "upgrade.gravity_crucible.description": "Hold a melee charge to capture nearby debris and wrecks, then launch them on release.",
   "upgrade.destruction.name": "DESTRUCTION",
   "upgrade.destruction.description": "Every accepted debris burst gains two additional visual debris particles.",
   "shop.credit": "RAMPAGE CREDIT",

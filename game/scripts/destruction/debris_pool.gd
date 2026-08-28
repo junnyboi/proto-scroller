@@ -70,7 +70,10 @@ func acquire(
 	facet_color: Color = Color("786d65")
 ) -> DebrisBody2D:
 	if _free.is_empty():
-		release(_active.front())
+		var recyclable: DebrisBody2D = _oldest_recyclable_body()
+		if recyclable == null:
+			return null
+		release(recyclable)
 		recycle_count += 1
 	var body: DebrisBody2D = _free.pop_back()
 	_active.append(body)
@@ -111,6 +114,12 @@ func active_count() -> int:
 	return _active.size()
 
 
+func active_body_at(index: int) -> DebrisBody2D:
+	if index < 0 or index >= _active.size():
+		return null
+	return _active[index]
+
+
 func active_bodies() -> Array[DebrisBody2D]:
 	return _active.duplicate()
 
@@ -127,6 +136,8 @@ func cull_offscreen_now() -> int:
 	var culling_rect: Rect2 = _culling_camera.visible_world_rect(cull_margin)
 	var culled_count: int = 0
 	for body: DebrisBody2D in _active.duplicate():
+		if body.is_crucible_captured():
+			continue
 		if culling_rect.has_point(body.global_position):
 			continue
 		release(body)
@@ -143,6 +154,13 @@ func arm_kinetic_debris(body: DebrisBody2D, source_event: DamageEvent) -> bool:
 	if kinetic_field_runtime == null:
 		return false
 	return kinetic_field_runtime.arm_debris(body, source_event)
+
+
+func _oldest_recyclable_body() -> DebrisBody2D:
+	for body: DebrisBody2D in _active:
+		if not body.is_crucible_captured():
+			return body
+	return null
 
 
 func _on_recycle_requested(body: DebrisBody2D) -> void:

@@ -562,6 +562,24 @@
       "encoded_bytes": 12996,
       "shipping_sha256": "1f91a02c4f225ff221c3da56be7baae9b51e435a503dd1f8a77c8d05d7e1e467",
       "reviewer": "agent-visual-review-pass"
+    },
+    {
+      "asset_id": "gravity_crucible_icon",
+      "subject": "Gravity Crucible upgrade icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Three synergy upgrades implementation plan, production asset plan",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/three-upgrades/v1/masters/gravity_crucible_icon_master.png",
+      "master_sha256": "875ceada571da6f7a1128a33db9aa844250edec29da63745c35a366b1e23fb60",
+      "shipping_path": "res://art/ui/upgrades/gravity_crucible.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "U2Net-P checkerboard removal; alpha trim; LANCZOS contain; 4px transparent padding; PNG level 9",
+      "encoded_bytes": 121789,
+      "shipping_sha256": "9074595570fd2a71f67bb6a1174e1b73cc39c734e22f6395707e8df6df9b7a8e",
+      "reviewer": "agent-visual-review-pass"
     }
   ],
   "optional_assets_omitted": [
