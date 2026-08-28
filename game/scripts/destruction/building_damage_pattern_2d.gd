@@ -39,6 +39,7 @@ const DESTROYED_DARKEN_STRENGTH: float = 0.38
 const DESTROYED_HOLLOW_EXTENTS: Vector2 = Vector2(0.37, 0.43)
 const HOLLOW_CENTER_Y: float = 0.56
 const RUIN_RUBBLE_SPRITE_COUNT: int = 4
+const RUIN_SILHOUETTE_VARIANT_COUNT: int = 6
 const CAVITY_SHADER_CODE: String = """
 shader_type canvas_item;
 render_mode unshaded;
@@ -55,6 +56,7 @@ uniform int impact_profile = 0;
 uniform float impact_direction = 1.0;
 uniform vec4 region_uv_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform bool ground_level = false;
+uniform int silhouette_variant = 0;
 
 void fragment() {
 	vec4 facade = texture(TEXTURE, UV) * visual_tint;
@@ -64,9 +66,46 @@ void fragment() {
 		if (hollow_progress > 0.0001) {
 			vec2 cell_uv = (UV - region_uv_rect.xy) / max(region_uv_rect.zw, vec2(0.0001));
 			if (ground_level && hollow_progress > 0.98) {
-				float top_coarse = 0.5 + 0.5 * sin(cell_uv.x * 31.0 + hollow_seed * 47.0);
-				float top_chips = step(0.66, sin(cell_uv.x * 83.0 - hollow_seed * 71.0));
-				float top_break_depth = 0.012 + top_coarse * 0.020 + top_chips * 0.014;
+				float top_frequency = 31.0;
+				float chip_frequency = 83.0;
+				float top_shape = 0.0;
+				if (silhouette_variant == 1) {
+					top_frequency = 23.0;
+					chip_frequency = 67.0;
+					top_shape = (1.0 - cell_uv.x) * 0.014;
+				} else if (silhouette_variant == 2) {
+					top_frequency = 27.0;
+					chip_frequency = 79.0;
+					top_shape = cell_uv.x * 0.014;
+				} else if (silhouette_variant == 3) {
+					top_frequency = 19.0;
+					chip_frequency = 59.0;
+					top_shape = step(0.46, cell_uv.x) * 0.010;
+				} else if (silhouette_variant == 4) {
+					top_frequency = 37.0;
+					chip_frequency = 97.0;
+					top_shape = step(
+						0.58,
+						sin(cell_uv.x * 53.0 + hollow_seed * 29.0)
+					) * 0.016;
+				} else if (silhouette_variant == 5) {
+					top_frequency = 21.0;
+					chip_frequency = 73.0;
+					top_shape = (
+						1.0 - smoothstep(0.0, 0.10, abs(cell_uv.x - 0.31))
+						+ 1.0 - smoothstep(0.0, 0.10, abs(cell_uv.x - 0.72))
+					) * 0.014;
+				}
+				float top_coarse = 0.5 + 0.5 * sin(
+					cell_uv.x * top_frequency + hollow_seed * 47.0
+				);
+				float top_chips = step(
+					0.66,
+					sin(cell_uv.x * chip_frequency - hollow_seed * 71.0)
+				);
+				float top_break_depth = (
+					0.010 + top_coarse * 0.019 + top_chips * 0.013 + top_shape
+				);
 				if (cell_uv.y < top_break_depth) {
 					discard;
 				}
@@ -82,10 +121,48 @@ void fragment() {
 			}
 		vec2 delta = cell_uv - hollow_center_uv;
 		float angle = atan(delta.y, delta.x);
-		float coarse = sin(angle * 5.0 + hollow_seed * 19.0);
-		float chips = sin(angle * 11.0 - hollow_seed * 31.0);
-		float notches = step(0.70, sin(angle * 17.0 + hollow_seed * 43.0));
-		float boundary = 1.0 + coarse * 0.075 + chips * 0.035 - notches * 0.055;
+		float coarse_frequency = 5.0;
+		float chip_frequency = 11.0;
+		float notch_frequency = 17.0;
+		float silhouette_shape = 0.0;
+		if (silhouette_variant == 1) {
+			coarse_frequency = 4.0;
+			chip_frequency = 9.0;
+			notch_frequency = 15.0;
+			silhouette_shape = delta.x / extents.x * 0.070;
+		} else if (silhouette_variant == 2) {
+			coarse_frequency = 6.0;
+			chip_frequency = 13.0;
+			notch_frequency = 19.0;
+			silhouette_shape = -delta.x / extents.x * 0.070;
+		} else if (silhouette_variant == 3) {
+			coarse_frequency = 3.0;
+			chip_frequency = 10.0;
+			notch_frequency = 14.0;
+			silhouette_shape = sin(angle * 3.0 + hollow_seed * 23.0) * 0.075;
+		} else if (silhouette_variant == 4) {
+			coarse_frequency = 7.0;
+			chip_frequency = 15.0;
+			notch_frequency = 23.0;
+			silhouette_shape = step(
+				0.60,
+				sin(angle * 13.0 - hollow_seed * 37.0)
+			) * 0.055;
+		} else if (silhouette_variant == 5) {
+			coarse_frequency = 4.0;
+			chip_frequency = 12.0;
+			notch_frequency = 21.0;
+			silhouette_shape = cos(angle * 2.0 + hollow_seed * 17.0) * 0.060;
+		}
+		float coarse = sin(angle * coarse_frequency + hollow_seed * 19.0);
+		float chips = sin(angle * chip_frequency - hollow_seed * 31.0);
+		float notches = step(
+			0.70,
+			sin(angle * notch_frequency + hollow_seed * 43.0)
+		);
+		float boundary = (
+			1.0 + coarse * 0.075 + chips * 0.035 - notches * 0.055 + silhouette_shape
+		);
 		if (impact_profile == 1) {
 			float side = delta.x / extents.x * impact_direction;
 			boundary += smoothstep(-0.18, 0.94, side) * 0.16;
@@ -320,6 +397,10 @@ func _ruin_rubble_sprite_count() -> int:
 
 func _is_ground_level_ruin() -> bool:
 	return _ground_level
+
+
+func _ruin_silhouette_variant() -> int:
+	return posmod(_pattern_seed, RUIN_SILHOUETTE_VARIANT_COUNT)
 
 
 func damage_effect_activation_count() -> int:
@@ -699,19 +780,25 @@ func _configure_cavity_material() -> void:
 	_cavity_material.set_shader_parameter("cavity_tint", _cavity_tint())
 	_cavity_material.set_shader_parameter("region_uv_rect", _facade_region_uv_rect())
 	_cavity_material.set_shader_parameter("ground_level", _ground_level)
+	_cavity_material.set_shader_parameter(
+		"silhouette_variant",
+		_ruin_silhouette_variant()
+	)
 	_update_hollow_material()
 
 
 func _create_ruin_rubble_bed() -> void:
 	_ruin_rubble_root = Node2D.new()
 	_ruin_rubble_root.name = "RuinRubbleBed"
-	_ruin_rubble_root.z_index = 3
+	_ruin_rubble_root.z_as_relative = false
+	_ruin_rubble_root.z_index = 15
 	_ruin_rubble_root.visible = false
 	add_child(_ruin_rubble_root)
 	for index: int in range(RUIN_RUBBLE_SPRITE_COUNT):
 		var sprite: Sprite2D = Sprite2D.new()
 		sprite.name = "RuinRubble%02d" % index
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		sprite.visible = false
 		_ruin_rubble_root.add_child(sprite)
 		_ruin_rubble_sprites.append(sprite)
 	_configure_ruin_rubble_bed()
@@ -724,22 +811,31 @@ func _configure_ruin_rubble_bed() -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = _pattern_seed * 982451653 + 961748927
 	var half_width: float = _cell_size.x * 0.5
+	var width_range: Vector2 = Vector2(0.30, 0.42)
+	if _material_id == &"glass":
+		width_range = Vector2(0.18, 0.26)
+	elif _material_id == &"steel":
+		width_range = Vector2(0.25, 0.35)
 	for index: int in range(_ruin_rubble_sprites.size()):
 		var sprite: Sprite2D = _ruin_rubble_sprites[index]
 		var weight: float = (float(index) + 0.5) / float(RUIN_RUBBLE_SPRITE_COUNT)
-		var desired_width: float = _cell_size.x * rng.randf_range(0.22, 0.31)
+		var desired_width: float = _cell_size.x * rng.randf_range(
+			width_range.x,
+			width_range.y
+		)
 		var texture_width: float = maxf(texture.get_width(), 1.0)
 		var sprite_scale: float = desired_width / texture_width
 		sprite.texture = texture
 		sprite.position = Vector2(
 			lerpf(-half_width * 0.76, half_width * 0.76, weight)
 				+ rng.randf_range(-_cell_size.x * 0.045, _cell_size.x * 0.045),
-			_cell_size.y * 0.5 + rng.randf_range(5.0, 13.0)
+			_cell_size.y * 0.5 + rng.randf_range(-14.0, -4.0)
 		)
 		sprite.rotation = rng.randf_range(-0.24, 0.24)
 		sprite.scale = Vector2.ONE * sprite_scale
 		sprite.flip_h = rng.randi_range(0, 1) == 1
-		sprite.modulate = _visual_tint * Color(0.60, 0.58, 0.56, 0.92)
+		var readable_tint: Color = _visual_tint.lerp(Color.WHITE, 0.76)
+		sprite.modulate = readable_tint * Color(1.0, 0.97, 0.90, 1.0)
 	_update_ruin_rubble_bed()
 
 
@@ -780,7 +876,11 @@ func _cavity_tint() -> Color:
 
 
 func _draw() -> void:
-	if _contour.is_empty() or _destroyed_stage:
+	if _destroyed_stage:
+		if _ground_level:
+			_draw_ruin_rubble_bed()
+		return
+	if _contour.is_empty():
 		return
 	var closed_contour: PackedVector2Array = _contour.duplicate()
 	closed_contour.append(_contour[0])
@@ -788,3 +888,16 @@ func _draw() -> void:
 	for crack: PackedVector2Array in _cracks:
 		draw_polyline(crack, CRACK_SHADOW, 2.25, true)
 		draw_polyline(crack, CRACK_HIGHLIGHT, 0.65, true)
+
+
+func _draw_ruin_rubble_bed() -> void:
+	for sprite: Sprite2D in _ruin_rubble_sprites:
+		if sprite.texture == null:
+			continue
+		draw_set_transform(sprite.position, sprite.rotation, sprite.scale)
+		draw_texture(
+			sprite.texture,
+			-Vector2(sprite.texture.get_size()) * 0.5,
+			sprite.modulate
+		)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
