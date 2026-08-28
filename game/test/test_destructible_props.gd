@@ -19,11 +19,18 @@ func test_cars_and_streetlamps_require_multiple_hits_then_fragment() -> void:
 	assert_true(city.car.receive_damage(_prop_hit(city, city.car, 6111, 150.0)))
 	assert_true(city.car.is_broken)
 	assert_false(city.car.is_fully_destroyed)
+	assert_false(city.car.terminal_rubble_active())
 	assert_eq(city.car.current_health, 165.0)
 	assert_eq(city.debris_pool.active_count(), debris_before)
 	assert_true(city.car.receive_damage(_prop_hit(city, city.car, 6112, 80.0)))
 	assert_true(city.car.is_fully_destroyed)
 	assert_false(city.car.visual.visible)
+	assert_true(city.car.terminal_rubble_active())
+	assert_eq(
+		city.car.terminal_rubble_piece_count(),
+		DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
+	)
+	assert_true(city.car.terminal_rubble.uses_only_rubble_fragments())
 	assert_eq(city.debris_pool.active_count(), debris_before + 5)
 	assert_true(city.streetlamp.receive_damage(
 		_prop_hit(city, city.streetlamp, 6120, 80.0)
@@ -40,6 +47,12 @@ func test_cars_and_streetlamps_require_multiple_hits_then_fragment() -> void:
 	await get_tree().physics_frame
 	assert_true(city.streetlamp.is_fully_destroyed)
 	assert_true(city.streetlamp.collision_shape.disabled)
+	assert_true(city.streetlamp.terminal_rubble_active())
+	assert_eq(
+		city.streetlamp.terminal_rubble_piece_count(),
+		DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
+	)
+	assert_true(city.streetlamp.terminal_rubble.uses_only_rubble_fragments())
 	assert_eq(city.debris_pool.active_count(), debris_before + 8)
 	assert_eq(city.debris_pool.get_child_count(), debris_nodes_before)
 	for debris: DebrisBody2D in city.debris_pool.active_bodies():
@@ -77,8 +90,17 @@ func test_ground_smash_blackens_props_then_next_hit_reduces_them_to_rubble() -> 
 	assert_true(city.car.is_fully_destroyed)
 	assert_true(city.streetlamp.is_fully_destroyed)
 	assert_false(city.car.visual.visible)
+	assert_true(city.car.terminal_rubble_active())
+	assert_true(city.streetlamp.terminal_rubble_active())
 	assert_true(city.streetlamp.collision_shape.disabled)
 	assert_eq(city.debris_pool.active_count(), debris_before + 8)
+	var terminal_state: Dictionary = city.car.capture_stream_state()
+	city.car.restore_stream_state(city.car.position, terminal_state)
+	assert_true(city.car.terminal_rubble_active())
+	assert_false(city.car.visual.visible)
+	city.car.restore_stream_state(city.car.position, {})
+	assert_false(city.car.terminal_rubble_active())
+	assert_true(city.car.visual.visible)
 
 
 func _prop_hit(

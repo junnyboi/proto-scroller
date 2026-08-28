@@ -21,6 +21,7 @@ const HEALTH: float = 320.0
 const SCREEN_DURATION: float = 4.0
 const TARGET_DURATION: float = 60.0
 const CORE_SHOCKWAVE_CAMERA_IMPULSE: float = 10.0
+const AUTOMATIC_RUBBLE_ATTACK_ID_BASE: int = 9_100_000
 const BOSS_REPAIR_DROP_OFFSETS: Array[Vector2] = [
 	Vector2(-82.0, -96.0),
 	Vector2(0.0, -126.0),
@@ -39,6 +40,7 @@ var generation_token: int = 0
 var last_completed_wreck_position: Vector2 = Vector2.ZERO
 var last_repair_drop_count: int = 0
 var core_shockwave_camera_impulse_count: int = 0
+var automatic_rubble_commit_count: int = 0
 var _state_elapsed: float = 0.0
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
@@ -58,6 +60,9 @@ func setup(p_dependencies: UrbanSiegeDependencies) -> void:
 	utility_pool.configure_runtime(
 		dependencies.encounter_runtime,
 		dependencies.projectile_pool
+	)
+	utility_pool.defeat_spectacle.completed.connect(
+		_on_defeat_spectacle_completed
 	)
 	utility_pool.vertical_slice.attack_changed.connect(_on_boss_attack_changed)
 	utility_pool.escalation.attack_changed.connect(_on_boss_attack_changed)
@@ -139,6 +144,7 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	_completion_payload.clear()
 	last_completed_wreck_position = Vector2.ZERO
 	last_repair_drop_count = 0
+	automatic_rubble_commit_count = 0
 	_armor_feedback_key = ""
 	_royal_finisher_attacks.clear()
 	_royal_finisher_roots.clear()
@@ -247,10 +253,8 @@ func live_boss_feedback() -> Dictionary:
 			"attack": L10n.t("boss.attack.none"),
 		}
 	if state == STATE_WRECK:
-		if _is_choir_prime() and royal_finale.active():
-			return royal_finale.hud_feedback()
 		return {
-			"objective": L10n.t("boss.objective.finish"),
+			"objective": L10n.t("boss.objective.completion_pending"),
 			"attack": L10n.t("boss.attack.none"),
 		}
 	var feedback: Dictionary = {}
@@ -462,7 +466,7 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 	var defeated_direction: StringName = _rig_facing()
 	generation_token = utility_pool.begin_wreck_generation()
 	boss_wreck = wreck
-	boss_wreck.configure_one_hit_melee_finisher(wreck.fatal_event)
+	boss_wreck.configure_automatic_scrap()
 	boss_wreck.set_wreck_visual_visible(false)
 	utility_pool.rig.freeze_defeated(defeated_position, defeated_direction)
 	if active_definition != null:
@@ -472,16 +476,42 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 				royal_finale.restore_state(royal_state)
 			var snapshot: FinaleEligibilitySnapshot = _snapshot_royal_eligibility()
 			royal_finale.begin_wreck(snapshot)
-		utility_pool.configure_wreck_receivers(
-			boss_wreck, active_definition, _on_wreck_receiver_damage
-		)
-		if _is_choir_prime() and utility_pool.royal_outcome_receiver != null:
-			utility_pool.royal_outcome_receiver.warning = (
-				royal_finale.finale_snapshot == null
-				or not royal_finale.finale_snapshot.disentangle_eligible
-			)
-			utility_pool.royal_outcome_receiver.queue_redraw()
+		utility_pool.configure_wreck_receivers(null, null)
 	_set_state(STATE_WRECK)
+	if not utility_pool.defeat_spectacle.active:
+		call_deferred("_on_defeat_spectacle_completed")
+
+
+func _on_defeat_spectacle_completed() -> void:
+	if state != STATE_WRECK or boss_wreck == null or boss_wreck.scrapped_state:
+		return
+	if _is_choir_prime():
+		_resolve_automatic_royal_outcome()
+	var attack_id: int = AUTOMATIC_RUBBLE_ATTACK_ID_BASE + generation_token
+	var auto_event: DamageEvent = DamageEvent.new(
+		attack_id,
+		dependencies.robot,
+		maxf(boss_wreck.scrap_health, 1.0),
+		&"boss_auto_rubble",
+		boss_wreck.global_position,
+		Vector2.RIGHT,
+		220.0,
+		attack_id
+	)
+	if boss_wreck.scrap_automatically(auto_event):
+		automatic_rubble_commit_count += 1
+
+
+func _resolve_automatic_royal_outcome() -> void:
+	var snapshot: FinaleEligibilitySnapshot = royal_finale.finale_snapshot
+	var outcome: int = BossOutcome.PURGE
+	if snapshot != null and snapshot.disentangle_eligible:
+		if royal_finale.complete_severance_immediately():
+			outcome = BossOutcome.DISENTANGLE
+	else:
+		royal_finale.cancel_pressure()
+	_completion_payload = royal_finale.completion_payload(outcome)
+	royal_finale.preserve_completion_state()
 
 
 func _start_royal_wreck_runtime(world_position: Vector2) -> void:

@@ -90,7 +90,7 @@ func test_five_testimonies_serialize_one_mechanic_and_noncolliding_echo() -> voi
 		assert_true(seen.has(mechanic_id), mechanic_id)
 
 
-func test_ineligible_disentangle_warns_and_commits_ascension_failure() -> void:
+func test_ineligible_royal_wreck_automatically_commits_purge_after_spectacle() -> void:
 	_start_royal()
 	_break_armor(20_000)
 	_kill_body(20_100)
@@ -100,29 +100,30 @@ func test_ineligible_disentangle_warns_and_commits_ascension_failure() -> void:
 	assert_lt(snapshot.dossier_count, FinaleEligibilitySnapshot.DOSSIER_REQUIREMENT)
 	var purge: BossWreckReceiver2D = session.utility_pool.default_wreck_receiver
 	var disentangle: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
-	assert_true(purge.active)
-	assert_true(disentangle.active)
-	assert_gt(
-		purge.global_position.distance_to(disentangle.global_position),
-		BossEncounterDefinition.DEFAULT_GROUND_SMASH_RADIUS
+	assert_false(purge.active)
+	assert_false(disentangle.active)
+	assert_false(disentangle.receive_damage(_smash_event(20_200)))
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
 	)
-	assert_true(disentangle.receive_damage(_smash_event(20_200)))
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 	assert_eq(
 		int(session.completion_payload().finale_outcome),
-		BossOutcome.ASCENSION_FAILURE
+		BossOutcome.PURGE
 	)
 
 
-func test_eligible_disentangle_commits_on_one_fresh_melee() -> void:
+func test_eligible_royal_wreck_automatically_commits_disentangle_after_spectacle() -> void:
 	_prepare_pre_crown_eligible_store()
 	_start_royal()
 	_break_armor(30_000)
 	_kill_body(30_100)
 	assert_true(royal.finale_snapshot.disentangle_eligible)
 	assert_eq(royal.finale_snapshot.dossier_count, 20)
-	var receiver: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
-	assert_true(receiver.receive_damage(_smash_event(30_200)))
+	assert_false(session.utility_pool.royal_outcome_receiver.active)
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 	assert_false(royal.severance_active)
 	assert_eq(
@@ -136,13 +137,17 @@ func test_eligible_disentangle_commits_on_one_fresh_melee() -> void:
 	)
 
 
-func test_purge_succeeds_for_any_evidence_state_and_only_one_receiver_commits() -> void:
+func test_automatic_purge_succeeds_for_ineligible_evidence_state() -> void:
 	_start_royal()
 	_break_armor(40_000)
 	_kill_body(40_100)
 	var purge: BossWreckReceiver2D = session.utility_pool.default_wreck_receiver
 	var disentangle: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
-	assert_true(purge.receive_damage(_smash_event(40_200)))
+	assert_false(purge.active)
+	assert_false(disentangle.active)
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 	assert_eq(int(session.completion_payload().finale_outcome), BossOutcome.PURGE)
 	assert_false(disentangle.receive_damage(_smash_event(40_201)))

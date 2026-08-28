@@ -71,6 +71,11 @@ func test_return_to_title_fades_and_booms_once_after_defeat() -> void:
 	assert_null(main.city_slice)
 	assert_not_null(main.title_screen)
 	assert_true(main.title_screen.initialize_button.visible)
+	assert_eq(main.title_music_restart_count, 1)
+	assert_eq(
+		main.background_music_player.playing,
+		main.background_music_output_available()
+	)
 	_assert_overlay_released(main.transition_overlay)
 
 

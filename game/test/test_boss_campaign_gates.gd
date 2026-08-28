@@ -232,7 +232,7 @@ func test_active_boss_lease_allows_streaming_past_arena_and_back() -> void:
 	assert_eq(int(RuntimeBudget.snapshot(city).node_count), baseline_nodes)
 
 
-func test_boss_arena_wall_stands_1000_pixels_right_and_drops_on_body_defeat() -> void:
+func test_every_boss_uses_one_close_right_flank_wall_that_drops_on_body_defeat() -> void:
 	var city: CitySlice = await _spawn_city()
 	var campaign: BossCampaignDirector = city.urban_siege.boss_campaign
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition_for_trigger(9)
@@ -246,6 +246,20 @@ func test_boss_arena_wall_stands_1000_pixels_right_and_drops_on_body_defeat() ->
 		boss.global_position.x + BossArenaBarrier2D.OFFSET_FROM_BOSS_X,
 		0.001
 	)
+	assert_almost_eq(
+		BossArenaBarrier2D.OFFSET_FROM_BOSS_X,
+		BossRig2D.DEFAULT_DISPLAY_SIZE.x
+		* BossRig2D.CAMPAIGN_PRESENTATION_SCALE
+		* 0.5
+		+ 130.0,
+		0.001
+	)
+	for catalog_definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
+		assert_eq(
+			BossRig2D.presentation_scale_for_preset(catalog_definition.rig_preset),
+			BossRig2D.CAMPAIGN_PRESENTATION_SCALE,
+			String(catalog_definition.boss_id)
+		)
 	assert_eq(city.robot.collision_mask & ARENA_WALL_LAYER, ARENA_WALL_LAYER)
 	assert_true(boss.receive_damage(DamageEvent.new(
 		83_001, city.robot, definition.armor, &"bullet"
@@ -277,8 +291,8 @@ func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 		81_002, city.robot, definition.health, &"impact"
 	)))
 	assert_not_null(siege.boss_session.boss_wreck)
-	siege.boss_session.boss_wreck.receive_damage(
-		DamageEvent.new(81_003, city.robot, 999.0, &"ground_smash")
+	siege.boss_session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
 	)
 	var rubble: Node2D = siege.boss_session.utility_pool.boss_rubble_record
 	var rubble_sprite: Sprite2D = rubble.get_child(0) as Sprite2D
@@ -322,18 +336,9 @@ func test_completion_write_failure_retains_gate_then_retries_idempotently() -> v
 	assert_true(session.boss.receive_damage(DamageEvent.new(
 		82_002, city.robot, definition.health, &"impact"
 	)))
-	assert_true(session.utility_pool.default_wreck_receiver.receive_damage(
-		DamageEvent.new(
-			82_003,
-			city.robot,
-			999.0,
-			&"ground_smash",
-			Vector2.ZERO,
-			Vector2.RIGHT,
-			0.0,
-			182_005
-		)
-	))
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_true(campaign.completion_pending)
 	assert_true(campaign.owns_combat())
 	assert_true(campaign.active_gate.owned)

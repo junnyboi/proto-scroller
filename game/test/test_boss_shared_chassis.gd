@@ -75,6 +75,11 @@ func test_body_defeat_launches_full_pooled_explosion_and_firework_barrage() -> v
 	assert_eq(get_tree().get_node_count(), baseline_nodes)
 	spectacle.advance(1.0)
 	assert_false(spectacle.active)
+	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_eq(session.automatic_rubble_commit_count, 1)
+	assert_null(session.boss_wreck)
+	assert_true(session.utility_pool.boss_rubble_record.visible)
+	assert_eq(session.last_repair_drop_count, 2)
 
 
 func test_every_rig_preset_reuses_parts_sockets_and_hurt_regions_in_place() -> void:
@@ -98,9 +103,12 @@ func test_hidden_authority_restores_when_tank_pool_slot_is_reused() -> void:
 	var hidden_host: TankEnemy = session.boss
 	assert_true(hidden_host.hidden_authority)
 	session.stop()
+	assert_false(hidden_host.hidden_authority)
 	var reused: TankEnemy = city.encounter_runtime.acquire(
 		&"tank",
-		Vector2(900.0, 551.0)
+		Vector2(900.0, 551.0),
+		&"ANCHOR_TANK",
+		&"COMMAND"
 	) as TankEnemy
 	assert_eq(reused, hidden_host)
 	assert_false(reused.hidden_authority)
@@ -224,11 +232,11 @@ func test_campaign_hazards_do_not_advance_or_arm_during_screen() -> void:
 	assert_eq(session.state, CommandBossSession.STATE_BARRAGE)
 	assert_eq(slice.active_attack, initial_attack)
 	assert_eq(slice.attack_stage, &"TELEGRAPH")
-	session.advance(BossVerticalSliceController.TELEGRAPH_SECONDS)
+	session.advance(BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS)
 	assert_eq(slice.attack_stage, &"ACTIVE")
 
 
-func test_wreck_rejects_fatal_chain_and_ranged_damage_then_accepts_fresh_melee() -> void:
+func test_wreck_rejects_all_player_damage_then_auto_scraps_after_spectacle() -> void:
 	assert_true(session.start_definition(BossCampaignCatalog.definitions()[0]))
 	var host: TankEnemy = session.boss
 	assert_true(host.receive_damage(DamageEvent.new(
@@ -248,7 +256,7 @@ func test_wreck_rejects_fatal_chain_and_ranged_damage_then_accepts_fresh_melee()
 	var wreck: EnemyWreck2D = session.boss_wreck
 	assert_not_null(wreck)
 	assert_false(wreck.finisher_requires_ground_smash)
-	assert_eq(wreck.finisher_damage_types, PackedStringArray(["jab_cross", "ground_smash"]))
+	assert_true(wreck.finisher_damage_types.is_empty())
 	assert_false(wreck.receive_damage(DamageEvent.new(
 		3200, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 4000
 	)))
@@ -266,13 +274,17 @@ func test_wreck_rejects_fatal_chain_and_ranged_damage_then_accepts_fresh_melee()
 			0.0,
 			4300 + kind.hash() % 100
 		)))
-	assert_true(wreck.receive_damage(DamageEvent.new(
+	assert_false(wreck.receive_damage(DamageEvent.new(
 		3400, city.robot, 1.0, &"jab_cross", Vector2.ZERO, Vector2.RIGHT, 0.0, 4400
 	)))
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_eq(session.automatic_rubble_commit_count, 1)
 
 
-func test_royal_receivers_are_separated_and_only_one_can_commit() -> void:
+func test_royal_receivers_stay_disabled_and_automatic_outcome_commits_once() -> void:
 	var definition: BossEncounterDefinition = BossCampaignCatalog.definition(&"CHOIR_PRIME")
 	assert_true(session.start_definition(definition))
 	var host: TankEnemy = session.boss
@@ -283,20 +295,19 @@ func test_royal_receivers_are_separated_and_only_one_can_commit() -> void:
 	)))
 	var default_receiver: BossWreckReceiver2D = session.utility_pool.default_wreck_receiver
 	var royal_receiver: BossWreckReceiver2D = session.utility_pool.royal_outcome_receiver
-	assert_true(default_receiver.active)
-	assert_true(royal_receiver.active)
-	assert_true(default_receiver.visible)
-	assert_true(royal_receiver.visible)
-	assert_eq(default_receiver.display_label, L10n.t("finale.receiver.purge_label"))
-	assert_eq(royal_receiver.display_label, L10n.t("finale.receiver.disentangle_label"))
-	assert_gt(
-		default_receiver.global_position.distance_to(royal_receiver.global_position),
-		BossEncounterDefinition.DEFAULT_GROUND_SMASH_RADIUS
-	)
-	assert_true(default_receiver.receive_damage(DamageEvent.new(
+	assert_false(default_receiver.active)
+	assert_false(royal_receiver.active)
+	assert_false(default_receiver.visible)
+	assert_false(royal_receiver.visible)
+	assert_false(default_receiver.receive_damage(DamageEvent.new(
 		3601, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 4601
 	)))
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_eq(int(session.completion_payload().finale_outcome), BossOutcome.PURGE)
+	assert_eq(session.automatic_rubble_commit_count, 1)
 	assert_false(royal_receiver.receive_damage(DamageEvent.new(
 		3602, city.robot, 999.0, &"ground_smash", Vector2.ZERO, Vector2.RIGHT, 0.0, 4602
 	)))

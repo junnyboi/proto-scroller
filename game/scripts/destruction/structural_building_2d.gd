@@ -19,8 +19,6 @@ const CELL_COUNT: int = COLUMNS * ROWS
 const STREAM_STATE_SCHEMA_VERSION: int = 2
 const UPPER_SUPPORT_DAMAGE_RATIO: float = 0.5
 const CELL_SCRIPT: Script = preload("res://scripts/destruction/destructible_2d.gd")
-const GROUND_RUBBLE_HEIGHT: float = 50.0
-const UPPER_RUBBLE_HEIGHT: float = 32.0
 
 @export var intact_texture: Texture2D
 @export var display_size: Vector2 = Vector2(600.0, 534.0)

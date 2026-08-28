@@ -45,6 +45,19 @@ func test_title_queues_music_immediately_for_native_and_web_environments() -> vo
 	)
 
 
+func test_return_to_title_restart_retriggers_bgm_from_sample_zero() -> void:
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	main.background_music_player.play(12.0)
+	assert_gt(main.background_music_player.get_playback_position(), 10.0)
+	main._restart_title_music_for_environment(true)
+	assert_true(main.background_music_player.playing)
+	assert_lt(main.background_music_player.get_playback_position(), 0.25)
+	assert_eq(main.title_music_restart_count, 1)
+	assert_true(main._title_music_committed)
+
+
 func test_title_sync_constants_are_orientation_and_latency_bounded() -> void:
 	assert_almost_eq(Main.TITLE_IMPACT_HOLD_SECONDS, 0.35, 0.001)
 	assert_almost_eq(Main.TITLE_PREWARM_POSITION_SECONDS, 0.5, 0.001)

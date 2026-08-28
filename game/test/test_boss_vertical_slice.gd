@@ -179,7 +179,7 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 	])
 
 
-func test_business_boss_has_complete_damage_and_visible_finisher_path() -> void:
+func test_business_boss_auto_commits_rubble_after_defeat_spectacle() -> void:
 	_start(&"SETTLEMENT_ENGINE_S04")
 	var attack_id: int = 91_000
 	for damage_type: StringName in [
@@ -200,11 +200,14 @@ func test_business_boss_has_complete_damage_and_visible_finisher_path() -> void:
 	attack_id += 1
 	var receiver: BossWreckReceiver2D = session.utility_pool.default_wreck_receiver
 	assert_eq(session.state, CommandBossSession.STATE_WRECK)
-	assert_true(receiver.active)
-	assert_true(receiver.visible)
-	assert_eq(receiver.display_label, L10n.t("boss.receiver.finish_label"))
-	assert_true(receiver.receive_damage(_smash_event(attack_id)))
+	assert_false(receiver.active)
+	assert_false(receiver.visible)
+	assert_false(receiver.receive_damage(_smash_event(attack_id)))
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_eq(session.automatic_rubble_commit_count, 1)
 
 
 func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() -> void:
