@@ -181,7 +181,7 @@ func _queue_aftershock(spec: AttackSpec) -> void:
 
 
 func _run_aftershock(spec: AttackSpec, generation: int) -> void:
-	await get_tree().create_timer(AFTERSHOCK_DELAY).timeout
+	await get_tree().create_timer(AFTERSHOCK_DELAY, false).timeout
 	if (
 		generation != _generation
 		or dependencies == null

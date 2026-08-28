@@ -203,7 +203,7 @@ func _award_power_box_finish(catalyst: Catalyst2D, event: DamageEvent) -> int:
 
 
 func _resolve_after_delay(catalyst: Catalyst2D, event: DamageEvent) -> void:
-	await get_tree().create_timer(catalyst.profile.delay_seconds).timeout
+	await get_tree().create_timer(catalyst.profile.delay_seconds, false).timeout
 	if not is_instance_valid(catalyst) or not catalyst.spent or dependencies == null:
 		return
 	var pulse_attack_id: int = event.root_attack_id

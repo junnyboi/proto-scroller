@@ -176,7 +176,7 @@ func _finish_tutorial(was_skipped: bool) -> void:
 
 
 func _hold_completion_card(generation: int) -> void:
-	await get_tree().create_timer(COMPLETE_HOLD_SECONDS).timeout
+	await get_tree().create_timer(COMPLETE_HOLD_SECONDS, false).timeout
 	if generation == _completion_generation and current_step == Step.COMPLETE:
 		visible = false
 

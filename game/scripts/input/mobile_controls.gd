@@ -171,6 +171,10 @@ func set_controls_enabled(enabled: bool, preserve_touch_ownership: bool = false)
 		_preserve_touch_ownership_while_disabled = false
 
 
+func controls_enabled() -> bool:
+	return _controls_enabled
+
+
 func _detect_mobile_device() -> bool:
 	if detection_override >= 0:
 		return detection_override == 1

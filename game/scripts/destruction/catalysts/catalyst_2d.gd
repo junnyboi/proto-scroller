@@ -148,7 +148,7 @@ func _start_obliteration(event: DamageEvent) -> void:
 
 
 func _finish_obliteration_after_delay(event: DamageEvent, generation: int) -> void:
-	await get_tree().create_timer(OBLITERATION_DELAY_SECONDS).timeout
+	await get_tree().create_timer(OBLITERATION_DELAY_SECONDS, false).timeout
 	if generation != _activation_generation or not discharging or is_fully_destroyed:
 		return
 	discharging = false

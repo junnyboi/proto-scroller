@@ -58,6 +58,10 @@ field_briefing={
 "deadzone": 0.3,
 "events": [Object(InputEventKey,"physical_keycode":4194306,"unicode":9)]
 }
+tuning_lab={
+"deadzone": 0.3,
+"events": [Object(InputEventKey,"physical_keycode":4194341)]
+}
 
 [rendering]
 
