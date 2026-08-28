@@ -157,17 +157,11 @@ def main() -> None:
         process_sprite(job)
         print(f"processed {job.output.relative_to(ROOT)}")
 
-    downscale_jpeg(
-        ROOT / "docs/story-concepts/01-project-choir-black-lab.jpg",
-        GAME / "art/narrative/choir-black-lab.jpg",
-        (1280, 720),
-        82,
-    )
     cradle = GAME / "art/narrative/continuity-cradle.jpg"
     temp = cradle.with_suffix(".processed.jpg")
     downscale_jpeg(cradle, temp, (1280, 720), 84)
     temp.replace(cradle)
-    print("processed narrative panoramas")
+    print("processed continuity panorama")
 
 
 if __name__ == "__main__":

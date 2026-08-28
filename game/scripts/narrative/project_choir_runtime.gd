@@ -5,7 +5,6 @@ const CROWN_PYLON_TRANSACTION_ID: StringName = &"boss:CHOIR_PRIME:crown_pylon"
 
 var campaign_progress: CampaignProgressStore
 var director: NarrativeDirector
-var facade_reveal: FacadeRevealRuntime
 var _city: CitySlice
 var _released_containment: Dictionary[StringName, bool] = {}
 
@@ -28,15 +27,10 @@ func setup(city: CitySlice, progress: CampaignProgressStore) -> void:
 		add_child(campaign_progress)
 		campaign_progress.reset_memory()
 	assert(DossierCatalog.validation_errors().is_empty())
-	facade_reveal = FacadeRevealRuntime.new()
-	facade_reveal.name = "FacadeRevealRuntime"
-	add_child(facade_reveal)
-	facade_reveal.setup(city.streamed_destructibles, campaign_progress)
 	director = NarrativeDirector.new()
 	director.name = "NarrativeDirector"
 	director.setup(campaign_progress)
 	director.transmission_requested.connect(city.gameplay_hud.transmission_toast.present)
-	director.facade_reveal_requested.connect(facade_reveal.reveal)
 	add_child(director)
 	city.world_stream.district_changed.connect(_on_spatial_district_changed)
 	city.streamed_destructibles.building_cell_destroyed.connect(_on_building_cell_destroyed)

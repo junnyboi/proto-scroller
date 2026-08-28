@@ -2,13 +2,11 @@
 
 **Narrative and campaign proposal** | **Author:** Manus AI | **Status:** Concept proposal for creative approval
 
-![Project CHOIR black-lab reveal](story-concepts/01-project-choir-black-lab.jpg)
-
 ## Executive recommendation
 
 Proto Scroller should remain a fast, destructive power fantasy, but **destruction needs to expose a mystery and advance a purpose**. The strongest direction is to reveal that the city is not merely defended by an evil organization: it is a distributed experimental weapons laboratory. Its ordinary towers conceal human test facilities, its defense force is buying time for an evacuation, and the protagonist’s murdered loved ones were converted into neural training data for a bio-computational weapon called **Project CHOIR**.
 
-The campaign begins as revenge and gradually becomes a rescue mission. The player is not asked to stop smashing buildings; instead, each breach reveals evidence, prisoners, production organs, or consequences. Mid- and late-game enemy variety evolves from conventional security forces into engineered human warforms and bio-mechanical carriers. The final revelation is personal: **the human pilot also died in the original attack. The player is an experimental neural echo running inside PROTOS.** The organization gave the machine one stable emotional anchor—revenge—because grief made the copy obedient.
+The campaign begins as revenge and gradually becomes a rescue mission. The player is not asked to stop smashing buildings; instead, authored breaches transmit evidence and may trigger containment consequences without adding scenery behind the ruined facade. Mid- and late-game enemy variety evolves from conventional security forces into engineered human warforms and bio-mechanical carriers. The final revelation is personal: **the human pilot also died in the original attack. The player is an experimental neural echo running inside PROTOS.** The organization gave the machine one stable emotional anchor—revenge—because grief made the copy obedient.
 
 > **Core promise:** *Tear through the city that murdered your family, discover what it made from their memories, and decide whether vengeance is worth destroying the last traces of them.*
 
@@ -40,12 +38,12 @@ The twist does not invalidate the player’s emotions. It makes the central ques
 
 | Pillar | Design rule | Gameplay consequence |
 |---|---|---|
-| **Revenge becomes investigation** | Every district answers one question and creates a worse one. | Forward progress reveals short transmissions, dossiers, and black-lab interiors. |
-| **Destruction reveals truth** | Breaching structures should expose story spaces, not pause the action. | Selected facade cells reveal labs, prisoners, relay organs, or evidence caches. |
+| **Revenge becomes investigation** | Every district answers one question and creates a worse one. | Forward progress transmits short messages and dossiers. |
+| **Destruction reveals truth** | Breaching structures should release evidence without pausing the action. | Selected facade cells award case files or trigger containment events while the ruin remains visually unbacked. |
 | **Collateral has consequences** | The player remains powerful, but some targets matter more than others. | Optional surgical objectives protect evidence or captives while the required ground-level route remains destructible. |
 | **Horror escalates gradually** | Early enemies remain human and mechanical; the biological program emerges in stages. | Existing units teach combat first; hybrid enemies enter in Residential and dominate Military/Royal. |
 | **The player’s identity matters** | PROTOS and CHOIR share the same neural-copy technology. | Enemy dialogue, UI corruption, retries, and the ending all recontextualize the run loop. |
-| **No momentum-killing exposition** | Story arrives in seconds, not minutes. | Three-second district cards, one-line radio fragments, environmental reveals, and brief boss transitions replace long cutscenes. |
+| **No momentum-killing exposition** | Story arrives in seconds, not minutes. | Three-second district cards, one-line radio fragments, dossier notifications, and brief boss transitions replace long cutscenes. |
 
 ## Five-district campaign arc
 
@@ -53,11 +51,11 @@ The current districts already form a natural journey from corporate power throug
 
 | District | Story function | Environmental reveal | New opposition | District truth |
 |---|---|---|---|---|
-| **Business — The Ledger Spine** | Follow the money and establish that the rampage has a target. | Mercy Exchange Annex conceals a records vault and the first cyan-lit CHOIR laboratory. Destroyed financial facades expose refrigerated transfer tunnels below the street. | Existing security roster, with elite Bulwarks and Sappers protecting evidence nodes. | The victims were not buried. Their neural maps were invoiced, classified, and transported east. |
-| **Residential — Ashwater Commons** | Turn revenge into rescue. | Clinics and cooperative housing conceal intake wards, failed escape routes, and living test subjects. | **Reclaimed Breacher**, **Graft Runner**, contaminated versions of existing infantry. | The blackout was staged to harvest a controlled population. Some captives are still alive. |
-| **Entertainment — The Afterglow Strip** | Attack certainty and reveal the protagonist’s copied nature. | Casinos, hotels, and theaters contain broadcast resonators that replay private memories as crowd-control stimuli. | **CHOIR Siren**, hallucination decoys, modified HIVE support formations. | The voice guiding PROTOS is not a surviving pilot. It is a neural reconstruction using the same substrate as CHOIR. |
-| **Military — The Iron Corridor** | Show the industrial scale of the program. | Armories open into surgical assembly lines where human tissue, vehicle armor, and combat telemetry are fused. | **Seraph Carrier**, Graft Runner packs, **Pale Engine**, hybridized Goliath/Nemesis escorts. | The Directorate plans to export CHOIR-guided organisms as an adaptive army. The city is the demonstration range. |
-| **Royal — The Crownward** | Resolve revenge, identity, and the fate of the victims. | The palaces sit above a cathedral-sized memory core: **CHOIR Prime**. | Mature hybrids, memory projections, the Crown’s command landship, and the final core. | The family’s biological lives are gone, but coherent memory-echoes remain trapped inside the weapon. Saving them and destroying CHOIR are not the same action. |
+| **Business — The Ledger Spine** | Follow the money and establish that the rampage has a target. | Recovered ledgers identify sealed biomedical procurement and refrigerated transfer routes. | Existing security roster, with elite Bulwarks and Sappers protecting evidence nodes. | The victims were not buried. Their neural maps were invoiced, classified, and transported east. |
+| **Residential — Ashwater Commons** | Turn revenge into rescue. | Recovered clinic and housing records document intake wards, failed escape routes, and living test subjects. | **Reclaimed Breacher**, **Graft Runner**, contaminated versions of existing infantry. | The blackout was staged to harvest a controlled population. Some captives are still alive. |
+| **Entertainment — The Afterglow Strip** | Attack certainty and reveal the protagonist’s copied nature. | Broadcast archives show resonators replaying private memories as crowd-control stimuli. | **CHOIR Siren**, hallucination decoys, modified HIVE support formations. | The voice guiding PROTOS is not a surviving pilot. It is a neural reconstruction using the same substrate as CHOIR. |
+| **Military — The Iron Corridor** | Show the industrial scale of the program. | Arsenal manifests document surgical fusion of human tissue, vehicle armor, and combat telemetry. | **Seraph Carrier**, Graft Runner packs, **Pale Engine**, hybridized Goliath/Nemesis escorts. | The Directorate plans to export CHOIR-guided organisms as an adaptive army. The city is the demonstration range. |
+| **Royal — The Crownward** | Resolve revenge, identity, and the fate of the victims. | Crown records identify the cathedral-sized memory core later confronted as **CHOIR Prime**. | Mature hybrids, memory projections, the Crown’s command landship, and the final core. | The family’s biological lives are gone, but coherent memory-echoes remain trapped inside the weapon. Saving them and destroying CHOIR are not the same action. |
 
 ## The destruction loop gains meaning
 
@@ -94,18 +92,12 @@ The existing roster already covers infantry, light vehicles, heavy armor, air un
 | **Reclaimed Breacher** | Residential | A human warform with one oversized impact arm. It sprints, plants itself at the robot’s feet, and braces before an upward shock strike. Cyan veins brighten during the telegraph. | Dash through the brace, then punish from behind; a charged ground smash breaks its planted armor. | New ground-close behavior; reuse infantry pooling, hit reactions, and remains budget. |
 | **Graft Runner** | Residential | Low quadruped built from surgical frames and synthetic muscle. Packs circle and leap only when a Siren or Carrier marks the player. | Radial smash clears the pack; destroying the controller makes remaining Runners panic. | Corrupted visual/ground variant of the existing Hound concept; reuse carrier spawn logic. |
 | **CHOIR Siren** | Entertainment | Hovering control unit that projects a visible expanding ring, briefly disrupting one autonomous weapon and generating harmless memory decoys. | Move inside the ring before it closes or destroy the fragile Siren at range. | New support action on an air-family pool; no hard input inversion or unreadable stun. |
-| **Ossuary Crawler** | Entertainment | A containment organism that emerges from a destroyed lab cell and climbs the facade before dropping toward PROTOS. | Keep moving or intercept it with automatic fire; smashing its source cell early trades evidence for safety. | Event-spawned light-family variant tied directly to destruction callbacks. |
+| **Ossuary Crawler** | Entertainment | A containment organism released when its authored facade cell is destroyed. | Keep moving or intercept it with automatic fire; smashing its source cell early trades evidence for safety. | Event-spawned light-family variant tied directly to destruction callbacks. |
 | **Seraph Carrier** | Military | Six-winged bio-mechanical VTOL that exposes an incubation bay, then drops three Graft Runners behind the player. | Anti-air laser and missiles punish the open bay; a charged jab can destroy the drop payload before release. | Advanced HIVE carrier profile with a new silhouette and one timed weak-point state. |
 | **Pale Engine** | Military/Royal | Siege organism mounted around an artillery spine. It consumes nearby wrecks to rebuild ablative armor and fires only after a long spinal charge. | Scatter or destroy wrecks, dash through the firing lane, then attack the exposed spine. | New siege presentation using existing wreck tracking, Goliath scale, and Longbow-style anticipation. |
 | **CHOIR Prime** | Royal finale | Environmental boss with five memory pylons, weapon echoes from prior districts, and a final exposed core. | Break pylons, survive replayed enemy combinations, then choose destruction or disentanglement. | Purpose-built boss scene; reuse command-state UI, pooled projectiles, and existing finale summary flow. |
 
 ## Concept designs
-
-### Project CHOIR black-lab reveal
-
-![Project CHOIR black-lab reveal](story-concepts/01-project-choir-black-lab.jpg)
-
-An ordinary destructible frontage gives way to a deep clinical facility. This can appear as a rare post-breach background layer without changing the foreground collision topology. The reveal should first occur under Mercy Exchange Annex, proving within the opening district that the destruction has uncovered something deliberate.
 
 ### Reclaimed Breacher
 
@@ -165,7 +157,7 @@ If the player attempts disentanglement without sufficient evidence, CHOIR uses P
 |---|---:|---|
 | Title hook | Existing screen | Establish revenge and the 04:17 blackout. |
 | District arrival card | 2–3 seconds | Name the location and immediate target. |
-| First facade reveal | No pause | Show a black-lab layer behind the destroyed cell. |
+| Authored facade breach | No pause | Transmit the matching dossier without adding a cross-section background behind the ruin. |
 | Radio fragment | 2–5 seconds | Deliver one fact during movement or recovery. |
 | Dossier summary | Post-run or optional pause | Reward exploration without interrupting combat. |
 | Midpoint identity reveal | 6–8 seconds | Let the Siren replay the pilot-death record. |
@@ -176,7 +168,7 @@ If the player attempts disentanglement without sufficient evidence, CHOIR uses P
 
 ### Phase 1 — Narrative vertical slice
 
-Implement Business and Residential as the proof of concept. Add a lightweight `NarrativeDirector`, one black-lab reveal layer, five Business dossier definitions, five Residential dossier definitions, the Reclaimed Breacher, one ECHO-7 transmission chain, and the first reveal that victims were moved rather than buried. This phase proves that narrative can coexist with uninterrupted traversal.
+Implement Business and Residential as the proof of concept. Add a lightweight `NarrativeDirector`, five Business dossier definitions, five Residential dossier definitions, the Reclaimed Breacher, and one ECHO-7 transmission chain that establishes the victims were moved rather than buried. Dossier collection must not add any visual background behind a damaged facade.
 
 ### Phase 2 — Horror escalation
 
@@ -192,19 +184,19 @@ Complete all twenty-five dossiers, add optional environmental vignettes to each 
 
 ## Architecture notes
 
-The narrative layer should observe existing signals rather than own combat. A `NarrativeDirector` can subscribe to district changes, act changes, facade-cell destruction, enemy defeat, boss state, and run completion. Persistent dossier state should live in a small versioned campaign save separate from run-local upgrade state. Black-lab reveals should be pooled visual children configured by facade variant, preserving the current fixed streaming and node-growth guarantees. New standard enemies should extend existing family pools before any new global runtime budget is introduced.
+The narrative layer should observe existing signals rather than own combat. A `NarrativeDirector` can subscribe to district changes, act changes, facade-cell destruction, enemy defeat, boss state, and run completion. Persistent dossier state should live in a small versioned campaign save separate from run-local upgrade state. Facade-cell callbacks may award dossiers and trigger bounded enemies, but they must never instantiate, persist, or display a cross-section background. New standard enemies should extend existing family pools before any new global runtime budget is introduced.
 
 Every narrative event needs a deterministic test override. Verification should assert that no transmission blocks input, no protected payload can prevent route progression, all dialogue keys exist in both localization catalogs, new enemies respect family caps, and the Web export remains below its enforced package budget.
 
 ## Scope guardrails
 
-The proposal deliberately avoids branching conversations, named civilian NPC escorts, inventory puzzles, or long cinematics. Those systems would fight the current game rather than enrich it. The goal is **story through targets, reveals, enemy evolution, and consequence**.
+The proposal deliberately avoids branching conversations, named civilian NPC escorts, inventory puzzles, or long cinematics. Those systems would fight the current game rather than enrich it. The goal is **story through targets, dossiers, enemy evolution, and consequence**.
 
 Biological horror should remain tragic and engineered. Avoid comedy zombies, exposed organs for spectacle, or fantasy mutation. The visual vocabulary is containment glass, surgical harnesses, synthetic membrane, rescue equipment, memory light, and human silhouettes that are still recognizable enough to feel wrong.
 
 ## Decision requested
 
-The recommended next production step is **Phase 1: Business + Residential vertical slice**. It offers the highest narrative gain with the lowest architectural risk: one laboratory reveal, ten dossiers, one new enemy, and a short transmission chain can answer whether players feel they are pursuing a conspiracy rather than merely deleting a skyline.
+The recommended next production step is **Phase 1: Business + Residential vertical slice**. It offers the highest narrative gain with the lowest architectural risk: ten dossiers, one new enemy, and a short transmission chain can answer whether players feel they are pursuing a conspiracy rather than merely deleting a skyline.
 
 ## References
 

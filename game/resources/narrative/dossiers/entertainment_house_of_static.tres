@@ -14,7 +14,6 @@ title_key = "narrative.dossier.entertainment_house_of_static.title"
 body_primary_key = "narrative.dossier.entertainment_house_of_static.body_primary"
 body_secondary_key = "narrative.dossier.entertainment_house_of_static.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_entertainment_house_of_static"
 is_boss_capstone = true
 boss_id = &"MIMESIS_04"
 evidence_flag_id = &"STAGE"

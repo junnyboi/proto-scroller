@@ -259,12 +259,6 @@ run_engine "$GODOT" --headless --fixed-fps 60 --path . \
 jq -e '.done == true and .result == "PASS" and .shot.status == "SKIP"' \
   artifacts/endless_terrain/report.json >/dev/null
 
-printf '%s\n' '[L4] Project CHOIR dossier/reveal headless scenario'
-run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
-  -s selftest/project_choir_visual_scenario.gd
-jq -e '.done == true and .result == "PASS" and .shot == ""' \
-	  artifacts/project_choir_wp1/report.json >/dev/null
-
 printf '%s\n' '[L4] Project CHOIR finale headless scenario'
 run_engine "$GODOT" --headless --audio-driver Dummy --fixed-fps 60 --path . \
 	-s selftest/project_choir_finale_scenario.gd
@@ -370,33 +364,10 @@ if [[ "$MODE" == "full" ]]; then
     artifacts/project_choir_wp1/briefing-portrait.png
   cp artifacts/title_screen/title-screen-codex.png \
     artifacts/project_choir_wp1/codex-portrait.png
-  cp artifacts/title_screen/title-screen-landscape.png \
-    artifacts/title_screen/title-screen.png
+	cp artifacts/title_screen/title-screen-landscape.png \
+	  artifacts/title_screen/title-screen.png
 
-  printf '%s\n' '[L5] landscape Project CHOIR black-lab reveal'
-  run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . \
-    --resolution 1280x720 -s selftest/project_choir_visual_scenario.gd
-  jq -e '.done == true and .result == "PASS" and .orientation == "landscape"' \
-    artifacts/project_choir_wp1/report.json >/dev/null
-  grep -Fq '1280 x 720' <<< "$(
-    file artifacts/project_choir_wp1/black-lab-reveal-landscape.png
-  )"
-  cp artifacts/project_choir_wp1/report.json \
-    artifacts/project_choir_wp1/report-landscape.json
-
-  printf '%s\n' '[L5] portrait Project CHOIR black-lab reveal'
-  PROTO_SCROLLER_PORTRAIT=1 run_engine xvfb-run -a "$GODOT" \
-    --audio-driver Dummy --path . --resolution 720x1280 \
-    -s selftest/project_choir_visual_scenario.gd
-  jq -e '.done == true and .result == "PASS" and .orientation == "portrait"' \
-    artifacts/project_choir_wp1/report.json >/dev/null
-  grep -Fq '720 x 1280' <<< "$(
-    file artifacts/project_choir_wp1/black-lab-reveal-portrait.png
-  )"
-  cp artifacts/project_choir_wp1/report.json \
-    artifacts/project_choir_wp1/report-portrait.json
-
-  printf '%s\n' '[L5] windowed city-slice render scenario'
+	printf '%s\n' '[L5] windowed city-slice render scenario'
   run_engine xvfb-run -a "$GODOT" --audio-driver Dummy --path . --resolution 1280x720 \
     -s selftest/city_slice_scenario.gd
   jq -e '.done == true and .result == "PASS" and .shot.status == "PASS"' \

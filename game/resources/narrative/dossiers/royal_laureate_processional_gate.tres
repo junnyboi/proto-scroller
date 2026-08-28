@@ -14,4 +14,3 @@ title_key = "narrative.dossier.royal_laureate_processional_gate.title"
 body_primary_key = "narrative.dossier.royal_laureate_processional_gate.body_primary"
 body_secondary_key = "narrative.dossier.royal_laureate_processional_gate.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_royal_laureate_processional_gate"

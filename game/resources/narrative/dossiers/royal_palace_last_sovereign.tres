@@ -14,7 +14,6 @@ title_key = "narrative.dossier.royal_palace_last_sovereign.title"
 body_primary_key = "narrative.dossier.royal_palace_last_sovereign.body_primary"
 body_secondary_key = "narrative.dossier.royal_palace_last_sovereign.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_royal_palace_last_sovereign"
 is_boss_capstone = true
 boss_id = &"CHOIR_PRIME"
 evidence_flag_id = &"CROWN"

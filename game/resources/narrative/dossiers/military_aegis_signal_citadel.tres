@@ -14,4 +14,3 @@ title_key = "narrative.dossier.military_aegis_signal_citadel.title"
 body_primary_key = "narrative.dossier.military_aegis_signal_citadel.body_primary"
 body_secondary_key = "narrative.dossier.military_aegis_signal_citadel.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_military_aegis_signal_citadel"

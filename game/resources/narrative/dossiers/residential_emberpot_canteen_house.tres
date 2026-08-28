@@ -14,4 +14,3 @@ title_key = "narrative.dossier.residential_emberpot_canteen_house.title"
 body_primary_key = "narrative.dossier.residential_emberpot_canteen_house.body_primary"
 body_secondary_key = "narrative.dossier.residential_emberpot_canteen_house.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_residential_emberpot_canteen_house"

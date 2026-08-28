@@ -14,7 +14,6 @@ title_key = "narrative.dossier.business_crown_reserve_treasury.title"
 body_primary_key = "narrative.dossier.business_crown_reserve_treasury.body_primary"
 body_secondary_key = "narrative.dossier.business_crown_reserve_treasury.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_business_crown_reserve_treasury"
 is_boss_capstone = true
 boss_id = &"SETTLEMENT_ENGINE_S04"
 evidence_flag_id = &"LEDGER"

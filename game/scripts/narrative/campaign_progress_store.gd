@@ -28,7 +28,7 @@ var _document: Dictionary = {
 	"sequence": 0,
 	"progress": {
 		"dossiers": [], "evidence": [], "lost_evidence": [],
-		"unlocked_reveals": [], "completed_bosses": [], "seen_endings": [],
+		"completed_bosses": [], "seen_endings": [],
 		"selected_ending": "", "route_unlock_chunk": 0, "transaction_ids": [],
 		"pending_reward_grants": [], "applied_reward_transactions": [],
 		"boss_results": {}, "continuity_generation": 0,
@@ -200,14 +200,10 @@ func collect_dossier(dossier_id: StringName) -> bool:
 	var normalized: StringName = DossierCatalog.normalize_dossier_id(dossier_id)
 	if not DossierCatalog.has_dossier(normalized) or has_dossier(normalized):
 		return false
-	var definition: DossierDefinition = DossierCatalog.definition_for_dossier(normalized)
 	var transaction_id: StringName = StringName("dossier:%s" % normalized)
 	var next_document: Dictionary = _document.duplicate(true)
 	var progress: Dictionary = next_document["progress"] as Dictionary
 	_append_valid_dossier(progress, normalized)
-	var reveals: Array = progress.get("unlocked_reveals", []) as Array
-	_append_unique(reveals, String(definition.reveal_id))
-	progress["unlocked_reveals"] = reveals
 	var transactions: Array = progress.get("transaction_ids", []) as Array
 	transactions.append(String(transaction_id))
 	progress["transaction_ids"] = transactions
@@ -308,10 +304,6 @@ func has_evidence(evidence_id: StringName) -> bool:
 	return evidence_ids().has(String(evidence_id))
 
 
-func has_reveal(reveal_id: StringName) -> bool:
-	return _progress_ids("unlocked_reveals").has(String(reveal_id))
-
-
 func has_ending(ending_id: StringName) -> bool:
 	return _progress_ids("seen_endings").has(String(ending_id))
 
@@ -382,7 +374,6 @@ func snapshot() -> Dictionary:
 		"evidence": evidence_ids(),
 		"evidence_count": evidence_count(),
 		"lost_evidence": lost_evidence_ids(),
-		"reveals": _progress_ids("unlocked_reveals"),
 		"continuity_generation": continuity_generation(),
 		"seen_endings": _progress_ids("seen_endings"),
 		"completed_bosses": completed_boss_ids(),
@@ -505,9 +496,6 @@ func _load_legacy_config(path: String) -> Dictionary:
 		config.get_value("progress", "preserved_evidence", PackedStringArray())
 	):
 		_append_valid_evidence(progress, StringName(evidence_id))
-	progress["unlocked_reveals"] = Array(_coerce_ids(
-		config.get_value("progress", "unlocked_reveals", PackedStringArray())
-	))
 	progress["continuity_generation"] = maxi(
 		int(config.get_value("progress", "continuity_generation", 0)),
 		0
@@ -538,6 +526,8 @@ func _migrate_document(candidate: Dictionary) -> Dictionary:
 	var normalized: Dictionary = _empty_progress()
 	var source: Dictionary = migrated.get("progress", {}) as Dictionary
 	for key: Variant in source:
+		if String(key) == "unlocked_reveals":
+			continue
 		normalized[key] = source[key]
 	var valid_dossiers: Array = []
 	for dossier_id: String in _coerce_ids(normalized.get("dossiers", [])):
@@ -583,7 +573,6 @@ func _empty_progress() -> Dictionary:
 		"dossiers": [],
 		"evidence": [],
 		"lost_evidence": [],
-		"unlocked_reveals": [],
 		"completed_bosses": [],
 		"seen_endings": [],
 		"selected_ending": "",
@@ -605,11 +594,6 @@ func _append_valid_dossier(progress: Dictionary, dossier_id: StringName) -> void
 	var dossiers: Array = progress.get("dossiers", []) as Array
 	_append_unique(dossiers, String(normalized))
 	progress["dossiers"] = dossiers
-	var definition: DossierDefinition = DossierCatalog.definition_for_dossier(normalized)
-	if definition != null:
-		var reveals: Array = progress.get("unlocked_reveals", []) as Array
-		_append_unique(reveals, String(definition.reveal_id))
-		progress["unlocked_reveals"] = reveals
 
 
 func _append_valid_evidence_loss(progress: Dictionary, evidence_id: StringName) -> void:

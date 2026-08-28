@@ -14,4 +14,3 @@ title_key = "narrative.dossier.entertainment_halcyon_stack_hotel.title"
 body_primary_key = "narrative.dossier.entertainment_halcyon_stack_hotel.body_primary"
 body_secondary_key = "narrative.dossier.entertainment_halcyon_stack_hotel.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_entertainment_halcyon_stack_hotel"

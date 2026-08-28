@@ -14,4 +14,3 @@ title_key = "narrative.dossier.residential_bluewire_laundry_walkup.title"
 body_primary_key = "narrative.dossier.residential_bluewire_laundry_walkup.body_primary"
 body_secondary_key = "narrative.dossier.residential_bluewire_laundry_walkup.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_residential_bluewire_laundry_walkup"

@@ -22,11 +22,6 @@ signal building_chain_step(
 )
 signal building_chain_completed(building: StructuralBuilding2D, kind: StringName)
 signal building_destroyed(building: StructuralBuilding2D, event: DamageEvent)
-signal building_configured(
-	building: StructuralBuilding2D,
-	logical_chunk: int,
-	variant_id: StringName
-)
 signal prop_destroyed(
 	prop: DestructibleProp2D,
 	event: DamageEvent,
@@ -151,7 +146,6 @@ func bind_landmark_for_chunk(chunk: CityStreetChunk, variant_id: StringName) -> 
 	if not target.apply_variant(landmark):
 		return false
 	target.set_meta(&"building_variant_id", landmark.variant_id)
-	building_configured.emit(target, chunk.logical_index, landmark.variant_id)
 	return true
 
 
@@ -325,11 +319,6 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	lamp.restore_stream_state(
 		Vector2(blueprint.lamp_x, blueprint.lamp_y),
 		ledger.restore(lamp_id)
-	)
-	building_configured.emit(
-		building,
-		blueprint.logical_index,
-		configured_variant.variant_id
 	)
 	_set_slot_content_enabled(
 		chunk,

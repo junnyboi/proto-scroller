@@ -29,6 +29,7 @@ func test_dossier_catalog_is_a_complete_facade_bijection() -> void:
 		assert_true(definition.trigger_column in range(StructuralBuilding2D.COLUMNS))
 		assert_true(definition.trigger_row in range(StructuralBuilding2D.ROWS))
 		assert_not_null(definition.image)
+		assert_false(_has_property(definition, &"reveal_id"))
 	for district: CityDistrictProfile in CityDistrictCatalog.districts():
 		assert_eq(DossierCatalog.district_definitions(district.district_id).size(), 5)
 
@@ -80,7 +81,7 @@ func test_campaign_progress_rejects_corrupt_and_future_saves_safely() -> void:
 	assert_eq(future_store.dossier_count(), 0)
 
 
-func test_city_narrative_collects_once_reveals_and_survives_one_finish() -> void:
+func test_city_narrative_collects_once_without_background_and_survives_finish() -> void:
 	var store: CampaignProgressStore = CampaignProgressStore.new()
 	store.setup(TEST_SAVE_PATH)
 	add_child_autofree(store)
@@ -92,13 +93,16 @@ func test_city_narrative_collects_once_reveals_and_survives_one_finish() -> void
 		city.building.current_variant_id()
 	)
 	assert_not_null(definition)
+	var building_child_count: int = city.building.get_child_count()
+	assert_null(city.project_choir_runtime.get_node_or_null(^"FacadeRevealRuntime"))
 	city.project_choir_runtime.director.handle_building_cell_destroyed(
 		city.building,
 		definition.trigger_column,
 		definition.trigger_row
 	)
 	assert_eq(store.dossier_count(), 1)
-	assert_eq(city.project_choir_runtime.facade_reveal.visible_count(), 1)
+	assert_eq(city.building.get_child_count(), building_child_count)
+	_assert_no_cross_section_backgrounds(city)
 	city.project_choir_runtime.director.handle_building_cell_destroyed(
 		city.building,
 		definition.trigger_column,
@@ -115,6 +119,21 @@ func test_city_narrative_collects_once_reveals_and_survives_one_finish() -> void
 	assert_true(city.game_over_active)
 	assert_true(city.gameplay_hud.overlay_summary.text.contains("DOSSIERS 1/25"))
 	assert_true(city.gameplay_hud.overlay_summary.text.contains("GENERATION 1"))
+
+
+func test_all_district_facades_have_no_cross_section_background_nodes() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	for district: CityDistrictProfile in CityDistrictCatalog.districts():
+		for variant: StructuralBuildingVariant in district.building_variants:
+			assert_true(city.building.apply_variant(variant))
+			assert_eq(
+				city.building.get_child_count(),
+				StructuralBuilding2D.CELL_COUNT,
+				String(variant.variant_id)
+			)
+			_assert_no_cross_section_backgrounds(city)
 
 
 func test_entertainment_containment_breach_releases_two_bounded_crawler_variants() -> void:
@@ -200,10 +219,6 @@ func test_project_choir_localization_exists_in_both_supported_locales() -> void:
 			assert_ne(L10n.t(definition.title_key), definition.title_key)
 			assert_ne(L10n.t(definition.body_primary_key), definition.body_primary_key)
 			assert_ne(L10n.t(definition.body_secondary_key), definition.body_secondary_key)
-		assert_ne(
-			L10n.t("narrative.transmission.black_lab_revealed"),
-			"narrative.transmission.black_lab_revealed"
-		)
 
 
 func _remove_test_save() -> void:
@@ -217,3 +232,16 @@ func _count_nodes(root: Node) -> int:
 	for child: Node in root.get_children():
 		count += _count_nodes(child)
 	return count
+
+
+func _assert_no_cross_section_backgrounds(city: CitySlice) -> void:
+	assert_null(city.project_choir_runtime.get_node_or_null(^"FacadeRevealRuntime"))
+	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
+		assert_null(building.get_node_or_null(^"ChoirLabReveal"))
+
+
+func _has_property(value: Object, property_name: StringName) -> bool:
+	for property: Dictionary in value.get_property_list():
+		if StringName(property.name) == property_name:
+			return true
+	return false

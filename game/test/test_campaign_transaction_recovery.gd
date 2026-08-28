@@ -97,11 +97,17 @@ func test_legacy_schema_migrates_capstone_aliases_and_preserves_unknown_fields()
 		"dossier_business_crown_reserve_treasury",
 	]))
 	legacy.set_value("progress", "preserved_evidence", PackedStringArray(["LEDGER"]))
+	legacy.set_value(
+		"progress",
+		"unlocked_reveals",
+		PackedStringArray(["reveal_business_crown_reserve_treasury"])
+	)
 	legacy.set_value("progress", "continuity_generation", 3)
 	assert_eq(legacy.save(TEST_PATH), OK)
 	var restored: CampaignProgressStore = _store()
 	assert_true(restored.has_dossier(&"B05_EASTBOUND_CONSIDERATION"))
 	assert_true(restored.has_evidence(&"LEDGER"))
+	assert_false(restored.snapshot().has("reveals"))
 	assert_eq(restored.continuity_generation(), 3)
 	assert_true(restored.save_progress())
 	var migrated: CampaignProgressStore = _store()

@@ -14,7 +14,6 @@ title_key = "narrative.dossier.military_prefect_war_keep.title"
 body_primary_key = "narrative.dossier.military_prefect_war_keep.body_primary"
 body_secondary_key = "narrative.dossier.military_prefect_war_keep.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_military_prefect_war_keep"
 is_boss_capstone = true
 boss_id = &"CANTOR_31_PALE_ENGINE"
 evidence_flag_id = &"ARSENAL"

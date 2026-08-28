@@ -14,4 +14,3 @@ title_key = "narrative.dossier.military_revetment_armory_stack.title"
 body_primary_key = "narrative.dossier.military_revetment_armory_stack.body_primary"
 body_secondary_key = "narrative.dossier.military_revetment_armory_stack.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_military_revetment_armory_stack"

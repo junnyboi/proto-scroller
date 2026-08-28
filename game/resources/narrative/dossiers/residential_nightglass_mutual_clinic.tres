@@ -14,7 +14,6 @@ title_key = "narrative.dossier.residential_nightglass_mutual_clinic.title"
 body_primary_key = "narrative.dossier.residential_nightglass_mutual_clinic.body_primary"
 body_secondary_key = "narrative.dossier.residential_nightglass_mutual_clinic.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_residential_nightglass_mutual_clinic"
 is_boss_capstone = true
 boss_id = &"SAMARITAN_15"
 evidence_flag_id = &"NURSERY"

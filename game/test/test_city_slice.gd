@@ -23,11 +23,13 @@ func test_city_slice_builds_parallax_structural_cells_and_enemies() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
-	assert_eq(city.get_node("ParallaxCity").get_child_count(), 4)
+	assert_eq(city.get_node("ParallaxCity").get_child_count(), 5)
+	assert_not_null(city.get_node_or_null(^"ParallaxCity/DistrictSkyLife"))
 	assert_null(city.get_node_or_null(^"Street"))
 	assert_not_null(city.building)
-	assert_eq(city.building.get_child_count(), 7)
-	assert_eq(city.project_choir_runtime.facade_reveal.slot_count(), 6)
+	assert_eq(city.building.get_child_count(), StructuralBuilding2D.CELL_COUNT)
+	assert_null(city.project_choir_runtime.get_node_or_null(^"FacadeRevealRuntime"))
+	assert_null(city.building.get_node_or_null(^"ChoirLabReveal"))
 	for row: int in range(StructuralBuilding2D.ROWS):
 		for column: int in range(StructuralBuilding2D.COLUMNS):
 			assert_not_null(city.building.get_cell(column, row))

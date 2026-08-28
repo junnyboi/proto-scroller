@@ -13,10 +13,9 @@ All Project CHOIR visual assets were generated with **GPT Image 2** on 2026-08-2
 | `game/art/finale/choir-prime-core.png` | `docs/story-concepts/production-sources/choir-prime-core-source.png` | Royal final boss core. |
 | `game/art/finale/choir-pylon.png` | `docs/story-concepts/production-sources/choir-pylon-source.png` | Five color-modulated finale organs. |
 | `game/art/narrative/memory-glass-node.png` | `docs/story-concepts/production-sources/memory-glass-node-source.png` | Dossier and evidence-node marker. |
-| `game/art/narrative/choir-black-lab.jpg` | `docs/story-concepts/01-project-choir-black-lab.jpg` | Destructible-facade laboratory reveal. |
 | `game/art/narrative/continuity-cradle.jpg` | Direct GPT Image 2 generation | Title codex and pilot-continuity reveal. |
 
-The reproducible processor at `scripts/process-choir-assets.py` removes the chroma background, rejects isolated debris by retaining the primary connected alpha component, trims transparent margins, downscales to production dimensions, and compresses the two narrative panoramas. It does not draw or invent visual content. Raw source renders remain outside `game/` so the Godot import and Web export cannot include them accidentally.
+The reproducible processor at `scripts/process-choir-assets.py` removes the chroma background, rejects isolated debris by retaining the primary connected alpha component, trims transparent margins, downscales to production dimensions, and compresses the continuity panorama. It does not draw or invent visual content. Raw source renders remain outside `game/` so the Godot import and Web export cannot include them accidentally. Destructible facades intentionally own no cross-section background asset or production recipe.
 
 ## Localization font subset
 

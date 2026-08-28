@@ -14,4 +14,3 @@ title_key = "narrative.dossier.royal_tribunal_nine_seals.title"
 body_primary_key = "narrative.dossier.royal_tribunal_nine_seals.body_primary"
 body_secondary_key = "narrative.dossier.royal_tribunal_nine_seals.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_royal_tribunal_nine_seals"

@@ -56,13 +56,6 @@ func _build_gallery(target_size: Vector2i, portrait: bool) -> Control:
 	var gallery: Control = Control.new()
 	gallery.name = "ProjectChoirEnemyGallery"
 	gallery.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var backdrop: TextureRect = TextureRect.new()
-	backdrop.texture = load("res://art/narrative/choir-black-lab.jpg") as Texture2D
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	backdrop.modulate = Color(0.2, 0.26, 0.32, 0.42)
-	gallery.add_child(backdrop)
 	var veil: ColorRect = ColorRect.new()
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	veil.color = Color(0.015, 0.025, 0.045, 0.88)

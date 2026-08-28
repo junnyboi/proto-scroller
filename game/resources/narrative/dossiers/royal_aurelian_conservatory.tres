@@ -14,4 +14,3 @@ title_key = "narrative.dossier.royal_aurelian_conservatory.title"
 body_primary_key = "narrative.dossier.royal_aurelian_conservatory.body_primary"
 body_secondary_key = "narrative.dossier.royal_aurelian_conservatory.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_royal_aurelian_conservatory"

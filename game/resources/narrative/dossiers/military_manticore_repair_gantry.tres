@@ -14,4 +14,3 @@ title_key = "narrative.dossier.military_manticore_repair_gantry.title"
 body_primary_key = "narrative.dossier.military_manticore_repair_gantry.body_primary"
 body_secondary_key = "narrative.dossier.military_manticore_repair_gantry.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_military_manticore_repair_gantry"

@@ -14,4 +14,3 @@ title_key = "narrative.dossier.entertainment_prism_crown_revue.title"
 body_primary_key = "narrative.dossier.entertainment_prism_crown_revue.body_primary"
 body_secondary_key = "narrative.dossier.entertainment_prism_crown_revue.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_entertainment_prism_crown_revue"

@@ -14,4 +14,3 @@ title_key = "narrative.dossier.military_ordnance_transload_bastion.title"
 body_primary_key = "narrative.dossier.military_ordnance_transload_bastion.body_primary"
 body_secondary_key = "narrative.dossier.military_ordnance_transload_bastion.body_secondary"
 image = ExtResource("2_image")
-reveal_id = &"reveal_military_ordnance_transload_bastion"

@@ -13,10 +13,6 @@ signal dossier_collected(
 	total: int,
 	district_total: int
 )
-signal facade_reveal_requested(
-	building: StructuralBuilding2D,
-	definition: DossierDefinition
-)
 signal district_arrived(district_id: StringName)
 signal evidence_recovered(evidence_id: StringName, drop_id: StringName)
 
@@ -78,7 +74,6 @@ func handle_building_cell_destroyed(
 		definition.dossier_id
 	):
 		return
-	facade_reveal_requested.emit(building, definition)
 	dossier_collected.emit(
 		definition,
 		campaign_progress.dossier_count(),
@@ -91,14 +86,6 @@ func handle_building_cell_destroyed(
 		3.2,
 		3
 	)
-	if definition.building_variant_id == &"business_mercy_exchange_annex":
-		_queue_transmission(
-			&"opening_black_lab_reveal",
-			"narrative.speaker.echo7",
-			"narrative.transmission.black_lab_revealed",
-			5.0,
-			4
-		)
 
 
 func handle_boss_attempt_started(definition: BossEncounterDefinition) -> void:

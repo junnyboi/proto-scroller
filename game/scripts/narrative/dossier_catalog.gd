@@ -107,11 +107,6 @@ static func validation_errors() -> PackedStringArray:
 		if int(district_counts.get(district.district_id, 0)) != 5:
 			errors.append("district dossier count mismatch %s" % district.district_id)
 	_validate_capstones(errors)
-	var opening: DossierDefinition = definition_for_variant(
-		&"business_mercy_exchange_annex"
-	)
-	if opening == null or opening.reveal_id != &"reveal_business_mercy_exchange_annex":
-		errors.append("opening black-lab dossier missing")
 	return errors
 
 
