@@ -41,6 +41,7 @@ var last_completed_wreck_position: Vector2 = Vector2.ZERO
 var last_repair_drop_count: int = 0
 var core_shockwave_camera_impulse_count: int = 0
 var automatic_rubble_commit_count: int = 0
+var path_clear_camera_reveal_count: int = 0
 var _state_elapsed: float = 0.0
 var _screen_duration: float = SCREEN_DURATION
 var _pending_attempt_restore: Dictionary = {}
@@ -159,6 +160,7 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	last_completed_wreck_position = Vector2.ZERO
 	last_repair_drop_count = 0
 	automatic_rubble_commit_count = 0
+	path_clear_camera_reveal_count = 0
 	_armor_feedback_key = ""
 	_royal_finisher_attacks.clear()
 	_royal_finisher_roots.clear()
@@ -480,6 +482,15 @@ func _on_wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D) -> void:
 	boss_wreck.configure_automatic_scrap()
 	boss_wreck.set_wreck_visual_visible(false)
 	utility_pool.rig.freeze_defeated(defeated_position, defeated_direction)
+	if (
+		dependencies != null
+		and dependencies.city != null
+		and dependencies.city.camera_rig != null
+		and dependencies.city.camera_rig.begin_path_clear_reveal(
+			defeated_position.x + BossArenaBarrier2D.OFFSET_FROM_BOSS_X
+		)
+	):
+		path_clear_camera_reveal_count += 1
 	if active_definition != null:
 		if _is_choir_prime():
 			_start_royal_wreck_runtime(defeated_position)
