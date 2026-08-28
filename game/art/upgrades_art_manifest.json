@@ -526,6 +526,60 @@
       "encoded_bytes": 5649,
       "shipping_sha256": "a50563619aca4ac509695ec5ec7ed4f87e270ad374c0fe864d711e53e5e014c7",
       "reviewer": "pending-human-release-review"
+    },
+    {
+      "asset_id": "siege_drill_icon",
+      "subject": "Siege Drill upgrade icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Three synergy upgrades implementation plan, production asset plan",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/three-upgrades/v1/masters/siege_drill_icon_master.png",
+      "master_sha256": "8f2a1b14adfeb6188097ead53f3155ed767ea7930c417d94b65764f7cb7bc22a",
+      "shipping_path": "res://art/ui/upgrades/siege_drill.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "U2Net-P checkerboard removal; alpha trim; LANCZOS contain; 4px transparent padding; PNG level 9",
+      "encoded_bytes": 71817,
+      "shipping_sha256": "391cb9e73136ed423a87a3d2b120e705489cf3c279e33df6e0f2259591b693ce",
+      "reviewer": "agent-visual-review-pass"
+    },
+    {
+      "asset_id": "siege_drill_mount",
+      "subject": "Siege Drill robot mount",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Three synergy upgrades implementation plan, production asset plan",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/three-upgrades/v1/masters/siege_drill_mount_master.png",
+      "master_sha256": "7ce6d3a7d3c9d5843fea3868cf63284fa4ee453ca2c50c279674c8768f43895a",
+      "shipping_path": "res://art/player/weapons/siege_drill_mount.png",
+      "dimensions": [
+        160,
+        112
+      ],
+      "derivative": "U2Net-P checkerboard removal; alpha trim; LANCZOS contain; 4px transparent padding; PNG level 9",
+      "encoded_bytes": 12996,
+      "shipping_sha256": "1f91a02c4f225ff221c3da56be7baae9b51e435a503dd1f8a77c8d05d7e1e467",
+      "reviewer": "agent-visual-review-pass"
+    },
+    {
+      "asset_id": "gravity_crucible_icon",
+      "subject": "Gravity Crucible upgrade icon",
+      "model": "gpt-image-2",
+      "generation_seed": null,
+      "prompt_template": "Three synergy upgrades implementation plan, production asset plan",
+      "master_path": "/home/ubuntu/proto-scroller-art-masters/three-upgrades/v1/masters/gravity_crucible_icon_master.png",
+      "master_sha256": "875ceada571da6f7a1128a33db9aa844250edec29da63745c35a366b1e23fb60",
+      "shipping_path": "res://art/ui/upgrades/gravity_crucible.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "derivative": "U2Net-P checkerboard removal; alpha trim; LANCZOS contain; 4px transparent padding; PNG level 9",
+      "encoded_bytes": 121789,
+      "shipping_sha256": "9074595570fd2a71f67bb6a1174e1b73cc39c734e22f6395707e8df6df9b7a8e",
+      "reviewer": "agent-visual-review-pass"
     }
   ],
   "optional_assets_omitted": [

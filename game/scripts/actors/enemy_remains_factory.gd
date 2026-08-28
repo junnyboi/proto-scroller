@@ -48,7 +48,10 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 	if enemy == null:
 		return null
 	if _free_wrecks.is_empty():
-		_release_wreck(_active_wrecks.front())
+		var recyclable: EnemyWreck2D = _oldest_recyclable_wreck()
+		if recyclable == null:
+			return null
+		_release_wreck(recyclable)
 	var wreck: EnemyWreck2D = _free_wrecks.pop_back()
 	_active_wrecks.append(wreck)
 	peak_active_count = maxi(peak_active_count, _active_wrecks.size())
@@ -104,6 +107,12 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 
 func active_count() -> int:
 	return _active_wrecks.size()
+
+
+func active_wreck_at(index: int) -> EnemyWreck2D:
+	if index < 0 or index >= _active_wrecks.size():
+		return null
+	return _active_wrecks[index]
 
 
 func release_all() -> void:
@@ -171,6 +180,13 @@ func spawn_scrap(wreck: EnemyWreck2D, event: DamageEvent) -> void:
 			scrap.collision_layer = REMAINS_LAYER
 			scrap.collision_mask = REMAINS_GROUND_LAYER
 			scrap.set_meta(&"enemy_remains", &"scrap")
+
+
+func _oldest_recyclable_wreck() -> EnemyWreck2D:
+	for wreck: EnemyWreck2D in _active_wrecks:
+		if not wreck.is_crucible_captured():
+			return wreck
+	return null
 
 
 func _release_wreck(wreck: EnemyWreck2D, preserve_scrapped: bool = false) -> void:

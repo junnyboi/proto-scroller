@@ -70,6 +70,13 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 		session.utility_pool.rig.z_index
 	)
 	assert_eq(int(initial_charge.front_count), 1)
+	assert_eq(int(initial_charge.trail_count), BossAttackArea2D.SHOCKWAVE_TRAIL_COUNT)
+	assert_eq(int(initial_charge.trail_visible_count), 0)
+	assert_almost_eq(
+		float(initial_charge.trail_spacing_seconds),
+		BossAttackArea2D.SHOCKWAVE_TRAIL_SPACING_SECONDS,
+		0.001
+	)
 	assert_eq(
 		String(initial_charge.core_texture),
 		"res://art/player/vfx/photon_core_orb.png"
@@ -136,6 +143,13 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 		shockwave.shockwave_band_thickness,
 		0.001
 	)
+	assert_eq(int(released.trail_visible_count), BossAttackArea2D.SHOCKWAVE_TRAIL_COUNT)
+	for trail_index: int in range(shockwave._release_trail.size()):
+		var trail: Sprite2D = shockwave._release_trail[trail_index]
+		assert_true(trail.visible)
+		assert_lt(trail.scale.x, shockwave._release_shockwave.scale.x)
+		if trail_index > 0:
+			assert_lt(trail.scale.x, shockwave._release_trail[trail_index - 1].scale.x)
 	var released_radii: PackedFloat32Array = released.radii
 	var front_radius: float = float(released_radii[0])
 	assert_gt(front_radius, 300.0)

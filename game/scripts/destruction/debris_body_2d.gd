@@ -61,6 +61,23 @@ var _ground_hit_generations: Dictionary[int, int] = {}
 var _last_motion_velocity: Vector2 = Vector2.ZERO
 var _last_motion_age: float = INF
 var _generated_visual: Sprite2D
+var _crucible_captured: bool = false
+var _crucible_armed: bool = false
+var _crucible_source: Node
+var _crucible_root_attack_id: int = 0
+var _crucible_delivery_id: int = 0
+var _crucible_damage: float = 0.0
+var _crucible_effect_flags: int = DamageEvent.FLAG_NONE
+var _crucible_kinetic_bonus: float = 0.0
+var _capture_linear_velocity: Vector2 = Vector2.ZERO
+var _capture_angular_velocity: float = 0.0
+var _capture_collision_layer: int = 0
+var _capture_collision_mask: int = 0
+var _capture_gravity_scale: float = 1.0
+var _capture_contact_monitor: bool = false
+var _capture_max_contacts: int = 0
+var _capture_can_sleep: bool = true
+var _capture_shape_disabled: bool = false
 
 
 func _ready() -> void:
@@ -157,6 +174,91 @@ func material_id() -> StringName:
 	return _material_id
 
 
+func is_active() -> bool:
+	return _active
+
+
+func is_crucible_captured() -> bool:
+	return _crucible_captured
+
+
+func is_crucible_eligible() -> bool:
+	return (
+		_active
+		and visible
+		and not _crucible_captured
+		and not aerial_impact_armed
+		and not _kinetic_armed
+		and not bool(get_meta(&"demolition_plate", false))
+	)
+
+
+func begin_crucible_capture() -> bool:
+	if not is_crucible_eligible():
+		return false
+	var shape_node: CollisionShape2D = _collision_shape()
+	_capture_linear_velocity = linear_velocity
+	_capture_angular_velocity = angular_velocity
+	_capture_collision_layer = collision_layer
+	_capture_collision_mask = collision_mask
+	_capture_gravity_scale = gravity_scale
+	_capture_contact_monitor = contact_monitor
+	_capture_max_contacts = max_contacts_reported
+	_capture_can_sleep = can_sleep
+	_capture_shape_disabled = shape_node.disabled if shape_node != null else false
+	_crucible_captured = true
+	_crucible_armed = false
+	set_physics_process(false)
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	gravity_scale = 0.0
+	freeze = true
+	sleeping = true
+	collision_layer = 0
+	collision_mask = 0
+	contact_monitor = false
+	max_contacts_reported = 0
+	if shape_node != null:
+		shape_node.set_deferred(&"disabled", true)
+	return true
+
+
+func update_crucible_capture(position_value: Vector2, rotation_value: float) -> void:
+	if not _crucible_captured:
+		return
+	global_position = position_value
+	rotation = rotation_value
+
+
+func cancel_crucible_capture() -> void:
+	if not _crucible_captured:
+		return
+	_restore_after_crucible(_capture_linear_velocity, _capture_angular_velocity)
+	_clear_crucible_delivery()
+
+
+func release_from_crucible(
+	launch_velocity: Vector2,
+	launch_angular_velocity: float,
+	source_event: DamageEvent,
+	damage: float,
+	delivery_id: int
+) -> bool:
+	if not _crucible_captured or source_event == null:
+		return false
+	_restore_after_crucible(launch_velocity, launch_angular_velocity)
+	_crucible_source = source_event.source
+	_crucible_root_attack_id = source_event.root_attack_id
+	_crucible_delivery_id = delivery_id
+	_crucible_damage = maxf(damage, 0.0)
+	_crucible_effect_flags = (
+		source_event.effect_flags | DamageEvent.FLAG_GRAVITY_CRUCIBLE
+	)
+	_crucible_kinetic_bonus = source_event.kinetic_debris_bonus
+	_crucible_armed = _crucible_damage > 0.0 and delivery_id != 0
+	return _crucible_armed
+
+
 func is_aerial_shrapnel_for_attack(root_attack_id: int) -> bool:
 	return (
 		aerial_impact_armed
@@ -166,6 +268,8 @@ func is_aerial_shrapnel_for_attack(root_attack_id: int) -> bool:
 
 
 func deactivate() -> void:
+	_crucible_captured = false
+	_clear_crucible_delivery()
 	_set_collision_participation(false)
 	aerial_impact_armed = false
 	_aerial_source = null
@@ -220,6 +324,9 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 
 
 func _on_body_entered(body: Node) -> void:
+	if _crucible_armed:
+		_resolve_crucible_impact(body)
+		return
 	if aerial_impact_armed and body == _aerial_target:
 		_resolve_aerial_impact()
 		return
@@ -295,6 +402,41 @@ func _resolve_ground_enemy_impact(body: Node) -> void:
 		direction,
 		impact_speed * 0.45
 	)
+	if target.receive_damage(event):
+		_ground_hit_generations[target_id] = target.activation_generation
+		ground_hit_count += 1
+		ground_impact_accepted.emit(self, event, target, impact_speed)
+
+
+func _resolve_crucible_impact(body: Node) -> void:
+	var target: EnemyActor2D = _find_damage_receiver(body) as EnemyActor2D
+	if target == null or not target.active or target.dead:
+		return
+	var target_velocity: Vector2 = target.velocity
+	var relative_velocity: Vector2 = _impact_relative_velocity(target_velocity)
+	var impact_speed: float = relative_velocity.length()
+	if impact_speed < MIN_GROUND_IMPACT_SPEED:
+		return
+	var target_id: int = target.get_instance_id()
+	if _ground_hit_generations.get(target_id, -1) == target.activation_generation:
+		return
+	var direction: Vector2 = relative_velocity.normalized()
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT
+	var event: DamageEvent = DamageEvent.new(
+		_crucible_delivery_id,
+		_crucible_source,
+		_crucible_damage + _crucible_kinetic_bonus,
+		&"debris_impact",
+		global_position,
+		direction,
+		impact_speed * 0.45,
+		_crucible_root_attack_id,
+		1,
+		_crucible_effect_flags,
+		_crucible_kinetic_bonus
+	)
+	_clear_crucible_delivery()
 	if target.receive_damage(event):
 		_ground_hit_generations[target_id] = target.activation_generation
 		ground_hit_count += 1
@@ -485,3 +627,36 @@ func _collision_shape() -> CollisionShape2D:
 	if shape_node == null and get_child_count() > 0:
 		shape_node = get_child(0) as CollisionShape2D
 	return shape_node
+
+
+func _restore_after_crucible(
+	restored_velocity: Vector2,
+	restored_angular_velocity: float
+) -> void:
+	_crucible_captured = false
+	freeze = false
+	sleeping = false
+	gravity_scale = _capture_gravity_scale
+	can_sleep = _capture_can_sleep
+	collision_layer = _capture_collision_layer
+	collision_mask = _capture_collision_mask
+	contact_monitor = _capture_contact_monitor
+	max_contacts_reported = _capture_max_contacts
+	var shape_node: CollisionShape2D = _collision_shape()
+	if shape_node != null:
+		shape_node.set_deferred(&"disabled", _capture_shape_disabled)
+	linear_velocity = restored_velocity
+	angular_velocity = restored_angular_velocity
+	process_mode = Node.PROCESS_MODE_INHERIT
+	set_physics_process(true)
+	reset_physics_interpolation()
+
+
+func _clear_crucible_delivery() -> void:
+	_crucible_armed = false
+	_crucible_source = null
+	_crucible_root_attack_id = 0
+	_crucible_delivery_id = 0
+	_crucible_damage = 0.0
+	_crucible_effect_flags = DamageEvent.FLAG_NONE
+	_crucible_kinetic_bonus = 0.0
