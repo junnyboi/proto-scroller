@@ -562,16 +562,28 @@ func begin_telegraph(
 
 
 func attack_telegraph_origin() -> Vector2:
-	if visual != null:
+	if visual != null and visual.texture != null:
 		var content_rect: Rect2 = visual.get_meta(
 			VISUAL_CONTENT_RECT_META,
 			Rect2(-visual.texture.get_size() * 0.5, visual.texture.get_size())
 		)
 		var local_center: Vector2 = content_rect.get_center()
 		local_center.x *= -1.0 if visual.flip_h else 1.0
-		local_center.y *= -1.0 if visual.flip_v else 1.0
+		if _uses_grounded_humanoid_telegraph():
+			local_center.y = (
+				-content_rect.position.y if visual.flip_v else content_rect.end.y
+			)
+		else:
+			local_center.y *= -1.0 if visual.flip_v else 1.0
 		return visual.to_global(local_center)
 	return global_position
+
+
+func _uses_grounded_humanoid_telegraph() -> bool:
+	if self is SoldierEnemy:
+		return true
+	var archetype_id: StringName = StringName(get_meta(&"enemy_archetype", &""))
+	return not archetype_id.is_empty() and EnemyArchetypeCatalog.is_human_enemy(archetype_id)
 
 
 func attack_telegraph_thickness_scale() -> float:

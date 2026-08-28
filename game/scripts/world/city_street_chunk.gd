@@ -146,7 +146,7 @@ func _build_collision() -> void:
 		"RemainsGround",
 		REMAINS_GROUND_LAYER,
 		REMAINS_LAYER,
-		LAND_VISUAL_BASELINE_Y + 35.0
+		LAND_ENEMY_VISUAL_BASELINE_Y + GROUND_COLLISION_HEIGHT * 0.5
 	)
 
 
