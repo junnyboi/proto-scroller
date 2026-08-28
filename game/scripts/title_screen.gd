@@ -516,6 +516,11 @@ func _apply_localized_text() -> void:
 	instruction_label.text = L10n.t(
 		"title.deployment_authorized" if initialized else "title.command_hook"
 	)
+	instruction_label.autowrap_mode = (
+		TextServer.AUTOWRAP_ARBITRARY
+		if L10n.current_locale() == "zh-CN"
+		else TextServer.AUTOWRAP_WORD_SMART
+	)
 	initialize_button.text = (
 		L10n.t("title.deploying")
 		if initialized

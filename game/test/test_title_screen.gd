@@ -68,6 +68,7 @@ func test_launch_scene_contract() -> void:
 		+ "and tissue with cybernetics, calling it the evolution of the human race... "
 		+ "It's time to put an end to their reign of terror!"
 	)
+	assert_eq(instruction_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
 	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
 	assert_null(screen.get_node_or_null("HintLabel"))
 	assert_eq(english_button.text, "EN")
@@ -86,6 +87,7 @@ func test_launch_scene_contract() -> void:
 		"他们杀死了所有你爱的人，并利用纳米技术，以义体结构替代人体的体液与组织，"
 		+ "还将其称作人类的进化……是时候终结他们的恐怖统治了！"
 	)
+	assert_eq(instruction_label.autowrap_mode, TextServer.AUTOWRAP_ARBITRARY)
 	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
 	assert_eq(
 		(screen.get_node("%SettingsHeading") as Label).text,
@@ -99,6 +101,7 @@ func test_launch_scene_contract() -> void:
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "en")
 	assert_true(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
+	assert_eq(instruction_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
 	_record_test_execution()
 
 
