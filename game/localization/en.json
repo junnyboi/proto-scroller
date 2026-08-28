@@ -793,5 +793,6 @@
   "tuning.param.world_weather_opacity_multiplier": "Weather opacity",
   "tuning.desc.world_weather_opacity_multiplier": "Adjusts weather opacity. Application: LIVE.",
   "debrief.tuning_meta": "  /  {status}  /  CFG {hash}",
-  "debrief.global.state.unranked": "TUNED RUN  //  SUBMISSION BLOCKED"
+  "debrief.global.state.unranked": "TUNED RUN  //  SUBMISSION BLOCKED",
+  "tuning.validation.invalid_combination": "INVALID COMBINATION"
 }

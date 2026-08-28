@@ -643,6 +643,11 @@ func _on_projectile_requested(
 	origin: Vector2, direction: Vector2, speed: float, damage: float,
 	kind: StringName, source: Node
 ) -> void:
+	var delivery_lifetime: float = (
+		(source as EnemyActor2D).attack_projectile_lifetime()
+		if source is EnemyActor2D
+		else 2.5
+	)
 	projectile_root.acquire(
 		origin,
 		direction,
@@ -650,7 +655,10 @@ func _on_projectile_requested(
 		damage,
 		source,
 		ROBOT_LAYER | BUILDING_LAYER,
-		kind
+		kind,
+		&"",
+		1.0,
+		delivery_lifetime
 	)
 
 func _on_robot_health_changed(current: float, maximum: float) -> void:

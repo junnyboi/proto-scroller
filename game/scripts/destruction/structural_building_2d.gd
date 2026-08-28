@@ -40,6 +40,10 @@ var _chain_reaction_active: bool = false
 var _steel_chain_triggered: bool = false
 var _triggered_floor_rows: Dictionary[int, bool] = {}
 var _stream_generation: int = 0
+var _tuning_attack_id: int = 0
+var _tuning_damaged_stage_ratio: float = 0.65
+var _tuning_support_transfer_ratio: float = UPPER_SUPPORT_DAMAGE_RATIO
+var _tuning_chain_delay_multiplier: float = 1.0
 
 
 func _ready() -> void:
@@ -75,10 +79,33 @@ func current_variant_id() -> StringName:
 
 
 func receive_damage(event: DamageEvent) -> bool:
+	tuning_snapshot_for_event(event)
 	var cell: Destructible2D = cell_at_world_point(event.hit_position)
 	if cell == null:
 		return false
 	return cell.receive_damage(event)
+
+
+func tuning_snapshot_for_event(event: DamageEvent) -> Dictionary:
+	var attack_id: int = 0
+	if event != null:
+		attack_id = event.root_attack_id if event.root_attack_id != 0 else event.attack_id
+	if attack_id != 0 and attack_id != _tuning_attack_id:
+		_tuning_attack_id = attack_id
+		_tuning_damaged_stage_ratio = float(RuntimeTweakAccess.next_attack_value(
+			&"world.facade.damaged_stage_ratio", 0.65
+		))
+		_tuning_support_transfer_ratio = float(RuntimeTweakAccess.next_attack_value(
+			&"world.facade.support_transfer_ratio", UPPER_SUPPORT_DAMAGE_RATIO
+		))
+		_tuning_chain_delay_multiplier = float(RuntimeTweakAccess.next_attack_value(
+			&"world.facade.chain_delay_multiplier", 1.0
+		))
+	return {
+		"damaged_stage_ratio": _tuning_damaged_stage_ratio,
+		"support_transfer_ratio": _tuning_support_transfer_ratio,
+		"chain_delay_multiplier": _tuning_chain_delay_multiplier,
+	}
 
 
 func rebase_cached_world_state(offset: Vector2) -> void:
@@ -189,6 +216,10 @@ func restore_stream_state(state: Dictionary) -> void:
 			restored_state = {}
 	_stream_generation += 1
 	_chain_reaction_active = false
+	_tuning_attack_id = 0
+	_tuning_damaged_stage_ratio = 0.65
+	_tuning_support_transfer_ratio = UPPER_SUPPORT_DAMAGE_RATIO
+	_tuning_chain_delay_multiplier = 1.0
 	_last_destruction_event = null
 	_destroyed_cells = 0
 	chain_reaction_count = int(restored_state.get("chain_count", 0))
@@ -223,6 +254,7 @@ func _build_cells() -> void:
 func _create_cell(column: int, row: int) -> Destructible2D:
 	var cell: Destructible2D = CELL_SCRIPT.new() as Destructible2D
 	var profile: StructuralMaterialProfile = _material_for_cell(column, row)
+	_apply_tuned_facade_health(profile)
 	cell.name = "Cell_%d_%d" % [column, row]
 	cell.position = _cell_center(column, row)
 	cell.material_profile = profile
@@ -321,6 +353,7 @@ func _reconfigure_cell(column: int, row: int) -> void:
 	if cell == null:
 		return
 	var profile: StructuralMaterialProfile = _material_for_cell(column, row)
+	_apply_tuned_facade_health(profile)
 	cell.position = _cell_center(column, row)
 	cell.configure_material_profile(profile)
 	cell.set_meta(&"structural_material", profile.material_id)
@@ -439,6 +472,18 @@ func _profile_for_material_id(material_id: StringName) -> StructuralMaterialProf
 	return concrete_profile()
 
 
+func _apply_tuned_facade_health(profile: StructuralMaterialProfile) -> void:
+	if profile == null:
+		return
+	var tuned_multiplier: float = float(RuntimeTweakAccess.run_value(
+		&"world.facade.health_multiplier",
+		StructuralMaterialProfile.FACADE_HEALTH_MULTIPLIER
+	))
+	profile.max_health *= (
+		tuned_multiplier / StructuralMaterialProfile.FACADE_HEALTH_MULTIPLIER
+	)
+
+
 func concrete_profile() -> StructuralMaterialProfile:
 	return StructuralMaterialProfile.concrete()
 
@@ -546,7 +591,7 @@ func _damage_cell_above(
 	var support_event: DamageEvent = DamageEvent.new(
 		attack_id,
 		source,
-		upper_cell.max_health * UPPER_SUPPORT_DAMAGE_RATIO,
+		upper_cell.max_health * _tuning_support_transfer_ratio,
 		&"support_failure",
 		upper_cell.global_position + Vector2(0.0, _cell_size().y * 0.34),
 		Vector2.UP,
@@ -616,7 +661,9 @@ func _run_chain_reaction(
 			var cell: Destructible2D = get_cell(column, row)
 			if cell == null or cell.is_destroyed():
 				continue
-			await get_tree().create_timer(step_delay, false).timeout
+			await get_tree().create_timer(
+				step_delay * _tuning_chain_delay_multiplier, false
+			).timeout
 			if stream_generation != _stream_generation:
 				return
 			var event: DamageEvent = _chain_event(

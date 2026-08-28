@@ -162,7 +162,7 @@ func _open_pending() -> void:
 	active_cycle = pending_cycle
 	active_terminal = pending_terminal
 	_clear_pending()
-	active_products = WeaponShopCatalog.products_for(active_district.district_id)
+	active_products = _priced_products_for(active_district.district_id)
 	if run_score != null:
 		run_score.bank_all()
 	pause_token = pause.acquire(&"weapon_shop")
@@ -182,6 +182,25 @@ func _active_product(product_id: StringName) -> WeaponShopProduct:
 		if product.product_id == product_id:
 			return product
 	return null
+
+
+func _priced_products_for(district_id: StringName) -> Array[WeaponShopProduct]:
+	var price_multiplier: float = float(RuntimeTweakAccess.run_value(
+		&"progression.shop.price_multiplier", 1.0
+	))
+	var products: Array[WeaponShopProduct] = []
+	for source: WeaponShopProduct in WeaponShopCatalog.products_for(district_id):
+		products.append(WeaponShopProduct.new(
+			source.product_id,
+			source.district_id,
+			source.name_key,
+			source.description_key,
+			maxi(roundi(float(source.price) * price_multiplier), 1),
+			source.effect_key,
+			source.effect_value,
+			source.repair_ratio
+		))
+	return products
 
 
 func _district(district_id: StringName) -> CityDistrictProfile:

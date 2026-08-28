@@ -93,7 +93,9 @@ func process_controls(delta: float) -> void:
 	_current_axis = move_toward(
 		_current_axis,
 		_target_axis if _controls_enabled else 0.0,
-		response_speed * delta
+		float(RuntimeTweakAccess.live_value(
+			&"input.mobile_response_speed", response_speed
+		)) * delta
 	)
 	if not is_equal_approx(previous_axis, _current_axis):
 		move_axis_changed.emit(_current_axis)
@@ -385,7 +387,9 @@ func _press_smash(touch_index: int) -> void:
 	smash_button.pivot_offset = smash_button.size * 0.5
 	if _smash_cooldown_remaining > 0.0:
 		return
-	_smash_cooldown_remaining = smash_cooldown
+	_smash_cooldown_remaining = float(RuntimeTweakAccess.live_value(
+		&"input.mobile_smash_cooldown", smash_cooldown
+	))
 	_smash_press_accepted = true
 	smash_press_count += 1
 	smash_pressed.emit()
@@ -411,10 +415,11 @@ func _press_dash(touch_index: int) -> void:
 	dash_button.scale = Vector2(0.94, 0.94)
 	dash_button.pivot_offset = dash_button.size * 0.5
 	var direction_axis: float = _target_axis
-	if absf(direction_axis) <= deadzone:
+	var active_deadzone: float = _active_deadzone()
+	if absf(direction_axis) <= active_deadzone:
 		direction_axis = _current_axis
 	var direction: int = 0
-	if absf(direction_axis) > deadzone:
+	if absf(direction_axis) > active_deadzone:
 		direction = 1 if direction_axis > 0.0 else -1
 	elif robot != null:
 		direction = robot.facing
@@ -502,10 +507,17 @@ func _dash_ready_scale() -> float:
 
 
 func _apply_deadzone(raw_axis: float) -> float:
+	var active_deadzone: float = _active_deadzone()
 	var magnitude: float = absf(raw_axis)
-	if magnitude <= deadzone:
+	if magnitude <= active_deadzone:
 		return 0.0
-	return signf(raw_axis) * (magnitude - deadzone) / (1.0 - deadzone)
+	return signf(raw_axis) * (magnitude - active_deadzone) / (1.0 - active_deadzone)
+
+
+func _active_deadzone() -> float:
+	return float(RuntimeTweakAccess.live_value(
+		&"input.mobile_deadzone", deadzone
+	))
 
 
 func _draw() -> void:

@@ -42,6 +42,7 @@ var last_repair_drop_count: int = 0
 var core_shockwave_camera_impulse_count: int = 0
 var automatic_rubble_commit_count: int = 0
 var _state_elapsed: float = 0.0
+var _screen_duration: float = SCREEN_DURATION
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
 var _armor_feedback_key: String = ""
@@ -115,18 +116,31 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		utility_pool.cleanup_generation(generation_token)
 		active_definition = null
 		return false
+	var exposed_health_multiplier: float = float(RuntimeTweakAccess.next_spawn_value(
+		&"boss.exposed_health_multiplier", 1.0
+	))
+	_screen_duration = float(RuntimeTweakAccess.next_spawn_value(
+		&"boss.intro_screen_seconds",
+		SCREEN_DURATION if active_definition == null else active_definition.screen_seconds
+	))
+	boss.set_meta(
+		&"tuning_reinforcement_interval_multiplier",
+		float(RuntimeTweakAccess.next_spawn_value(
+			&"boss.reinforcement_interval_multiplier", 1.0
+		))
+	)
 	if definition != null:
 		boss.global_position.y = BossRig2D.road_contact_y_for_preset(
 			definition.rig_preset
 		)
 	if active_definition == null:
 		boss.set_meta(&"enemy_boss_id", &"COMMAND_UNIT")
-		boss.configure_boss(ARMOR, HEALTH)
+		boss.configure_boss(ARMOR, HEALTH * exposed_health_multiplier)
 	else:
 		boss.set_meta(&"enemy_boss_id", active_definition.boss_id)
 		boss.configure_boss(
 			active_definition.armor,
-			active_definition.health,
+			active_definition.health * exposed_health_multiplier,
 			active_definition.armor_policy,
 			active_definition.armor_fixed_step
 		)
@@ -167,10 +181,7 @@ func advance(delta: float) -> void:
 	_sync_rig_facing()
 	if utility_pool != null and utility_pool.rig != null:
 		utility_pool.rig.advance_animation(delta)
-	var screen_duration: float = (
-		SCREEN_DURATION if active_definition == null else active_definition.screen_seconds
-	)
-	if state == STATE_SCREEN and _state_elapsed >= screen_duration:
+	if state == STATE_SCREEN and _state_elapsed >= _screen_duration:
 		if boss != null:
 			boss.set_attack_gate(true)
 		_set_state(STATE_BARRAGE)
@@ -685,7 +696,7 @@ func _on_core_shockwave_released() -> void:
 	):
 		return
 	dependencies.city.camera_rig.add_impact_impulse(
-		Vector2(0.0, -CORE_SHOCKWAVE_CAMERA_IMPULSE)
+		Vector2(0.0, -utility_pool.vertical_slice.business_release_camera_impulse)
 	)
 	core_shockwave_camera_impulse_count += 1
 

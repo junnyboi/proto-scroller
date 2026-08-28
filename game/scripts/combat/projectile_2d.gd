@@ -46,7 +46,8 @@ func setup(
 	target_mask: int,
 	kind: StringName = &"bullet",
 	p_visual_key: StringName = &"",
-	p_presentation_scale: float = 1.0
+	p_presentation_scale: float = 1.0,
+	p_delivery_lifetime: float = 2.5
 ) -> void:
 	activate(
 		origin,
@@ -57,7 +58,8 @@ func setup(
 		target_mask,
 		kind,
 		p_visual_key,
-		p_presentation_scale
+		p_presentation_scale,
+		p_delivery_lifetime
 	)
 
 
@@ -70,7 +72,8 @@ func activate(
 	target_mask: int,
 	kind: StringName = &"bullet",
 	p_visual_key: StringName = &"",
-	p_presentation_scale: float = 1.0
+	p_presentation_scale: float = 1.0,
+	p_delivery_lifetime: float = 2.5
 ) -> void:
 	_next_attack_id += 1
 	_attack_id = _next_attack_id
@@ -78,7 +81,7 @@ func activate(
 	active = true
 	visible = true
 	set_physics_process(true)
-	lifetime = 2.5
+	lifetime = maxf(p_delivery_lifetime, 0.01)
 	global_position = origin
 	velocity = direction.normalized() * speed
 	damage = p_damage

@@ -113,6 +113,8 @@ var _business_support_actors: Array[EnemyActor2D] = []
 var _residential_support_actors: Array[EnemyActor2D] = []
 var _residential_reinforcement_elapsed: float = 0.0
 var _residential_reinforcement_cursor: int = 0
+var _reinforcement_interval_multiplier: float = 1.0
+var business_release_camera_impulse: float = CommandBossSession.CORE_SHOCKWAVE_CAMERA_IMPULSE
 var _active_breacher: EnemyActor2D
 var _preserve_state_on_cleanup: bool = false
 
@@ -145,6 +147,9 @@ func start(
 	center = world_center
 	orientation_portrait = portrait
 	boss_volley.setup(encounter_runtime, utility_pool.rig, utility_pool.rig.host)
+	_reinforcement_interval_multiplier = float(utility_pool.rig.host.get_meta(
+		&"tuning_reinforcement_interval_multiplier", 1.0
+	))
 	direct_clear_seconds = DIRECT_CLEAR_SECONDS
 	combat_state = CommandBossSession.STATE_SCREEN
 	body_health_ratio = 1.0
@@ -774,6 +779,10 @@ func _configure_attack(attack: StringName) -> void:
 func _configure_business_attack(attack: StringName) -> void:
 	if attack != BUSINESS_CORE_SHOCKWAVE_ATTACK:
 		return
+	business_release_camera_impulse = float(RuntimeTweakAccess.next_attack_value(
+		&"boss.s04_release_camera_impulse",
+		CommandBossSession.CORE_SHOCKWAVE_CAMERA_IMPULSE
+	))
 	utility_pool.radial_shockwave.damage_amount = (
 		BUSINESS_SHOCKWAVE_DAMAGE * encounter_runtime.cycle_attack_multiplier
 	)
@@ -877,7 +886,9 @@ func _on_recovery_started() -> void:
 			deploy_breacher()
 		elif active_attack == &"BLACKOUT_HARVEST":
 			deploy_next_runner()
-		_advance_residential_reinforcements(RESIDENTIAL_REINFORCEMENT_SECONDS)
+		_advance_residential_reinforcements(
+			RESIDENTIAL_REINFORCEMENT_SECONDS * _reinforcement_interval_multiplier
+		)
 
 
 func _prepare_residential_projectile() -> bool:
@@ -922,7 +933,8 @@ func _advance_residential_reinforcements(delta: float) -> void:
 	_residential_reinforcement_elapsed += delta
 	if (
 		_residential_support_actors.size() >= RESIDENTIAL_REINFORCEMENT_CAP
-		or _residential_reinforcement_elapsed < RESIDENTIAL_REINFORCEMENT_SECONDS
+		or _residential_reinforcement_elapsed
+			< RESIDENTIAL_REINFORCEMENT_SECONDS * _reinforcement_interval_multiplier
 	):
 		return
 	_residential_reinforcement_elapsed = 0.0

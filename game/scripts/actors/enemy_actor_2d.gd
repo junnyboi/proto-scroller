@@ -106,6 +106,8 @@ var _telegraph_kind: StringName = &""
 var _telegraph_origin: Vector2 = Vector2.ZERO
 var _telegraph_target: Vector2 = Vector2.ZERO
 var _projectile_reservation_id: int = 0
+var _attack_outgoing_multiplier: float = ENEMY_DAMAGE_MULTIPLIER
+var _attack_projectile_lifetime: float = 2.5
 var _player_reaction_tween: Tween
 
 @onready var visual: Sprite2D = get_node_or_null(^"Visual") as Sprite2D
@@ -247,6 +249,8 @@ func request_projectile(
 ) -> void:
 	if not attack_gate_enabled:
 		return
+	if _telegraph_id == 0:
+		_capture_attack_tuning()
 	projectile_requested.emit(
 		origin,
 		direction,
@@ -270,7 +274,20 @@ func _configure_cycle_difficulty(health_multiplier: float, attack_multiplier: fl
 
 
 func _scale_outgoing_damage(amount: float) -> float:
-	return maxf(amount, 0.0) * cycle_attack_multiplier * ENEMY_DAMAGE_MULTIPLIER
+	return maxf(amount, 0.0) * cycle_attack_multiplier * _attack_outgoing_multiplier
+
+
+func _capture_attack_tuning() -> void:
+	_attack_outgoing_multiplier = float(RuntimeTweakAccess.next_attack_value(
+		&"enemy.outgoing_damage_multiplier", ENEMY_DAMAGE_MULTIPLIER
+	))
+	_attack_projectile_lifetime = float(RuntimeTweakAccess.next_attack_value(
+		&"projectile.hostile_lifetime", 2.5
+	))
+
+
+func attack_projectile_lifetime() -> float:
+	return _attack_projectile_lifetime
 
 
 func begin_player_attack_reaction(
@@ -516,6 +533,7 @@ func begin_telegraph(
 		_projectile_reservation_id = projectile_pool.reserve(kind)
 		if _projectile_reservation_id == 0:
 			return false
+	_capture_attack_tuning()
 	var adjusted_duration: float = maxf(
 		duration * telegraph_multiplier,
 		MINIMUM_TELEGRAPH_SECONDS
@@ -623,7 +641,9 @@ func fire_telegraphed_projectile(
 			self,
 			projectile_target_mask,
 			_telegraph_kind,
-			visual_key
+			visual_key,
+			1.0,
+			_attack_projectile_lifetime
 		)
 	else:
 		request_projectile(

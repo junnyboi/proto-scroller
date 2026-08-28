@@ -233,7 +233,10 @@ func advance_animation(delta: float) -> void:
 		return
 	animation_elapsed += delta
 	if animation_state == STATE_MOVING:
-		animation_frame = int(floor(animation_elapsed * BossAnimationCatalog.MOVING_FPS)) % (
+		var moving_fps: float = float(RuntimeTweakAccess.live_value(
+			&"boss.animation_moving_fps", BossAnimationCatalog.MOVING_FPS
+		))
+		animation_frame = int(floor(animation_elapsed * moving_fps)) % (
 			BossAnimationCatalog.FRAME_COUNT
 		)
 	else:

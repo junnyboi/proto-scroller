@@ -116,6 +116,7 @@ var export_record_visible: bool = false
 var _reinforcement_actors: Array[EnemyActor2D] = []
 var _reinforcement_elapsed: float = 0.0
 var _reinforcement_cursor: int = 0
+var _reinforcement_interval_multiplier: float = 1.0
 var _siren_preferred_weapon: StringName = &""
 var _active_siren: EnemyActor2D
 var _active_runner: EnemyActor2D
@@ -156,6 +157,9 @@ func start(
 	center = world_center
 	orientation_portrait = portrait
 	boss_volley.setup(encounter_runtime, utility_pool.rig, utility_pool.rig.host)
+	_reinforcement_interval_multiplier = float(utility_pool.rig.host.get_meta(
+		&"tuning_reinforcement_interval_multiplier", 1.0
+	))
 	direct_clear_seconds = DIRECT_CLEAR_SECONDS
 	combat_state = CommandBossSession.STATE_SCREEN
 	body_health_ratio = 1.0
@@ -1043,7 +1047,7 @@ func _reinforcement_interval() -> float:
 		ENTERTAINMENT_REINFORCEMENT_SECONDS
 		if active_definition != null and active_definition.boss_id == ENTERTAINMENT_ID
 		else MILITARY_REINFORCEMENT_SECONDS
-	)
+	) * _reinforcement_interval_multiplier
 
 
 func _spawn_reinforcement(archetype_id: StringName) -> EnemyActor2D:

@@ -73,6 +73,9 @@ var base_air_acceleration: float = 0.0
 var base_ground_deceleration: float = 0.0
 var base_dodge_speed: float = 0.0
 var base_dodge_duration: float = 0.0
+var engine_speed_multiplier: float = 1.0
+var engine_acceleration_multiplier: float = 1.0
+var engine_deceleration_multiplier: float = 1.0
 var shop_incoming_damage_multiplier: float = 1.0
 var dodge_count: int = 0
 var invulnerable_rejection_count: int = 0
@@ -132,6 +135,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_sync_tuned_movement_bases()
 	var input_axis: float = Input.get_axis(&"move_left", &"move_right")
 	if absf(virtual_move_axis) > absf(input_axis):
 		input_axis = virtual_move_axis
@@ -277,11 +281,18 @@ func set_engine_multipliers(
 	acceleration_scale: float,
 	deceleration_scale: float
 ) -> bool:
-	var next_speed: float = base_max_speed * maxf(speed_multiplier, 1.0)
-	var next_ground_accel: float = base_ground_acceleration * maxf(acceleration_scale, 1.0)
-	var next_air_accel: float = base_air_acceleration * maxf(acceleration_scale, 1.0)
+	engine_speed_multiplier = maxf(speed_multiplier, 1.0)
+	engine_acceleration_multiplier = maxf(acceleration_scale, 1.0)
+	engine_deceleration_multiplier = maxf(deceleration_scale, 1.0)
+	return _apply_engine_multipliers()
+
+
+func _apply_engine_multipliers() -> bool:
+	var next_speed: float = base_max_speed * engine_speed_multiplier
+	var next_ground_accel: float = base_ground_acceleration * engine_acceleration_multiplier
+	var next_air_accel: float = base_air_acceleration * engine_acceleration_multiplier
 	var next_deceleration: float = (
-		base_ground_deceleration * maxf(deceleration_scale, 1.0)
+		base_ground_deceleration * engine_deceleration_multiplier
 	)
 	if (
 		is_equal_approx(max_speed, next_speed)
@@ -300,6 +311,23 @@ func set_engine_multipliers(
 	if not preserve_overspeed:
 		velocity.x = signed_ratio * max_speed
 	return true
+
+
+func _sync_tuned_movement_bases() -> void:
+	var tuned_speed: float = float(RuntimeTweakAccess.live_value(
+		&"player.move.max_speed", base_max_speed
+	))
+	var tuned_acceleration: float = float(RuntimeTweakAccess.live_value(
+		&"player.move.ground_acceleration", base_ground_acceleration
+	))
+	if (
+		is_equal_approx(base_max_speed, tuned_speed)
+		and is_equal_approx(base_ground_acceleration, tuned_acceleration)
+	):
+		return
+	base_max_speed = tuned_speed
+	base_ground_acceleration = tuned_acceleration
+	_apply_engine_multipliers()
 
 
 func _set_dodge_multipliers(speed_multiplier: float, duration_multiplier: float) -> bool:

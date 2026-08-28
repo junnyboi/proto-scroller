@@ -61,6 +61,9 @@ func show_offer(
 	})
 	active = true
 	visible = true
+	shade.color.a = float(RuntimeTweakAccess.live_value(
+		&"interface.upgrade_modal_shade_opacity", 0.88
+	))
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for card: UpgradeChoiceCard in cards:

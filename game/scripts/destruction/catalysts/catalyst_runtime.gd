@@ -125,7 +125,17 @@ func spawn_repair_pickup(
 			break
 	if selected == null:
 		return null
-	selected.activate(world_position, repair_amount)
+	var tuned_amount: float = float(RuntimeTweakAccess.next_spawn_value(
+		&"world.repair_drop.amount", ChassisRepairPickup2D.REPAIR_AMOUNT
+	))
+	var tuned_lifetime: float = float(RuntimeTweakAccess.next_spawn_value(
+		&"world.repair_drop.lifetime_seconds", ChassisRepairPickup2D.LIFETIME_SECONDS
+	))
+	selected.activate(
+		world_position,
+		repair_amount * tuned_amount / ChassisRepairPickup2D.REPAIR_AMOUNT,
+		tuned_lifetime
+	)
 	repair_pickup_spawned.emit(selected)
 	return selected
 

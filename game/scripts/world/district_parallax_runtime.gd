@@ -72,6 +72,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_apply_motion_multiplier()
 	if _sky_life != null:
 		_sky_life.advance(delta)
 	if not _transitioning:
@@ -245,6 +246,22 @@ func _create_band(
 	band.z_index = z_value
 	add_child(band)
 	return band
+
+
+func _apply_motion_multiplier() -> void:
+	var multiplier: float = float(RuntimeTweakAccess.live_value(
+		&"world.parallax.motion_multiplier", 1.0
+	))
+	_set_band_motion(^"Sky", SKY_SCROLL_SCALE, multiplier)
+	_set_band_motion(^"FarSkyline", FAR_SCROLL_SCALE, multiplier)
+	_set_band_motion(^"Infrastructure", INFRA_SCROLL_SCALE, multiplier)
+	_set_band_motion(^"NearBuildings", NEAR_SCROLL_SCALE, multiplier)
+
+
+func _set_band_motion(path: NodePath, base: Vector2, multiplier: float) -> void:
+	var band: Parallax2D = get_node_or_null(path) as Parallax2D
+	if band != null:
+		band.scroll_scale = Vector2(base.x * multiplier, base.y)
 
 
 func _add_depth_sprite(band: Parallax2D, texture: Texture2D, y_offset: float) -> Sprite2D:

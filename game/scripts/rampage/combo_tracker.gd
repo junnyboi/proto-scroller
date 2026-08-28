@@ -30,7 +30,7 @@ func register_event(event: GameplayEvent) -> bool:
 	current_multiplier = RampageRewardTuning.multiplier_for_progress_units(
 		current_progress_units
 	)
-	grace_remaining = GRACE_SECONDS
+	grace_remaining = RampageRewardTuning.combo_grace_seconds()
 	peak_multiplier = maxi(peak_multiplier, current_multiplier)
 	best_chain_count = maxi(best_chain_count, current_chain_count)
 	combo_changed.emit(current_multiplier, grace_remaining)
@@ -83,7 +83,7 @@ func _highest_crossed_milestone(previous_units: int, current_units: int) -> int:
 	var reached_tier: int = 0
 	for tier: int in HERALD_MILESTONE_TIERS:
 		var threshold: int = (
-			(tier - 1) * RampageRewardTuning.COMBO_PROGRESS_UNITS_PER_TIER + 1
+			(tier - 1) * RampageRewardTuning.combo_progress_units_per_tier() + 1
 		)
 		if previous_units < threshold and current_units >= threshold:
 			reached_tier = tier

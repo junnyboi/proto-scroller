@@ -112,6 +112,13 @@ func _read_valid_file(path: String, catalog: RuntimeTweakCatalog) -> Dictionary:
 	if not bool(checked.ok):
 		last_error = String(checked.error)
 		return {"ok": false, "values": {}}
+	var merged: Dictionary = catalog.baseline_values()
+	for identifier: StringName in checked.values:
+		merged[identifier] = checked.values[identifier]
+	var cross_checked: Dictionary = catalog.validate_cross_fields(merged)
+	if not bool(cross_checked.ok):
+		last_error = String(cross_checked.error)
+		return {"ok": false, "values": {}}
 	return {"ok": true, "values": checked.values}
 
 

@@ -19,7 +19,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_simulation_time += delta
+	_simulation_time += delta * float(RuntimeTweakAccess.live_value(
+		&"world.weather.motion_multiplier", 1.0
+	))
 	queue_redraw()
 
 
@@ -62,7 +64,13 @@ func active_particle_count() -> int:
 func particle_count_for_profile(base_count: float, viewport_size: Vector2) -> int:
 	return mini(PARTICLE_CAPACITY, maxi(
 		0,
-		int(round(base_count * _responsive_density_scale(viewport_size)))
+		int(round(
+			base_count
+			* float(RuntimeTweakAccess.live_value(
+				&"world.weather.density_multiplier", 1.0
+			))
+			* _responsive_density_scale(viewport_size)
+		))
 	))
 
 
@@ -101,7 +109,9 @@ func _draw() -> void:
 		float(_current_profile.opacity),
 		float(_target_profile.opacity),
 		weight
-	)
+	) * float(RuntimeTweakAccess.live_value(
+		&"world.weather.opacity_multiplier", 1.0
+	))
 	_draw_fog(weight)
 	match effect:
 		&"acid_drizzle", &"utility_rain", &"neon_drizzle":
@@ -217,7 +227,9 @@ func _draw_fog(weight: float) -> void:
 		float(_current_profile.fog_opacity),
 		float(_target_profile.fog_opacity),
 		weight
-	)
+	) * float(RuntimeTweakAccess.live_value(
+		&"world.weather.opacity_multiplier", 1.0
+	))
 	var fog_speed: float = lerpf(
 		float(_current_profile.fog_speed),
 		float(_target_profile.fog_speed),

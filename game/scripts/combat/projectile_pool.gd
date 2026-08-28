@@ -67,7 +67,8 @@ func acquire(
 	target_mask: int,
 	kind: StringName,
 	visual_key: StringName = &"",
-	presentation_scale: float = 1.0
+	presentation_scale: float = 1.0,
+	delivery_lifetime: float = 2.5
 ) -> Projectile2D:
 	return _acquire_internal(
 		origin,
@@ -79,7 +80,8 @@ func acquire(
 		kind,
 		false,
 		visual_key,
-		presentation_scale
+		presentation_scale,
+		delivery_lifetime
 	)
 
 
@@ -108,7 +110,8 @@ func acquire_reserved(
 	target_mask: int,
 	kind: StringName,
 	visual_key: StringName = &"",
-	presentation_scale: float = 1.0
+	presentation_scale: float = 1.0,
+	delivery_lifetime: float = 2.5
 ) -> Projectile2D:
 	if not _reservations.has(reservation_id):
 		denial_count += 1
@@ -129,7 +132,8 @@ func acquire_reserved(
 		kind,
 		true,
 		visual_key,
-		presentation_scale
+		presentation_scale,
+		delivery_lifetime
 	)
 
 
@@ -143,7 +147,8 @@ func _acquire_internal(
 	kind: StringName,
 	reserved: bool,
 	visual_key: StringName,
-	presentation_scale: float
+	presentation_scale: float,
+	delivery_lifetime: float
 ) -> Projectile2D:
 	var partition: StringName = _partition_for_kind(kind)
 	var available: int = available_count(partition)
@@ -168,7 +173,8 @@ func _acquire_internal(
 		target_mask,
 		kind,
 		visual_key,
-		presentation_scale
+		presentation_scale,
+		delivery_lifetime
 	)
 	last_acquired = projectile
 	return projectile
@@ -386,7 +392,10 @@ func _on_impact_requested(
 		impact_feedback_pool.play_cue(
 			audio_cue,
 			world_position,
-			HOSTILE_IMPACT_PITCH_VARIATION,
+			float(RuntimeTweakAccess.live_value(
+				&"projectile.hostile_impact_pitch_jitter",
+				HOSTILE_IMPACT_PITCH_VARIATION
+			)),
 			HOSTILE_IMPACT_VOLUME_VARIATION_DB
 		)
 	_hostile_impact_cursor = (_hostile_impact_cursor + 1) % hostile_impacts.size()

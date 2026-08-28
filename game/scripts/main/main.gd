@@ -41,6 +41,7 @@ var title_transition_duration_scale: float = 1.0
 var transition_kind: StringName = &"idle"
 var transition_boom_play_count: int = 0
 var transition_boom_last_alpha: float = -1.0
+var _last_tuned_transition_duration_scale: float = 1.0
 var title_music_restart_count: int = 0
 var _title_transition_started_msec: int = 0
 var _transition_sequence_id: int = 0
@@ -348,6 +349,16 @@ func _spawn_city_slice() -> void:
 	city_slice.launch_run_seed = run_seed
 	if runtime_tweak_service != null:
 		runtime_tweak_service.freeze_run(run_seed)
+		var tuned_transition_scale: float = float(runtime_tweak_service.run_value(
+			&"interface.title_transition_duration_scale",
+			1.0
+		))
+		if is_equal_approx(
+			title_transition_duration_scale,
+			_last_tuned_transition_duration_scale
+		):
+			title_transition_duration_scale = tuned_transition_scale
+		_last_tuned_transition_duration_scale = tuned_transition_scale
 	city_slice.campaign_progress = campaign_progress
 	city_slice.combat_profile = combat_profile
 	city_slice.retry_requested.connect(retry_game)

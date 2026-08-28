@@ -46,6 +46,13 @@ func _ready() -> void:
 func receive_damage(event: DamageEvent) -> bool:
 	if _destroyed or event == null or event.amount <= 0.0:
 		return false
+	if get_parent() is StructuralBuilding2D:
+		var tuning: Dictionary = (get_parent() as StructuralBuilding2D).tuning_snapshot_for_event(
+			event
+		)
+		damaged_stage_ratio = float(tuning.get(
+			"damaged_stage_ratio", damaged_stage_ratio
+		))
 	if event.attack_id != 0 and _seen_attacks.has(event.attack_id):
 		return false
 	if event.attack_id != 0:
@@ -75,6 +82,7 @@ func capture_stream_state() -> Dictionary:
 	var state: Dictionary = {
 		"health": current_health,
 		"destroyed": _destroyed,
+		"damaged_stage_ratio": damaged_stage_ratio,
 		"pristine": not _destroyed and is_equal_approx(current_health, max_health),
 	}
 	var damage_pattern: BuildingDamagePattern2D = _damaged_visual as BuildingDamagePattern2D
@@ -86,6 +94,7 @@ func capture_stream_state() -> Dictionary:
 func restore_stream_state(state: Dictionary) -> void:
 	_seen_attacks.clear()
 	_destroyed = bool(state.get("destroyed", false))
+	damaged_stage_ratio = float(state.get("damaged_stage_ratio", damaged_stage_ratio))
 	current_health = clampf(float(state.get("health", max_health)), 0.0, max_health)
 	if _destroyed:
 		current_health = 0.0

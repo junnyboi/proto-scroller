@@ -120,6 +120,7 @@ var boss_volley: BossProjectileVolley = BossProjectileVolley.new()
 var _reinforcement_actors: Array[EnemyActor2D] = []
 var _reinforcement_elapsed: float = 0.0
 var _reinforcement_cursor: int = 0
+var _reinforcement_interval_multiplier: float = 1.0
 var _preserve_state_on_cleanup: bool = false
 
 
@@ -148,6 +149,9 @@ func start(
 	center = world_center
 	orientation_portrait = portrait
 	boss_volley.setup(encounter_runtime, utility_pool.rig, utility_pool.rig.host)
+	_reinforcement_interval_multiplier = float(utility_pool.rig.host.get_meta(
+		&"tuning_reinforcement_interval_multiplier", 1.0
+	))
 	combat_state = CommandBossSession.STATE_SCREEN
 	body_health_ratio = 1.0
 	_configure_pylons()
@@ -748,7 +752,10 @@ func _advance_reinforcements(delta: float) -> void:
 	):
 		return
 	_reinforcement_elapsed += delta
-	if _reinforcement_elapsed < ROYAL_REINFORCEMENT_SECONDS:
+	if (
+		_reinforcement_elapsed
+		< ROYAL_REINFORCEMENT_SECONDS * _reinforcement_interval_multiplier
+	):
 		return
 	_reinforcement_elapsed = 0.0
 	var archetype_id: StringName = ROYAL_REINFORCEMENTS[

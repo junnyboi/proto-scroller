@@ -241,8 +241,11 @@ func _create_prop(
 	prop.name = prop_name
 	prop.z_index = 25
 	prop.set_meta(&"street_destructible_kind", StringName(spec.kind))
-	prop.max_health = float(spec.health)
-	prop.wreck_health = float(spec.wreck_health)
+	var health_multiplier: float = float(RuntimeTweakAccess.run_value(
+		&"world.street_prop.health_multiplier", 1.0
+	))
+	prop.max_health = float(spec.health) * health_multiplier
+	prop.wreck_health = float(spec.wreck_health) * health_multiplier
 	prop.gameplay_chunk_count = int(spec.chunks)
 	prop.debris_pool_path = ^"../../../BuildingDebrisPool"
 	prop.rubble_dust_pool_path = ^"../../../BuildingSectionBurstPool"

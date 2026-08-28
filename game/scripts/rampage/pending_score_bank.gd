@@ -12,7 +12,7 @@ func add(points: int) -> int:
 	if accepted <= 0:
 		return 0
 	value += accepted
-	bank_remaining = BANK_DELAY
+	bank_remaining = RampageRewardTuning.pending_bank_seconds()
 	return accepted
 
 

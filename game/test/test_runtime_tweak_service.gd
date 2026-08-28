@@ -124,6 +124,34 @@ func test_corrupt_primary_recovers_valid_backup_without_partial_overlay() -> voi
 	assert_eq(service.persistence.recovery_count, 1)
 
 
+func test_cross_field_validation_rejects_atomically_and_accepts_valid_transaction() -> void:
+	var service: RuntimeTweakService = _new_service(SAVE_ROOT + "/cross-fields.json")
+	assert_true(bool(service.set_value(
+		&"progression.combo.base_grace_seconds", 2.0
+	).ok))
+	var rejected_bank: Dictionary = service.set_value(
+		&"progression.score.bank_base_seconds", 3.0
+	)
+	assert_false(bool(rejected_bank.ok))
+	assert_eq(service.requested_value(&"progression.score.bank_base_seconds"), 1.0)
+	var valid_combo: Dictionary = service.set_values({
+		&"progression.combo.base_grace_seconds": 5.0,
+		&"progression.score.bank_base_seconds": 3.0,
+	})
+	assert_true(bool(valid_combo.ok))
+	assert_eq(service.requested_value(&"progression.score.bank_base_seconds"), 3.0)
+	var rejected_facade: Dictionary = service.set_value(
+		&"world.facade.damaged_stage_ratio", 0.45
+	)
+	assert_false(bool(rejected_facade.ok))
+	assert_eq(service.requested_value(&"world.facade.damaged_stage_ratio"), 0.65)
+	var valid_facade: Dictionary = service.set_values({
+		&"world.facade.damaged_stage_ratio": 0.45,
+		&"world.facade.support_transfer_ratio": 0.25,
+	})
+	assert_true(bool(valid_facade.ok))
+
+
 func _new_service(path: String) -> RuntimeTweakService:
 	var service: RuntimeTweakService = RuntimeTweakService.new()
 	add_child(service)

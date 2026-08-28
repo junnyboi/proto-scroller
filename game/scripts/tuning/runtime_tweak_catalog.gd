@@ -89,6 +89,41 @@ func validate_transaction(candidates: Dictionary) -> Dictionary:
 	return {"ok": true, "error": "", "values": sanitized}
 
 
+func validate_cross_fields(values: Dictionary) -> Dictionary:
+	var combo_grace: float = float(values.get(
+		&"progression.combo.base_grace_seconds", 3.0
+	))
+	var bank_delay: float = float(values.get(
+		&"progression.score.bank_base_seconds", 1.0
+	))
+	if combo_grace < bank_delay:
+		return {
+			"ok": false,
+			"error": "combo grace must be greater than or equal to score bank delay",
+		}
+	var damaged_stage_ratio: float = float(values.get(
+		&"world.facade.damaged_stage_ratio", 0.65
+	))
+	var support_transfer_ratio: float = float(values.get(
+		&"world.facade.support_transfer_ratio", 0.5
+	))
+	if support_transfer_ratio > damaged_stage_ratio:
+		return {
+			"ok": false,
+			"error": "facade support transfer cannot exceed the damaged-stage ratio",
+		}
+	var melee_charge: float = float(values.get(&"player.melee.charge_duration", 2.0))
+	var mobile_cooldown: float = float(values.get(
+		&"input.mobile_smash_cooldown", 0.4
+	))
+	if mobile_cooldown >= melee_charge:
+		return {
+			"ok": false,
+			"error": "mobile smash cooldown must be shorter than melee charge duration",
+		}
+	return {"ok": true, "error": ""}
+
+
 func _load(path: String) -> void:
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if file == null:

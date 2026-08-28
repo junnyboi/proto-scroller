@@ -220,7 +220,9 @@ func set_combo(multiplier: int, grace_remaining: float) -> void:
 	combo_label.modulate.a = clampf(grace_remaining / 0.55, 0.55, 1.0)
 	if combo_ring != null:
 		combo_ring.set_ratio(
-			grace_remaining / COMBO_GRACE_SECONDS if multiplier > 1 else 0.0
+			grace_remaining / RampageRewardTuning.combo_grace_seconds()
+			if multiplier > 1
+			else 0.0
 		)
 
 

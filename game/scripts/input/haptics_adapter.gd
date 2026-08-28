@@ -82,7 +82,13 @@ func _pulse_mobile() -> bool:
 
 
 func _pulse_gamepad() -> bool:
-	if gamepad_device_id < 0 or not InputBindingSettings.controller_vibration_enabled():
+	if (
+		gamepad_device_id < 0
+		or not InputBindingSettings.controller_vibration_enabled()
+		or not bool(RuntimeTweakAccess.live_value(
+			&"input.controller_vibration_enabled", true
+		))
+	):
 		return false
 	var intensity: float = clampf(float(last_duration_ms) / 100.0, 0.0, 1.0)
 	last_weak_magnitude = lerpf(0.18, 0.55, intensity)

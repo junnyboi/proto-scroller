@@ -122,7 +122,9 @@ func _process(delta: float) -> void:
 	if target_mark_remaining > 0.0:
 		for actor: EnemyActor2D in actors:
 			if actor.active and not actor.dead:
-				actor.aura_damage_multiplier = MARK_DAMAGE_MULTIPLIER
+				actor.aura_damage_multiplier = float(RuntimeTweakAccess.live_value(
+					&"enemy.target_mark_damage_multiplier", MARK_DAMAGE_MULTIPLIER
+				))
 
 
 func acquire(
@@ -305,7 +307,10 @@ func _apply_static_aura(source: ProceduralEnemy, actors: Array[EnemyActor2D]) ->
 		if actor != source and actor.active and not actor.dead:
 			actor.aura_attack_interval_multiplier = minf(
 				actor.aura_attack_interval_multiplier,
-				STATIC_INTERVAL_MULTIPLIER
+				float(RuntimeTweakAccess.live_value(
+					&"enemy.static_attack_interval_multiplier",
+					STATIC_INTERVAL_MULTIPLIER
+				))
 			)
 
 
@@ -313,10 +318,14 @@ func _apply_aegis_aura(source: ProceduralEnemy, actors: Array[EnemyActor2D]) -> 
 	for actor: EnemyActor2D in actors:
 		if actor == source or not actor.active or actor.dead:
 			continue
-		if source.global_position.distance_to(actor.global_position) <= AEGIS_RADIUS:
+		if source.global_position.distance_to(actor.global_position) <= float(
+			RuntimeTweakAccess.live_value(&"enemy.aegis_aura_radius", AEGIS_RADIUS)
+		):
 			actor.incoming_damage_multiplier = minf(
 				actor.incoming_damage_multiplier,
-				AEGIS_DAMAGE_MULTIPLIER
+				float(RuntimeTweakAccess.live_value(
+					&"enemy.aegis_damage_taken_multiplier", AEGIS_DAMAGE_MULTIPLIER
+				))
 			)
 
 

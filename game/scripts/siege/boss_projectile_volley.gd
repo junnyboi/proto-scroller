@@ -23,6 +23,8 @@ var _active_projectiles: Array[Projectile2D] = []
 var _elapsed: float = 0.0
 var _next_shot_index: int = 0
 var _committed: bool = false
+var _outgoing_damage_multiplier: float = EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+var _projectile_lifetime: float = 2.5
 
 
 func setup(
@@ -96,7 +98,15 @@ func begin_from_origins(
 	kind = projectile_kind
 	visual_key = projectile_visual_key
 	projectile_speed = maxf(speed, 1.0)
-	base_damage = maxf(damage, 0.0)
+	_outgoing_damage_multiplier = float(RuntimeTweakAccess.next_attack_value(
+		&"enemy.outgoing_damage_multiplier", EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+	))
+	base_damage = maxf(damage, 0.0) * float(RuntimeTweakAccess.next_attack_value(
+		&"boss.standard_projectile_damage_multiplier", 1.0
+	))
+	_projectile_lifetime = float(RuntimeTweakAccess.next_attack_value(
+		&"projectile.hostile_lifetime", 2.5
+	))
 	presentation_scale = maxf(shot_scale, 0.01)
 	for shot_index: int in range(origin_points.size()):
 		var reservation_id: int = encounter_runtime.projectile_pool.reserve(kind)
@@ -173,6 +183,8 @@ func cancel() -> void:
 	visual_key = &""
 	projectile_speed = 0.0
 	base_damage = 0.0
+	_outgoing_damage_multiplier = EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+	_projectile_lifetime = 2.5
 	presentation_scale = 1.0
 
 
@@ -224,12 +236,14 @@ func _fire_due_shots() -> void:
 			origin,
 			direction,
 			projectile_speed,
-			owner._scale_outgoing_damage(base_damage),
+			maxf(base_damage, 0.0) * owner.cycle_attack_multiplier
+				* _outgoing_damage_multiplier,
 			owner,
 			owner.projectile_target_mask,
 			kind,
 			visual_key,
-			presentation_scale
+			presentation_scale,
+			_projectile_lifetime
 		)
 		_reservation_ids[_next_shot_index] = 0
 		if projectile != null:

@@ -41,6 +41,7 @@ var _busy: bool = false
 var _buffered_dodge_direction: int = 0
 var _charging: bool = false
 var _charge_duration: float = 0.0
+var _active_charge_limit: float = MAX_CHARGE_SECONDS
 var _last_full_charge_hit_attack_id: int = 0
 
 
@@ -93,7 +94,7 @@ func _process(delta: float) -> void:
 	var previous_duration: float = _charge_duration
 	_charge_duration = minf(
 		_charge_duration + maxf(delta, 0.0),
-		MAX_CHARGE_SECONDS
+		_active_charge_limit
 	)
 	if not is_equal_approx(previous_duration, _charge_duration):
 		charge_updated.emit(
@@ -124,6 +125,15 @@ func begin_charge() -> int:
 	if not _robot.can_request_attack():
 		return 0
 	var attack_id: int = _robot.reserve_attack_id()
+	_active_charge_limit = float(RuntimeTweakAccess.next_attack_value(
+		&"player.melee.charge_duration", MAX_CHARGE_SECONDS
+	))
+	var tuned_ground_damage: float = float(RuntimeTweakAccess.next_attack_value(
+		&"player.melee.ground_smash_damage", _robot.stomp_damage
+	))
+	var tuned_ground_radius: float = float(RuntimeTweakAccess.next_attack_value(
+		&"player.melee.ground_smash_radius", _robot.stomp_radius
+	))
 	var overdrive_started: bool = (
 		overdrive_session.consume_ready_for_attack(attack_id)
 		if overdrive_session != null
@@ -151,9 +161,9 @@ func begin_charge() -> int:
 			attack_id,
 			_robot.facing,
 			speed_ratio,
-			_robot.stomp_damage,
+				tuned_ground_damage,
 			_robot.stomp_impulse_per_mass,
-			_robot.stomp_radius,
+				tuned_ground_radius,
 			force_multiplier,
 			structure_multiplier,
 			overdrive_started
@@ -201,7 +211,7 @@ func charge_duration() -> float:
 
 
 func charge_progress() -> float:
-	return clampf(_charge_duration / MAX_CHARGE_SECONDS, 0.0, 1.0)
+	return clampf(_charge_duration / maxf(_active_charge_limit, 0.001), 0.0, 1.0)
 
 
 func charge_damage_multiplier() -> float:

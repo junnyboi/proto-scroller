@@ -125,7 +125,11 @@ func _send_request(request_type: StringName, payload: Dictionary) -> void:
 		return
 	_pending[request_id] = {
 		"type": request_type,
-		"deadline": Time.get_ticks_msec() / 1000.0 + REQUEST_TIMEOUT_SECONDS,
+		"deadline": Time.get_ticks_msec() / 1000.0 + float(
+			RuntimeTweakAccess.live_value(
+				&"interface.leaderboard_timeout_seconds", REQUEST_TIMEOUT_SECONDS
+			)
+		),
 	}
 
 

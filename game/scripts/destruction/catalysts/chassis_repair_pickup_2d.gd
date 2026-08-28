@@ -56,11 +56,15 @@ func _process(delta: float) -> void:
 		expired.emit(self)
 
 
-func activate(world_position: Vector2, p_repair_amount: float = REPAIR_AMOUNT) -> void:
+func activate(
+	world_position: Vector2,
+	p_repair_amount: float = REPAIR_AMOUNT,
+	p_lifetime_seconds: float = LIFETIME_SECONDS
+) -> void:
 	_origin = world_position
 	position = world_position
 	_phase = 0.0
-	_lifetime_remaining = LIFETIME_SECONDS
+	_lifetime_remaining = maxf(p_lifetime_seconds, 0.01)
 	repair_amount = maxf(p_repair_amount, 0.0)
 	active = true
 	visible = true

@@ -133,11 +133,19 @@ func _ready() -> void:
 func advance(delta: float) -> void:
 	if delta <= 0.0:
 		return
-	time_phase = fposmod(time_phase + delta / DAY_CYCLE_SECONDS, 1.0)
+	var cycle_seconds: float = float(RuntimeTweakAccess.live_value(
+		&"world.sky.day_night_cycle_seconds", DAY_CYCLE_SECONDS
+	))
+	time_phase = fposmod(time_phase + delta / cycle_seconds, 1.0)
 	_sample_time()
 	var traffic_speed: float = _profile_value(&"traffic_speed")
 	_traffic_band.scroll_offset.x = fposmod(
-		_traffic_band.scroll_offset.x + traffic_speed * delta,
+		_traffic_band.scroll_offset.x
+			+ traffic_speed
+			* float(RuntimeTweakAccess.live_value(
+				&"world.sky.traffic_speed_multiplier", 1.0
+			))
+			* delta,
 		TRAFFIC_REPEAT_WIDTH
 	)
 	_apply_life_style()

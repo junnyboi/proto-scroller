@@ -213,8 +213,8 @@ Per current project directive, repository-wide certification, slow Xvfb matrices
 |---|---|---|---|
 | WP0 | Complete | `1c3423c164ae60cfd13724ce6b3f1ec423c3470a` | Fixed due-hazard activation/removal, reconciled the Aegis Patch Cell at 50 HP, and passed `runtime_tweak_prerequisites`: 2 tests / 7 assertions. |
 | WP1 | Complete | `924815ef4066dac25e69eaa84422c8713b334553` | Added 50 typed descriptors, res-first validated deltas, canonical SHA-256 identity, run/district/attack/spawn boundaries, sticky provenance, and atomic debounced persistence. `runtime_tweak_catalog`: 4 tests / 468 assertions; `runtime_tweak_service`: 8 tests / 53 assertions; `title_transition`: 3 tests / 47 assertions. |
-| WP2 | Pending | — | — |
-| WP3 | Pending | — | — |
+| WP2 | Complete | `5e09c867726c267763b35ddf1d93779700cb903a` | Added the metadata-driven responsive panel, exact SceneTree pause/restore adapter, F10 input, bilingual UI, modal arbitration, and fixed-pool sandbox. `runtime_tweak_panel`: 5 tests / 47 assertions, including 120 paused frames and both target orientations. |
+| WP3 | Complete | `836c436d6bc7ee1fe569a597ccb7da449b5ee54f` | Added sticky `BASELINE`/`TUNED`/`SANDBOX` run provenance, immutable summary metadata, debrief disclosure, profile suppression, and a final leaderboard network guard. `runtime_tweak_integrity`: 5 tests / 22 assertions. |
 | WP4 | Pending | — | — |
 | WP5 | Pending | — | — |
 

@@ -109,6 +109,17 @@ func set_value(identifier: StringName, candidate: Variant) -> Dictionary:
 	var previous: Variant = requested_values[identifier]
 	if entry.values_equal(previous, next_value):
 		return {"ok": true, "error": "", "value": previous, "changed": false}
+	var merged: Dictionary = requested_values.duplicate(true)
+	merged[identifier] = next_value
+	var cross_checked: Dictionary = catalog.validate_cross_fields(merged)
+	if not bool(cross_checked.ok):
+		last_error = String(cross_checked.error)
+		return {"ok": false, "error": last_error, "value": previous}
+	return _apply_checked_value(identifier, next_value)
+
+
+func _apply_checked_value(identifier: StringName, next_value: Variant) -> Dictionary:
+	var entry: RuntimeTweakDescriptor = descriptor(identifier)
 	requested_values[identifier] = next_value
 	if entry.apply_mode == &"LIVE":
 		active_values[identifier] = next_value
@@ -123,9 +134,21 @@ func set_values(candidates: Dictionary) -> Dictionary:
 	if not bool(checked.ok):
 		last_error = String(checked.error)
 		return checked
+	var merged: Dictionary = requested_values.duplicate(true)
+	for identifier: StringName in checked.values:
+		merged[identifier] = checked.values[identifier]
+	var cross_checked: Dictionary = catalog.validate_cross_fields(merged)
+	if not bool(cross_checked.ok):
+		last_error = String(cross_checked.error)
+		return {"ok": false, "error": last_error, "values": {}}
 	var changed: int = 0
 	for identifier: StringName in checked.values:
-		var result: Dictionary = set_value(identifier, checked.values[identifier])
+		var entry: RuntimeTweakDescriptor = descriptor(identifier)
+		if entry.values_equal(requested_values[identifier], checked.values[identifier]):
+			continue
+		var result: Dictionary = _apply_checked_value(
+			identifier, checked.values[identifier]
+		)
 		if bool(result.get("changed", false)):
 			changed += 1
 	return {"ok": true, "error": "", "values": checked.values, "changed": changed}

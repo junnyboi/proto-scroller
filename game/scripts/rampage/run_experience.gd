@@ -17,8 +17,14 @@ var total_experience: int = 0
 
 static func required_for_level(source_level: int) -> int:
 	var exponent: int = maxi(source_level - 1, 0)
+	var base_requirement: int = int(RuntimeTweakAccess.run_value(
+		&"progression.xp.base_requirement", BASE_REQUIREMENT
+	))
+	var growth_factor: float = float(RuntimeTweakAccess.run_value(
+		&"progression.xp.growth_factor", GROWTH_FACTOR
+	))
 	var curve_requirement: int = maxi(
-		roundi(float(BASE_REQUIREMENT) * pow(GROWTH_FACTOR, exponent)),
+		roundi(float(base_requirement) * pow(growth_factor, exponent)),
 		1
 	)
 	return mini(curve_requirement * REQUIREMENT_MULTIPLIER, MAX_EXPERIENCE)

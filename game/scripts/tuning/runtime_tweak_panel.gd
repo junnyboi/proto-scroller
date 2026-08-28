@@ -405,7 +405,11 @@ func _change_page(direction: int) -> void:
 
 
 func _on_row_value_requested(identifier: StringName, value: Variant) -> void:
-	service.set_value(identifier, value)
+	var result: Dictionary = service.set_value(identifier, value)
+	if not bool(result.get("ok", false)):
+		save_status_label.text = L10n.t("tuning.validation.invalid_combination")
+		save_status_label.tooltip_text = String(result.get("error", ""))
+		save_status_label.modulate = RuntimeTweakTheme.DANGER
 	_refresh_rows()
 	_update_run_status()
 

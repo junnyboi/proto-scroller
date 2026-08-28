@@ -136,7 +136,13 @@ func _on_player_attack_active(spec: AttackSpec) -> void:
 			last_player_strike_frame = sprite.frame
 	if camera_rig != null:
 		var strength: float = (
-			PLAYER_SLAM_IMPULSE if spec.is_ground_smash() else PLAYER_JAB_IMPULSE
+			float(RuntimeTweakAccess.live_value(
+				&"feedback.player_slam_camera_impulse", PLAYER_SLAM_IMPULSE
+			))
+			if spec.is_ground_smash()
+			else float(RuntimeTweakAccess.live_value(
+				&"feedback.player_jab_camera_impulse", PLAYER_JAB_IMPULSE
+			))
 		)
 		camera_rig.add_impact_impulse(
 			Vector2(-float(spec.facing), -0.32).normalized() * strength
@@ -152,7 +158,12 @@ func _on_full_charge_enemy_hit(
 	if spec == null or not spec.is_fully_charged() or enemy_count <= 0:
 		return
 	if hit_stop != null:
-		hit_stop.request(FULL_CHARGE_HIT_STOP_MS, -(spec.attack_id + 2_000_000))
+		hit_stop.request(
+			int(RuntimeTweakAccess.live_value(
+				&"feedback.full_charge_hit_stop_ms", FULL_CHARGE_HIT_STOP_MS
+			)),
+			-(spec.attack_id + 2_000_000)
+		)
 	if camera_rig != null and robot != null:
 		var direction: Vector2 = robot.global_position.direction_to(world_position)
 		if direction.is_zero_approx():
