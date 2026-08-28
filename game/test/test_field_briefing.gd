@@ -93,13 +93,14 @@ func test_terminal_dismisses_briefing_and_hides_prompt_until_resume() -> void:
 	assert_true(briefing.prompt_button.visible)
 
 
-func test_title_field_briefing_displays_the_shared_five_tip_doctrine() -> void:
+func test_title_field_briefing_displays_the_shared_six_tip_doctrine() -> void:
 	var screen: TitleScreen = TITLE_SCENE.instantiate() as TitleScreen
 	add_child_autofree(screen)
 	await get_tree().process_frame
 	assert_true(screen.open_briefing())
 	assert_true(screen.briefing_tips_panel.is_visible_in_tree())
-	assert_eq(screen.briefing_tips_label.text.count("\n"), 4)
+	assert_eq(screen.briefing_tips_label.text.count("\n"), 5)
+	assert_true(screen.briefing_tips_label.text.contains("DASH + PUNCH"))
 	assert_eq(
 		screen.briefing_tips_label.text,
 		L10n.t("briefing.tips_body", InputBindingSettings.display_placeholders())

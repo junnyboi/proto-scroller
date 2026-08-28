@@ -15,7 +15,7 @@ func after_each() -> void:
 	_remove_test_preference()
 
 
-func test_mechanic_signals_advance_and_complete_the_four_step_uplink() -> void:
+func test_mechanic_signals_advance_and_complete_the_six_step_uplink() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
 	await get_tree().process_frame
@@ -24,20 +24,44 @@ func test_mechanic_signals_advance_and_complete_the_four_step_uplink() -> void:
 	assert_true(tutorial.visible)
 	assert_true(tutorial.tutorial_active)
 	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.MOVE)
-	assert_eq(tutorial.progress_label.text, "COMBAT UPLINK  01 / 04")
+	assert_eq(tutorial.progress_label.text, "COMBAT UPLINK  01 / 06")
 	city.robot.locomotion_changed.emit(GiantRobotController.LocomotionState.WALK)
 	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.GROUND_SMASH)
 	city.robot.attack_committed.emit(AttackSpec.Mode.GROUND_SMASH, 101)
 	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.JAB_CROSS)
 	city.robot.attack_committed.emit(AttackSpec.Mode.JAB_CROSS, 102)
-	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.DIRECTION_DODGE)
+	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.CHARGE_ATTACK)
+	city.contextual_attacks.charge_released.emit(
+		_jab_cross_spec(103, 0.8, 1.5),
+		1.0,
+		1.5
+	)
+	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.CHARGE_ATTACK)
+	city.contextual_attacks.charge_released.emit(
+		_jab_cross_spec(104, 0.8, 2.0),
+		2.0,
+		2.0
+	)
+	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.DASH)
 	city.robot.dodge_started.emit(-1, 0.18)
+	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.DASH_PUNCH)
+	var moving_jab: AttackSpec = _jab_cross_spec(105, 0.8)
+	city.contextual_attacks.attack_started.emit(moving_jab)
+	city.robot.attack_committed.emit(AttackSpec.Mode.JAB_CROSS, moving_jab.attack_id)
+	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.DASH_PUNCH)
+	var dash_punch: AttackSpec = _jab_cross_spec(
+		106,
+		ContextualAttackController.DODGE_CANCEL_MELEE_MOMENTUM_RATIO
+	)
+	city.contextual_attacks.attack_started.emit(dash_punch)
+	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.DASH_PUNCH)
+	city.robot.attack_committed.emit(AttackSpec.Mode.JAB_CROSS, dash_punch.attack_id)
 	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.COMPLETE)
 	assert_true(tutorial.completed)
 	assert_false(tutorial.tutorial_active)
 	assert_false(tutorial.skipped)
 	assert_eq(tutorial.title_label.text, "COMBAT UPLINK COMPLETE")
-	assert_true(tutorial.body_label.text.contains("Dash Amplifier"))
+	assert_true(tutorial.body_label.text.contains("Dash + Punch"))
 	_record_test_execution()
 
 
@@ -72,14 +96,26 @@ func test_tutorial_localizes_and_stays_inside_landscape_and_portrait() -> void:
 	tutorial.start_for_test()
 	assert_eq(tutorial.title_label.text, "移动原型机")
 	assert_true(tutorial.body_label.text.contains("移动端摇杆"))
+	tutorial._advance_to(FirstRunCombatTutorial.Step.DASH_PUNCH)
+	assert_eq(tutorial.title_label.text, "冲刺 + 出拳")
 	tutorial.apply_responsive_layout(Vector2(1280.0, 720.0))
+	await get_tree().process_frame
 	assert_true(Rect2(Vector2.ZERO, Vector2(1280.0, 720.0)).encloses(
 		Rect2(tutorial.panel.position, tutorial.panel.size)
 	))
+	assert_eq(
+		tutorial.body_label.get_visible_line_count(),
+		tutorial.body_label.get_line_count()
+	)
 	tutorial.apply_responsive_layout(Vector2(720.0, 1280.0))
+	await get_tree().process_frame
 	assert_true(Rect2(Vector2.ZERO, Vector2(720.0, 1280.0)).encloses(
 		Rect2(tutorial.panel.position, tutorial.panel.size)
 	))
+	assert_eq(
+		tutorial.body_label.get_visible_line_count(),
+		tutorial.body_label.get_line_count()
+	)
 	assert_gte(tutorial.body_label.get_theme_font_size(&"font_size"), 20)
 	_record_test_execution()
 
@@ -87,6 +123,17 @@ func test_tutorial_localizes_and_stays_inside_landscape_and_portrait() -> void:
 func _remove_test_preference() -> void:
 	if FileAccess.file_exists(TEST_PREFERENCE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_PREFERENCE_PATH))
+
+
+func _jab_cross_spec(
+	attack_id: int,
+	speed_ratio: float,
+	charge_multiplier: float = 1.0
+) -> AttackSpec:
+	var resolver: AttackResolver = AttackResolver.new()
+	var spec: AttackSpec = resolver.resolve_jab_cross(attack_id, 1, speed_ratio)
+	resolver.free()
+	return spec.with_damage_multiplier(charge_multiplier)
 
 
 func _record_test_execution() -> void:

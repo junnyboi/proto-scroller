@@ -8,7 +8,9 @@ enum Step {
 	MOVE,
 	GROUND_SMASH,
 	JAB_CROSS,
-	DIRECTION_DODGE,
+	CHARGE_ATTACK,
+	DASH,
+	DASH_PUNCH,
 	COMPLETE,
 }
 
@@ -16,7 +18,7 @@ const PREFERENCE_PATH: String = "user://combat_tutorial.cfg"
 const PREFERENCE_SECTION: String = "combat_tutorial"
 const PREFERENCE_KEY: String = "completed"
 const FORCE_ENV: String = "PROTO_SCROLLER_FORCE_TUTORIAL"
-const STEP_COUNT: int = 4
+const STEP_COUNT: int = 6
 const PANEL_COLOR: Color = Color(0.018, 0.042, 0.055, 0.94)
 const BORDER_COLOR: Color = Color("5dc9c2")
 const ACCENT_COLOR: Color = Color("7ef4df")
@@ -35,19 +37,22 @@ var title_label: Label
 var body_label: Label
 var skip_button: Button
 var _robot: GiantRobotController
+var _attacks: ContextualAttackController
 var _mobile_controls: MobileControls
 var _preference_path: String = PREFERENCE_PATH
 var _persist_completion: bool = true
 var _completion_generation: int = 0
+var _pending_dash_punch_attack_id: int = 0
 
 
 func setup(
 	robot: GiantRobotController,
-	_unused_attacks: ContextualAttackController,
+	attacks: ContextualAttackController,
 	mobile_controls: MobileControls = null,
 	preference_path: String = PREFERENCE_PATH
 ) -> void:
 	_robot = robot
+	_attacks = attacks
 	_mobile_controls = mobile_controls
 	_preference_path = preference_path
 	_bind_mechanic_signals()
@@ -79,18 +84,52 @@ func observe_locomotion(state: int) -> void:
 		_advance_to(Step.GROUND_SMASH)
 
 
-func observe_attack_committed(mode: int, _attack_id: int) -> void:
+func observe_attack_committed(mode: int, attack_id: int) -> void:
 	if not tutorial_active:
 		return
 	if current_step == Step.GROUND_SMASH and mode == AttackSpec.Mode.GROUND_SMASH:
 		_advance_to(Step.JAB_CROSS)
 	elif current_step == Step.JAB_CROSS and mode == AttackSpec.Mode.JAB_CROSS:
-		_advance_to(Step.DIRECTION_DODGE)
+		_advance_to(Step.CHARGE_ATTACK)
+	elif (
+		current_step == Step.DASH_PUNCH
+		and mode == AttackSpec.Mode.JAB_CROSS
+		and attack_id == _pending_dash_punch_attack_id
+	):
+		_finish_tutorial(false)
+
+
+func observe_charge_released(
+	spec: AttackSpec,
+	_duration: float,
+	_multiplier: float
+) -> void:
+	if (
+		tutorial_active
+		and current_step == Step.CHARGE_ATTACK
+		and spec != null
+		and spec.is_fully_charged()
+	):
+		_advance_to(Step.DASH)
+
+
+func observe_attack_started(spec: AttackSpec) -> void:
+	if (
+		tutorial_active
+		and current_step == Step.DASH_PUNCH
+		and spec != null
+		and spec.is_jab_cross()
+		and is_equal_approx(
+			spec.speed_ratio,
+			ContextualAttackController.DODGE_CANCEL_MELEE_MOMENTUM_RATIO
+		)
+	):
+		_pending_dash_punch_attack_id = spec.attack_id
 
 
 func observe_dodge_started(_facing: int, _duration: float) -> void:
-	if tutorial_active and current_step == Step.DIRECTION_DODGE:
-		_finish_tutorial(false)
+	if tutorial_active and current_step == Step.DASH:
+		_advance_to(Step.DASH_PUNCH)
 
 
 func apply_responsive_layout(viewport_size: Vector2) -> void:
@@ -102,7 +141,7 @@ func apply_responsive_layout(viewport_size: Vector2) -> void:
 		panel.size = Vector2(maxf(viewport_size.x - 36.0, 360.0), 190.0)
 	else:
 		panel.position = Vector2(36.0, 166.0)
-		panel.size = Vector2(520.0, 170.0)
+		panel.size = Vector2(520.0, 190.0)
 	accent_line.position = Vector2.ZERO
 	accent_line.size = Vector2(5.0, panel.size.y)
 	progress_label.position = Vector2(24.0, 16.0)
@@ -127,6 +166,11 @@ func _bind_mechanic_signals() -> void:
 			_robot.attack_committed.connect(observe_attack_committed)
 		if not _robot.dodge_started.is_connected(observe_dodge_started):
 			_robot.dodge_started.connect(observe_dodge_started)
+	if _attacks != null:
+		if not _attacks.charge_released.is_connected(observe_charge_released):
+			_attacks.charge_released.connect(observe_charge_released)
+		if not _attacks.attack_started.is_connected(observe_attack_started):
+			_attacks.attack_started.connect(observe_attack_started)
 
 
 func _start_if_needed() -> void:
@@ -142,6 +186,7 @@ func _start_if_needed() -> void:
 
 func _start_tutorial() -> void:
 	_completion_generation += 1
+	_pending_dash_punch_attack_id = 0
 	current_step = Step.MOVE
 	tutorial_active = true
 	completed = false
@@ -163,6 +208,7 @@ func _finish_tutorial(was_skipped: bool) -> void:
 	if completed:
 		return
 	_completion_generation += 1
+	_pending_dash_punch_attack_id = 0
 	var generation: int = _completion_generation
 	current_step = Step.COMPLETE
 	tutorial_active = false
@@ -197,8 +243,12 @@ func _update_copy() -> void:
 			key = "ground_smash"
 		Step.JAB_CROSS:
 			key = "jab_cross"
-		Step.DIRECTION_DODGE:
-			key = "direction_dodge"
+		Step.CHARGE_ATTACK:
+			key = "charge_attack"
+		Step.DASH:
+			key = "dash"
+		Step.DASH_PUNCH:
+			key = "dash_punch"
 		Step.COMPLETE:
 			key = "complete"
 	title_label.text = L10n.t("tutorial.%s.title" % key)
