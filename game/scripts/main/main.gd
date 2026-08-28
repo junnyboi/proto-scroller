@@ -374,6 +374,9 @@ func _spawn_city_slice() -> void:
 	city_slice.defeat_requested.connect(present_defeat_with_transition)
 	city_slice.title_requested.connect(return_to_title_with_transition)
 	add_child(city_slice)
+	city_slice.gameplay_hud.tweak_controls_requested.connect(
+		runtime_tweak_panel.open
+	)
 	if runtime_tweak_service != null:
 		runtime_tweak_service.bind_city(city_slice)
 

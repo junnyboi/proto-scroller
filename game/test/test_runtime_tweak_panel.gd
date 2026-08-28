@@ -89,6 +89,29 @@ func test_main_mounts_fixed_panel_and_space_cannot_activate_focused_close() -> v
 	assert_false(get_tree().paused)
 
 
+func test_bottom_right_hud_button_opens_pause_safe_tuning_panel() -> void:
+	L10n.set_locale("en")
+	main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	main.start_game()
+	await get_tree().process_frame
+	var panel: RuntimeTweakPanel = main.runtime_tweak_panel
+	var button: Button = main.city_slice.gameplay_hud.tweak_controls_button
+	var viewport_size: Vector2 = main.get_viewport().get_visible_rect().size
+	assert_not_null(button)
+	assert_eq(button.text, "TWEAK CONTROLS")
+	assert_true(button.visible)
+	assert_lte(button.position.x + button.size.x, viewport_size.x)
+	assert_lte(button.position.y + button.size.y, viewport_size.y)
+	assert_false(panel.is_open())
+	button.pressed.emit()
+	assert_true(panel.is_open())
+	assert_true(get_tree().paused)
+	assert_true(panel.close())
+	assert_false(get_tree().paused)
+
+
 func test_panel_fits_landscape_and_portrait_without_rebuilding_rows() -> void:
 	main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)

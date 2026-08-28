@@ -8,6 +8,7 @@ signal extract_pressed
 signal continue_pressed
 signal purge_pressed
 signal disentangle_pressed
+signal tweak_controls_requested
 
 const PANEL_COLOR: Color = Color(0.03, 0.05, 0.08, 0.86)
 const ACCENT_COLOR: Color = Color("f1b36f")
@@ -61,6 +62,7 @@ var weapon_status_strip: WeaponStatusStrip
 var first_run_tutorial: FirstRunCombatTutorial
 var transmission_toast: TransmissionToast
 var field_briefing: FieldBriefingPanel
+var tweak_controls_button: Button
 var boss_panel: ColorRect
 var boss_label: Label
 var boss_armor_track: ColorRect
@@ -135,6 +137,7 @@ func _ready() -> void:
 	_build_transmission_toast()
 	_build_first_run_tutorial()
 	_build_field_briefing()
+	_build_tweak_controls_button()
 	_build_game_over_overlay()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_responsive_layout()
@@ -1019,6 +1022,41 @@ func _apply_responsive_layout() -> void:
 		match_debrief.apply_responsive_layout(viewport_size)
 	if field_briefing != null:
 		field_briefing.apply_responsive_layout(viewport_size)
+	_layout_tweak_controls_button(viewport_size)
+
+
+func _build_tweak_controls_button() -> void:
+	tweak_controls_button = Button.new()
+	tweak_controls_button.name = "TweakControlsButton"
+	tweak_controls_button.text = L10n.t("tuning.action.open")
+	tweak_controls_button.focus_mode = Control.FOCUS_ALL
+	tweak_controls_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	tweak_controls_button.clip_text = true
+	tweak_controls_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tweak_controls_button.z_index = 10
+	RuntimeTweakTheme.style_button(tweak_controls_button)
+	tweak_controls_button.add_theme_color_override(
+		&"font_color", RuntimeTweakTheme.ACCENT
+	)
+	tweak_controls_button.pressed.connect(tweak_controls_requested.emit)
+	add_child(tweak_controls_button)
+
+
+func _layout_tweak_controls_button(viewport_size: Vector2) -> void:
+	if tweak_controls_button == null:
+		return
+	var width: float = minf(276.0, viewport_size.x - 32.0)
+	var bottom_margin: float = 18.0
+	if DisplayServer.is_touchscreen_available():
+		bottom_margin = 274.0
+	tweak_controls_button.position = Vector2(
+		viewport_size.x - width - 24.0,
+		viewport_size.y - bottom_margin - 48.0
+	)
+	tweak_controls_button.size = Vector2(width, 48.0)
+	tweak_controls_button.add_theme_font_size_override(
+		&"font_size", 14 if viewport_size.y > viewport_size.x else 17
+	)
 
 
 func _apply_landscape_layout(viewport_size: Vector2) -> void:
