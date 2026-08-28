@@ -7,6 +7,7 @@ signal level_gained(level: int, accepted_event_id: int)
 const BASE_REQUIREMENT: int = 500
 const GROWTH_FACTOR: float = 1.35
 const REQUIREMENT_MULTIPLIER: int = 18
+const REQUIREMENT_REDUCTION: float = 0.10
 const MAX_LEVEL: int = 999
 const MAX_EXPERIENCE: int = 2_000_000_000
 
@@ -27,7 +28,11 @@ static func required_for_level(source_level: int) -> int:
 		roundi(float(base_requirement) * pow(growth_factor, exponent)),
 		1
 	)
-	return mini(curve_requirement * REQUIREMENT_MULTIPLIER, MAX_EXPERIENCE)
+	var reduced_requirement: int = roundi(
+		float(curve_requirement * REQUIREMENT_MULTIPLIER)
+		* (1.0 - REQUIREMENT_REDUCTION)
+	)
+	return mini(maxi(reduced_requirement, 1), MAX_EXPERIENCE)
 
 
 func apply_event(event: GameplayEvent) -> int:

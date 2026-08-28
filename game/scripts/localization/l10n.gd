@@ -103,6 +103,17 @@ static func apply_cjk_font(control: Control) -> bool:
 	return true
 
 
+static func apply_locale_popup_font(popup: PopupMenu) -> void:
+	if popup == null:
+		return
+	_ensure_loaded()
+	if _locale == "zh-CN":
+		if _load_cjk_font():
+			popup.add_theme_font_override(&"font", _cjk_font)
+	else:
+		popup.remove_theme_font_override(&"font")
+
+
 static func keys_for_locale(locale: String) -> PackedStringArray:
 	_ensure_loaded()
 	var normalized: String = _normalize_locale(locale)
