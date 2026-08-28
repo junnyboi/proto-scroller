@@ -17,8 +17,15 @@ const MUTED: Color = Color("a9bdc4")
 const AMBER: Color = Color("f1b36f")
 const RED: Color = Color("ff695c")
 const PERSONAL_ROW_HIGHLIGHT: Color = Color(0.12, 0.52, 0.62, 0.28)
-const LANDSCAPE_SIZE: Vector2 = Vector2(1160.0, 636.0)
-const PORTRAIT_SIZE: Vector2 = Vector2(672.0, 1120.0)
+const AFTER_ACTION_HEADER_BOTTOM_PADDING: float = 12.0
+const LANDSCAPE_SIZE: Vector2 = Vector2(
+	1160.0,
+	636.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING
+)
+const PORTRAIT_SIZE: Vector2 = Vector2(
+	672.0,
+	1120.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING
+)
 const WEAPON_ROW_COUNT: int = 3
 const ENEMY_ROW_COUNT: int = 4
 const LOCAL_ROW_COUNT: int = 5
@@ -824,9 +831,10 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	_layout_global_landscape()
 	recommendation_label.position = Vector2(30.0, 526.0)
 	recommendation_label.size = Vector2(1100.0, 24.0)
-	retry_button.position = Vector2(190.0, 574.0)
+	_apply_after_action_header_bottom_padding()
+	retry_button.position = Vector2(190.0, 574.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING)
 	retry_button.size = Vector2(350.0, 60.0)
-	title_button.position = Vector2(620.0, 574.0)
+	title_button.position = Vector2(620.0, 574.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING)
 	title_button.size = Vector2(350.0, 60.0)
 
 
@@ -842,7 +850,10 @@ func _layout_career_landscape() -> void:
 	callsign_status_label.position = Vector2(188.0, 187.0)
 	callsign_status_label.size = Vector2(144.0, 48.0)
 	local_board_panel.position = Vector2(20.0, 285.0)
-	local_board_panel.size = Vector2(330.0, 265.0)
+	local_board_panel.size = Vector2(
+		330.0,
+		265.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING
+	)
 	local_board_header_label.position = Vector2(38.0, 295.0)
 	local_board_header_label.size = Vector2(294.0, 26.0)
 	for index: int in range(local_board_rows.size()):
@@ -863,7 +874,10 @@ func _layout_career_landscape() -> void:
 
 func _layout_global_landscape() -> void:
 	global_panel.position = Vector2(20.0, 89.0)
-	global_panel.size = Vector2(1120.0, 461.0)
+	global_panel.size = Vector2(
+		1120.0,
+		461.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING
+	)
 	global_header_label.position = Vector2(40.0, 101.0)
 	global_header_label.size = Vector2(360.0, 28.0)
 	global_status_label.position = Vector2(410.0, 101.0)
@@ -957,9 +971,10 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	_layout_global_portrait()
 	recommendation_label.position = Vector2(24.0, 986.0)
 	recommendation_label.size = Vector2(624.0, 28.0)
-	retry_button.position = Vector2(24.0, 1038.0)
+	_apply_after_action_header_bottom_padding()
+	retry_button.position = Vector2(24.0, 1038.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING)
 	retry_button.size = Vector2(296.0, 66.0)
-	title_button.position = Vector2(352.0, 1038.0)
+	title_button.position = Vector2(352.0, 1038.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING)
 	title_button.size = Vector2(296.0, 66.0)
 
 
@@ -985,7 +1000,10 @@ func _layout_career_portrait() -> void:
 	weapon_history_chart.position = Vector2(32.0, 309.0)
 	weapon_history_chart.size = Vector2(608.0, 354.0)
 	local_board_panel.position = Vector2(16.0, 691.0)
-	local_board_panel.size = Vector2(640.0, 323.0)
+	local_board_panel.size = Vector2(
+		640.0,
+		323.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING
+	)
 	local_board_header_label.position = Vector2(32.0, 701.0)
 	local_board_header_label.size = Vector2(608.0, 26.0)
 	for index: int in range(local_board_rows.size()):
@@ -996,7 +1014,10 @@ func _layout_career_portrait() -> void:
 
 func _layout_global_portrait() -> void:
 	global_panel.position = Vector2(16.0, 91.0)
-	global_panel.size = Vector2(640.0, 923.0)
+	global_panel.size = Vector2(
+		640.0,
+		923.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING
+	)
 	global_header_label.position = Vector2(32.0, 103.0)
 	global_header_label.size = Vector2(360.0, 28.0)
 	global_status_label.position = Vector2(32.0, 137.0)
@@ -1021,6 +1042,13 @@ func _layout_global_portrait() -> void:
 		global_rows[index].position = Vector2(32.0, 355.0 + float(index) * 64.0)
 		global_rows[index].size = Vector2(608.0, 56.0)
 		global_rows[index].add_theme_font_size_override(&"font_size", 13)
+
+
+func _apply_after_action_header_bottom_padding() -> void:
+	for control: Control in _after_action_controls:
+		if control in [result_label, grade_label, score_label]:
+			continue
+		control.position.y += AFTER_ACTION_HEADER_BOTTOM_PADDING
 
 
 func _layout_tabs(x: float, y: float, total_width: float, height: float) -> void:

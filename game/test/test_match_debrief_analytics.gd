@@ -292,12 +292,14 @@ func test_debrief_presents_bounded_rankings_and_both_responsive_layouts() -> voi
 	_assert_touch_rect(landscape_state.retry_rect)
 	_assert_touch_rect(landscape_state.title_rect)
 	_assert_action_group_margins(panel, landscape_state)
+	_assert_after_action_header_bottom_padding(panel, 100.0, 58.0)
 	panel.apply_responsive_layout(Vector2(720.0, 1280.0))
 	var portrait_state: Dictionary = panel.debug_snapshot()
 	_assert_rect_inside(portrait_state.panel_rect, Vector2(720.0, 1280.0))
 	_assert_touch_rect(portrait_state.retry_rect)
 	_assert_touch_rect(portrait_state.title_rect)
 	_assert_action_group_margins(panel, portrait_state)
+	_assert_after_action_header_bottom_padding(panel, 160.0, 70.0)
 	var signal_counts: Dictionary = {"retry": 0, "title": 0}
 	panel.retry_pressed.connect(func() -> void: signal_counts.retry += 1)
 	panel.title_pressed.connect(func() -> void: signal_counts.title += 1)
@@ -667,6 +669,24 @@ func _assert_action_group_margins(panel: MatchDebriefPanel, state: Dictionary) -
 	var retry_rect: Rect2 = state.retry_rect as Rect2
 	assert_almost_eq(page_content_rect.position.y - tabs_rect.end.y, expected_margin, 0.01)
 	assert_almost_eq(retry_rect.position.y - bottom_content_rect.end.y, expected_margin, 0.01)
+
+
+func _assert_after_action_header_bottom_padding(
+	panel: MatchDebriefPanel,
+	meta_base_y: float,
+	body_base_y: float
+) -> void:
+	var unpadded_meta_y: float = (
+		meta_base_y
+		+ panel._tabs_bottom()
+		+ MatchDebriefPanel.CONTROL_GROUP_MARGIN
+		- body_base_y
+	)
+	assert_almost_eq(
+		panel.run_meta_label.position.y - unpadded_meta_y,
+		MatchDebriefPanel.AFTER_ACTION_HEADER_BOTTOM_PADDING,
+		0.01
+	)
 
 
 func _assert_global_layout(panel: MatchDebriefPanel) -> void:
