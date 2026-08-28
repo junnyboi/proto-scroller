@@ -245,6 +245,7 @@ func _create_prop(
 	prop.wreck_health = float(spec.wreck_health)
 	prop.gameplay_chunk_count = int(spec.chunks)
 	prop.debris_pool_path = ^"../../../BuildingDebrisPool"
+	prop.rubble_dust_pool_path = ^"../../../BuildingSectionBurstPool"
 	prop.mass = float(spec.mass)
 	prop.collision_layer = PROP_LAYER
 	prop.collision_mask = WORLD_LAYER
@@ -308,6 +309,8 @@ func _configure_slot(chunk: CityStreetChunk, blueprint: CityChunkBlueprint) -> v
 	building.set_meta(&"building_variant_id", configured_variant.variant_id)
 	car.set_meta(&"stream_object_id", car_id)
 	lamp.set_meta(&"stream_object_id", lamp_id)
+	car.configure_terminal_district(blueprint.district_id)
+	lamp.configure_terminal_district(blueprint.district_id)
 	building.position = Vector2(blueprint.building_x, CitySlice.LAND_VISUAL_BASELINE_Y)
 	building.restore_stream_state(building_state)
 	car.visual_ground_offset = CitySlice.LAND_VISUAL_BASELINE_Y - blueprint.car_y

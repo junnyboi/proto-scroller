@@ -49,6 +49,10 @@ func _ready() -> void:
 		catalyst.triggered.connect(_on_catalyst_triggered)
 		catalyst.fully_destroyed.connect(_on_catalyst_fully_destroyed)
 		add_child(catalyst)
+		if dependencies != null and dependencies.building_section_burst_pool != null:
+			catalyst.rubble_dust_pool_path = catalyst.get_path_to(
+				dependencies.building_section_burst_pool
+			)
 		catalyst.reset_catalyst()
 		slots.append(catalyst)
 	for index: int in range(REPAIR_PICKUP_CAPACITY):
@@ -60,11 +64,16 @@ func _ready() -> void:
 		repair_pickups.append(pickup)
 
 
-func activate(slot: int, profile: CatalystProfile, world_position: Vector2) -> Catalyst2D:
+func activate(
+	slot: int,
+	profile: CatalystProfile,
+	world_position: Vector2,
+	district_id: StringName = &"BUSINESS"
+) -> Catalyst2D:
 	if slot < 0 or slot >= slots.size() or profile == null:
 		return null
 	var catalyst: Catalyst2D = slots[slot]
-	catalyst.arm(profile, world_position)
+	catalyst.arm(profile, world_position, district_id)
 	return catalyst
 
 

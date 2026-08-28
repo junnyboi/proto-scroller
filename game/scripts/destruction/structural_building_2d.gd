@@ -240,6 +240,7 @@ func _create_cell(column: int, row: int) -> Destructible2D:
 	cell.set_meta(&"structural_column", column)
 	cell.set_meta(&"structural_row", row)
 	cell.set_meta(&"structural_material", profile.material_id)
+	cell.set_meta(&"district_id", _active_district_id())
 	var intact_visual: Sprite2D = _create_cell_sprite(
 		"IntactVisual",
 		intact_texture,
@@ -309,6 +310,7 @@ func _create_damage_pattern(
 		1 + row * COLUMNS + column,
 		profile.material_id,
 		profile.visual_tint,
+		_active_district_id(),
 		row == ROWS - 1
 	)
 	return pattern
@@ -322,6 +324,7 @@ func _reconfigure_cell(column: int, row: int) -> void:
 	cell.position = _cell_center(column, row)
 	cell.configure_material_profile(profile)
 	cell.set_meta(&"structural_material", profile.material_id)
+	cell.set_meta(&"district_id", _active_district_id())
 	var intact_visual: Sprite2D = cell.get_node_or_null(^"IntactVisual") as Sprite2D
 	_configure_cell_sprite(intact_visual, intact_texture, column, row, profile)
 	var pattern: BuildingDamagePattern2D = cell.get_node_or_null(
@@ -335,6 +338,7 @@ func _reconfigure_cell(column: int, row: int) -> void:
 			_pattern_seed_for_cell(column, row),
 			profile.material_id,
 			_cell_visual_tint(profile),
+			_active_district_id(),
 			row == ROWS - 1
 		)
 		pattern._bind_facade_sprite(intact_visual)
@@ -409,6 +413,12 @@ func _cell_visual_tint(profile: StructuralMaterialProfile) -> Color:
 	if active_variant == null:
 		return profile.visual_tint
 	return profile.visual_tint * active_variant.visual_tint
+
+
+func _active_district_id() -> StringName:
+	if active_variant != null:
+		return active_variant.district_id
+	return StringName(get_meta(&"district_id", &"BUSINESS"))
 
 
 func _material_for_cell(column: int, row: int) -> StructuralMaterialProfile:

@@ -12,11 +12,21 @@ const STEEL_TEXTURE: Texture2D = preload(
 )
 const DEFAULT_PIECE_COUNT: int = 4
 const MAX_PIECE_COUNT: int = 6
+const DEFAULT_DISTRICT_TINT: Color = Color("6f8790")
+const DISTRICT_TINT_BLEND: float = 0.34
+const DISTRICT_STYLE_TINTS: Dictionary = {
+	&"BUSINESS": Color("6f9ca8"),
+	&"RESIDENTIAL": Color("668c7b"),
+	&"ENTERTAINMENT": Color("a45f8f"),
+	&"MILITARY": Color("80795b"),
+	&"ROYAL": Color("a27e4e"),
+}
 
 var _pieces: Array[Sprite2D] = []
 var _active: bool = false
 var _baseline_y: float = 0.0
 var _material_id: StringName = &"concrete"
+var _district_id: StringName = &"BUSINESS"
 
 
 func configure(
@@ -26,9 +36,11 @@ func configure(
 	pattern_seed: int,
 	baseline_y: float,
 	bed_height: float,
-	piece_count: int = DEFAULT_PIECE_COUNT
+	piece_count: int = DEFAULT_PIECE_COUNT,
+	district_id: StringName = &"BUSINESS"
 ) -> void:
 	_material_id = material_id
+	_district_id = district_id
 	_baseline_y = baseline_y
 	var bounded_count: int = clampi(piece_count, 1, MAX_PIECE_COUNT)
 	_ensure_piece_count(bounded_count)
@@ -37,6 +49,12 @@ func configure(
 	rng.seed = maxi(pattern_seed, 1) * 982451653 + 961748927
 	var half_width: float = maxf(footprint.x, 1.0) * 0.5
 	var bounded_height: float = maxf(bed_height, 8.0)
+	var material_tint: Color = _material_tint(material_id)
+	var district_tint: Color = tint_for_district(district_id)
+	var authored_tint: Color = visual_tint.lerp(Color.WHITE, 0.72)
+	var rubble_tint: Color = material_tint.lerp(district_tint, DISTRICT_TINT_BLEND)
+	rubble_tint *= authored_tint
+	rubble_tint.a = 0.92
 	for index: int in range(_pieces.size()):
 		var sprite: Sprite2D = _pieces[index]
 		var weight: float = (float(index) + 0.5) / float(_pieces.size())
@@ -57,7 +75,13 @@ func configure(
 		sprite.rotation = rng.randf_range(-0.24, 0.24)
 		sprite.scale = Vector2(horizontal_scale, vertical_scale)
 		sprite.flip_h = rng.randi_range(0, 1) == 1
-		sprite.modulate = visual_tint * Color(0.60, 0.58, 0.56, 0.92)
+		var piece_variation: float = rng.randf_range(0.90, 1.06)
+		sprite.modulate = Color(
+			clampf(rubble_tint.r * piece_variation, 0.0, 1.0),
+			clampf(rubble_tint.g * piece_variation, 0.0, 1.0),
+			clampf(rubble_tint.b * piece_variation, 0.0, 1.0),
+			rubble_tint.a
+		)
 	set_active(_active)
 
 
@@ -86,6 +110,20 @@ func material_id() -> StringName:
 	return _material_id
 
 
+func district_id() -> StringName:
+	return _district_id
+
+
+func district_tint() -> Color:
+	return tint_for_district(_district_id)
+
+
+func piece_tint(index: int = 0) -> Color:
+	if index < 0 or index >= _pieces.size():
+		return Color.TRANSPARENT
+	return _pieces[index].modulate
+
+
 func uses_only_rubble_fragments() -> bool:
 	for sprite: Sprite2D in _pieces:
 		if sprite.texture not in [CONCRETE_TEXTURE, GLASS_TEXTURE, STEEL_TEXTURE]:
@@ -111,3 +149,16 @@ func _texture_for_material(material_id: StringName) -> Texture2D:
 	if material_id == &"steel":
 		return STEEL_TEXTURE
 	return CONCRETE_TEXTURE
+
+
+static func tint_for_district(district_id: StringName) -> Color:
+	var tint: Color = DISTRICT_STYLE_TINTS.get(district_id, DEFAULT_DISTRICT_TINT)
+	return tint
+
+
+static func _material_tint(material_id: StringName) -> Color:
+	if material_id == &"glass":
+		return Color("76aeb8")
+	if material_id == &"steel":
+		return Color("737e85")
+	return Color("80786f")

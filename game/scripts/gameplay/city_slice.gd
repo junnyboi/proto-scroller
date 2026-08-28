@@ -294,6 +294,7 @@ func _build_urban_siege() -> void:
 	dependencies.gameplay_hud = gameplay_hud
 	dependencies.mobile_controls = mobile_controls
 	dependencies.debris_pool = debris_pool
+	dependencies.building_section_burst_pool = building_section_burst_pool
 	dependencies.impact_feedback_pool = impact_feedback_pool
 	dependencies.remains_factory = enemy_remains_factory
 	urban_siege = URBAN_SIEGE_SCRIPT.new() as UrbanSiegeRuntime

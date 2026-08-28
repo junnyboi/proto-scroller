@@ -550,7 +550,9 @@ static func _district(
 	profile.accent_color = accent
 	profile.concept_board_path = concept_path
 	for value: Variant in variants:
-		profile.building_variants.append(value as StructuralBuildingVariant)
+		var variant: StructuralBuildingVariant = value as StructuralBuildingVariant
+		variant.district_id = id
+		profile.building_variants.append(variant)
 	return profile
 
 

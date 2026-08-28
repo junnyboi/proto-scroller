@@ -84,7 +84,12 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	)
 	assert_eq(catalysts.total_count(), 2)
 	assert_eq(catalysts.repair_pickup_count(), RuntimeBudget.REPAIR_PICKUP_SLOTS)
-	var transformer: Catalyst2D = catalysts.activate(0, TRANSFORMER, Vector2(1100.0, 590.0))
+	var transformer: Catalyst2D = catalysts.activate(
+		0,
+		TRANSFORMER,
+		Vector2(1100.0, 590.0),
+		&"ROYAL"
+	)
 	assert_eq(catalysts.active_count(), 1)
 	var event: DamageEvent = DamageEvent.new(
 		901,
@@ -117,6 +122,7 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 	var score_before_finish: int = city.rampage_session.current_score()
 	var debris_before_finish: int = city.debris_pool.active_count()
 	var cue_count_before_finish: int = city.impact_feedback_pool.cue_play_count
+	var dust_before_finish: int = city.building_section_burst_pool.rubble_dust_spawn_count
 	var finishing_event: DamageEvent = DamageEvent.new(
 		903,
 		city.robot,
@@ -142,6 +148,17 @@ func test_transformer_is_prewarmed_once_and_triggers_from_damage() -> void:
 		DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
 	)
 	assert_true(transformer.terminal_rubble.uses_only_rubble_fragments())
+	assert_eq(transformer.terminal_rubble.district_id(), &"ROYAL")
+	assert_eq(
+		transformer.terminal_rubble.district_tint(),
+		PersistentRubbleBed2D.tint_for_district(&"ROYAL")
+	)
+	assert_eq(
+		city.building_section_burst_pool.rubble_dust_spawn_count,
+		dust_before_finish + 1
+	)
+	assert_eq(city.building_section_burst_pool.last_district_id, &"ROYAL")
+	assert_true(city.building_section_burst_pool.active_slots()[-1].dust_only)
 	assert_eq(transformer.collision_layer, 0)
 	assert_eq(transformer.trigger_count, 1)
 	assert_eq(catalysts.power_box_scrap_burst_count, 1)

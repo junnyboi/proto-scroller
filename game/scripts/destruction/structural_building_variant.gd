@@ -4,6 +4,7 @@ extends Resource
 const EXPECTED_MATERIAL_COUNT: int = 6
 
 @export var variant_id: StringName = &"legacy"
+@export var district_id: StringName = &"BUSINESS"
 @export var display_name: String = "Legacy Building"
 @export var intact_texture: Texture2D:
 	get:
@@ -43,6 +44,8 @@ func validation_errors() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
 	if variant_id.is_empty():
 		errors.append("variant_id is empty")
+	if district_id.is_empty():
+		errors.append("district_id is empty for %s" % variant_id)
 	if display_name.is_empty():
 		errors.append("display_name is empty for %s" % variant_id)
 	if intact_texture == null:

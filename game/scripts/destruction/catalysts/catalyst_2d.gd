@@ -45,8 +45,13 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
+func arm(
+	p_profile: CatalystProfile,
+	world_position: Vector2,
+	district_id: StringName = &"BUSINESS"
+) -> void:
 	profile = p_profile
+	configure_terminal_district(district_id)
 	global_position = world_position
 	set_meta(&"street_destructible_kind", &"power_box")
 	max_health = profile.max_health

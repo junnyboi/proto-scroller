@@ -121,6 +121,7 @@ var _region_rect: Rect2
 var _cell_size: Vector2
 var _pattern_seed: int = 1
 var _material_id: StringName = &"concrete"
+var _district_id: StringName = &"BUSINESS"
 var _contour: PackedVector2Array = PackedVector2Array()
 var _cracks: Array[PackedVector2Array] = []
 var _patch: Polygon2D
@@ -146,6 +147,7 @@ func configure(
 	pattern_seed: int,
 	material_id: StringName,
 	visual_tint: Color,
+	district_id: StringName = &"BUSINESS",
 	ground_level: bool = false
 ) -> void:
 	_texture = texture
@@ -153,6 +155,7 @@ func configure(
 	_cell_size = cell_size
 	_pattern_seed = maxi(pattern_seed, 1)
 	_material_id = material_id
+	_district_id = district_id
 	_visual_tint = visual_tint
 	_ground_level = ground_level
 	z_index = 2
@@ -190,6 +193,7 @@ func reconfigure(
 	pattern_seed: int,
 	material_id: StringName,
 	visual_tint: Color,
+	district_id: StringName = &"BUSINESS",
 	ground_level: bool = false
 ) -> void:
 	_texture = texture
@@ -197,6 +201,7 @@ func reconfigure(
 	_cell_size = cell_size
 	_pattern_seed = maxi(pattern_seed, 1)
 	_material_id = material_id
+	_district_id = district_id
 	_visual_tint = visual_tint
 	_ground_level = ground_level
 	if _patch != null:
@@ -313,6 +318,10 @@ func _ruin_rubble_bed() -> PersistentRubbleBed2D:
 
 func _is_ground_level_ruin() -> bool:
 	return _ground_level
+
+
+func _district_style_id() -> StringName:
+	return _district_id
 
 
 func damage_effect_activation_count() -> int:
@@ -713,7 +722,8 @@ func _configure_ruin_rubble_bed() -> void:
 		_pattern_seed,
 		_cell_size.y * 0.5,
 		GROUND_RUBBLE_HEIGHT if _ground_level else UPPER_RUBBLE_HEIGHT,
-		RUIN_RUBBLE_SPRITE_COUNT
+		RUIN_RUBBLE_SPRITE_COUNT,
+		_district_id
 	)
 	_update_ruin_rubble_bed()
 
