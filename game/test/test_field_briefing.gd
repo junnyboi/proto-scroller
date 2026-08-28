@@ -70,6 +70,17 @@ func test_click_and_tab_toggle_pause_run_and_player_input() -> void:
 	assert_true(city.mobile_controls._controls_enabled)
 
 
+func test_prompt_button_uses_half_scale_landscape_and_portrait_layouts() -> void:
+	var city: CitySlice = await _spawn_city()
+	var briefing: FieldBriefingPanel = city.gameplay_hud.field_briefing
+	briefing.apply_responsive_layout(Vector2(1280.0, 720.0))
+	assert_eq(briefing.prompt_button.size, Vector2(166.0, 24.0))
+	assert_eq(briefing.prompt_button.get_theme_font_size(&"font_size"), 10)
+	briefing.apply_responsive_layout(Vector2(720.0, 1280.0))
+	assert_eq(briefing.prompt_button.size, Vector2(125.0, 24.0))
+	assert_eq(briefing.prompt_button.get_theme_font_size(&"font_size"), 8)
+
+
 func test_briefing_does_not_stack_over_an_existing_pause_lease() -> void:
 	var city: CitySlice = await _spawn_city()
 	var coordinator: RunPauseCoordinator = city.urban_siege.pause_coordinator

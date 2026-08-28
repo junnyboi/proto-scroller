@@ -15,6 +15,10 @@ const ACCENT_COLOR: Color = Color("f1b36f")
 const MUTED_COLOR: Color = Color("b7c4cb")
 const COMBO_GRACE_SECONDS: float = RampageRewardTuning.COMBO_GRACE_SECONDS
 const REAR_BARRIER_WARNING_DURATION: float = 0.72
+const TWEAK_BUTTON_WIDTH: float = 138.0
+const TWEAK_BUTTON_HEIGHT: float = 24.0
+const TWEAK_BUTTON_LANDSCAPE_FONT_SIZE: int = 9
+const TWEAK_BUTTON_PORTRAIT_FONT_SIZE: int = 8
 const REAR_BARRIER_WARNING_VOICE: AudioStream = preload(
 	"res://audio/voice/rear_barrier_warning.wav"
 )
@@ -1057,7 +1061,8 @@ func _build_tweak_controls_button() -> void:
 	tweak_controls_button.clip_text = true
 	tweak_controls_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	tweak_controls_button.z_index = 10
-	RuntimeTweakTheme.style_button(tweak_controls_button)
+	RuntimeTweakTheme.style_button(tweak_controls_button, false, true)
+	tweak_controls_button.custom_minimum_size.y = TWEAK_BUTTON_HEIGHT
 	tweak_controls_button.add_theme_color_override(
 		&"font_color", RuntimeTweakTheme.ACCENT
 	)
@@ -1068,17 +1073,20 @@ func _build_tweak_controls_button() -> void:
 func _layout_tweak_controls_button(viewport_size: Vector2) -> void:
 	if tweak_controls_button == null:
 		return
-	var width: float = minf(276.0, viewport_size.x - 32.0)
+	var width: float = minf(TWEAK_BUTTON_WIDTH, viewport_size.x - 32.0)
 	var bottom_margin: float = 18.0
 	if DisplayServer.is_touchscreen_available():
 		bottom_margin = 274.0
 	tweak_controls_button.position = Vector2(
 		viewport_size.x - width - 24.0,
-		viewport_size.y - bottom_margin - 48.0
+		viewport_size.y - bottom_margin - TWEAK_BUTTON_HEIGHT
 	)
-	tweak_controls_button.size = Vector2(width, 48.0)
+	tweak_controls_button.size = Vector2(width, TWEAK_BUTTON_HEIGHT)
 	tweak_controls_button.add_theme_font_size_override(
-		&"font_size", 14 if viewport_size.y > viewport_size.x else 17
+		&"font_size",
+		TWEAK_BUTTON_PORTRAIT_FONT_SIZE
+		if viewport_size.y > viewport_size.x
+		else TWEAK_BUTTON_LANDSCAPE_FONT_SIZE
 	)
 
 

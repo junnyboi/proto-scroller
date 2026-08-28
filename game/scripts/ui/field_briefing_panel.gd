@@ -7,6 +7,11 @@ signal closed
 const ACCENT_COLOR: Color = Color("62f5df")
 const MUTED_COLOR: Color = Color("b9c9ce")
 const PANEL_COLOR: Color = Color(0.012, 0.035, 0.052, 0.97)
+const PROMPT_LANDSCAPE_SIZE: Vector2 = Vector2(166.0, 24.0)
+const PROMPT_PORTRAIT_WIDTH: float = 125.0
+const PROMPT_HEIGHT: float = 24.0
+const PROMPT_LANDSCAPE_FONT_SIZE: int = 10
+const PROMPT_PORTRAIT_FONT_SIZE: int = 8
 
 var prompt_button: Button
 var overlay: Control
@@ -217,9 +222,13 @@ func _build_overlay() -> void:
 
 
 func _apply_landscape_layout(viewport_size: Vector2) -> void:
-	prompt_button.position = Vector2(24.0, viewport_size.y - 66.0)
-	prompt_button.size = Vector2(332.0, 48.0)
-	prompt_button.add_theme_font_size_override(&"font_size", 19)
+	prompt_button.position = Vector2(
+		24.0, viewport_size.y - 18.0 - PROMPT_LANDSCAPE_SIZE.y
+	)
+	prompt_button.size = PROMPT_LANDSCAPE_SIZE
+	prompt_button.add_theme_font_size_override(
+		&"font_size", PROMPT_LANDSCAPE_FONT_SIZE
+	)
 	var card_size: Vector2 = Vector2(minf(790.0, viewport_size.x - 64.0), 500.0)
 	panel.position = (viewport_size - card_size) * 0.5
 	panel.size = card_size
@@ -237,9 +246,13 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 
 
 func _apply_portrait_layout(viewport_size: Vector2) -> void:
-	prompt_button.position = Vector2(16.0, viewport_size.y - 66.0)
-	prompt_button.size = Vector2(minf(250.0, viewport_size.x - 32.0), 48.0)
-	prompt_button.add_theme_font_size_override(&"font_size", 14)
+	prompt_button.position = Vector2(16.0, viewport_size.y - 18.0 - PROMPT_HEIGHT)
+	prompt_button.size = Vector2(
+		minf(PROMPT_PORTRAIT_WIDTH, viewport_size.x - 32.0), PROMPT_HEIGHT
+	)
+	prompt_button.add_theme_font_size_override(
+		&"font_size", PROMPT_PORTRAIT_FONT_SIZE
+	)
 	var card_size: Vector2 = Vector2(viewport_size.x - 48.0, minf(610.0, viewport_size.y - 160.0))
 	panel.position = Vector2(24.0, maxf(80.0, (viewport_size.y - card_size.y) * 0.5))
 	panel.size = card_size
