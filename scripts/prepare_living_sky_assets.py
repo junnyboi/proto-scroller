@@ -14,14 +14,6 @@ RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
 ASSETS = (
     {
-        "id": "cloud_bank",
-        "source": "district-cloud-bank.png",
-        "runtime": "cloud_bank.webp",
-        "key": "green",
-        "width": 1024,
-        "quality": 78,
-    },
-    {
         "id": "courier_shuttle",
         "source": "distant-courier-shuttle.png",
         "runtime": "courier_shuttle.webp",
@@ -117,7 +109,7 @@ def main() -> None:
     entries = [prepare(entry) for entry in ASSETS]
     manifest = {
         "generator": "GPT Image 2",
-        "purpose": "fixed-allocation moving cloud and distant air-traffic parallax",
+        "purpose": "fixed-allocation distant air-traffic parallax",
         "entries": entries,
     }
     path = RUNTIME_DIR / "MANIFEST.json"

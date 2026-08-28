@@ -24,24 +24,6 @@
       "reviewer": "pending-human-release-review"
     },
     {
-      "asset_id": "armor_plating_overlay",
-      "subject": "Armor overlay",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/armor_plating_overlay_master.png",
-      "master_sha256": "618d3e373e515a407f30a3dd5ee3ffdb58c12a85f1f11c4cda09a509f54846c0",
-      "shipping_path": "res://art/robot/upgrades/armor_plating_overlay.png",
-      "dimensions": [
-        209,
-        193
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 11380,
-      "shipping_sha256": "33b77886473fc7035b40530a56cde4ee816394dd7441b31d258febc623e44ca8",
-      "reviewer": "pending-human-release-review"
-    },
-    {
       "asset_id": "destruction_debris_atlas",
       "subject": "4x4 debris atlas",
       "model": "gpt-image-2",
@@ -183,42 +165,6 @@
       "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
       "encoded_bytes": 20793,
       "shipping_sha256": "53ec7473ab10379adb09e8f2cbfa9b9eb59cb786779ce796fa92170f3442804c",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "kinetic_impact_halo",
-      "subject": "Kinetic impact halo",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/kinetic_impact_halo_master.png",
-      "master_sha256": "d7deadd9d8f5a38ac568219c7cdf0aba874bd61f97459b25fcad99fd75225aa9",
-      "shipping_path": "res://art/presentation/kinetic_impact_halo.png",
-      "dimensions": [
-        256,
-        256
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 18414,
-      "shipping_sha256": "1e6ac91782eb42ea43858a3abdf6d72650c3795685868a198e98fdad2e655014",
-      "reviewer": "pending-human-release-review"
-    },
-    {
-      "asset_id": "shockwave_ground_ring",
-      "subject": "Shockwave ring",
-      "model": "gpt-image-2",
-      "generation_seed": null,
-      "prompt_template": "implementation-plan section 14.2",
-      "master_path": "/home/ubuntu/proto-scroller-art-masters/upgrade-system/v1/shockwave_ground_ring_master.png",
-      "master_sha256": "5c7e20b53a1623ffb720fb498670c72d0485cc90a7bb6fb6a44c61517b0b893f",
-      "shipping_path": "res://art/effects/shockwave_ground_ring.png",
-      "dimensions": [
-        512,
-        512
-      ],
-      "derivative": "magenta-carrier removal; sRGB RGBA source; LANCZOS contain; integer atlas gutters where applicable; deterministic 256-entry RGBA palette; PNG level 9",
-      "encoded_bytes": 64034,
-      "shipping_sha256": "f20344e044c85788e4c8a4ec1211ed7b55823270d7d7eb648447c158970652de",
       "reviewer": "pending-human-release-review"
     },
     {

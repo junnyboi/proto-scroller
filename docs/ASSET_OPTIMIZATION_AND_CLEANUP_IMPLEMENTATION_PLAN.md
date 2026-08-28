@@ -36,7 +36,7 @@ Phase 1 retains all source files but excludes eighteen verified non-runtime reso
 
 | Class | Resources | Disposition |
 |---|---|---|
-| Dormant/orphan media | `art/city/parallax/living/cloud_bank.webp`; `art/city/parallax/sky.png`; `art/presentation/kinetic_impact_halo.png` | Exclude source and generated import metadata with wildcard suffixes |
+| Dormant/orphan media | `art/city/parallax/living/cloud_bank.webp`; `art/city/parallax/sky.png`; `art/presentation/kinetic_impact_halo.png` | Delete after independent verification; keep wildcard exclusions as anti-regression guards |
 | Runtime-unused metadata | `art/city/enemies/deployment/conventional-reinforcement-deploy.json`; `art/city/enemies/effects/choir-incubation-payload.json`; both parallax `MANIFEST.json` files; four enemy-impact JSON files; `art/upgrades_art_manifest.json` | Exclude exact JSON paths; keep in Git for provenance/test use |
 | Legacy test waves | `resources/encounters/wave_01_contact.tres` through `wave_04_retaliation.tres` | Exclude from Web; retain for excluded GUT tests |
 | Script-only candidates | `scripts/combat/weapon_mount_visual_2d.gd`; `scripts/siege/district_recipe_validator.gd` | Exclude scripts and `.uid` companions; retain validator for tests and defer deletion of the unreferenced visual helper |
@@ -115,6 +115,9 @@ No phase may claim additive savings by summing overlapping standalone experiment
 | 6 | Planned | Not started | Not started |
 
 Phase 1 is complete at source level. Concurrent runtime-tuning adapters and boss-route work landed after the optimization commit and were preserved by fast-forward integration rather than overwritten. The final release procedure therefore exports and remaps the complete shared-main descendant, not the earlier isolated optimization candidate.
+
+## 12. Verified source-retirement follow-up
+A conservative audit at baseline `21b15e00c10c4cab11849e6a50f7ebe2900bb163` deleted six obsolete derivatives, their imports, three stale manifest entries, and the cloud-processing recipe. The deletion removes **1,082,614 tracked bytes** before manifest reduction and claims no additive PCK saving because Phase 1 already excluded every path. Export exclusions remain as anti-regression guards.
 
 ## References
 
