@@ -12,7 +12,7 @@ Settlement Engine S-04 now communicates one combat promise: **energy gathers at 
 
 > **Core readability rule:** every cyan photon moves toward the same growing blue sphere that becomes the origin of the damaging shockwave.
 
-The redesign preserves the boss's armor and body phases, support-soldier cap, archive objective, optional structural transactions, animation rig, damage scaling, corpse finisher, grounded rubble, evidence outcome, retry state, and campaign progression. Only the first boss's offensive pattern and warning presentation change.[3]
+The redesign preserves the boss's armor and body phases, support-soldier cap, archive objective, optional structural transactions, animation rig, damage scaling, grounded rubble, evidence outcome, retry state, and campaign progression. A later campaign-wide revision removes the corpse finisher: the completed 2.95-second destruction spectacle now commits rubble and progression automatically.[3]
 
 ## Single Attack Cycle
 
@@ -79,7 +79,7 @@ The attack remains a hazard-tagged enemy event and continues to apply the centra
 | Audio synchronization | Charge audio starts with the telegraph and release audio replaces it on the exact active-state boundary. |
 | Camera restraint | Exactly one 10-unit impulse reaches `CameraRig` at release; charge, contact, and recovery add none. |
 | Pooling | The existing one-slot radial utility pool owns all charge and release nodes. |
-| Continuity | Support cap, armor/body damage, archive, finisher, grounded rubble, evidence, retry, and later bosses remain unchanged. |
+| Continuity | Support cap, armor/body damage, archive, grounded rubble, evidence, retry, and later bosses remain unchanged; post-spectacle completion now requires no extra attack. |
 | Cleanup | Old multi-front identifiers, locale labels, test assertions, dedicated ring texture, and provenance references are absent. |
 | Deployment | The final shared source is freshly exported and both WebDev runtime payloads are remapped. |
 

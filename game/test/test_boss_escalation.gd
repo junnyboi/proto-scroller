@@ -323,7 +323,7 @@ func test_stage_and_arsenal_transactions_are_idempotent_with_export_data() -> vo
 	assert_eq(store.pending_reward_grants().count("boss:CANTOR_31_PALE_ENGINE:reward"), 1)
 
 
-func test_standard_wreck_receivers_preserve_stage_and_arsenal_payloads() -> void:
+func test_automatic_rubble_preserves_stage_and_arsenal_payloads() -> void:
 	var cases: Array[Dictionary] = [
 		{
 			"boss_id": &"MIMESIS_04",
@@ -347,10 +347,11 @@ func test_standard_wreck_receivers_preserve_stage_and_arsenal_payloads() -> void
 		attack_id += 1
 		var payload_before: Dictionary = session.completion_payload()
 		assert_true(bool(payload_before.get(String(test_case.field), false)))
-		assert_true(session.utility_pool.default_wreck_receiver.receive_damage(
-			_smash_event(attack_id)
-		))
-		attack_id += 1
+		assert_false(session.utility_pool.default_wreck_receiver.active)
+		session.utility_pool.defeat_spectacle.advance(
+			BossDefeatSpectacle2D.PRESENTATION_SECONDS
+		)
+		assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 		assert_true(bool(session.completion_payload().get(String(test_case.field), false)))
 		assert_eq(
 			StringName(session.completion_payload().get("boss_id", &"")),

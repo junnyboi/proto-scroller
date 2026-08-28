@@ -87,6 +87,7 @@ var encounter_director: EncounterDirector
 var urban_siege: UrbanSiegeRuntime
 var campaign_progress: CampaignProgressStore
 var combat_profile: PlayerCombatProfileStore
+var launch_run_seed: int = -1
 var project_choir_runtime: ProjectChoirRuntime
 var building: StructuralBuilding2D
 var streetlamp: DestructibleProp2D
@@ -307,7 +308,12 @@ func _build_urban_siege() -> void:
 	)
 	encounter_director = urban_siege.director
 	if DisplayServer.get_name() != "headless":
-		urban_siege.start_run(CityWorldBuilder.initial_run_seed(_web_gameplay_smoke_requested()))
+		var active_seed: int = (
+			launch_run_seed
+			if launch_run_seed >= 0
+			else CityWorldBuilder.initial_run_seed(_web_gameplay_smoke_requested())
+		)
+		urban_siege.start_run(active_seed)
 
 func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
 	var parallax: Node = get_node_or_null(^"ParallaxCity")

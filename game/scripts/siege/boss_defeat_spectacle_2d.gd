@@ -1,6 +1,8 @@
 class_name BossDefeatSpectacle2D
 extends Node2D
 
+signal completed
+
 const EXPLOSION_TEXTURE: Texture2D = preload(
 	"res://art/bosses/defeat_fx/boss-explosion-burst.webp"
 )
@@ -123,6 +125,7 @@ func advance(delta: float) -> void:
 	_update_sprites()
 	if elapsed >= PRESENTATION_SECONDS:
 		deactivate()
+		completed.emit()
 
 
 func visual_slot_count() -> int:
