@@ -1,7 +1,7 @@
 # Proto Scroller Runtime Tuning Laboratory — Implementation Plan
 
 **Author:** Manus AI
-**Status:** In implementation
+**Status:** Implemented
 **Canonical repository:** `https://github.com/junnyboi/proto-scroller`
 **Planning baseline:** `8cd2c6484eae25e78de7b79508912135f33a00c9`
 **Engine:** Godot `4.7.2-stable`, GL Compatibility, matching non-threaded Web templates
@@ -229,7 +229,7 @@ Per current project directive, repository-wide certification, slow Xvfb matrices
 | WP3 | Complete | `836c436d6bc7ee1fe569a597ccb7da449b5ee54f` | Added sticky `BASELINE`/`TUNED`/`SANDBOX` run provenance, immutable summary metadata, debrief disclosure, profile suppression, and a final leaderboard network guard. `runtime_tweak_integrity`: 5 tests / 22 assertions. |
 | WP4 | Complete | `c6635a6be2e9b1d070474505f7a7c0e4f666b2b8` | Wired all 50 descriptors to production consumers with default-preserving fallbacks and declared LIVE/NEXT ATTACK/NEXT SPAWN/NEXT RUN snapshots; retained fixed pools, immutable shop catalog data, and attack-local projectile state. Static consumer audit: 50/50. `runtime_tweak_adapters`: 5 tests / 36 assertions; `runtime_tweak_service`: 9 tests / 62 assertions; focused boss, world, progression, budget, localization, panel, and integrity suites passed. |
 | WP5 | Complete | `ab26f6dfea71004633aae84d8e019eb898f32e4f` | Replaced oversized paged cards with 42-pixel one-line rows, a 16-row fixed pool, continuous scrolling, focus following, and metadata-wide search. Added a validated canonical RGB color type plus player/enemy/HUD tint and visual-size adapters that preserve collision and combat geometry. Static consumer audit: 56/56. `runtime_tweak_catalog`: 4 tests / 525 assertions; `runtime_tweak_service`: 10 / 74; `runtime_tweak_panel`: 7 / 94; `runtime_tweak_adapters`: 6 / 47; `l10n`: 6 / 2,186; `responsive_layout`: 6 / 100. |
-| WP6 | In progress | — | Source integration, exact Web export, WebDev synchronization, live compact-scroll/color verification, checkpoint, and publication remain. |
+| WP6 | Complete | `db1968432368e182324524e4d0663f958f285669` | Integrated the compact visual-tuning system with the concurrent seven-building district contract and pushed shared main. The mandatory fresh export, exact payload mapping, live compact-scroll/color inspection, and checkpoint evidence are recorded in the mapped WebDev release ledger. |
 
 ## References
 
