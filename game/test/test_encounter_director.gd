@@ -257,6 +257,49 @@ func test_ground_vehicle_uses_visible_bottom_and_center_for_presentation() -> vo
 	jackal.cancel_telegraph()
 
 
+func test_humanoid_telegraphs_use_visible_grounded_center() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	var humanoid_ids: Array[StringName] = [
+		&"soldier", &"bulwark", &"lobber", &"sapper", &"lancer",
+		&"covenant_warden", &"intake_shepherd", &"memorial_usher",
+		&"suture_marshal", &"privy_chirurgeon",
+	]
+	for archetype_id: StringName in humanoid_ids:
+		var enemy: EnemyActor2D = city.encounter_runtime.acquire(
+			archetype_id,
+			Vector2(1080.0, 200.0)
+		)
+		assert_not_null(enemy, archetype_id)
+		enemy.set_physics_process(false)
+		var content_rect: Rect2 = enemy.visual.get_meta(
+			EnemyActor2D.VISUAL_CONTENT_RECT_META
+		)
+		var local_ground_center: Vector2 = Vector2(
+			content_rect.get_center().x * (-1.0 if enemy.visual.flip_h else 1.0),
+			content_rect.end.y
+		)
+		var expected_origin: Vector2 = enemy.visual.to_global(local_ground_center)
+		var projectile_muzzle: Vector2 = enemy.global_position + Vector2(31.0, -17.0)
+		assert_true(enemy.begin_telegraph(
+			&"bullet",
+			0.5,
+			projectile_muzzle,
+			city.robot.global_position,
+			6.0
+		), archetype_id)
+		var warning: Dictionary = city.telegraph_presenter.snapshot(enemy._telegraph_id)
+		assert_eq(warning.origin, expected_origin, archetype_id)
+		assert_almost_eq(
+			float(warning.origin.y),
+			EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
+			0.01,
+			archetype_id
+		)
+		assert_eq(enemy.telegraph_origin(), projectile_muzzle, archetype_id)
+		city.encounter_runtime.release(enemy)
+
+
 func test_warning_pulse_accelerates_and_extreme_threats_shift_red_white() -> void:
 	var city: CitySlice = await _spawn_city()
 	var presenter: TelegraphPresenter2D = city.telegraph_presenter

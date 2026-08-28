@@ -298,6 +298,27 @@ func test_every_land_enemy_uses_one_road_center_lane_in_every_district() -> void
 	assert_gt(air_count, 0)
 
 
+func test_defeated_vehicle_remains_ground_matches_road_center_lane() -> void:
+	var chunk := CityStreetChunk.new()
+	add_child_autofree(chunk)
+	await get_tree().process_frame
+	var collision: CollisionShape2D = chunk.remains_ground.get_child(0) as CollisionShape2D
+	var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+	var remains_surface_y: float = (
+		chunk.remains_ground.position.y - rectangle.size.y * 0.5
+	)
+	assert_almost_eq(
+		remains_surface_y,
+		EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
+		0.01
+	)
+	assert_almost_eq(
+		remains_surface_y,
+		CityStreetChunk.ROAD_DIVIDER_Y - 10.0,
+		0.01
+	)
+
+
 func test_vehicle_weight_tiers_resist_live_hits_but_wrecks_launch() -> void:
 	var heavy_vehicle: EnemyActor2D = runtime.acquire(&"tank", Vector2(1080.0, 542.5))
 	var light_vehicle: EnemyActor2D = runtime.acquire(&"jackal", Vector2(1240.0, 554.0))
