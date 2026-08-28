@@ -156,7 +156,13 @@ func start(
 	generation_token = token
 	center = world_center
 	orientation_portrait = portrait
-	boss_volley.setup(encounter_runtime, utility_pool.rig, utility_pool.rig.host)
+	boss_volley.setup(
+		encounter_runtime,
+		utility_pool.rig,
+		utility_pool.rig.host,
+		utility_pool.attack_particle_pool,
+		definition.boss_id
+	)
 	_reinforcement_interval_multiplier = float(utility_pool.rig.host.get_meta(
 		&"tuning_reinforcement_interval_multiplier", 1.0
 	))

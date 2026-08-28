@@ -63,6 +63,7 @@ var escalation: BossEscalationController
 var motion_echo_recorder: MotionEchoRecorder
 var arena_adapter: BossStructuralAdapter
 var attack_presentation_root: Node2D
+var attack_particle_pool: BossAttackParticlePool2D
 var markers: Array[Marker2D] = []
 var marker_presentations: Array[Sprite2D] = []
 var lane_damage_areas: Array[BossAttackArea2D] = []
@@ -480,6 +481,10 @@ func _prewarm() -> void:
 	attack_presentation_root.z_as_relative = false
 	attack_presentation_root.z_index = ATTACK_PRESENTATION_Z_INDEX
 	add_child(attack_presentation_root)
+	attack_particle_pool = BossAttackParticlePool2D.new()
+	attack_particle_pool.name = "BossAttackParticlePool"
+	attack_presentation_root.add_child(attack_particle_pool)
+	attack_particle_pool.setup()
 	for index: int in range(PYLON_PRESENTATION_CAPACITY):
 		var pylon: Node2D = _make_record("PylonPresentation%02d" % index, rig)
 		var sprite: Sprite2D = Sprite2D.new()
@@ -583,6 +588,7 @@ func _make_area(
 	collision.disabled = true
 	area.add_child(collision)
 	attack_presentation_root.add_child(area)
+	area.prewarm_attack_particles()
 	area.deactivate()
 	return area
 
@@ -628,6 +634,8 @@ func _deactivate_records(preserve_rig: bool = false) -> void:
 		_reset_utility_presentation(boss_rubble_record)
 	for receiver: BossWreckReceiver2D in wreck_receivers:
 		receiver.deactivate()
+	if attack_particle_pool != null:
+		attack_particle_pool.stop_all()
 	for area: BossAttackArea2D in lane_damage_areas + line_areas:
 		area.deactivate()
 	for area: BossAttackArea2D in lane_damage_areas:

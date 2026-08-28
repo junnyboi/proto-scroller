@@ -79,12 +79,27 @@ var _release_shockwave: Sprite2D
 var _release_trail: Array[Sprite2D] = []
 var _charge_sfx_player: AudioStreamPlayer2D
 var _release_sfx_player: AudioStreamPlayer2D
+var _attack_warning_particles: CPUParticles2D
+var _attack_release_particles: CPUParticles2D
+var _attack_particle_boss_id: StringName = &""
+var _attack_particle_signature: StringName = &""
 
 
 func setup_damage_target(robot: GiantRobotController) -> void:
 	_damage_target = robot
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
+
+
+func prewarm_attack_particles() -> void:
+	if _attack_warning_particles != null:
+		return
+	_attack_warning_particles = _make_attack_particles(
+		"BossAttackWarningParticles", false
+	)
+	_attack_release_particles = _make_attack_particles(
+		"BossAttackReleaseParticles", true
+	)
 
 
 func configure_core_shockwave(
@@ -153,6 +168,7 @@ func configure_footprint(
 		_damaged_target_ids.clear()
 		radial_age = 0.0
 		call_deferred(&"_damage_current_overlaps")
+	_update_attack_particle_vfx(previous_state)
 	set_process(
 		presentation_role == PresentationRole.RADIAL_SHOCKWAVE
 		and visual_state != VisualState.HIDDEN
@@ -187,6 +203,30 @@ func authored_texture() -> Texture2D:
 
 func uses_procedural_rendering() -> bool:
 	return false
+
+
+func attack_particle_snapshot() -> Dictionary:
+	return {
+		"boss_id": _attack_particle_boss_id,
+		"signature": _attack_particle_signature,
+		"warning_emitting": (
+			_attack_warning_particles != null
+			and _attack_warning_particles.emitting
+		),
+		"release_emitting": (
+			_attack_release_particles != null
+			and _attack_release_particles.emitting
+		),
+		"warning_amount": (
+			_attack_warning_particles.amount
+			if _attack_warning_particles != null
+			else 0
+		),
+		"bounded_emitter_count": (
+			int(_attack_warning_particles != null)
+			+ int(_attack_release_particles != null)
+		),
+	}
 
 
 func deactivate() -> void:
@@ -301,6 +341,122 @@ func _authored_texture_tint() -> Color:
 		VisualState.DRY:
 			return Color(0.72, 1.0, 1.0, 0.58)
 	return Color(0.68, 0.98, 1.0, 0.90)
+
+
+func _make_attack_particles(
+	particles_name: String,
+	one_shot_value: bool
+) -> CPUParticles2D:
+	var particles: CPUParticles2D = CPUParticles2D.new()
+	particles.name = particles_name
+	particles.z_index = 6
+	particles.one_shot = one_shot_value
+	particles.explosiveness = 0.94 if one_shot_value else 0.18
+	particles.randomness = 0.52
+	particles.local_coords = true
+	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	particles.emitting = false
+	particles.visible = false
+	add_child(particles)
+	return particles
+
+
+func _update_attack_particle_vfx(previous_state: VisualState) -> void:
+	var profile: Dictionary = BossAttackParticleCatalog.profile_for_attack(attack_id)
+	var should_emit: bool = (
+		not profile.is_empty()
+		and presentation_role != PresentationRole.ECHO_PRESENTATION
+		and visual_state in [VisualState.TELEGRAPH, VisualState.ARMED]
+	)
+	if not should_emit:
+		_stop_attack_particle_vfx()
+		return
+	prewarm_attack_particles()
+	var next_signature: StringName = StringName(profile.get("signature", &""))
+	var profile_changed: bool = next_signature != _attack_particle_signature
+	_attack_particle_boss_id = BossAttackParticleCatalog.boss_id_for_attack(attack_id)
+	_attack_particle_signature = next_signature
+	_configure_attack_particles(_attack_warning_particles, profile, false)
+	_configure_attack_particles(_attack_release_particles, profile, true)
+	_attack_warning_particles.visible = true
+	_attack_warning_particles.speed_scale = (
+		1.42 if visual_state == VisualState.ARMED else 1.0
+	)
+	if profile_changed or not _attack_warning_particles.emitting:
+		_attack_warning_particles.restart()
+	_attack_warning_particles.emitting = true
+	if visual_state == VisualState.ARMED and previous_state != VisualState.ARMED:
+		_attack_release_particles.visible = true
+		_attack_release_particles.restart()
+		_attack_release_particles.emitting = true
+	elif visual_state != VisualState.ARMED:
+		_attack_release_particles.emitting = false
+		_attack_release_particles.visible = false
+
+
+func _configure_attack_particles(
+	particles: CPUParticles2D,
+	profile: Dictionary,
+	is_release: bool
+) -> void:
+	particles.texture = profile.get("texture") as Texture2D
+	particles.amount = (
+		int(profile.get("release_amount", 36))
+		if is_release
+		else int(profile.get("area_amount", 32))
+	)
+	particles.lifetime = (
+		0.54 if is_release else float(profile.get("area_lifetime", 0.72))
+	)
+	particles.emission_rect_extents = Vector2(
+		maxf(footprint_size.x * 0.46, 18.0),
+		maxf(footprint_size.y * 0.40, 12.0)
+	)
+	particles.direction = (
+		Vector2.UP if is_release else profile.get("direction", Vector2.UP) as Vector2
+	)
+	particles.spread = (
+		180.0 if is_release else float(profile.get("spread", 60.0))
+	)
+	particles.gravity = profile.get("gravity", Vector2.ZERO) as Vector2
+	particles.initial_velocity_min = (
+		float(profile.get("burst_velocity_min", 100.0))
+		if is_release
+		else float(profile.get("velocity_min", 28.0))
+	)
+	particles.initial_velocity_max = (
+		float(profile.get("burst_velocity_max", 220.0))
+		if is_release
+		else float(profile.get("velocity_max", 84.0))
+	)
+	var radial_accel: float = float(profile.get("radial_accel", 0.0))
+	particles.radial_accel_min = radial_accel
+	particles.radial_accel_max = radial_accel
+	var tangential_accel: float = float(profile.get("tangential_accel", 0.0))
+	particles.tangential_accel_min = tangential_accel
+	particles.tangential_accel_max = tangential_accel
+	var angular_velocity: float = float(profile.get("angular_velocity", 0.0))
+	particles.angular_velocity_min = -angular_velocity
+	particles.angular_velocity_max = angular_velocity
+	particles.damping_min = 14.0
+	particles.damping_max = 42.0
+	particles.scale_amount_min = float(profile.get("scale_min", 0.04))
+	particles.scale_amount_max = float(profile.get("scale_max", 0.10))
+	particles.color = Color.WHITE
+	particles.color_ramp = BossAttackParticleCatalog.color_ramp(
+		profile, 1.0 if is_release else 0.82
+	)
+
+
+func _stop_attack_particle_vfx() -> void:
+	_attack_particle_boss_id = &""
+	_attack_particle_signature = &""
+	if _attack_warning_particles != null:
+		_attack_warning_particles.emitting = false
+		_attack_warning_particles.visible = false
+	if _attack_release_particles != null:
+		_attack_release_particles.emitting = false
+		_attack_release_particles.visible = false
 
 
 func shockwave_snapshot() -> Dictionary:

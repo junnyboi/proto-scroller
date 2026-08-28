@@ -251,6 +251,7 @@ func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() ->
 	assert_almost_eq(projectile.presentation_scale, 1.5, 0.001)
 	assert_eq(projectile.planned, 1)
 	assert_eq(projectile.telegraph_id, 0)
+	assert_eq(projectile.particle_signature, &"TRIAGE_LIFT_MOTES")
 	assert_eq(city.telegraph_presenter.active_count(), 0)
 	assert_eq((projectile.origins as Array).size(), 1)
 	var projectile_origin: Vector2 = (projectile.origins as Array)[0]
@@ -264,6 +265,13 @@ func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() ->
 	assert_eq(fired.damage_type, &"shell")
 	assert_eq(fired.global_position, projectile_origin)
 	assert_almost_eq(fired.presentation_scale, 1.5, 0.001)
+	var particle_snapshot: Dictionary = (
+		session.utility_pool.attack_particle_pool.signature_snapshot()
+	)
+	assert_gt(int(particle_snapshot.telegraphs), 0)
+	assert_gt(int(particle_snapshot.releases), 0)
+	assert_eq(StringName(particle_snapshot.boss_id), &"SAMARITAN_15")
+	assert_eq(StringName(particle_snapshot.signature), &"TRIAGE_LIFT_MOTES")
 	assert_almost_eq(
 		fired.damage,
 		BossVerticalSliceController.RESIDENTIAL_PROJECTILE_DAMAGE

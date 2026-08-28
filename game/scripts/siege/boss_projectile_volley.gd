@@ -6,6 +6,8 @@ const TELEGRAPH_PRESENTATION_VARIANT: StringName = &"boss_projectile"
 var encounter_runtime: EncounterRuntime
 var rig: BossRig2D
 var owner: EnemyActor2D
+var attack_particle_pool: BossAttackParticlePool2D
+var boss_id: StringName = &""
 var kind: StringName = &""
 var visual_key: StringName = &""
 var projectile_speed: float = 0.0
@@ -30,12 +32,16 @@ var _projectile_lifetime: float = 2.5
 func setup(
 	runtime: EncounterRuntime,
 	boss_rig: BossRig2D,
-	boss_owner: EnemyActor2D
+	boss_owner: EnemyActor2D,
+	particle_pool: BossAttackParticlePool2D = null,
+	particle_boss_id: StringName = &""
 ) -> void:
 	cancel()
 	encounter_runtime = runtime
 	rig = boss_rig
 	owner = boss_owner
+	attack_particle_pool = particle_pool
+	boss_id = particle_boss_id
 
 
 func begin(
@@ -47,7 +53,7 @@ func begin(
 	speed: float,
 	damage: float,
 	shot_scale: float,
-	_telegraph_seconds: float
+	telegraph_seconds: float
 ) -> bool:
 	var origin_points: Array[Vector2] = []
 	if rig == null:
@@ -66,7 +72,7 @@ func begin(
 		speed,
 		damage,
 		shot_scale,
-		_telegraph_seconds
+		telegraph_seconds
 	)
 
 
@@ -79,7 +85,7 @@ func begin_from_origins(
 	speed: float,
 	damage: float,
 	shot_scale: float,
-	_telegraph_seconds: float
+	telegraph_seconds: float
 ) -> bool:
 	cancel()
 	if (
@@ -117,6 +123,7 @@ func begin_from_origins(
 		_origins.append(origin_points[shot_index])
 		_targets.append(target_points[shot_index])
 		_delays.append(maxf(shot_delays[shot_index], 0.0))
+	_play_particle_telegraphs(maxf(telegraph_seconds, 0.0))
 	return true
 
 
@@ -197,6 +204,7 @@ func signature() -> Dictionary:
 		"denials": denial_count,
 		"origins": _origins.duplicate(),
 		"targets": _targets.duplicate(),
+		"particle_signature": BossAttackParticleCatalog.signature_for_boss(boss_id),
 	}
 
 
@@ -230,6 +238,13 @@ func _fire_due_shots() -> void:
 		if projectile != null:
 			_active_projectiles.append(projectile)
 			last_fired_count += 1
+			if attack_particle_pool != null:
+				attack_particle_pool.play_release(
+					boss_id,
+					origin,
+					direction,
+					presentation_scale
+				)
 		_next_shot_index += 1
 	if _next_shot_index >= _reservation_ids.size():
 		_committed = false
@@ -243,6 +258,25 @@ func _cancel_telegraph() -> void:
 	):
 		encounter_runtime.telegraphs.cancel(telegraph_id)
 	telegraph_id = 0
+
+
+func _play_particle_telegraphs(telegraph_seconds: float) -> void:
+	if (
+		attack_particle_pool == null
+		or telegraph_seconds <= 0.0
+		or BossAttackParticleCatalog.profile_for_boss(boss_id).is_empty()
+	):
+		return
+	for shot_index: int in range(_origins.size()):
+		var direction: Vector2 = _origins[shot_index].direction_to(
+			_targets[shot_index]
+		)
+		attack_particle_pool.play_telegraph(
+			boss_id,
+			_origins[shot_index],
+			direction,
+			presentation_scale
+		)
 
 
 func _prune_projectiles() -> void:
