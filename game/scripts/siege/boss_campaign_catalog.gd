@@ -1,6 +1,11 @@
 class_name BossCampaignCatalog
 extends RefCounted
 
+const BOSS_DURABILITY_MULTIPLIER: float = 1.5
+const BASE_ARMOR: float = 330.0
+const BASE_HEALTH: float = 320.0
+const BASE_ARMOR_MILESTONE_STEP: float = 110.0
+
 const DEFINITION_COUNT: int = 5
 const CANONICAL_TRIGGERS: Array[int] = [
 	CityDistrictCatalog.FACADE_ENCOUNTERS_PER_DISTRICT - 1,
@@ -299,8 +304,10 @@ static func _ensure_catalog() -> void:
 			),
 		]
 	var finale: BossEncounterDefinition = _definitions.back()
-	finale.armor = 330.0
-	finale.armor_milestone_step = 110.0
+	finale.armor = BASE_ARMOR * BOSS_DURABILITY_MULTIPLIER
+	finale.armor_milestone_step = (
+		BASE_ARMOR_MILESTONE_STEP * BOSS_DURABILITY_MULTIPLIER
+	)
 	_definitions_by_id.clear()
 	_definitions_by_trigger.clear()
 	for definition_value: BossEncounterDefinition in _definitions:
@@ -338,11 +345,13 @@ static func _make_definition(
 	definition_value.arena_cell_indices = PackedInt32Array([0, 1, 2, 3, 4, 5])
 	definition_value.wreck_receiver_offsets = receiver_offsets
 	definition_value.summon_uses_arena_landmark = false
-	definition_value.armor = 330.0
-	definition_value.health = 320.0
+	definition_value.armor = BASE_ARMOR * BOSS_DURABILITY_MULTIPLIER
+	definition_value.health = BASE_HEALTH * BOSS_DURABILITY_MULTIPLIER
 	definition_value.screen_seconds = 4.0
 	definition_value.phase_thresholds = PackedFloat32Array([0.66, 0.33])
-	definition_value.armor_milestone_step = 110.0
+	definition_value.armor_milestone_step = (
+		BASE_ARMOR_MILESTONE_STEP * BOSS_DURABILITY_MULTIPLIER
+	)
 	definition_value.direct_damage_route = true
 	definition_value.exposed_damage_types = PackedStringArray(["all"])
 	definition_value.phases = _make_phases(phase_ids, support_reservations)

@@ -3,6 +3,9 @@ extends GutTest
 
 func test_catalog_has_exact_canonical_roster_triggers_and_campaign_results() -> void:
 	assert_eq(BossCampaignCatalog.validation_errors(), PackedStringArray())
+	assert_eq(BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER, 1.5)
+	assert_eq(CommandBossSession.ARMOR, 495.0)
+	assert_eq(CommandBossSession.HEALTH, 480.0)
 	var definitions: Array[BossEncounterDefinition] = BossCampaignCatalog.definitions()
 	assert_eq(definitions.size(), BossCampaignCatalog.DEFINITION_COUNT)
 	var expected: Array[Array] = [
@@ -42,7 +45,21 @@ func test_catalog_has_exact_canonical_roster_triggers_and_campaign_results() -> 
 		assert_eq(definition.display_name, row[4])
 		assert_eq(definition.capstone_dossier_id, row[5])
 		assert_eq(definition.evidence_flag_id, row[6])
-		assert_eq(definition.armor_milestone_step, 110.0)
+		assert_eq(
+			definition.armor,
+			BossCampaignCatalog.BASE_ARMOR
+			* BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER
+		)
+		assert_eq(
+			definition.health,
+			BossCampaignCatalog.BASE_HEALTH
+			* BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER
+		)
+		assert_eq(
+			definition.armor_milestone_step,
+			BossCampaignCatalog.BASE_ARMOR_MILESTONE_STEP
+			* BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER
+		)
 		assert_eq(definition.exposed_damage_types, PackedStringArray(["all"]))
 		assert_true(definition.direct_damage_route)
 		assert_false(definition.summon_uses_arena_landmark)

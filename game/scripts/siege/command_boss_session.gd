@@ -16,8 +16,12 @@ const STATE_EXPOSED: StringName = &"EXPOSED"
 const STATE_WRECK: StringName = &"WRECK_FINISHER"
 const STATE_COMPLETION_PENDING: StringName = &"COMPLETION_PENDING"
 const STATE_COMPLETE: StringName = &"COMPLETE"
-const ARMOR: float = 330.0
-const HEALTH: float = 320.0
+const ARMOR: float = (
+	BossCampaignCatalog.BASE_ARMOR * BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER
+)
+const HEALTH: float = (
+	BossCampaignCatalog.BASE_HEALTH * BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER
+)
 const SCREEN_DURATION: float = 4.0
 const TARGET_DURATION: float = 60.0
 const CORE_SHOCKWAVE_CAMERA_IMPULSE: float = 10.0
