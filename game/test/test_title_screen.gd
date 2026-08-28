@@ -5,9 +5,11 @@ const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
 const LANGUAGE_PREFERENCE_PATH: String = "user://test-title-language.cfg"
 const AUDIO_PREFERENCE_PATH: String = "user://test-title-audio.cfg"
 const INPUT_PREFERENCE_PATH: String = "user://test-title-input.cfg"
+const COMBAT_PROFILE_PATH: String = "user://test-title-combat-profile.json"
 const MINIMUM_TEXT_HEIGHT: float = 32.0
 
 var screen: TitleScreen
+var combat_profile: PlayerCombatProfileStore
 
 
 func before_all() -> void:
@@ -21,9 +23,16 @@ func before_each() -> void:
 	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
 	InputBindingSettings.reset_to_defaults(INPUT_PREFERENCE_PATH, false)
 	_clear_input_preference()
+	_clear_combat_profile()
 	_reset_audio_settings()
 	L10n.set_locale("en")
+	combat_profile = PlayerCombatProfileStore.new()
+	add_child_autofree(combat_profile)
+	combat_profile.setup(COMBAT_PROFILE_PATH)
+	combat_profile.set_callsign("TITLE ACE")
+	combat_profile.enrich_and_submit(_leaderboard_summary())
 	screen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
+	screen.configure_leaderboard(combat_profile)
 	screen.locale_preference_path = LANGUAGE_PREFERENCE_PATH
 	screen.audio_preference_path = AUDIO_PREFERENCE_PATH
 	screen.input_preference_path = INPUT_PREFERENCE_PATH
@@ -37,6 +46,7 @@ func after_each() -> void:
 	AudioVolumeSettings.clear_preference(AUDIO_PREFERENCE_PATH)
 	InputBindingSettings.reset_to_defaults(INPUT_PREFERENCE_PATH, false)
 	_clear_input_preference()
+	_clear_combat_profile()
 	_reset_audio_settings()
 
 
@@ -76,6 +86,10 @@ func test_launch_scene_contract() -> void:
 	assert_true(english_button.button_pressed)
 	assert_false(chinese_button.button_pressed)
 	assert_eq((screen.get_node("%SettingsButton") as Button).text, L10n.t("title.settings"))
+	assert_eq(
+		(screen.get_node("%LeaderboardButton") as Button).text,
+		L10n.t("title.leaderboard")
+	)
 	assert_true(screen.select_language("zh-CN"))
 	assert_eq(L10n.current_locale(), "zh-CN")
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "zh-CN")
@@ -246,6 +260,7 @@ func test_initialize_seam_transitions_once() -> void:
 	assert_true((screen.get_node("%EnglishButton") as Button).disabled)
 	assert_true((screen.get_node("%ChineseButton") as Button).disabled)
 	assert_true((screen.get_node("%SettingsButton") as Button).disabled)
+	assert_true((screen.get_node("%LeaderboardButton") as Button).disabled)
 	assert_false(screen.initialize_game(), "A second initialization must reject without mutation.")
 	assert_eq(status_label.text, L10n.t("title.expedition_active"))
 	_record_test_execution()
@@ -379,6 +394,74 @@ func test_settings_and_briefing_are_mutually_exclusive() -> void:
 	assert_true(screen.briefing_open)
 	assert_false(screen.settings_open)
 	assert_false((screen.get_node("%SettingsLayer") as Control).visible)
+	_record_test_execution()
+
+
+func test_title_leaderboard_exposes_local_and_global_tabs_with_back_navigation() -> void:
+	var leaderboard_button: Button = screen.get_node("%LeaderboardButton") as Button
+	assert_eq(leaderboard_button.text, L10n.t("title.leaderboard"))
+	assert_false(screen.leaderboard_overlay.visible)
+	assert_true(screen.open_settings())
+	assert_true(screen.open_leaderboard())
+	assert_false(screen.settings_open)
+	assert_true(screen.leaderboard_open)
+	assert_true(screen.leaderboard_overlay.visible)
+	assert_eq(
+		screen.leaderboard_overlay.local_tab_button.text,
+		L10n.t("title.leaderboard_local_tab")
+	)
+	assert_eq(
+		screen.leaderboard_overlay.global_tab_button.text,
+		L10n.t("title.leaderboard_global_tab")
+	)
+	assert_eq(screen.leaderboard_overlay.current_tab, TitleLeaderboardOverlay.Tab.LOCAL)
+	assert_true(screen.leaderboard_overlay.local_tab_button.button_pressed)
+	assert_false(screen.leaderboard_overlay.global_tab_button.button_pressed)
+	assert_true(screen.leaderboard_overlay.row_labels[0].text.contains("TITLE ACE"))
+	assert_true(screen.leaderboard_overlay.row_labels[0].text.contains("00043210"))
+	assert_true(screen.leaderboard_overlay.row_labels[0].text.contains("SIEGE DRILL"))
+	screen.leaderboard_overlay.global_tab_button.pressed.emit()
+	assert_eq(screen.leaderboard_overlay.current_tab, TitleLeaderboardOverlay.Tab.GLOBAL)
+	assert_true(screen.leaderboard_overlay.global_tab_button.button_pressed)
+	assert_eq(
+		screen.leaderboard_overlay.status_label.text,
+		L10n.t("debrief.global.state.native_local")
+	)
+	assert_true(
+		screen.leaderboard_overlay.row_labels[0].text.contains("TITLE ACE"),
+		"Native builds should present the local board as the documented global fallback."
+	)
+	var cancel_event: InputEventAction = InputEventAction.new()
+	cancel_event.action = &"ui_cancel"
+	cancel_event.pressed = true
+	screen._unhandled_input(cancel_event)
+	await get_tree().process_frame
+	assert_false(screen.leaderboard_open)
+	assert_false(screen.leaderboard_overlay.visible)
+	assert_eq(get_viewport().gui_get_focus_owner(), leaderboard_button)
+	_record_test_execution()
+
+
+func test_title_leaderboard_layout_and_localization_cover_both_orientations() -> void:
+	assert_true(screen.open_leaderboard())
+	for viewport_size: Vector2 in [Vector2(1280.0, 720.0), Vector2(720.0, 1280.0)]:
+		screen.leaderboard_overlay.apply_responsive_layout(viewport_size)
+		_assert_rect_inside(
+			screen.leaderboard_overlay.panel.get_rect(),
+			viewport_size
+		)
+		assert_false(
+			screen.leaderboard_overlay.local_tab_button.get_rect().intersects(
+				screen.leaderboard_overlay.global_tab_button.get_rect()
+			)
+		)
+		assert_gte(screen.leaderboard_overlay.local_tab_button.size.y, 44.0)
+		assert_gte(screen.leaderboard_overlay.close_button.size.y, 44.0)
+	assert_true(screen.select_language("zh-CN"))
+	assert_eq(screen.leaderboard_overlay.heading_label.text, "排行榜")
+	assert_eq(screen.leaderboard_overlay.local_tab_button.text, "本地")
+	assert_eq(screen.leaderboard_overlay.global_tab_button.text, "全球")
+	assert_eq(screen.leaderboard_overlay.close_button.text, "关闭")
 	_record_test_execution()
 
 
@@ -555,6 +638,41 @@ func _reset_audio_settings() -> void:
 func _clear_input_preference() -> void:
 	if FileAccess.file_exists(INPUT_PREFERENCE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(INPUT_PREFERENCE_PATH))
+
+
+func _clear_combat_profile() -> void:
+	for suffix: String in ["", ".tmp", ".bak"]:
+		var path: String = COMBAT_PROFILE_PATH + suffix
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func _leaderboard_summary() -> RunSummarySnapshot:
+	return RunSummarySnapshot.new(
+		43210,
+		4,
+		18,
+		3,
+		1,
+		{},
+		{
+			"completed": false,
+			"highest_combo_tier": 7,
+			"total_enemies_defeated": 9,
+			"unique_enemy_types": 2,
+			"enemy_kills": {&"soldier": 6, &"tank": 3},
+			"weapon_kills": {&"SIEGE_DRILL": 7, &"JAB_CROSS": 2},
+			"preferred_weapon": &"SIEGE_DRILL",
+			"preferred_weapon_kills": 7,
+		}
+	)
+
+
+func _assert_rect_inside(rect: Rect2, bounds: Vector2) -> void:
+	assert_gte(rect.position.x, 0.0)
+	assert_gte(rect.position.y, 0.0)
+	assert_lte(rect.end.x, bounds.x + 0.01)
+	assert_lte(rect.end.y, bounds.y + 0.01)
 
 
 func _record_test_execution() -> void:

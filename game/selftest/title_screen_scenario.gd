@@ -8,6 +8,12 @@ const SHOT_PATH: String = "res://artifacts/title_screen/title-screen.png"
 const BRIEFING_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-briefing.png"
 const CODEX_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-codex.png"
 const SETTINGS_SHOT_PATH: String = "res://artifacts/title_screen/title-screen-settings.png"
+const LEADERBOARD_LOCAL_SHOT_PATH: String = (
+	"res://artifacts/title_screen/title-screen-leaderboard-local.png"
+)
+const LEADERBOARD_GLOBAL_SHOT_PATH: String = (
+	"res://artifacts/title_screen/title-screen-leaderboard-global.png"
+)
 const LANGUAGE_PREFERENCE_PATH: String = "user://title-scenario-language.cfg"
 const AUDIO_PREFERENCE_PATH: String = "user://title-scenario-audio.cfg"
 const INPUT_PREFERENCE_PATH: String = "user://title-scenario-input.cfg"
@@ -207,6 +213,57 @@ func _run() -> void:
 			]
 		)
 		screen.close_settings(false)
+		var leaderboard_opened: bool = screen.open_leaderboard()
+		await RenderingServer.frame_post_draw
+		var leaderboard_local_image: Image = root.get_texture().get_image()
+		var leaderboard_local_error: Error = leaderboard_local_image.save_png(
+			ProjectSettings.globalize_path(LEADERBOARD_LOCAL_SHOT_PATH)
+		)
+		_check(
+			"leaderboard_local_shot_saved",
+			leaderboard_local_error == OK,
+			"error=%s size=%s" % [
+				leaderboard_local_error,
+				leaderboard_local_image.get_size(),
+			]
+		)
+		_check(
+			"title_leaderboard_local_tab_visible",
+			leaderboard_opened
+			and screen.leaderboard_overlay.local_tab_button.is_visible_in_tree()
+			and screen.leaderboard_overlay.global_tab_button.is_visible_in_tree()
+			and screen.leaderboard_overlay.current_tab == TitleLeaderboardOverlay.Tab.LOCAL,
+			"opened=%s local=%s global=%s" % [
+				leaderboard_opened,
+				screen.leaderboard_overlay.local_tab_button.text,
+				screen.leaderboard_overlay.global_tab_button.text,
+			]
+		)
+		screen.leaderboard_overlay.set_tab(TitleLeaderboardOverlay.Tab.GLOBAL)
+		await RenderingServer.frame_post_draw
+		var leaderboard_global_image: Image = root.get_texture().get_image()
+		var leaderboard_global_error: Error = leaderboard_global_image.save_png(
+			ProjectSettings.globalize_path(LEADERBOARD_GLOBAL_SHOT_PATH)
+		)
+		_check(
+			"leaderboard_global_shot_saved",
+			leaderboard_global_error == OK,
+			"error=%s size=%s" % [
+				leaderboard_global_error,
+				leaderboard_global_image.get_size(),
+			]
+		)
+		_check(
+			"title_leaderboard_global_tab_visible",
+			screen.leaderboard_overlay.current_tab == TitleLeaderboardOverlay.Tab.GLOBAL
+			and screen.leaderboard_overlay.status_label.is_visible_in_tree()
+			and screen.leaderboard_overlay.refresh_button.is_visible_in_tree(),
+			"state=%s status=%s" % [
+				screen.leaderboard_overlay.current_tab,
+				screen.leaderboard_overlay.status_label.text,
+			]
+		)
+		screen.close_leaderboard(false)
 		button.grab_focus()
 		shot_status = "PASS" if save_error == OK else "FAIL"
 		shot_path = SHOT_PATH

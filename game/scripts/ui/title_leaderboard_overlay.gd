@@ -21,6 +21,7 @@ var global_state: StringName = &"native_local"
 var _global_entries: Array[Dictionary] = []
 var _personal_rank: Dictionary = {}
 var _return_focus: Control
+var _portrait_layout: bool = false
 
 var scrim: ColorRect
 var backdrop: Button
@@ -63,8 +64,8 @@ func configure_profile(store: PlayerCombatProfileStore) -> void:
 
 func open(return_focus: Control = null) -> void:
 	_return_focus = return_focus
-	current_tab = Tab.LOCAL
 	refresh_locale()
+	set_tab(Tab.LOCAL)
 	visible = true
 	apply_responsive_layout(get_viewport_rect().size)
 	local_tab_button.call_deferred("grab_focus")
@@ -116,10 +117,12 @@ func refresh_locale() -> void:
 func apply_responsive_layout(viewport_size: Vector2) -> void:
 	if panel == null:
 		return
-	if viewport_size.y > viewport_size.x:
+	_portrait_layout = viewport_size.y > viewport_size.x
+	if _portrait_layout:
 		_apply_portrait_layout(viewport_size)
 	else:
 		_apply_landscape_layout(viewport_size)
+	_refresh_rows()
 
 
 func _apply_landscape_layout(viewport_size: Vector2) -> void:
@@ -230,7 +233,9 @@ func _refresh_rows() -> void:
 		var populated: bool = index < entries.size()
 		row_backgrounds[index].visible = populated
 		row_labels[index].visible = populated
-		row_labels[index].text = _ranking_row(entries[index]) if populated else ""
+		row_labels[index].text = (
+			_ranking_row(entries[index], _portrait_layout) if populated else ""
+		)
 		var personal: bool = populated and global_tab and _is_personal_entry(entries[index])
 		row_labels[index].modulate = AMBER if personal else MUTED
 		row_backgrounds[index].color = (
@@ -245,14 +250,17 @@ func _refresh_rows() -> void:
 		row_labels[0].modulate = MUTED
 
 
-func _ranking_row(entry: Dictionary) -> String:
-	return L10n.t("debrief.ranking_row", {
-		"rank": int(entry.get("rank", 0)),
-		"callsign": String(entry.get("callsign", "UNKNOWN")),
-		"tier": int(entry.get("highest_combo_tier", 0)),
-		"score": "%08d" % int(entry.get("best_score", entry.get("score", 0))),
-		"weapon": _weapon_name(StringName(entry.get("preferred_weapon", "UNKNOWN"))),
-	})
+func _ranking_row(entry: Dictionary, compact: bool = false) -> String:
+	return L10n.t(
+		"debrief.ranking_row_compact" if compact else "debrief.ranking_row",
+		{
+			"rank": int(entry.get("rank", 0)),
+			"callsign": String(entry.get("callsign", "UNKNOWN")),
+			"tier": int(entry.get("highest_combo_tier", 0)),
+			"score": "%08d" % int(entry.get("best_score", entry.get("score", 0))),
+			"weapon": _weapon_name(StringName(entry.get("preferred_weapon", "UNKNOWN"))),
+		}
+	)
 
 
 func _weapon_name(weapon_id: StringName) -> String:
