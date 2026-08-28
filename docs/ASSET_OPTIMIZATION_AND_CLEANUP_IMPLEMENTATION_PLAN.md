@@ -21,7 +21,7 @@ The package cleanup is conservative. Dynamically constructed dossier resources a
 
 | Phase | Scope | Primary technique | Measured opportunity | Risk | Status |
 |---:|---|---|---:|---|---|
-| 1 | Safe runtime-package cleanup and eight PCM SFX imports | Web-preset exclusions plus QOA import | **832,068 bytes (0.794 MiB) measured** | Low–moderate | **Implemented; integration pending** |
+| 1 | Safe runtime-package cleanup and eight PCM SFX imports | Web-preset exclusions plus QOA import | **832,068 bytes (0.794 MiB) measured** | Low–moderate | **Complete** |
 | 2 | Lossless enemy archetypes and upgrade icons | Convert eligible PNG imports to lossy quality `0.70` | Approximately 1.80 MiB combined | Moderate | Planned |
 | 3 | Existing boss and robot atlas compression | Boss quality `0.70→0.55`; robot `0.80→0.60` | Approximately 1.13 MiB combined | Moderate | Planned |
 | 4 | Selective audio bandwidth reduction | Voice-first 24 kHz trial, then bounded SFX expansion | 0.18–1.11 MiB depending scope | Moderate–high | Planned |
@@ -107,12 +107,14 @@ No phase may claim additive savings by summing overlapping standalone experiment
 
 | Phase | Source status | Export status | WebDev status |
 |---:|---|---|---|
-| 1 | Implemented on the planning tree; pending shared-main integration | Candidate measured at 26,317,184 bytes | Pending WebDev synchronization |
+| 1 | Implemented in `af5dc4a` and preserved through combined gameplay head `6d2f48d` | Candidate measured at 26,317,184 bytes before final combined export | Complete through the companion WebDev checkpoint and published host |
 | 2 | Planned | Not started | Not started |
 | 3 | Planned | Not started | Not started |
 | 4 | Planned | Not started | Not started |
 | 5 | Planned | Not started | Not started |
 | 6 | Planned | Not started | Not started |
+
+Phase 1 is complete at source level. Concurrent runtime-tuning adapters and boss-route work landed after the optimization commit and were preserved by fast-forward integration rather than overwritten. The final release procedure therefore exports and remaps the complete shared-main descendant, not the earlier isolated optimization candidate.
 
 ## References
 
