@@ -314,6 +314,8 @@ func _run_full_black_transition(kind: StringName, swap_action: Callable) -> void
 
 func retry_game() -> void:
 	if city_slice != null:
+		if runtime_tweak_service != null:
+			runtime_tweak_service.end_run()
 		var previous_city: CitySlice = city_slice
 		city_slice = null
 		remove_child(previous_city)
@@ -330,6 +332,8 @@ func retry_game_with_tuning_seed(seed: int) -> void:
 
 func _return_to_title() -> void:
 	if city_slice != null:
+		if runtime_tweak_service != null:
+			runtime_tweak_service.end_run()
 		var previous_city: CitySlice = city_slice
 		city_slice = null
 		remove_child(previous_city)

@@ -8,7 +8,7 @@ var service: RuntimeTweakService
 func before_each() -> void:
 	_cleanup()
 	service = RuntimeTweakService.new()
-	add_child(service)
+	add_child_autofree(service)
 	assert_eq(
 		service.setup(
 			RuntimeTweakCatalog.DEFAULT_PATH,

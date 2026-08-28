@@ -215,7 +215,7 @@ Per current project directive, repository-wide certification, slow Xvfb matrices
 | WP1 | Complete | `924815ef4066dac25e69eaa84422c8713b334553` | Added 50 typed descriptors, res-first validated deltas, canonical SHA-256 identity, run/district/attack/spawn boundaries, sticky provenance, and atomic debounced persistence. `runtime_tweak_catalog`: 4 tests / 468 assertions; `runtime_tweak_service`: 8 tests / 53 assertions; `title_transition`: 3 tests / 47 assertions. |
 | WP2 | Complete | `5e09c867726c267763b35ddf1d93779700cb903a` | Added the metadata-driven responsive panel, exact SceneTree pause/restore adapter, F10 input, bilingual UI, modal arbitration, and fixed-pool sandbox. `runtime_tweak_panel`: 5 tests / 47 assertions, including 120 paused frames and both target orientations. |
 | WP3 | Complete | `836c436d6bc7ee1fe569a597ccb7da449b5ee54f` | Added sticky `BASELINE`/`TUNED`/`SANDBOX` run provenance, immutable summary metadata, debrief disclosure, profile suppression, and a final leaderboard network guard. `runtime_tweak_integrity`: 5 tests / 22 assertions. |
-| WP4 | Pending | — | — |
+| WP4 | Complete | `c6635a6be2e9b1d070474505f7a7c0e4f666b2b8` | Wired all 50 descriptors to production consumers with default-preserving fallbacks and declared LIVE/NEXT ATTACK/NEXT SPAWN/NEXT RUN snapshots; retained fixed pools, immutable shop catalog data, and attack-local projectile state. Static consumer audit: 50/50. `runtime_tweak_adapters`: 5 tests / 36 assertions; `runtime_tweak_service`: 9 tests / 62 assertions; focused boss, world, progression, budget, localization, panel, and integrity suites passed. |
 | WP5 | Pending | — | — |
 
 ## References
