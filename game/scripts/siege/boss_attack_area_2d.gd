@@ -238,7 +238,9 @@ func try_damage_body(body: Node) -> bool:
 	var accepted: bool = robot.receive_damage(DamageEvent.new(
 		activation_attack_id,
 		self,
-		damage_amount * EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER,
+		BossEncounterDefinition.scale_outgoing_damage(
+			damage_amount * EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+		),
 		&"boss_core_shockwave"
 		if presentation_role == PresentationRole.RADIAL_SHOCKWAVE
 		else &"boss_hazard",

@@ -2,6 +2,7 @@ class_name BossEncounterDefinition
 extends Resource
 
 const DEFAULT_GROUND_SMASH_RADIUS: float = 96.0
+const OUTGOING_DAMAGE_MULTIPLIER: float = 0.5
 
 @export_group("Identity")
 @export var boss_id: StringName = &""
@@ -50,6 +51,10 @@ const DEFAULT_GROUND_SMASH_RADIUS: float = 96.0
 @export var outcome_policy: StringName = &"STANDARD"
 @export var outcomes: PackedInt32Array = PackedInt32Array()
 @export var portrait_socket_overrides: Dictionary = {}
+
+
+static func scale_outgoing_damage(damage: float) -> float:
+	return maxf(damage, 0.0) * OUTGOING_DAMAGE_MULTIPLIER
 
 
 func validation_errors() -> PackedStringArray:

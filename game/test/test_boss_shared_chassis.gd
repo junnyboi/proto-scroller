@@ -216,7 +216,9 @@ func test_boss_attack_area_damages_once_only_while_armed() -> void:
 	assert_almost_eq(
 		city.robot.current_health,
 		health_before
-		- BossAttackArea2D.DEFAULT_DAMAGE * EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER,
+		- BossAttackArea2D.DEFAULT_DAMAGE
+			* EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+			* BossEncounterDefinition.OUTGOING_DAMAGE_MULTIPLIER,
 		0.001
 	)
 	assert_false(area.try_damage_body(city.robot))

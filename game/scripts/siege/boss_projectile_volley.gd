@@ -241,8 +241,10 @@ func _fire_due_shots() -> void:
 			origin,
 			direction,
 			projectile_speed,
-			maxf(base_damage, 0.0) * owner.cycle_attack_multiplier
-				* _outgoing_damage_multiplier,
+			BossEncounterDefinition.scale_outgoing_damage(
+				maxf(base_damage, 0.0) * owner.cycle_attack_multiplier
+					* _outgoing_damage_multiplier
+			),
 			owner,
 			owner.projectile_target_mask,
 			kind,

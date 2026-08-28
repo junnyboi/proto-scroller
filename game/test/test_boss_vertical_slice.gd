@@ -169,6 +169,7 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 		health_before - (
 			BossVerticalSliceController.BUSINESS_SHOCKWAVE_DAMAGE
 			* EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+			* BossEncounterDefinition.OUTGOING_DAMAGE_MULTIPLIER
 		),
 		0.001
 	)
@@ -266,6 +267,14 @@ func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() ->
 	assert_eq(fired.damage_type, &"shell")
 	assert_eq(fired.global_position, projectile_origin)
 	assert_almost_eq(fired.presentation_scale, 1.5, 0.001)
+	assert_almost_eq(
+		fired.damage,
+		BossVerticalSliceController.RESIDENTIAL_PROJECTILE_DAMAGE
+			* session.boss.cycle_attack_multiplier
+			* EnemyActor2D.ENEMY_DAMAGE_MULTIPLIER
+			* BossEncounterDefinition.OUTGOING_DAMAGE_MULTIPLIER,
+		0.001
+	)
 	for area: BossAttackArea2D in (
 		session.utility_pool.lane_damage_areas + session.utility_pool.line_areas
 	):
