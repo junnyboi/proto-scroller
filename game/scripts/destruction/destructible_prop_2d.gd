@@ -6,6 +6,8 @@ signal fully_destroyed(prop: DestructibleProp2D, event: DamageEvent)
 
 const REMAINS_LAYER: int = 1 << 9
 const WORLD_LAYER: int = 1 << 0
+const TERMINAL_RUBBLE_PIECE_COUNT: int = 3
+const TERMINAL_RUBBLE_HEIGHT: float = 34.0
 
 @export var max_health: float = 60.0
 @export var wreck_health: float = 45.0
@@ -19,10 +21,12 @@ const WORLD_LAYER: int = 1 << 0
 @export var visual_ground_offset: float = 0.0
 @export var ground_smash_breaks_immediately: bool = false
 @export var wreck_next_hit_fully_destroys: bool = false
+@export var terminal_rubble_material_id: StringName = &"steel"
 
 var current_health: float
 var is_broken: bool = false
 var is_fully_destroyed: bool = false
+var terminal_rubble: PersistentRubbleBed2D
 var _seen_attacks: Dictionary[int, bool] = {}
 var _base_collision_layer: int = 0
 var _base_collision_mask: int = 0
@@ -45,6 +49,8 @@ func _ready() -> void:
 	can_sleep = true
 	visual.texture = intact_texture
 	_fit_visual(intact_display_size)
+	_ensure_terminal_rubble()
+	_configure_terminal_rubble()
 
 
 func receive_damage(event: DamageEvent) -> bool:
@@ -74,6 +80,14 @@ func is_destroyed() -> bool:
 	return is_fully_destroyed
 
 
+func terminal_rubble_active() -> bool:
+	return terminal_rubble != null and terminal_rubble.is_active()
+
+
+func terminal_rubble_piece_count() -> int:
+	return terminal_rubble.active_piece_count() if terminal_rubble != null else 0
+
+
 func capture_stream_state() -> Dictionary:
 	return {
 		"health": current_health,
@@ -95,10 +109,13 @@ func restore_stream_state(spawn_position: Vector2, state: Dictionary) -> void:
 	rotation = 0.0
 	position = spawn_position
 	_seen_attacks.clear()
+	_ensure_terminal_rubble()
+	_configure_terminal_rubble()
 	is_broken = bool(state.get("broken", false))
 	is_fully_destroyed = bool(state.get("fully_destroyed", false))
 	current_health = clampf(float(state.get("health", max_health)), 0.0, max_health)
 	visual.visible = not is_fully_destroyed
+	terminal_rubble.set_active(is_fully_destroyed)
 	collision_shape.set_deferred("disabled", is_fully_destroyed)
 	if is_fully_destroyed:
 		current_health = 0.0
@@ -108,6 +125,7 @@ func restore_stream_state(spawn_position: Vector2, state: Dictionary) -> void:
 	if is_broken:
 		visual.texture = destroyed_texture
 		_fit_visual(destroyed_display_size)
+		terminal_rubble.set_active(false)
 		collision_layer = REMAINS_LAYER
 		collision_mask = WORLD_LAYER
 		set_meta(&"enemy_remains", &"destroyed_prop")
@@ -115,6 +133,7 @@ func restore_stream_state(spawn_position: Vector2, state: Dictionary) -> void:
 		return
 	visual.texture = intact_texture
 	_fit_visual(intact_display_size)
+	terminal_rubble.set_active(false)
 	collision_layer = _base_collision_layer
 	collision_mask = _base_collision_mask
 	remove_meta(&"enemy_remains")
@@ -124,6 +143,7 @@ func restore_stream_state(spawn_position: Vector2, state: Dictionary) -> void:
 func _break_prop(event: DamageEvent) -> void:
 	is_broken = true
 	current_health = maxf(wreck_health, 1.0)
+	terminal_rubble.set_active(false)
 	visual.texture = destroyed_texture
 	_fit_visual(destroyed_display_size)
 	collision_layer = REMAINS_LAYER
@@ -140,6 +160,8 @@ func _fully_destroy_prop(event: DamageEvent) -> void:
 	current_health = 0.0
 	_release_fragments(event)
 	visual.visible = false
+	_configure_terminal_rubble()
+	terminal_rubble.set_active(true)
 	collision_layer = 0
 	collision_mask = 0
 	collision_shape.set_deferred("disabled", true)
@@ -197,6 +219,34 @@ func _apply_collision_size(size: Vector2) -> void:
 	var rectangle: RectangleShape2D = collision_shape.shape as RectangleShape2D
 	if rectangle != null:
 		rectangle.size = size
+
+
+func _ensure_terminal_rubble() -> void:
+	if terminal_rubble != null:
+		return
+	terminal_rubble = PersistentRubbleBed2D.new()
+	terminal_rubble.name = "TerminalRubbleBed"
+	terminal_rubble.z_index = 2
+	add_child(terminal_rubble)
+
+
+func _configure_terminal_rubble() -> void:
+	if terminal_rubble == null:
+		return
+	var footprint: Vector2 = destroyed_display_size
+	var seed_key: String = "%s:%s" % [
+		name,
+		String(get_meta(&"street_destructible_kind", &"prop")),
+	]
+	terminal_rubble.configure(
+		footprint,
+		terminal_rubble_material_id,
+		visual.modulate,
+		posmod(hash(seed_key), 2_000_000_000) + 1,
+		visual_ground_offset,
+		minf(TERMINAL_RUBBLE_HEIGHT, maxf(footprint.y * 0.42, 18.0)),
+		TERMINAL_RUBBLE_PIECE_COUNT
+	)
 
 
 func _fit_visual(display_size: Vector2) -> void:

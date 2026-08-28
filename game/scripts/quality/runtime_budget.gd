@@ -28,6 +28,12 @@ const WORLD_MUTATION_LEDGERS: int = 1
 const BUILDING_DAMAGE_PATTERNS: int = (
 	STREAMED_BUILDINGS * StructuralBuilding2D.CELL_COUNT
 )
+const STRUCTURAL_RUBBLE_SPRITES: int = (
+	BUILDING_DAMAGE_PATTERNS * BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT
+)
+const PROP_RUBBLE_SPRITES: int = (
+	STREAMED_PROPS * DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
+)
 const ENEMY_SCRAP: int = 32
 const SOLDIER_DEFEATS: int = 8
 const WRECKS: int = 4
@@ -39,6 +45,9 @@ const AIR_TARGET_RETICLES: int = 1
 const RARE_TAG_ROWS: int = 3
 const TELEGRAPH_RECORDS: int = 12
 const CATALYST_SLOTS: int = 2
+const CATALYST_RUBBLE_SPRITES: int = (
+	CATALYST_SLOTS * DestructibleProp2D.TERMINAL_RUBBLE_PIECE_COUNT
+)
 const ACTIVE_CATALYSTS: int = 2
 const REPAIR_PICKUP_SLOTS: int = CatalystRuntime.REPAIR_PICKUP_CAPACITY
 const ACTOR_RESERVATIONS: int = 18
@@ -166,6 +175,9 @@ static func snapshot(city: CitySlice) -> Dictionary:
 		"building_section_burst_peak": city.building_section_burst_pool.peak_active_count,
 		"building_damage_patterns": _building_damage_pattern_count(city),
 		"building_severe_damage_fx": _building_severe_damage_fx_count(city),
+		"structural_rubble_sprites": _structural_rubble_sprite_count(city),
+		"prop_rubble_sprites": _prop_rubble_sprite_count(city),
+		"catalyst_rubble_sprites": _catalyst_rubble_sprite_count(city),
 		"enemy_scrap_total": (
 			city.enemy_scrap_pool.active_count() + city.enemy_scrap_pool.available_count()
 		),
@@ -368,6 +380,9 @@ static func validation_errors(city: CitySlice) -> PackedStringArray:
 	)
 	_check_equal(errors, data, "structural_debris_total", STRUCTURAL_DEBRIS)
 	_check_equal(errors, data, "building_damage_patterns", BUILDING_DAMAGE_PATTERNS)
+	_check_equal(errors, data, "structural_rubble_sprites", STRUCTURAL_RUBBLE_SPRITES)
+	_check_equal(errors, data, "prop_rubble_sprites", PROP_RUBBLE_SPRITES)
+	_check_equal(errors, data, "catalyst_rubble_sprites", CATALYST_RUBBLE_SPRITES)
 	_check_equal(errors, data, "enemy_scrap_total", ENEMY_SCRAP)
 	_check_equal(errors, data, "soldier_defeat_total", SOLDIER_DEFEATS)
 	_check_equal(errors, data, "wreck_total", WRECKS)
@@ -675,6 +690,35 @@ static func _building_severe_damage_fx_count(city: CitySlice) -> int:
 					^"SevereDamageFx"
 				) is BuildingSevereDamageFx2D:
 					count += 1
+	return count
+
+
+static func _structural_rubble_sprite_count(city: CitySlice) -> int:
+	var count: int = 0
+	for building: StructuralBuilding2D in city.streamed_destructibles.buildings:
+		for row: int in range(StructuralBuilding2D.ROWS):
+			for column: int in range(StructuralBuilding2D.COLUMNS):
+				var pattern: BuildingDamagePattern2D = building.get_cell(
+					column, row
+				).get_node_or_null(^"DamagedVisual") as BuildingDamagePattern2D
+				if pattern != null and pattern._ruin_rubble_bed() != null:
+					count += pattern._ruin_rubble_bed().total_piece_count()
+	return count
+
+
+static func _prop_rubble_sprite_count(city: CitySlice) -> int:
+	var count: int = 0
+	for prop: DestructibleProp2D in city.streamed_destructibles.props:
+		if prop.terminal_rubble != null:
+			count += prop.terminal_rubble.total_piece_count()
+	return count
+
+
+static func _catalyst_rubble_sprite_count(city: CitySlice) -> int:
+	var count: int = 0
+	for catalyst: Catalyst2D in city.urban_siege.catalysts.slots:
+		if catalyst.terminal_rubble != null:
+			count += catalyst.terminal_rubble.total_piece_count()
 	return count
 
 
