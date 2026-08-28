@@ -232,11 +232,16 @@ func _run() -> void:
 			leaderboard_opened
 			and screen.leaderboard_overlay.local_tab_button.is_visible_in_tree()
 			and screen.leaderboard_overlay.global_tab_button.is_visible_in_tree()
+			and screen.leaderboard_overlay.callsign_edit.is_visible_in_tree()
+			and screen.leaderboard_overlay.callsign_save_button.is_visible_in_tree()
+			and screen.leaderboard_overlay.callsign_edit.max_length
+			== PlayerCombatProfileStore.MAX_CALLSIGN_LENGTH
 			and screen.leaderboard_overlay.current_tab == TitleLeaderboardOverlay.Tab.LOCAL,
-			"opened=%s local=%s global=%s" % [
+			"opened=%s local=%s global=%s callsign=%s" % [
 				leaderboard_opened,
 				screen.leaderboard_overlay.local_tab_button.text,
 				screen.leaderboard_overlay.global_tab_button.text,
+				screen.leaderboard_overlay.callsign_edit.text,
 			]
 		)
 		screen.leaderboard_overlay.set_tab(TitleLeaderboardOverlay.Tab.GLOBAL)

@@ -442,6 +442,58 @@ func test_title_leaderboard_exposes_local_and_global_tabs_with_back_navigation()
 	_record_test_execution()
 
 
+func test_title_leaderboard_saves_validated_callsign_and_refreshes_identity() -> void:
+	assert_true(screen.open_leaderboard())
+	var overlay: TitleLeaderboardOverlay = screen.leaderboard_overlay
+	assert_eq(overlay.callsign_edit.text, "TITLE ACE")
+	assert_eq(
+		overlay.callsign_edit.max_length,
+		PlayerCombatProfileStore.MAX_CALLSIGN_LENGTH
+	)
+	var saved_callsigns: Array[String] = []
+	overlay.callsign_saved.connect(
+		func(callsign: String) -> void: saved_callsigns.append(callsign)
+	)
+	overlay.callsign_edit.text = "  Nova   Prime  "
+	overlay.callsign_save_button.pressed.emit()
+	assert_eq(combat_profile.callsign(), "Nova Prime")
+	assert_eq(overlay.callsign_edit.text, "Nova Prime")
+	assert_eq(saved_callsigns, ["Nova Prime"])
+	assert_eq(
+		overlay.callsign_status_label.text,
+		L10n.t("debrief.callsign.saved")
+	)
+	assert_eq(overlay.callsign_status_label.modulate, TitleLeaderboardOverlay.CYAN)
+	assert_true(overlay.row_labels[0].text.contains("Nova Prime"))
+	var reloaded_profile: PlayerCombatProfileStore = PlayerCombatProfileStore.new()
+	add_child_autofree(reloaded_profile)
+	reloaded_profile.setup(COMBAT_PROFILE_PATH)
+	assert_eq(reloaded_profile.callsign(), "Nova Prime")
+	overlay.callsign_edit.text = "x"
+	overlay.callsign_save_button.pressed.emit()
+	assert_eq(combat_profile.callsign(), "Nova Prime")
+	assert_eq(saved_callsigns, ["Nova Prime"])
+	assert_eq(
+		overlay.callsign_status_label.text,
+		L10n.t("debrief.callsign.too_short")
+	)
+	assert_eq(overlay.callsign_status_label.modulate, TitleLeaderboardOverlay.RED)
+	overlay.callsign_edit.text = "f_u_c_k"
+	overlay.callsign_edit.text_submitted.emit(overlay.callsign_edit.text)
+	assert_eq(combat_profile.callsign(), "Nova Prime")
+	assert_eq(
+		overlay.callsign_status_label.text,
+		L10n.t("debrief.callsign.inappropriate")
+	)
+	overlay.set_callsign_uplink_state(&"success")
+	assert_eq(overlay.callsign_uplink_state, &"success")
+	assert_eq(
+		overlay.callsign_status_label.text,
+		L10n.t("debrief.callsign.uplink.success")
+	)
+	_record_test_execution()
+
+
 func test_title_leaderboard_layout_and_localization_cover_both_orientations() -> void:
 	assert_true(screen.open_leaderboard())
 	for viewport_size: Vector2 in [Vector2(1280.0, 720.0), Vector2(720.0, 1280.0)]:
@@ -456,11 +508,29 @@ func test_title_leaderboard_layout_and_localization_cover_both_orientations() ->
 			)
 		)
 		assert_gte(screen.leaderboard_overlay.local_tab_button.size.y, 44.0)
+		_assert_rect_inside(
+			screen.leaderboard_overlay.callsign_edit.get_rect(),
+			screen.leaderboard_overlay.panel.size
+		)
+		_assert_rect_inside(
+			screen.leaderboard_overlay.callsign_save_button.get_rect(),
+			screen.leaderboard_overlay.panel.size
+		)
+		assert_false(
+			screen.leaderboard_overlay.callsign_edit.get_rect().intersects(
+				screen.leaderboard_overlay.callsign_save_button.get_rect()
+			)
+		)
+		assert_gte(screen.leaderboard_overlay.callsign_edit.size.y, 44.0)
+		assert_gte(screen.leaderboard_overlay.callsign_save_button.size.y, 44.0)
 		assert_gte(screen.leaderboard_overlay.close_button.size.y, 44.0)
 	assert_true(screen.select_language("zh-CN"))
 	assert_eq(screen.leaderboard_overlay.heading_label.text, "排行榜")
 	assert_eq(screen.leaderboard_overlay.local_tab_button.text, "本地")
 	assert_eq(screen.leaderboard_overlay.global_tab_button.text, "全球")
+	assert_eq(screen.leaderboard_overlay.callsign_header_label.text, "操作员呼号")
+	assert_eq(screen.leaderboard_overlay.callsign_edit.placeholder_text, "输入呼号")
+	assert_eq(screen.leaderboard_overlay.callsign_save_button.text, "保存呼号")
 	assert_eq(screen.leaderboard_overlay.close_button.text, "关闭")
 	_record_test_execution()
 
