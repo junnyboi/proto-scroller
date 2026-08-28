@@ -1,20 +1,25 @@
 class_name GravityCrucibleRuntime
 extends UpgradeRuntime
 
-const CAPACITY: int = 3
+const CAPACITY: int = 60
 const CAPTURE_THRESHOLD_SECONDS: float = 0.35
-const CAPTURE_CAPS: Array[int] = [0, 1, 2, 3]
-const CAPTURE_RADII: Array[float] = [0.0, 190.0, 230.0, 270.0]
+const CAPTURE_CAPS: Array[int] = [0, CAPACITY, CAPACITY, CAPACITY]
+const CAPTURE_RADII: Array[float] = [0.0, 1000.0, 1000.0, 1000.0]
 const ORBIT_RADII: Array[float] = [0.0, 96.0, 108.0, 120.0]
 const THROW_SPEEDS: Array[float] = [0.0, 760.0, 850.0, 940.0]
 const IMPACT_DAMAGE: Array[float] = [0.0, 12.0, 16.0, 20.0]
 const ORBIT_HEIGHT: float = -34.0
 const ORBIT_SPEED: float = 3.8
+const ORBIT_ARC_SPACING: float = 48.0
+const PULL_SPEED: float = 1800.0
+const RELEASE_TARGET_RADIUS: float = 1000.0
 
 var robot: GiantRobotController
 var attacks: ContextualAttackController
 var debris_pool: DebrisPool
+var enemy_scrap_pool: DebrisPool
 var remains_factory: EnemyRemainsFactory
+var encounter_runtime: EncounterRuntime
 var captured: Array[Node2D] = []
 var captured_categories: PackedInt32Array = PackedInt32Array()
 var _candidates: Array[Dictionary] = []
@@ -36,12 +41,16 @@ func setup_combat(
 	p_robot: GiantRobotController,
 	p_attacks: ContextualAttackController,
 	p_debris_pool: DebrisPool,
-	p_remains_factory: EnemyRemainsFactory
+	p_enemy_scrap_pool: DebrisPool,
+	p_remains_factory: EnemyRemainsFactory,
+	p_encounter_runtime: EncounterRuntime
 ) -> void:
 	robot = p_robot
 	attacks = p_attacks
 	debris_pool = p_debris_pool
+	enemy_scrap_pool = p_enemy_scrap_pool
 	remains_factory = p_remains_factory
+	encounter_runtime = p_encounter_runtime
 	if attacks != null:
 		if not attacks.charge_started.is_connected(_on_charge_started):
 			attacks.charge_started.connect(_on_charge_started)
@@ -59,7 +68,9 @@ func is_available(_context: Dictionary = {}) -> bool:
 		and robot != null
 		and attacks != null
 		and debris_pool != null
+		and enemy_scrap_pool != null
 		and remains_factory != null
+		and encounter_runtime != null
 	)
 
 
@@ -109,8 +120,9 @@ func snapshot() -> Dictionary:
 func _process(delta: float) -> void:
 	if paused or stopped or not _capture_started or robot == null:
 		return
+	_capture_candidates()
 	_orbit_time += maxf(delta, 0.0)
-	_update_orbits()
+	_update_orbits(maxf(delta, 0.0))
 
 
 func _on_charge_started(spec: AttackSpec) -> void:
@@ -141,7 +153,7 @@ func _on_charge_updated(
 		return
 	_capture_started = true
 	_capture_candidates()
-	_update_orbits()
+	_update_orbits(0.0)
 
 
 func _on_charge_released(
@@ -167,20 +179,8 @@ func _capture_candidates() -> void:
 		return
 	_candidates.clear()
 	var radius_squared: float = CAPTURE_RADII[current_rank] * CAPTURE_RADII[current_rank]
-	for index: int in range(debris_pool.active_count()):
-		var debris: DebrisBody2D = debris_pool.active_body_at(index)
-		if debris == null or not debris.is_crucible_eligible():
-			continue
-		var distance_squared: float = robot.global_position.distance_squared_to(
-			debris.global_position
-		)
-		if distance_squared <= radius_squared:
-			_candidates.append({
-				"body": debris,
-				"distance": distance_squared,
-				"category": 0,
-				"id": debris.get_instance_id(),
-			})
+	_append_debris_candidates(debris_pool, 0, radius_squared)
+	_append_debris_candidates(enemy_scrap_pool, 1, radius_squared)
 	for index: int in range(remains_factory.active_count()):
 		var wreck: EnemyWreck2D = remains_factory.active_wreck_at(index)
 		if wreck == null or not wreck.is_crucible_eligible():
@@ -192,11 +192,11 @@ func _capture_candidates() -> void:
 			_candidates.append({
 				"body": wreck,
 				"distance": distance_squared,
-				"category": 1,
+				"category": 2,
 				"id": wreck.get_instance_id(),
 			})
 	_candidates.sort_custom(_candidate_before)
-	var slot_index: int = 0
+	var slot_index: int = _next_empty_slot()
 	for candidate: Dictionary in _candidates:
 		if slot_index >= CAPTURE_CAPS[current_rank]:
 			break
@@ -206,14 +206,49 @@ func _capture_candidates() -> void:
 		captured[slot_index] = body
 		captured_categories[slot_index] = int(candidate.category)
 		capture_count_total += 1
-		slot_index += 1
+		slot_index = _next_empty_slot(slot_index + 1)
 	_candidates.clear()
 
 
-func _update_orbits() -> void:
+func _next_empty_slot(start_index: int = 0) -> int:
+	var limit: int = CAPTURE_CAPS[current_rank]
+	for slot_index: int in range(maxi(start_index, 0), limit):
+		if captured[slot_index] == null:
+			return slot_index
+	return limit
+
+
+func _append_debris_candidates(
+	pool: DebrisPool,
+	category: int,
+	radius_squared: float
+) -> void:
+	if pool == null:
+		return
+	for index: int in range(pool.active_count()):
+		var debris: DebrisBody2D = pool.active_body_at(index)
+		if debris == null or not debris.is_crucible_eligible():
+			continue
+		var distance_squared: float = robot.global_position.distance_squared_to(
+			debris.global_position
+		)
+		if distance_squared <= radius_squared:
+			_candidates.append({
+				"body": debris,
+				"distance": distance_squared,
+				"category": category,
+				"id": debris.get_instance_id(),
+			})
+
+
+func _update_orbits(delta: float) -> void:
 	var count: int = captured_count()
 	if count <= 0:
 		return
+	var orbit_radius: float = maxf(
+		ORBIT_RADII[current_rank],
+		float(count) * ORBIT_ARC_SPACING / TAU
+	)
 	var valid_index: int = 0
 	for slot_index: int in range(CAPACITY):
 		var body: Node2D = captured[slot_index]
@@ -226,13 +261,17 @@ func _update_orbits() -> void:
 			_orbit_time * ORBIT_SPEED
 			+ TAU * float(valid_index) / float(count)
 		)
-		var horizontal: float = cos(angle) * ORBIT_RADII[current_rank]
-		var vertical: float = sin(angle) * ORBIT_RADII[current_rank] * 0.42
+		var horizontal: float = cos(angle) * orbit_radius
+		var vertical: float = sin(angle) * orbit_radius * 0.42
 		var orbit_position: Vector2 = robot.global_position + Vector2(
 			horizontal,
 			ORBIT_HEIGHT + vertical
 		)
-		body.call(&"update_crucible_capture", orbit_position, angle)
+		var pulled_position: Vector2 = body.global_position.move_toward(
+			orbit_position,
+			PULL_SPEED * delta
+		)
+		body.call(&"update_crucible_capture", pulled_position, angle)
 		valid_index += 1
 
 
@@ -253,20 +292,25 @@ func _release_capture(spec: AttackSpec) -> void:
 	)
 	var release_index: int = 0
 	var release_total: int = captured_count()
+	var targets: Array[EnemyActor2D] = _nearby_enemies()
 	for slot_index: int in range(CAPACITY):
 		var body: Node2D = captured[slot_index]
 		if body == null:
 			continue
-		var lane_offset: float = (
-			float(release_index) - float(release_total - 1) * 0.5
-		) * 52.0
-		var launch_velocity: Vector2 = direction * THROW_SPEEDS[current_rank]
-		launch_velocity.y += lane_offset
+		var launch_direction: Vector2 = _release_direction(
+			body,
+			release_index,
+			release_total,
+			targets,
+			spec.facing
+		)
+		var launch_velocity: Vector2 = launch_direction * THROW_SPEEDS[current_rank]
 		var delivery_id: int = 3_000_000 + spec.attack_id * 10 + release_index + 1
 		if bool(body.call(
 			&"release_from_crucible",
 			launch_velocity,
-			float(spec.facing) * (4.0 + float(release_index)),
+			(4.0 + float(release_index % 7))
+			* (-1.0 if release_index % 2 else 1.0),
 			source_event,
 			IMPACT_DAMAGE[current_rank],
 			delivery_id
@@ -274,6 +318,50 @@ func _release_capture(spec: AttackSpec) -> void:
 			release_count_total += 1
 		release_index += 1
 	_clear_runtime_state()
+
+
+func _nearby_enemies() -> Array[EnemyActor2D]:
+	var targets: Array[EnemyActor2D] = []
+	if encounter_runtime == null or robot == null:
+		return targets
+	var radius_squared: float = RELEASE_TARGET_RADIUS * RELEASE_TARGET_RADIUS
+	for index: int in range(encounter_runtime.actor_registry_count()):
+		var enemy: EnemyActor2D = encounter_runtime.actor_at_registry_index(index)
+		if enemy == null or not enemy.active or enemy.dead:
+			continue
+		if robot.global_position.distance_squared_to(enemy.global_position) <= radius_squared:
+			targets.append(enemy)
+	targets.sort_custom(_enemy_before)
+	return targets
+
+
+func _release_direction(
+	body: Node2D,
+	release_index: int,
+	release_total: int,
+	targets: Array[EnemyActor2D],
+	facing: int
+) -> Vector2:
+	if not targets.is_empty():
+		var target: EnemyActor2D = targets[release_index % targets.size()]
+		var travel_time: float = body.global_position.distance_to(
+			target.global_position
+		) / maxf(THROW_SPEEDS[current_rank], 1.0)
+		var predicted_position: Vector2 = (
+			target.global_position
+			+ target.velocity * clampf(travel_time, 0.0, 0.75)
+		)
+		var targeted_direction: Vector2 = body.global_position.direction_to(
+			predicted_position
+		)
+		if not targeted_direction.is_zero_approx():
+			return targeted_direction
+	var facing_angle: float = 0.0 if facing >= 0 else PI
+	var radial_angle: float = (
+		facing_angle
+		+ TAU * float(release_index) / maxf(float(release_total), 1.0)
+	)
+	return Vector2.from_angle(radial_angle)
 
 
 func _cancel_capture() -> void:
@@ -313,3 +401,15 @@ func _candidate_before(first: Dictionary, second: Dictionary) -> bool:
 	if first_category != second_category:
 		return first_category < second_category
 	return int(first.id) < int(second.id)
+
+
+func _enemy_before(first: EnemyActor2D, second: EnemyActor2D) -> bool:
+	var first_distance: float = robot.global_position.distance_squared_to(
+		first.global_position
+	)
+	var second_distance: float = robot.global_position.distance_squared_to(
+		second.global_position
+	)
+	if not is_equal_approx(first_distance, second_distance):
+		return first_distance < second_distance
+	return first.get_instance_id() < second.get_instance_id()

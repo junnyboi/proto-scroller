@@ -273,7 +273,7 @@
   "upgrade.siege_drill.name": "攻城钻头",
   "upgrade.siege_drill.description": "冲刺时部署动力钻头。每次冲刺对接触到的每个目标造成一次打击。",
   "upgrade.gravity_crucible.name": "重力熔炉",
-  "upgrade.gravity_crucible.description": "近战蓄力时捕获附近碎片与残骸，释放攻击时将其抛射出去。",
+  "upgrade.gravity_crucible.description": "近战蓄力时吸引1000像素内的所有碎片与残骸，释放时将其射向附近敌人。",
   "upgrade.tesla_tower.name": "特斯拉塔",
   "upgrade.tesla_tower.description": "完全蓄力后释放近战攻击，在原地部署向附近敌人释放电弧的塔。",
   "upgrade.destruction.name": "强化破坏",

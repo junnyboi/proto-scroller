@@ -112,7 +112,9 @@ func setup(city: Node) -> PackedStringArray:
 		robot,
 		attacks,
 		debris_pool,
-		city.get("enemy_remains_factory") as EnemyRemainsFactory
+		city.get("enemy_scrap_pool") as DebrisPool,
+		city.get("enemy_remains_factory") as EnemyRemainsFactory,
+		city.get("encounter_runtime") as EncounterRuntime
 	)
 	var tesla_tower: TeslaTowerRuntime = (
 		runtimes[&"TESLA_TOWER"] as TeslaTowerRuntime
