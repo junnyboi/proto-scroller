@@ -14,11 +14,23 @@ extends Node2D
 @export var maximum_impact_offset: float = 32.0
 @export var portrait_visible_world_height: float = 854.0
 
+@export_group("Boss Path Reveal")
+@export var path_clear_max_distance: float = 220.0
+@export var path_clear_pan_speed: float = 260.0
+@export var path_clear_return_speed: float = 520.0
+@export var path_clear_min_hold_seconds: float = 0.75
+@export var path_clear_movement_threshold: float = 18.0
+
 var target: GiantRobotController
 var impact_offset: Vector2 = Vector2.ZERO
 var impact_velocity: Vector2 = Vector2.ZERO
 var _current_look_ahead: float = 0.0
 var _look_ahead_scale: float = 1.0
+var _path_clear_active: bool = false
+var _path_clear_returning: bool = false
+var _path_clear_focus_x: float = 0.0
+var _path_clear_player_anchor_x: float = 0.0
+var _path_clear_elapsed: float = 0.0
 @onready var _camera: Camera2D = get_node_or_null(^"Camera2D") as Camera2D
 
 
@@ -40,9 +52,33 @@ func _physics_process(delta: float) -> void:
 		look_ahead_speed * delta
 	)
 	var desired_x: float = target.global_position.x + _current_look_ahead
+	var active_follow_speed: float = follow_speed
+	if _path_clear_active:
+		_path_clear_elapsed += delta
+		if (
+			not _path_clear_returning
+			and _path_clear_elapsed >= path_clear_min_hold_seconds
+			and absf(target.global_position.x - _path_clear_player_anchor_x)
+			>= path_clear_movement_threshold
+		):
+			_path_clear_returning = true
+		if _path_clear_returning:
+			active_follow_speed = path_clear_return_speed
+			if absf(global_position.x - desired_x) <= 1.0:
+				_cancel_path_clear_reveal()
+		else:
+			var maximum_focus_x: float = (
+				desired_x + path_clear_max_distance * _look_ahead_scale
+			)
+			desired_x = clampf(_path_clear_focus_x, desired_x, maximum_focus_x)
+			active_follow_speed = path_clear_pan_speed
 	if horizontal_limits_enabled:
 		desired_x = clampf(desired_x, minimum_x, maximum_x)
-	global_position.x = move_toward(global_position.x, desired_x, follow_speed * delta)
+	global_position.x = move_toward(
+		global_position.x,
+		desired_x,
+		active_follow_speed * delta
+	)
 	global_position.y = portrait_fixed_y if is_portrait_framing() else fixed_y
 
 
@@ -51,14 +87,41 @@ func add_impact_impulse(impulse: Vector2) -> void:
 	impact_velocity = impact_velocity.limit_length(maximum_impact_offset * 30.0)
 
 
+func begin_path_clear_reveal(focus_world_x: float) -> bool:
+	if target == null:
+		return false
+	_path_clear_active = true
+	_path_clear_returning = false
+	_path_clear_focus_x = maxf(focus_world_x, target.global_position.x)
+	_path_clear_player_anchor_x = target.global_position.x
+	_path_clear_elapsed = 0.0
+	return true
+
+
+func path_clear_reveal_active() -> bool:
+	return _path_clear_active
+
+
+func path_clear_reveal_returning() -> bool:
+	return _path_clear_returning
+
+
+func path_clear_focus_world_x() -> float:
+	return _path_clear_focus_x
+
+
 func reset_presentation() -> void:
 	impact_offset = Vector2.ZERO
 	impact_velocity = Vector2.ZERO
+	_cancel_path_clear_reveal()
 	if _camera != null:
 		_camera.offset = Vector2.ZERO
 
 
-func reset_after_origin_shift() -> void:
+func reset_after_origin_shift(offset: Vector2 = Vector2.ZERO) -> void:
+	if _path_clear_active:
+		_path_clear_focus_x += offset.x
+		_path_clear_player_anchor_x += offset.x
 	if _camera != null:
 		_camera.reset_smoothing()
 
@@ -113,3 +176,11 @@ func _update_impact_spring(delta: float) -> void:
 		impact_velocity = Vector2.ZERO
 	if _camera != null:
 		_camera.offset = impact_offset
+
+
+func _cancel_path_clear_reveal() -> void:
+	_path_clear_active = false
+	_path_clear_returning = false
+	_path_clear_focus_x = 0.0
+	_path_clear_player_anchor_x = 0.0
+	_path_clear_elapsed = 0.0

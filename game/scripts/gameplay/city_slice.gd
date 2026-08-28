@@ -323,7 +323,7 @@ func _on_origin_shift_requested(offset: Vector2, _chunk_delta: int) -> void:
 	if urban_siege != null and urban_siege.hazard_pressure != null:
 		urban_siege.hazard_pressure.rebase_cached_world_state(offset)
 	if camera_rig != null:
-		camera_rig.reset_after_origin_shift()
+		camera_rig.reset_after_origin_shift(offset)
 func _on_stream_window_changed(_logical_index: int) -> void:
 	_refresh_primary_destructibles()
 	var target: StructuralBuilding2D = building

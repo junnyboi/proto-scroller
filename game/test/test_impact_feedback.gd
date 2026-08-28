@@ -39,6 +39,56 @@ func test_camera_impact_spring_is_bounded_and_settles_exactly() -> void:
 	assert_eq(camera.offset, Vector2.ZERO)
 
 
+func test_boss_path_reveal_pans_right_holds_then_returns_on_player_movement() -> void:
+	var robot: GiantRobotController = GiantRobotController.new()
+	robot.global_position = Vector2(1000.0, 460.0)
+	add_child_autofree(robot)
+	var rig: CameraRig = CameraRig.new()
+	rig.target = robot
+	rig.global_position = Vector2(1180.0, 360.0)
+	var camera: Camera2D = Camera2D.new()
+	camera.name = "Camera2D"
+	rig.add_child(camera)
+	add_child_autofree(rig)
+	await get_tree().process_frame
+	robot.set_physics_process(false)
+	rig.set_physics_process(false)
+	assert_true(rig.begin_path_clear_reveal(1520.0))
+	var reveal_start_x: float = rig.global_position.x
+	for _step: int in range(12):
+		rig._physics_process(0.1)
+	assert_true(rig.path_clear_reveal_active())
+	assert_false(rig.path_clear_reveal_returning())
+	assert_gt(rig.global_position.x, reveal_start_x)
+	assert_lte(
+		rig.global_position.x,
+		robot.global_position.x + rig.look_ahead + rig.path_clear_max_distance + 0.001
+	)
+	robot.global_position.x += rig.path_clear_movement_threshold + 1.0
+	rig._physics_process(0.1)
+	assert_true(rig.path_clear_reveal_returning())
+	for _step: int in range(60):
+		rig._physics_process(0.1)
+	assert_false(rig.path_clear_reveal_active())
+	assert_false(rig.path_clear_reveal_returning())
+	assert_almost_eq(
+		rig.global_position.x,
+		robot.global_position.x + rig.look_ahead,
+		1.0
+	)
+	assert_true(rig.begin_path_clear_reveal(1800.0))
+	var focus_before_rebase: float = rig.path_clear_focus_world_x()
+	rig.reset_after_origin_shift(Vector2(-640.0, 0.0))
+	assert_almost_eq(
+		rig.path_clear_focus_world_x(),
+		focus_before_rebase - 640.0,
+		0.001
+	)
+	assert_true(rig.path_clear_reveal_active())
+	rig.reset_presentation()
+	assert_false(rig.path_clear_reveal_active())
+
+
 func test_pool_stays_at_eight_and_tracks_drop_and_recycle() -> void:
 	var root: Node2D = Node2D.new()
 	add_child_autofree(root)

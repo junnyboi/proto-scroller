@@ -291,6 +291,28 @@ func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 		81_002, city.robot, definition.health, &"impact"
 	)))
 	assert_not_null(siege.boss_session.boss_wreck)
+	city.camera_rig.set_physics_process(false)
+	city.camera_rig.global_position.x = (
+		city.robot.global_position.x + city.camera_rig.look_ahead
+	)
+	assert_eq(siege.boss_session.path_clear_camera_reveal_count, 1)
+	assert_true(city.camera_rig.path_clear_reveal_active())
+	assert_false(city.camera_rig.path_clear_reveal_returning())
+	assert_almost_eq(
+		city.camera_rig.path_clear_focus_world_x(),
+		boss.global_position.x + BossArenaBarrier2D.OFFSET_FROM_BOSS_X,
+		0.001
+	)
+	var reveal_start_x: float = city.camera_rig.global_position.x
+	for _step: int in range(12):
+		city.camera_rig._physics_process(0.1)
+	assert_gt(city.camera_rig.global_position.x, reveal_start_x)
+	city.robot.global_position.x += city.camera_rig.path_clear_movement_threshold + 1.0
+	city.camera_rig._physics_process(0.1)
+	assert_true(city.camera_rig.path_clear_reveal_returning())
+	for _step: int in range(60):
+		city.camera_rig._physics_process(0.1)
+	assert_false(city.camera_rig.path_clear_reveal_active())
 	siege.boss_session.utility_pool.defeat_spectacle.advance(
 		BossDefeatSpectacle2D.PRESENTATION_SECONDS
 	)
