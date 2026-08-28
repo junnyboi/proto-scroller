@@ -233,14 +233,22 @@ func test_all_twenty_five_facades_keep_alpha_and_every_section_can_break() -> vo
 						BuildingDamagePattern2D.RUIN_RUBBLE_SPRITE_COUNT if row == 1 else 0,
 						String(variant.variant_id)
 					)
+					var rubble_bed: PersistentRubbleBed2D = pattern._ruin_rubble_bed()
 					if row == 1:
-						var rubble_root: Node2D = pattern.get_node(
-							^"RuinRubbleBed"
-						) as Node2D
-						assert_false(rubble_root.z_as_relative)
-						assert_eq(rubble_root.z_index, 15)
-						for rubble: Sprite2D in rubble_root.get_children():
+						assert_not_null(rubble_bed, String(variant.variant_id))
+						assert_true(rubble_bed.uses_only_rubble_fragments())
+						assert_eq(rubble_bed.material_id(), variant.material_id_at(column, row))
+						assert_almost_eq(
+							rubble_bed.baseline_y(),
+							variant.display_size.y / 4.0,
+							0.001,
+							String(variant.variant_id)
+						)
+						assert_eq(rubble_bed.z_index, 3)
+						for rubble: Sprite2D in rubble_bed.get_children():
 							assert_gt(rubble.modulate.get_luminance(), 0.50)
+					else:
+						assert_null(rubble_bed, String(variant.variant_id))
 					assert_null(cell.get_node_or_null(^"RubbleVisual"))
 					assert_null(cell.get_node_or_null(^"RubbleEdgeVisual"))
 					var hurtbox: CollisionShape2D = cell.get_node(

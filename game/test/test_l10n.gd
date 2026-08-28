@@ -131,13 +131,15 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 		"他们杀尽了你爱的人，并用纳米技术，以义体替代人体的体液与组织，"
 		+ "还将其称作人类进化……是时候终结他们的恐怖统治了！"
 	)
-	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
-	assert_true(controls.contains("移动 A/D"))
-	assert_true(controls.contains("强化   按住 SPACE / X / SQUARE"))
-	assert_true(controls.contains("释放时发动"))
-	assert_true(controls.contains("冲刺   SHIFT / B / CIRCLE"))
-	assert_true(controls.contains("双击 A / D"))
-	assert_false(controls.contains("DODGE"))
+	assert_null(screen.get_node_or_null("StatusRail"))
+	assert_null(screen.get_node_or_null("%ControlsLabel"))
+	var briefing_controls: String = (
+		screen.get_node("SemanticContract/BriefingControlsLabel") as Label
+	).text
+	assert_eq(
+		briefing_controls,
+		L10n.t("title.controls_body", InputBindingSettings.display_placeholders())
+	)
 	assert_eq((screen.get_node("%EnglishButton") as Button).text, "EN")
 	assert_eq((screen.get_node("%ChineseButton") as Button).text, "CN")
 	assert_null(screen.get_node_or_null("%AutomaticButton"))

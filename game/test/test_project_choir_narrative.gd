@@ -212,6 +212,19 @@ func test_transmission_toast_is_bounded_deduped_and_nonblocking() -> void:
 	assert_eq(_count_nodes(toast), baseline_nodes)
 
 
+func test_transmission_toast_stays_top_left_in_both_orientations() -> void:
+	var toast: TransmissionToast = TransmissionToast.new()
+	add_child_autofree(toast)
+	await get_tree().process_frame
+	toast.apply_responsive_layout(Vector2(1280.0, 720.0))
+	assert_eq(toast.position, Vector2(24.0, 172.0))
+	assert_eq(toast.size, Vector2(620.0, 104.0))
+	assert_lt(toast.position.x + toast.size.x, 1280.0 * 0.75)
+	toast.apply_responsive_layout(Vector2(720.0, 1280.0))
+	assert_eq(toast.position, Vector2(24.0, 170.0))
+	assert_eq(toast.size, Vector2(672.0, 122.0))
+
+
 func test_project_choir_localization_exists_in_both_supported_locales() -> void:
 	for locale: String in L10n.available_locales():
 		assert_true(L10n.set_locale(locale))

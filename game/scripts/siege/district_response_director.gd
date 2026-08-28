@@ -637,15 +637,15 @@ func _process_hazard_pending(delta: float) -> void:
 		record.remaining = maxf(float(record.remaining) - delta, 0.0)
 		if not is_zero_approx(float(record.remaining)):
 			continue
-			var activated: EnvironmentalHazard2D = hazard_runtime.activate(
-				StringName(record.hazard_id),
-				record.position as Vector2,
-				int(record.facing),
-				bool(record.get("auto_trigger", true))
-			)
-			_hazard_pending.remove_at(index)
-			if activated == null:
-				continue
+		var activated: EnvironmentalHazard2D = hazard_runtime.activate(
+			StringName(record.hazard_id),
+			record.position as Vector2,
+			int(record.facing),
+			bool(record.get("auto_trigger", true))
+		)
+		_hazard_pending.remove_at(index)
+		if activated == null:
+			continue
 
 
 func _process_legacy(delta: float) -> void:

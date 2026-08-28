@@ -167,6 +167,10 @@ func test_callsign_history_and_local_ranking_are_bounded_and_deterministic() -> 
 	assert_eq(store.callsign(), "Echo Seven")
 	assert_eq(store.set_callsign("<script>"), &"invalid_characters")
 	assert_eq(store.set_callsign("x"), &"too_short")
+	assert_eq(store.set_callsign("N4Z1"), &"inappropriate")
+	assert_eq(store.set_callsign("f_u_c_k"), &"inappropriate")
+	assert_eq(store.callsign(), "Echo Seven")
+	assert_eq(store.validate_callsign("Passage-7"), &"ok")
 	for index: int in range(32):
 		var tier: int = 25 if index == 4 else index % 11
 		var score: int = 1000 + index * 100
@@ -358,6 +362,7 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	assert_eq(String(global_state.global_callsign), "Rook-7")
 	assert_eq((global_state.global_rows as PackedStringArray).size(), 1)
 	assert_true(String((global_state.global_rows as PackedStringArray)[0]).contains("Rook-7"))
+	assert_eq(global_state.highlighted_global_rows, PackedInt32Array([0]))
 	panel.global_callsign_edit.text = "x"
 	panel.global_callsign_save_button.pressed.emit()
 	assert_eq(store.callsign(), "Rook-7")
@@ -365,6 +370,14 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	assert_eq(
 		String(panel.debug_snapshot().global_callsign_status),
 		L10n.t("debrief.callsign.too_short")
+	)
+	panel.global_callsign_edit.text = "f_u_c_k"
+	panel.global_callsign_save_button.pressed.emit()
+	assert_eq(store.callsign(), "Rook-7")
+	assert_eq(int(signal_state.count), 1)
+	assert_eq(
+		String(panel.debug_snapshot().global_callsign_status),
+		L10n.t("debrief.callsign.inappropriate")
 	)
 	panel.global_callsign_edit.text = "Nova Prime"
 	panel.global_callsign_save_button.pressed.emit()
@@ -380,6 +393,7 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	)
 	assert_true(String((global_state.global_rows as PackedStringArray)[0]).contains("Nova Prime"))
 	assert_true(panel.personal_rank_label.text.contains("Nova Prime"))
+	assert_eq(global_state.highlighted_global_rows, PackedInt32Array([0]))
 	panel.apply_responsive_layout(Vector2(1280.0, 720.0))
 	var global_landscape_state: Dictionary = panel.debug_snapshot()
 	_assert_rect_inside(global_landscape_state.global_callsign_rect, Vector2(1280.0, 720.0))
@@ -470,6 +484,67 @@ func test_leaderboard_bridge_is_native_safe_and_rejects_unsolicited_responses() 
 	assert_eq(String(snapshot.global_state), "online")
 	assert_eq((snapshot.global_rows as PackedStringArray).size(), 1)
 	assert_true(String((snapshot.global_rows as PackedStringArray)[0]).contains("ECHO-7"))
+	assert_eq(snapshot.highlighted_global_rows, PackedInt32Array([0]))
+	bridge._pending["callsign-success"] = {
+		"type": &"update_callsign",
+		"deadline": 999_999.0,
+	}
+	panel.set_callsign_uplink_state(&"pending")
+	bridge._handle_response({
+		"channel": LeaderboardBridge.CHANNEL,
+		"version": LeaderboardBridge.PROTOCOL_VERSION,
+		"requestId": "callsign-success",
+		"ok": true,
+		"data": {
+			"entries": [{
+				"rank": 1,
+				"callsign": "VANGUARD",
+				"highestComboTier": 30,
+				"bestScore": 2_000_000,
+				"preferredWeapon": "MISSILE",
+			}, {
+				"rank": 2,
+				"callsign": "NOVA PRIME",
+				"highestComboTier": 22,
+				"bestScore": 1_500_000,
+				"preferredWeapon": "LASER",
+			}],
+			"personalRank": {"rank": 2, "callsign": "NOVA PRIME"},
+		},
+	})
+	snapshot = panel.debug_snapshot()
+	assert_eq(String(snapshot.callsign_uplink_state), "success")
+	assert_eq(
+		String(snapshot.global_callsign_status),
+		L10n.t("debrief.callsign.uplink.success")
+	)
+	assert_eq(snapshot.highlighted_global_rows, PackedInt32Array([1]))
+	bridge._pending["callsign-rejected"] = {
+		"type": &"update_callsign",
+		"deadline": 999_999.0,
+	}
+	bridge._handle_response({
+		"channel": LeaderboardBridge.CHANNEL,
+		"version": LeaderboardBridge.PROTOCOL_VERSION,
+		"requestId": "callsign-rejected",
+		"ok": false,
+		"error": "CALLSIGN_REJECTED",
+	})
+	assert_eq(String(panel.debug_snapshot().callsign_uplink_state), "rejected")
+	assert_eq(String(bridge.debug_snapshot().state), "online")
+	bridge._pending["callsign-failure"] = {
+		"type": &"update_callsign",
+		"deadline": 999_999.0,
+	}
+	bridge._handle_response({
+		"channel": LeaderboardBridge.CHANNEL,
+		"version": LeaderboardBridge.PROTOCOL_VERSION,
+		"requestId": "callsign-failure",
+		"ok": false,
+		"error": "UPLINK_UNAVAILABLE",
+	})
+	assert_eq(String(panel.debug_snapshot().callsign_uplink_state), "failure")
+	assert_eq(String(bridge.debug_snapshot().state), "online")
 	_record_test_execution()
 
 

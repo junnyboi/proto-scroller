@@ -16,6 +16,7 @@ const CYAN: Color = Color("7ae4ff")
 const MUTED: Color = Color("a9bdc4")
 const AMBER: Color = Color("f1b36f")
 const RED: Color = Color("ff695c")
+const PERSONAL_ROW_HIGHLIGHT: Color = Color(0.12, 0.52, 0.62, 0.28)
 const LANDSCAPE_SIZE: Vector2 = Vector2(1160.0, 636.0)
 const PORTRAIT_SIZE: Vector2 = Vector2(672.0, 1120.0)
 const WEAPON_ROW_COUNT: int = 3
@@ -76,12 +77,14 @@ var global_callsign_edit: LineEdit
 var global_callsign_save_button: Button
 var global_callsign_status_label: Label
 var personal_rank_label: Label
+var global_row_highlights: Array[ColorRect] = []
 var global_rows: Array[Label] = []
 
 var presented_summary: RunSummarySnapshot
 var profile_store: PlayerCombatProfileStore
 var current_page: Page = Page.AFTER_ACTION
 var global_state: StringName = &"native_local"
+var callsign_uplink_state: StringName = &"idle"
 var _global_entries: Array[Dictionary] = []
 var _personal_rank: Dictionary = {}
 var _after_action_controls: Array[Control] = []
@@ -199,6 +202,20 @@ func set_global_state(
 	_update_global_page()
 
 
+func set_callsign_uplink_state(new_state: StringName) -> void:
+	callsign_uplink_state = new_state
+	if global_callsign_status_label == null:
+		return
+	var key: String = "debrief.callsign.uplink.%s" % String(new_state)
+	var message: String = L10n.t(key)
+	var color: Color = MUTED
+	if new_state == &"success":
+		color = CYAN
+	elif new_state in [&"failure", &"rejected"]:
+		color = RED
+	_sync_callsign_status(message, color)
+
+
 func apply_responsive_layout(viewport_size: Vector2) -> void:
 	if content_root == null:
 		return
@@ -229,6 +246,8 @@ func debug_snapshot() -> Dictionary:
 			if global_callsign_status_label != null
 			else ""
 		),
+		"callsign_uplink_state": String(callsign_uplink_state),
+		"highlighted_global_rows": _highlighted_global_row_indexes(),
 		"chart": weapon_history_chart.debug_snapshot() if weapon_history_chart != null else {},
 		"panel_rect": Rect2(
 			content_root.position,
@@ -396,6 +415,12 @@ func _build_global_controls() -> void:
 	global_callsign_status_label = _label("GlobalCallsignStatus", 14, MUTED)
 	personal_rank_label = _label("PersonalRank", 18, AMBER)
 	for index: int in range(GLOBAL_ROW_COUNT):
+		var highlight: ColorRect = _panel(
+			"GlobalRowHighlight%d" % index,
+			PERSONAL_ROW_HIGHLIGHT
+		)
+		highlight.visible = false
+		global_row_highlights.append(highlight)
 		var row: Label = _label("GlobalRow%d" % index, 15, MUTED)
 		row.clip_text = true
 		global_rows.append(row)
@@ -404,6 +429,7 @@ func _build_global_controls() -> void:
 		global_callsign_header_label, global_callsign_edit, global_callsign_save_button,
 		global_callsign_status_label, personal_rank_label,
 	])
+	_global_controls.append_array(global_row_highlights)
 	_global_controls.append_array(global_rows)
 
 
@@ -455,6 +481,7 @@ func _save_callsign(
 ) -> void:
 	var active_edit: LineEdit = source_edit if source_edit != null else callsign_edit
 	var active_status: Label = status_label if status_label != null else callsign_status_label
+	callsign_uplink_state = &"idle"
 	if profile_store == null:
 		active_status.text = L10n.t("debrief.callsign.unavailable")
 		active_status.modulate = RED
@@ -466,7 +493,10 @@ func _save_callsign(
 		return
 	var saved_callsign: String = profile_store.callsign()
 	_sync_callsign_edits(saved_callsign)
-	_sync_callsign_status(L10n.t("debrief.callsign.saved"), CYAN)
+	if OS.has_feature("web"):
+		set_callsign_uplink_state(&"pending")
+	else:
+		_sync_callsign_status(L10n.t("debrief.callsign.saved"), CYAN)
 	_update_global_callsign(saved_callsign)
 	_update_career_page(profile_store.snapshot())
 	_update_global_page()
@@ -556,9 +586,15 @@ func _update_global_page() -> void:
 		var row: Label = global_rows[index]
 		row.visible = show_rows and index < display_entries.size()
 		row.text = _ranking_row(display_entries[index]) if row.visible else ""
+		var is_personal: bool = (
+			row.visible and _is_personal_global_entry(display_entries[index])
+		)
+		row.modulate = AMBER if is_personal else MUTED
+		global_row_highlights[index].visible = is_personal
 	if display_entries.is_empty() and show_rows:
 		global_rows[0].visible = true
 		global_rows[0].text = L10n.t("debrief.global.empty")
+		global_row_highlights[0].visible = false
 	personal_rank_label.text = (
 		L10n.t("debrief.global.personal_rank", {
 			"rank": int(_personal_rank.get("rank", 0)),
@@ -570,6 +606,19 @@ func _update_global_page() -> void:
 		if not _personal_rank.is_empty()
 		else L10n.t("debrief.global.unranked")
 	)
+
+
+func _is_personal_global_entry(entry: Dictionary) -> bool:
+	var personal_rank: int = int(_personal_rank.get("rank", 0))
+	return personal_rank > 0 and int(entry.get("rank", 0)) == personal_rank
+
+
+func _highlighted_global_row_indexes() -> PackedInt32Array:
+	var indexes: PackedInt32Array = []
+	for index: int in range(global_row_highlights.size()):
+		if global_row_highlights[index].visible:
+			indexes.append(index)
+	return indexes
 
 
 func _update_weapons(summary: RunSummarySnapshot) -> void:
@@ -816,6 +865,10 @@ func _layout_global_landscape() -> void:
 	personal_rank_label.position = Vector2(40.0, 191.0)
 	personal_rank_label.size = Vector2(1080.0, 32.0)
 	for index: int in range(global_rows.size()):
+		global_row_highlights[index].position = Vector2(
+			32.0, 223.0 + float(index) * 31.0
+		)
+		global_row_highlights[index].size = Vector2(1096.0, 31.0)
 		global_rows[index].position = Vector2(40.0, 226.0 + float(index) * 31.0)
 		global_rows[index].size = Vector2(1080.0, 29.0)
 		global_rows[index].add_theme_font_size_override(&"font_size", 13)
@@ -945,6 +998,10 @@ func _layout_global_portrait() -> void:
 	personal_rank_label.position = Vector2(32.0, 307.0)
 	personal_rank_label.size = Vector2(608.0, 42.0)
 	for index: int in range(global_rows.size()):
+		global_row_highlights[index].position = Vector2(
+			24.0, 351.0 + float(index) * 64.0
+		)
+		global_row_highlights[index].size = Vector2(624.0, 64.0)
 		global_rows[index].position = Vector2(32.0, 355.0 + float(index) * 64.0)
 		global_rows[index].size = Vector2(608.0, 56.0)
 		global_rows[index].add_theme_font_size_override(&"font_size", 13)

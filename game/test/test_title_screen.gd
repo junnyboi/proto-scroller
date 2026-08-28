@@ -174,35 +174,20 @@ func test_gamepad_melee_does_not_activate_the_focused_launch_button() -> void:
 	_record_test_execution()
 
 
-func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> void:
+func test_command_deck_omits_controls_panel_and_briefing_preserves_full_intel() -> void:
 	var hook: String = (screen.get_node("%InstructionLabel") as Label).text
-	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
+	var briefing_controls: String = (
+		screen.get_node("SemanticContract/BriefingControlsLabel") as Label
+	).text
 	var field_note: String = (screen.get_node("SemanticContract/FieldNote") as Label).text
 	var enemy_intel: String = (screen.get_node("%EnemyIntel") as Label).text
 	var run_rule: String = (screen.get_node("%RunRule") as Label).text
 	assert_eq(hook, L10n.t("title.command_hook"))
-	for required_control: String in [
-		"A/D",
-		"STICK",
-		"D-PAD",
-		"TOUCH",
-		"HOLD",
-		"SPACE",
-		"X / SQUARE",
-		"RELEASE TO STRIKE",
-		"DASH",
-		"SHIFT",
-		"B / CIRCLE",
-		"DOUBLE-TAP",
-	]:
-		assert_true(controls.contains(required_control), required_control)
-	var info_panel: PanelContainer = screen.get_node("StatusRail") as PanelContainer
-	var controls_label: Label = screen.get_node("%ControlsLabel") as Label
-	assert_true(info_panel.get_global_rect().encloses(controls_label.get_global_rect()))
-	assert_null(screen.get_node_or_null("StatusRail/InfoContent/StatusItems"))
-	assert_lt(
-		controls_label.get_theme_font_size(&"font_size"),
-		(screen.get_node("%InstructionLabel") as Label).get_theme_font_size(&"font_size")
+	assert_null(screen.get_node_or_null("StatusRail"))
+	assert_null(screen.get_node_or_null("%ControlsLabel"))
+	assert_eq(
+		briefing_controls,
+		L10n.t("title.controls_body", InputBindingSettings.display_placeholders())
 	)
 	assert_true(field_note.contains("Bindings can be changed"))
 	assert_true(field_note.contains("AUTO SAVE"))
@@ -414,9 +399,6 @@ func test_all_ui_text_meets_the_32_pixel_rendered_height_pin() -> void:
 	var minimum_height: float = INF
 	for label_node: Node in screen.find_children("*", "Label", true, false):
 		var label: Label = label_node as Label
-		if label == screen.get_node("%ControlsLabel"):
-			assert_gte(_rendered_line_height(label), 28.0)
-			continue
 		minimum_height = minf(minimum_height, _rendered_line_height(label))
 		measured_controls += 1
 	for button_node: Node in screen.find_children("*", "Button", true, false):

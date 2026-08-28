@@ -83,13 +83,13 @@ func _run() -> void:
 		button.text.contains(L10n.t("title.begin")),
 		"text=%s" % [button.text]
 	)
-		_check(
-			"reign_of_terror_hook",
-			(screen.get_node("%InstructionLabel") as Label).text.contains(
-				"It's time to put an end to their reign of terror!"
-			),
-			"text=%s" % [(screen.get_node("%InstructionLabel") as Label).text]
-		)
+	_check(
+		"reign_of_terror_hook",
+		(screen.get_node("%InstructionLabel") as Label).text.contains(
+			"It's time to put an end to their reign of terror!"
+		),
+		"text=%s" % [(screen.get_node("%InstructionLabel") as Label).text]
+	)
 	_check("input_hint_removed", screen.get_node_or_null("HintLabel") == null, "removed=true")
 	_check_briefing_content(screen)
 	_check_language_selector(screen)
@@ -253,13 +253,6 @@ func _check_minimum_text_height(screen: TitleScreen, button: Button) -> void:
 	var minimum_height: float = INF
 	for label_node: Node in screen.find_children("*", "Label", true, false):
 		var label: Label = label_node as Label
-		if label == screen.get_node("%ControlsLabel"):
-			_check(
-				"controls_minimum_text_height",
-				_rendered_line_height(label) >= 28.0,
-				"minimum_px=%.2f required_px=28.00" % [_rendered_line_height(label)]
-			)
-			continue
 		minimum_height = minf(minimum_height, _rendered_line_height(label))
 		measured_controls += 1
 	minimum_height = minf(minimum_height, _rendered_line_height(button))
@@ -275,12 +268,9 @@ func _check_minimum_text_height(screen: TitleScreen, button: Button) -> void:
 func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
 	var language_selector: HBoxContainer = screen.get_node("%LanguageSelector") as HBoxContainer
-	var status_rail: PanelContainer = screen.get_node("StatusRail") as PanelContainer
-	var controls_label: Label = screen.get_node("%ControlsLabel") as Label
 	var settings_button: Button = screen.get_node("%SettingsButton") as Button
 	var button_rect: Rect2 = button.get_global_rect()
 	var briefing_toggle_rect: Rect2 = briefing_toggle.get_global_rect()
-	var status_rect: Rect2 = status_rail.get_global_rect()
 	var viewport_rect: Rect2 = Rect2(Vector2.ZERO, Vector2(root.size))
 	_check(
 		"action_briefing_separation",
@@ -293,41 +283,13 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 		"button=%s language=%s" % [button_rect, language_selector.get_global_rect()]
 	)
 	_check(
-		"status_below_language",
-		status_rect.position.y >= language_selector.get_global_rect().end.y,
-		"language=%s status=%s" % [language_selector.get_global_rect(), status_rect]
-	)
-	_check(
-		"status_rail_inside_viewport",
-		viewport_rect.encloses(status_rect),
-		"viewport=%s status=%s" % [viewport_rect, status_rect]
-	)
-	var controls_rect: Rect2 = controls_label.get_global_rect()
-	_check(
-		"controls_inside_status_rail",
-		status_rect.encloses(controls_rect),
-		"status=%s controls=%s" % [status_rect, controls_rect]
-	)
-	_check(
-		"controls_only_panel",
-		screen.get_node_or_null("StatusRail/InfoContent/StatusItems") == null,
-		"status_items_present=%s"
-		% [screen.get_node_or_null("StatusRail/InfoContent/StatusItems") != null]
-	)
-	_check(
-		"controls_have_inner_padding",
-		controls_rect.position.x - status_rect.position.x >= 20.0
-		and controls_rect.position.y - status_rect.position.y >= 12.0,
-		"status=%s controls=%s" % [status_rect, controls_rect]
-	)
-	_check(
-		"controls_use_smaller_type",
-		controls_label.get_theme_font_size(&"font_size")
-		< (screen.get_node("%InstructionLabel") as Label).get_theme_font_size(&"font_size"),
-		"controls=%s instruction=%s"
+		"title_controls_panel_removed",
+		screen.get_node_or_null("StatusRail") == null
+		and screen.get_node_or_null("%ControlsLabel") == null,
+		"status_rail=%s controls_label=%s"
 		% [
-			controls_label.get_theme_font_size(&"font_size"),
-			(screen.get_node("%InstructionLabel") as Label).get_theme_font_size(&"font_size"),
+			screen.get_node_or_null("StatusRail") != null,
+			screen.get_node_or_null("%ControlsLabel") != null,
 		]
 	)
 	_check(
@@ -346,7 +308,9 @@ func _check_layout_contract(screen: TitleScreen, button: Button) -> void:
 
 func _check_briefing_content(screen: TitleScreen) -> void:
 	var story: String = (screen.get_node("%InstructionLabel") as Label).text
-	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
+	var controls: String = (
+		screen.get_node("SemanticContract/BriefingControlsLabel") as Label
+	).text
 	var field_note: String = (screen.get_node("SemanticContract/FieldNote") as Label).text
 	var tips: String = (screen.get_node("%BriefingTipsLabel") as Label).text
 	var panel: Control = screen.get_node("SemanticContract") as Control
@@ -361,7 +325,7 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 	_check(
 		"tutorial_present",
 			controls == L10n.t(
-				"title.controls_compact",
+				"title.controls_body",
 				InputBindingSettings.display_placeholders()
 			)
 			and field_note == L10n.t(

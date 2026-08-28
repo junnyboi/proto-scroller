@@ -24,15 +24,6 @@ const CABLE_TEXTURE: Texture2D = preload(
 const PIPE_TEXTURE: Texture2D = preload(
 	"res://art/destruction/damage_details/broken_water_pipe.png"
 )
-const CONCRETE_RUBBLE_TEXTURE: Texture2D = preload(
-	"res://art/city/destructibles/debris/concrete_chunk.png"
-)
-const GLASS_RUBBLE_TEXTURE: Texture2D = preload(
-	"res://art/city/destructibles/debris/glass_shard.png"
-)
-const STEEL_RUBBLE_TEXTURE: Texture2D = preload(
-	"res://art/city/destructibles/debris/steel_fragment.png"
-)
 const FACADE_ALPHA_THRESHOLD: float = 0.08
 const DAMAGED_DARKEN_STRENGTH: float = 0.12
 const DESTROYED_DARKEN_STRENGTH: float = 0.38
@@ -40,6 +31,7 @@ const DESTROYED_HOLLOW_EXTENTS: Vector2 = Vector2(0.37, 0.43)
 const HOLLOW_CENTER_Y: float = 0.56
 const RUIN_RUBBLE_SPRITE_COUNT: int = 4
 const RUIN_SILHOUETTE_VARIANT_COUNT: int = 6
+const GROUND_RUBBLE_HEIGHT: float = 50.0
 const CAVITY_SHADER_CODE: String = """
 shader_type canvas_item;
 render_mode unshaded;
@@ -211,8 +203,7 @@ var _patch: Polygon2D
 var _cable_detail: BuildingDamageAttachment2D
 var _pipe_detail: BuildingDamageAttachment2D
 var _severe_fx: BuildingSevereDamageFx2D
-var _ruin_rubble_root: Node2D
-var _ruin_rubble_sprites: Array[Sprite2D] = []
+var _ruin_rubble_root: PersistentRubbleBed2D
 var _detail_mask: int = 0
 var _cavity_material: ShaderMaterial
 var _facade_sprite: Sprite2D
@@ -248,8 +239,7 @@ func configure(
 	_cavity_material.shader = _get_shared_cavity_shader()
 	_configure_cavity_material()
 	add_child(_patch)
-	if _ground_level:
-		_create_ruin_rubble_bed()
+	_create_ruin_rubble_bed()
 	_cable_detail = _create_detail_attachment(
 		"DanglingCables",
 		BuildingDamageAttachment2D.Kind.CABLE,
@@ -390,9 +380,11 @@ func damage_detail_mask() -> int:
 
 
 func _ruin_rubble_sprite_count() -> int:
-	if _ruin_rubble_root == null or not _ruin_rubble_root.visible:
-		return 0
-	return _ruin_rubble_sprites.size()
+	return _ruin_rubble_root.active_piece_count() if _ruin_rubble_root != null else 0
+
+
+func _ruin_rubble_bed() -> PersistentRubbleBed2D:
+	return _ruin_rubble_root
 
 
 func _is_ground_level_ruin() -> bool:
@@ -788,68 +780,33 @@ func _configure_cavity_material() -> void:
 
 
 func _create_ruin_rubble_bed() -> void:
-	_ruin_rubble_root = Node2D.new()
+	if not _ground_level:
+		return
+	_ruin_rubble_root = PersistentRubbleBed2D.new()
 	_ruin_rubble_root.name = "RuinRubbleBed"
-	_ruin_rubble_root.z_as_relative = false
-	_ruin_rubble_root.z_index = 15
-	_ruin_rubble_root.visible = false
+	_ruin_rubble_root.z_index = 3
 	add_child(_ruin_rubble_root)
-	for index: int in range(RUIN_RUBBLE_SPRITE_COUNT):
-		var sprite: Sprite2D = Sprite2D.new()
-		sprite.name = "RuinRubble%02d" % index
-		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		sprite.visible = false
-		_ruin_rubble_root.add_child(sprite)
-		_ruin_rubble_sprites.append(sprite)
 	_configure_ruin_rubble_bed()
 
 
 func _configure_ruin_rubble_bed() -> void:
 	if _ruin_rubble_root == null:
 		return
-	var texture: Texture2D = _ruin_rubble_texture()
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = _pattern_seed * 982451653 + 961748927
-	var half_width: float = _cell_size.x * 0.5
-	var width_range: Vector2 = Vector2(0.30, 0.42)
-	if _material_id == &"glass":
-		width_range = Vector2(0.18, 0.26)
-	elif _material_id == &"steel":
-		width_range = Vector2(0.25, 0.35)
-	for index: int in range(_ruin_rubble_sprites.size()):
-		var sprite: Sprite2D = _ruin_rubble_sprites[index]
-		var weight: float = (float(index) + 0.5) / float(RUIN_RUBBLE_SPRITE_COUNT)
-		var desired_width: float = _cell_size.x * rng.randf_range(
-			width_range.x,
-			width_range.y
-		)
-		var texture_width: float = maxf(texture.get_width(), 1.0)
-		var sprite_scale: float = desired_width / texture_width
-		sprite.texture = texture
-		sprite.position = Vector2(
-			lerpf(-half_width * 0.76, half_width * 0.76, weight)
-				+ rng.randf_range(-_cell_size.x * 0.045, _cell_size.x * 0.045),
-			_cell_size.y * 0.5 + rng.randf_range(-14.0, -4.0)
-		)
-		sprite.rotation = rng.randf_range(-0.24, 0.24)
-		sprite.scale = Vector2.ONE * sprite_scale
-		sprite.flip_h = rng.randi_range(0, 1) == 1
-		var readable_tint: Color = _visual_tint.lerp(Color.WHITE, 0.76)
-		sprite.modulate = readable_tint * Color(1.0, 0.97, 0.90, 1.0)
+	_ruin_rubble_root.configure(
+		_cell_size,
+		_material_id,
+		_visual_tint,
+		_pattern_seed,
+		_cell_size.y * 0.5,
+		GROUND_RUBBLE_HEIGHT,
+		RUIN_RUBBLE_SPRITE_COUNT
+	)
 	_update_ruin_rubble_bed()
 
 
 func _update_ruin_rubble_bed() -> void:
 	if _ruin_rubble_root != null:
-		_ruin_rubble_root.visible = _destroyed_stage and _ground_level
-
-
-func _ruin_rubble_texture() -> Texture2D:
-	if _material_id == &"glass":
-		return GLASS_RUBBLE_TEXTURE
-	if _material_id == &"steel":
-		return STEEL_RUBBLE_TEXTURE
-	return CONCRETE_RUBBLE_TEXTURE
+		_ruin_rubble_root.set_active(_destroyed_stage and _ground_level)
 
 
 func _facade_region_uv_rect() -> Vector4:
@@ -876,11 +833,7 @@ func _cavity_tint() -> Color:
 
 
 func _draw() -> void:
-	if _destroyed_stage:
-		if _ground_level:
-			_draw_ruin_rubble_bed()
-		return
-	if _contour.is_empty():
+	if _contour.is_empty() or _destroyed_stage:
 		return
 	var closed_contour: PackedVector2Array = _contour.duplicate()
 	closed_contour.append(_contour[0])
@@ -888,16 +841,3 @@ func _draw() -> void:
 	for crack: PackedVector2Array in _cracks:
 		draw_polyline(crack, CRACK_SHADOW, 2.25, true)
 		draw_polyline(crack, CRACK_HIGHLIGHT, 0.65, true)
-
-
-func _draw_ruin_rubble_bed() -> void:
-	for sprite: Sprite2D in _ruin_rubble_sprites:
-		if sprite.texture == null:
-			continue
-		draw_set_transform(sprite.position, sprite.rotation, sprite.scale)
-		draw_texture(
-			sprite.texture,
-			-Vector2(sprite.texture.get_size()) * 0.5,
-			sprite.modulate
-		)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

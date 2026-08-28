@@ -1,6 +1,8 @@
 class_name BossAttackArea2D
 extends Area2D
 
+signal core_shockwave_released
+
 enum VisualState {
 	HIDDEN,
 	TELEGRAPH,
@@ -27,6 +29,12 @@ const PHOTON_CORE_TEXTURE: Texture2D = preload(
 )
 const PHOTON_RELEASE_SHOCKWAVE_TEXTURE: Texture2D = preload(
 	"res://art/player/vfx/photon_release_shockwave.png"
+)
+const CORE_CHARGE_SFX: AudioStream = preload(
+	"res://audio/sfx/boss/s04_core_charge.ogg"
+)
+const SHOCKWAVE_RELEASE_SFX: AudioStream = preload(
+	"res://audio/sfx/boss/s04_shockwave_release.ogg"
 )
 const SHOCKWAVE_SEGMENTS: int = 96
 const CHARGE_PARTICLE_CAPACITY: int = 72
@@ -56,12 +64,16 @@ var radial_age: float = 0.0
 var shockwave_travel_seconds: float = 1.0
 var shockwave_band_thickness: float = 92.0
 var shockwave_telegraph_seconds: float = 1.7
+var core_charge_sfx_play_count: int = 0
+var shockwave_release_sfx_play_count: int = 0
 
 var _damage_target: GiantRobotController
 var _damaged_target_ids: Dictionary[int, bool] = {}
 var _charge_particles: CPUParticles2D
 var _charge_core: Sprite2D
 var _release_shockwave: Sprite2D
+var _charge_sfx_player: AudioStreamPlayer2D
+var _release_sfx_player: AudioStreamPlayer2D
 
 
 func setup_damage_target(robot: GiantRobotController) -> void:
@@ -311,6 +323,12 @@ func shockwave_snapshot() -> Dictionary:
 		"core_diameter": _core_diameter(),
 		"core_texture": PHOTON_CORE_TEXTURE.resource_path,
 		"authored_texture": PHOTON_RELEASE_SHOCKWAVE_TEXTURE.resource_path,
+		"charge_sfx": CORE_CHARGE_SFX.resource_path,
+		"release_sfx": SHOCKWAVE_RELEASE_SFX.resource_path,
+		"charge_sfx_play_count": core_charge_sfx_play_count,
+		"release_sfx_play_count": shockwave_release_sfx_play_count,
+		"charge_sfx_playing": _charge_sfx_player != null and _charge_sfx_player.playing,
+		"release_sfx_playing": _release_sfx_player != null and _release_sfx_player.playing,
 	}
 
 
@@ -442,10 +460,24 @@ func _ensure_radial_charge_vfx() -> void:
 	_release_shockwave.modulate = Color(0.48, 0.91, 1.0, 1.0)
 	_release_shockwave.visible = false
 	add_child(_release_shockwave)
+	_charge_sfx_player = _make_core_audio_player(
+		"BossCoreChargeAudio",
+		CORE_CHARGE_SFX,
+		-3.0
+	)
+	_release_sfx_player = _make_core_audio_player(
+		"BossCoreShockwaveReleaseAudio",
+		SHOCKWAVE_RELEASE_SFX,
+		1.0
+	)
 
 
 func _start_core_charge() -> void:
 	_ensure_radial_charge_vfx()
+	_release_sfx_player.stop()
+	_charge_sfx_player.stop()
+	_charge_sfx_player.play()
+	core_charge_sfx_play_count += 1
 	_release_shockwave.visible = false
 	_charge_core.visible = true
 	_charge_particles.visible = true
@@ -456,11 +488,16 @@ func _start_core_charge() -> void:
 
 func _start_shockwave_release() -> void:
 	_ensure_radial_charge_vfx()
+	_charge_sfx_player.stop()
+	_release_sfx_player.stop()
+	_release_sfx_player.play()
+	shockwave_release_sfx_play_count += 1
 	_charge_particles.emitting = false
 	_charge_particles.visible = false
 	_charge_core.visible = false
 	_release_shockwave.visible = true
 	_update_radial_vfx()
+	core_shockwave_released.emit()
 
 
 func _update_radial_vfx() -> void:
@@ -510,3 +547,23 @@ func _reset_radial_vfx() -> void:
 		_release_shockwave.visible = false
 		_release_shockwave.scale = Vector2.ONE
 		_release_shockwave.rotation = 0.0
+	if _charge_sfx_player != null:
+		_charge_sfx_player.stop()
+	if _release_sfx_player != null:
+		_release_sfx_player.stop()
+
+
+func _make_core_audio_player(
+	player_name: String,
+	stream: AudioStream,
+	volume_db_value: float
+) -> AudioStreamPlayer2D:
+	var player: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
+	player.name = player_name
+	player.stream = stream
+	player.bus = GameAudioBus.SFX
+	player.volume_db = volume_db_value
+	player.max_distance = 2800.0
+	player.attenuation = 0.75
+	add_child(player)
+	return player

@@ -69,6 +69,8 @@ func arm(p_profile: CatalystProfile, world_position: Vector2) -> void:
 	visual.texture = intact_texture
 	visual.modulate = Color("7de3d7") if profile.catalyst_id == &"GAS_MAIN" else Color.WHITE
 	_fit_visual(intact_display_size)
+	_configure_terminal_rubble()
+	terminal_rubble.set_active(false)
 	queue_redraw()
 
 
@@ -82,6 +84,8 @@ func reset_catalyst() -> void:
 	_activation_generation += 1
 	visible = false
 	visual.visible = false
+	if terminal_rubble != null:
+		terminal_rubble.set_active(false)
 	collision_layer = 0
 	collision_mask = 0
 	collision_shape.set_deferred("disabled", true)

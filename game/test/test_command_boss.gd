@@ -174,15 +174,16 @@ func test_repeated_legacy_and_campaign_start_stop_loops_do_not_grow_runtime() ->
 	assert_eq(after.boss_reservations, 0)
 
 
-func test_defeated_boss_freezes_then_next_melee_makes_rubble_and_repair_drops() -> void:
-	assert_true(session.start())
+func test_defeated_boss_freezes_then_spectacle_automatically_makes_rubble_and_drops() -> void:
+	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[0]
+	assert_true(session.start_definition(definition))
 	session.advance(50.0)
 	var boss: TankEnemy = session.boss
 	boss.receive_damage(DamageEvent.new(
-		1100, city.robot, CommandBossSession.ARMOR, &"jab_cross"
+		1100, city.robot, definition.armor, &"jab_cross"
 	))
 	boss.receive_damage(DamageEvent.new(
-		1101, city.robot, CommandBossSession.HEALTH, &"impact"
+		1101, city.robot, definition.health, &"impact"
 	))
 	assert_eq(session.state, CommandBossSession.STATE_WRECK)
 	assert_not_null(session.boss_wreck)
@@ -192,10 +193,14 @@ func test_defeated_boss_freezes_then_next_melee_makes_rubble_and_repair_drops() 
 	assert_eq(defeated_pose.frame, BossAnimationCatalog.FRAME_COUNT - 1)
 	assert_eq(defeated_pose.modulate, BossRig2D.DEFEATED_MODULATE)
 	assert_false(session.boss_wreck.get_node(^"WreckVisual").visible)
-	assert_true(session.boss_wreck.receive_damage(DamageEvent.new(
-		1102, city.robot, 1.0, &"jab_cross"
+	assert_false(session.boss_wreck.receive_damage(DamageEvent.new(
+		1102, city.robot, 999.0, &"jab_cross"
 	)))
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
+	assert_eq(session.automatic_rubble_commit_count, 1)
 	assert_between(session.elapsed_seconds, 45.0, 75.0)
 	assert_eq(city.enemy_remains_factory.total_count(), RuntimeBudget.WRECKS)
 	assert_true(session.utility_pool.boss_rubble_record.visible)
@@ -211,7 +216,7 @@ func test_defeated_boss_freezes_then_next_melee_makes_rubble_and_repair_drops() 
 	assert_almost_eq(city.robot.current_health, city.robot.max_health - 50.0, 0.001)
 
 
-func test_district_signal_waits_until_boss_wreck_finisher() -> void:
+func test_district_signal_waits_until_boss_defeat_spectacle_completes() -> void:
 	watch_signals(city.urban_siege)
 	city.urban_siege._on_arc_completed()
 	assert_signal_not_emitted(city.urban_siege, "district_completed")
@@ -234,9 +239,9 @@ func test_district_signal_waits_until_boss_wreck_finisher() -> void:
 		1210, city.robot, session.active_definition.health, &"impact"
 	))
 	assert_signal_not_emitted(city.urban_siege, "district_completed")
-	session.boss_wreck.receive_damage(DamageEvent.new(
-		1211, city.robot, 999.0, &"ground_smash"
-	))
+	session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
 	assert_signal_emitted(city.urban_siege, "district_completed")
 	assert_true(city.urban_siege.finale_pending)
 

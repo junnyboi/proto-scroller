@@ -77,6 +77,29 @@ func test_destroyed_building_and_prop_restore_after_slot_reuse() -> void:
 	_record_test_execution()
 
 
+func test_upper_cell_terminal_ruin_restores_without_floating_rubble() -> void:
+	var city: CitySlice = await _spawn_city()
+	var building: StructuralBuilding2D = city.building
+	var cell: Destructible2D = building.get_cell(0, 0)
+	var pattern: BuildingDamagePattern2D = cell.get_node(
+		^"DamagedVisual"
+	) as BuildingDamagePattern2D
+	assert_false(pattern._is_ground_level_ruin())
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
+	assert_true(cell.receive_damage(_fatal_event(city, cell, 31_004)))
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
+	assert_null(pattern._ruin_rubble_bed())
+	var terminal_state: Dictionary = building.capture_stream_state()
+	building.restore_stream_state({})
+	assert_false(cell.is_destroyed())
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
+	building.restore_stream_state(terminal_state)
+	assert_true(cell.is_destroyed())
+	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
+	assert_null(pattern._ruin_rubble_bed())
+	_record_test_execution()
+
+
 func test_every_surviving_lower_bay_blocks_until_all_three_are_destroyed() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.encounter_runtime.release_all()
@@ -305,6 +328,8 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_true(cell.receive_damage(_fatal_event(city, cell, attack_id, cell.current_health)))
 	assert_true(cell.is_destroyed())
 	assert_eq(pattern._ruin_rubble_sprite_count(), 0)
+	assert_false(pattern._is_ground_level_ruin())
+	assert_null(pattern._ruin_rubble_bed())
 	assert_almost_eq(_hollow_progress(pattern), 1.0, 0.0001)
 	assert_almost_eq(
 		pattern.cavity_darken_strength(),
@@ -329,6 +354,8 @@ func test_damage_progressively_hollows_the_authored_facade_into_jagged_side_and_
 	assert_true(shader_code.contains("arch_metric"))
 	assert_true(shader_code.contains("terminal_arch_blend"))
 	assert_true(shader_code.contains("discard"))
+	cell.restore_stream_state({})
+	assert_null(pattern._ruin_rubble_bed())
 	_record_test_execution()
 
 

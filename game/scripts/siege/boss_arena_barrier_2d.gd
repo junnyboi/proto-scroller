@@ -2,7 +2,7 @@ class_name BossArenaBarrier2D
 extends Node2D
 
 const COLLISION_LAYER: int = 1 << 12
-const OFFSET_FROM_BOSS_X: float = 1000.0
+const OFFSET_FROM_BOSS_X: float = 520.0
 const BARRIER_SIZE: Vector2 = Vector2(48.0, 2400.0)
 
 var body: StaticBody2D
