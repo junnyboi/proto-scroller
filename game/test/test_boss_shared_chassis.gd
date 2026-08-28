@@ -68,12 +68,25 @@ func test_body_defeat_launches_full_pooled_explosion_and_firework_barrage() -> v
 	assert_true(spectacle.explosion_emitters.any(
 		func(particles: GPUParticles2D) -> bool: return particles.emitting
 	))
+	assert_almost_eq(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS,
+		BossDefeatSpectacle2D.FIREWORK_TIMES[-1]
+		+ BossDefeatSpectacle2D.FIREWORK_PARTICLE_LIFETIME
+		+ BossDefeatSpectacle2D.COMPLETION_SETTLE_SECONDS,
+		0.001
+	)
 	spectacle.advance(2.05)
 	assert_eq(spectacle.explosion_trigger_count, 12)
 	assert_eq(spectacle.firework_trigger_count, 10)
 	assert_eq(spectacle.post_warm_creation_count, 0)
 	assert_eq(get_tree().get_node_count(), baseline_nodes)
-	spectacle.advance(1.0)
+	spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS - spectacle.elapsed - 0.01
+	)
+	assert_true(spectacle.active)
+	assert_eq(session.state, CommandBossSession.STATE_WRECK)
+	assert_not_null(session.boss_wreck)
+	spectacle.advance(0.02)
 	assert_false(spectacle.active)
 	assert_eq(session.state, CommandBossSession.STATE_COMPLETE)
 	assert_eq(session.automatic_rubble_commit_count, 1)

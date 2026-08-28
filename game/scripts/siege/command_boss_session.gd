@@ -213,6 +213,14 @@ func active() -> bool:
 	return state != STATE_IDLE and state != STATE_COMPLETE
 
 
+func defeat_celebration_active() -> bool:
+	return (
+		utility_pool != null
+		and utility_pool.defeat_spectacle != null
+		and utility_pool.defeat_spectacle.active
+	)
+
+
 func capture_attempt_state() -> Dictionary:
 	return {
 		"state": STATE_SCREEN,

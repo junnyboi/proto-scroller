@@ -58,7 +58,15 @@ func queue_royal_completion() -> bool:
 
 
 func queue_boss_salvage(definition: BossEncounterDefinition) -> bool:
-	if definition == null or session == null:
+	if (
+		definition == null
+		or session == null
+		or (
+			siege != null
+			and siege.boss_session != null
+			and siege.boss_session.defeat_celebration_active()
+		)
+	):
 		return false
 	if definition.district_id == &"ROYAL":
 		return session.queue_royal_completion(siege.cycle_count)

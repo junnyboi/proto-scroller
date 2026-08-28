@@ -18,9 +18,14 @@ const EXPLOSION_EMITTER_CAPACITY: int = 8
 const FIREWORK_EMITTER_CAPACITY: int = 6
 const EXPLOSION_PARTICLES_PER_EMITTER: int = 34
 const FIREWORK_PARTICLES_PER_EMITTER: int = 46
-const PRESENTATION_SECONDS: float = 2.95
 const EXPLOSION_LIFETIME: float = 0.76
 const FIREWORK_LIFETIME: float = 1.08
+const EXPLOSION_PARTICLE_LIFETIME: float = 1.18
+const FIREWORK_PARTICLE_LIFETIME: float = 1.48
+const COMPLETION_SETTLE_SECONDS: float = 0.12
+const PRESENTATION_SECONDS: float = (
+	2.00 + FIREWORK_PARTICLE_LIFETIME + COMPLETION_SETTLE_SECONDS
+)
 const EXPLOSION_TIMES: Array[float] = [
 	0.00, 0.08, 0.17, 0.27, 0.39, 0.53,
 	0.69, 0.87, 1.07, 1.29, 1.53, 1.79,
@@ -172,7 +177,7 @@ func _prewarm() -> void:
 			"ExplosionParticles%02d" % index,
 			EXPLOSION_TEXTURE,
 			EXPLOSION_PARTICLES_PER_EMITTER,
-			1.18,
+			EXPLOSION_PARTICLE_LIFETIME,
 			explosion_material
 		)
 		add_child(particles)
@@ -183,7 +188,7 @@ func _prewarm() -> void:
 			"FireworkParticles%02d" % index,
 			FIREWORK_TEXTURE,
 			FIREWORK_PARTICLES_PER_EMITTER,
-			1.48,
+			FIREWORK_PARTICLE_LIFETIME,
 			firework_material
 		)
 		add_child(particles)

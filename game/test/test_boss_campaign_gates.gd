@@ -341,9 +341,19 @@ func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 	for _step: int in range(60):
 		city.camera_rig._physics_process(0.1)
 	assert_false(city.camera_rig.path_clear_reveal_active())
+	assert_true(siege.boss_session.defeat_celebration_active())
+	assert_false(city.weapon_shop_assembler.session.active)
+	assert_false(city.weapon_shop_assembler.queue_boss_salvage(definition))
 	siege.boss_session.utility_pool.defeat_spectacle.advance(
-		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS - 0.01
 	)
+	assert_true(siege.boss_session.defeat_celebration_active())
+	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_NONE)
+	assert_false(city.weapon_shop_assembler.session.active)
+	siege.boss_session.utility_pool.defeat_spectacle.advance(
+		0.02
+	)
+	assert_false(siege.boss_session.defeat_celebration_active())
 	var rubble: Node2D = siege.boss_session.utility_pool.boss_rubble_record
 	var rubble_sprite: Sprite2D = rubble.get_child(0) as Sprite2D
 	assert_true(rubble.visible)

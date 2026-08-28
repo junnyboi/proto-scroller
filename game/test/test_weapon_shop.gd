@@ -116,6 +116,33 @@ func test_boss_salvage_opens_matching_shop_banks_score_and_keeps_handoff_held() 
 	assert_false(session.queue_act_completion(0, city.urban_siege.cycle_count))
 
 
+func test_every_boss_shop_waits_for_shared_defeat_celebration() -> void:
+	var city: CitySlice = await _spawn_city()
+	var assembler: WeaponShopAssembler = city.weapon_shop_assembler
+	var spectacle: BossDefeatSpectacle2D = (
+		city.urban_siege.boss_session.utility_pool.defeat_spectacle
+	)
+	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
+		spectacle.activate(Vector2.ZERO)
+		assert_true(
+			city.urban_siege.boss_session.defeat_celebration_active(),
+			String(definition.boss_id)
+		)
+		assert_false(
+			assembler.queue_boss_salvage(definition),
+			String(definition.boss_id)
+		)
+		assert_false(assembler.session.active, String(definition.boss_id))
+		assert_null(assembler.session.pending_district, String(definition.boss_id))
+		spectacle.deactivate()
+		assert_true(
+			assembler.queue_boss_salvage(definition),
+			String(definition.boss_id)
+		)
+		assert_true(assembler.session.active, String(definition.boss_id))
+		assert_true(assembler.session.close_shop(), String(definition.boss_id))
+
+
 func test_royal_shop_is_terminal_only() -> void:
 	var city: CitySlice = await _spawn_city()
 	var session: WeaponShopSession = city.weapon_shop_assembler.session
