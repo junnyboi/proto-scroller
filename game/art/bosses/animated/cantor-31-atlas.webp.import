@@ -17,7 +17,7 @@ dest_files=["res://.godot/imported/cantor-31-atlas.webp-a893ba9bc1db3c923ae8eeef
 
 compress/mode=1
 compress/high_quality=true
-compress/lossy_quality=0.7
+compress/lossy_quality=0.55
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

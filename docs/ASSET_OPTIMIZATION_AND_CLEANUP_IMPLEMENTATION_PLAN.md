@@ -23,7 +23,7 @@ The package cleanup is conservative. Dynamically constructed dossier resources a
 |---:|---|---|---:|---|---|
 | 1 | Safe runtime-package cleanup and eight PCM SFX imports | Web-preset exclusions plus QOA import | **832,068 bytes (0.794 MiB) measured** | Low–moderate | **Complete** |
 | 2 | Lossless enemy archetypes and upgrade icons | Convert eligible PNG imports to lossy quality `0.70` | **1,941,024 bytes (1.851 MiB) measured** | Moderate | **Complete** |
-| 3 | Existing boss and robot atlas compression | Boss quality `0.70→0.55`; robot `0.80→0.60` | Approximately 1.13 MiB combined | Moderate | Planned |
+| 3 | Existing boss and robot atlas compression | Boss quality `0.70→0.55`; robot `0.80→0.60` | **1,185,888 bytes (1.131 MiB) measured** | Moderate | **Complete** |
 | 4 | Selective audio bandwidth reduction | Voice-first 24 kHz trial, then bounded SFX expansion | 0.18–1.11 MiB depending scope | Moderate–high | Planned |
 | 5 | Grid-preserving atlas repacks | 75% boss-cell repack and robot idle-row split | At least 3.57 MiB for bosses; robot TBD | High | Planned |
 | 6 | Permanent package-budget enforcement | Inventory manifest, allowlists, and CI/export regression thresholds | Prevents recurrence | Low | Planned |
@@ -81,6 +81,8 @@ Phase 3 changes only import quality: five boss atlases move from `0.70` to `0.55
 
 Acceptance covers every boss moving and attacking east/west, white-hit flash, telegraph-to-active transitions, road grounding, defeat freeze, and title/responsive presentation where applicable. Robot validation covers all six 25-frame rows, idle, jab-cross, ground slam, charge hold/release, flash states, and outline stability. Failed visual comparisons revert individual atlases rather than weakening the entire threshold. The phase ends with the standard source push and exact WebDev synchronization.
 
+The completed Phase 3 changes only six tracked quality values. All five 8×4 boss atlases move from `0.70` to `0.55`, while the 25×7 robot atlas moves from `0.80` to `0.60`. Source bytes, hashes, dimensions, alpha coverage, UIDs, high-quality flags, size limits, and exact cell geometry are unchanged. Imported payload fell from 12,121,866 to 10,935,982 bytes. Against post-Phase-2 canonical baseline `89b4f2f`, the Web PCK fell from 24,402,560 to **23,216,672 bytes**, a reduction of **1,185,888 bytes (1.131 MiB; 4.8596 percent)**. Relative to the pre-Phase-2 `f68e076` PCK, Phases 2 and 3 together reduce the package by 3,126,832 bytes after accounting for 80 bytes of concurrent upstream growth. Full Xvfb, animation-gallery, and browser certification remain omitted under the release-gate override; deterministic source-identity, grid-geometry, policy, and fresh-export checks are complete.
+
 ## 7. Phase 4 — Selective sample-rate reduction
 
 Phase 4 is split into two release candidates. Candidate A limits the twelve voice/announcer WAVs to 24 kHz while preserving existing compression modes. Candidate B extends 24 kHz import limits to additional short WAV effects and combines the eight Phase 1 PCM sources with QOA. Candidate B proceeds only if Candidate A passes listening review and the download target still justifies broader change.
@@ -111,7 +113,7 @@ No phase may claim additive savings by summing overlapping standalone experiment
 |---:|---|---|---|
 | 1 | Implemented in `af5dc4a` and preserved through combined gameplay head `6d2f48d` | Candidate measured at 26,317,184 bytes before final combined export | Complete through the companion WebDev checkpoint and published host |
 | 2 | Thirty lossless textures normalized at quality `0.70` | 24,402,480-byte candidate; 1,941,024-byte same-tree reduction | Complete through the companion Phase 2 checkpoint |
-| 3 | Planned | Not started | Not started |
+| 3 | Five boss atlases at `0.55`; robot atlas at `0.60` | 23,216,672-byte candidate; 1,185,888-byte same-tree reduction | Complete through the companion Phase 3 checkpoint |
 | 4 | Planned | Not started | Not started |
 | 5 | Planned | Not started | Not started |
 | 6 | Planned | Not started | Not started |
