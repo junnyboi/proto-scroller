@@ -15,6 +15,9 @@ const CAMPAIGN_PROGRESS_SCRIPT: Script = preload(
 const COMBAT_PROFILE_SCRIPT: Script = preload(
 	"res://scripts/rampage/player_combat_profile_store.gd"
 )
+const RUNTIME_TWEAK_SERVICE_SCRIPT: Script = preload(
+	"res://scripts/tuning/runtime_tweak_service.gd"
+)
 const DUMMY_AUDIO_DRIVER_NAME: String = "Dummy"
 const FADE_TO_BLACK_SECONDS: float = 0.45
 const FADE_FROM_BLACK_SECONDS: float = 0.35
@@ -27,6 +30,7 @@ var city_slice: CitySlice
 var responsive_viewport: ResponsiveViewport
 var campaign_progress: CampaignProgressStore
 var combat_profile: PlayerCombatProfileStore
+var runtime_tweak_service: RuntimeTweakService
 var title_transition_active: bool = false
 var title_transition_duration_scale: float = 1.0
 var transition_kind: StringName = &"idle"
@@ -61,6 +65,11 @@ func _ready() -> void:
 	responsive_viewport.name = "ResponsiveViewport"
 	add_child(responsive_viewport)
 	responsive_viewport.setup()
+	runtime_tweak_service = RUNTIME_TWEAK_SERVICE_SCRIPT.new() as RuntimeTweakService
+	runtime_tweak_service.name = "RuntimeTweakService"
+	add_child(runtime_tweak_service)
+	var tuning_errors: PackedStringArray = runtime_tweak_service.setup()
+	assert(tuning_errors.is_empty(), "Runtime tuning setup failed: %s" % [tuning_errors])
 	_show_title()
 	_publish_title_transition_phase("idle")
 	if not background_music_player.tree_exiting.is_connected(_release_background_music):
@@ -315,12 +324,20 @@ func _return_to_title() -> void:
 func _spawn_city_slice() -> void:
 	city_slice = CITY_SCENE.instantiate() as CitySlice
 	city_slice.name = "CitySlice"
+	var run_seed: int = CityWorldBuilder.initial_run_seed(
+		city_slice._web_gameplay_smoke_requested()
+	)
+	city_slice.launch_run_seed = run_seed
+	if runtime_tweak_service != null:
+		runtime_tweak_service.freeze_run(run_seed)
 	city_slice.campaign_progress = campaign_progress
 	city_slice.combat_profile = combat_profile
 	city_slice.retry_requested.connect(retry_game)
 	city_slice.defeat_requested.connect(present_defeat_with_transition)
 	city_slice.title_requested.connect(return_to_title_with_transition)
 	add_child(city_slice)
+	if runtime_tweak_service != null:
+		runtime_tweak_service.bind_city(city_slice)
 
 
 func _show_title(restart_music: bool = false) -> void:

@@ -211,8 +211,8 @@ Per current project directive, repository-wide certification, slow Xvfb matrices
 
 | Work package | Status | Source revision | Evidence |
 |---|---|---|---|
-| WP0 | In progress | — | — |
-| WP1 | Pending | — | — |
+| WP0 | Complete | `1c3423c164ae60cfd13724ce6b3f1ec423c3470a` | Fixed due-hazard activation/removal, reconciled the Aegis Patch Cell at 50 HP, and passed `runtime_tweak_prerequisites`: 2 tests / 7 assertions. |
+| WP1 | In progress | — | Typed catalog, service, snapshots, hash, provenance, and persistence implemented; source integration pending. |
 | WP2 | Pending | — | — |
 | WP3 | Pending | — | — |
 | WP4 | Pending | — | — |
