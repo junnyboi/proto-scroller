@@ -791,5 +791,7 @@
   "tuning.param.world_weather_motion_multiplier": "天气运动速度",
   "tuning.desc.world_weather_motion_multiplier": "调整天气运动速度。生效时机：立即。",
   "tuning.param.world_weather_opacity_multiplier": "天气不透明度",
-  "tuning.desc.world_weather_opacity_multiplier": "调整天气不透明度。生效时机：立即。"
+  "tuning.desc.world_weather_opacity_multiplier": "调整天气不透明度。生效时机：立即。",
+  "debrief.tuning_meta": "  /  {status}  /  配置 {hash}",
+  "debrief.global.state.unranked": "已调校本局  //  已阻止提交"
 }

@@ -127,6 +127,22 @@ func present(
 		"total": CityDistrictCatalog.BUILDING_VARIANT_COUNT,
 		"generation": continuity_generation,
 	})
+	var compact_hash: String = (
+		summary.tuning_configuration_hash.left(10)
+		if not summary.tuning_configuration_hash.is_empty()
+		else "DEFAULT"
+	)
+	run_meta_label.text += L10n.t("debrief.tuning_meta", {
+		"status": L10n.t(
+			"tuning.status.%s" % String(summary.tuning_status).to_lower()
+		),
+		"hash": compact_hash,
+	})
+	run_meta_label.tooltip_text = "%s\n%s" % [
+		summary.tuning_configuration_hash,
+		", ".join(summary.tuning_reasons),
+	]
+	run_meta_label.modulate = MUTED if summary.tuning_ranked_eligible else AMBER
 	var combo_title: String = _combo_title(summary.highest_combo_tier)
 	combo_value_label.text = "%s\n%s" % [
 		combo_title,

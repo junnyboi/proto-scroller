@@ -791,5 +791,7 @@
   "tuning.param.world_weather_motion_multiplier": "Weather motion",
   "tuning.desc.world_weather_motion_multiplier": "Adjusts weather motion. Application: LIVE.",
   "tuning.param.world_weather_opacity_multiplier": "Weather opacity",
-  "tuning.desc.world_weather_opacity_multiplier": "Adjusts weather opacity. Application: LIVE."
+  "tuning.desc.world_weather_opacity_multiplier": "Adjusts weather opacity. Application: LIVE.",
+  "debrief.tuning_meta": "  /  {status}  /  CFG {hash}",
+  "debrief.global.state.unranked": "TUNED RUN  //  SUBMISSION BLOCKED"
 }

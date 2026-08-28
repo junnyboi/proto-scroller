@@ -97,6 +97,21 @@ var new_score_record: bool:
 var career_snapshot: Dictionary:
 	get:
 		return _career_snapshot.duplicate(true)
+var tuning_status: StringName:
+	get:
+		return _tuning_status
+var tuning_ranked_eligible: bool:
+	get:
+		return _tuning_ranked_eligible
+var tuning_configuration_hash: String:
+	get:
+		return _tuning_configuration_hash
+var tuning_catalog_revision: String:
+	get:
+		return _tuning_catalog_revision
+var tuning_reasons: PackedStringArray:
+	get:
+		return _tuning_reasons.duplicate()
 
 var _score: int
 var _peak_combo: int
@@ -130,6 +145,11 @@ var _preferred_weapon_kills: int
 var _new_combo_record: bool
 var _new_score_record: bool
 var _career_snapshot: Dictionary
+var _tuning_status: StringName
+var _tuning_ranked_eligible: bool
+var _tuning_configuration_hash: String
+var _tuning_catalog_revision: String
+var _tuning_reasons: PackedStringArray
 
 
 func _init(
@@ -173,6 +193,11 @@ func _init(
 	_new_combo_record = bool(metrics.get("new_combo_record", false))
 	_new_score_record = bool(metrics.get("new_score_record", false))
 	_career_snapshot = (metrics.get("career_snapshot", {}) as Dictionary).duplicate(true)
+	_tuning_status = metrics.get("tuning_status", &"BASELINE") as StringName
+	_tuning_ranked_eligible = bool(metrics.get("tuning_ranked_eligible", true))
+	_tuning_configuration_hash = String(metrics.get("tuning_configuration_hash", ""))
+	_tuning_catalog_revision = String(metrics.get("tuning_catalog_revision", ""))
+	_tuning_reasons = PackedStringArray(metrics.get("tuning_reasons", PackedStringArray()))
 
 
 func with_career_result(result: Dictionary) -> RunSummarySnapshot:
@@ -182,6 +207,24 @@ func with_career_result(result: Dictionary) -> RunSummarySnapshot:
 	metrics["career_snapshot"] = (
 		result.get("career_snapshot", {}) as Dictionary
 	).duplicate(true)
+	return RunSummarySnapshot.new(
+		_score,
+		_peak_combo,
+		_best_chain,
+		_waves_cleared,
+		_overdrive_activations,
+		_rare_events,
+		metrics
+	)
+
+
+func with_tuning_provenance(provenance: Dictionary) -> RunSummarySnapshot:
+	var metrics: Dictionary = _metric_snapshot()
+	metrics["tuning_status"] = provenance.get("status", &"BASELINE")
+	metrics["tuning_ranked_eligible"] = bool(provenance.get("ranked_eligible", true))
+	metrics["tuning_configuration_hash"] = String(provenance.get("configuration_hash", ""))
+	metrics["tuning_catalog_revision"] = String(provenance.get("catalog_revision", ""))
+	metrics["tuning_reasons"] = PackedStringArray(provenance.get("reasons", PackedStringArray()))
 	return RunSummarySnapshot.new(
 		_score,
 		_peak_combo,
@@ -221,6 +264,11 @@ func _metric_snapshot() -> Dictionary:
 		"new_combo_record": _new_combo_record,
 		"new_score_record": _new_score_record,
 		"career_snapshot": _career_snapshot.duplicate(true),
+		"tuning_status": _tuning_status,
+		"tuning_ranked_eligible": _tuning_ranked_eligible,
+		"tuning_configuration_hash": _tuning_configuration_hash,
+		"tuning_catalog_revision": _tuning_catalog_revision,
+		"tuning_reasons": _tuning_reasons.duplicate(),
 	}
 
 
