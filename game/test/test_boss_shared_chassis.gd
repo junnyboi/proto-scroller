@@ -317,7 +317,7 @@ func _charged_event(attack_id: int, root_attack_id: int) -> DamageEvent:
 	return DamageEvent.new(
 		attack_id,
 		city.robot,
-		999.0,
+		110.0,
 		&"jab_cross",
 		Vector2.ZERO,
 		Vector2.RIGHT,

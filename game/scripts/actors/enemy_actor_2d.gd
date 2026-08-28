@@ -16,18 +16,6 @@ signal boss_armor_changed(current: float, maximum: float)
 signal health_changed(current: float, maximum: float)
 signal boss_armor_broken()
 
-enum ArmorPolicy {
-	LEGACY_AMOUNT_BASED,
-	FULL_CHARGE_FIXED_STEP,
-	ALL_DAMAGE,
-}
-
-enum BossDamageResult {
-	CONTINUE,
-	ACCEPTED,
-	REJECTED,
-}
-
 const MINIMUM_TELEGRAPH_SECONDS: float = 0.32
 const SURVIVING_MELEE_KNOCKBACK_MULTIPLIER: float = 5.0
 const SURVIVING_PLAYER_LIGHT_VEHICLE_KNOCKBACK_MULTIPLIER: float = 0.45
@@ -81,8 +69,6 @@ var boss_mode: bool = false
 var hidden_authority: bool = false
 var boss_armor: float = 0.0
 var boss_max_armor: float = 0.0
-var boss_armor_policy: ArmorPolicy = ArmorPolicy.LEGACY_AMOUNT_BASED
-var boss_armor_fixed_step: float = 110.0
 var player_anticipation_count: int = 0
 var player_strike_reaction_count: int = 0
 var last_player_reaction_attack_id: int = 0
@@ -199,9 +185,9 @@ func receive_damage(event: DamageEvent) -> bool:
 	if transformed_event == null or transformed_event.amount <= 0.0:
 		return true
 	event = transformed_event
-	var boss_result: BossDamageResult = _receive_boss_armor_damage(event)
-	if boss_result != BossDamageResult.CONTINUE:
-		return boss_result == BossDamageResult.ACCEPTED
+	if boss_mode and boss_armor > 0.0:
+		_receive_boss_armor_damage(event)
+		return true
 	var accepted_event: DamageEvent = event
 	if _shield_available:
 		_shield_available = false
@@ -247,24 +233,11 @@ func _ground_vehicle_weight_class() -> StringName:
 	return EnemyArchetypeCatalog.vehicle_weight_class(archetype_id)
 
 
-func _receive_boss_armor_damage(event: DamageEvent) -> BossDamageResult:
-	if not boss_mode or boss_armor <= 0.0:
-		return BossDamageResult.CONTINUE
-	if (
-		boss_armor_policy != ArmorPolicy.ALL_DAMAGE
-		and event.damage_type != &"jab_cross"
-	):
-		return BossDamageResult.REJECTED
-	var armor_damage: float = event.amount
-	if boss_armor_policy == ArmorPolicy.FULL_CHARGE_FIXED_STEP:
-		if event.effect_flags & DamageEvent.FLAG_FULL_CHARGE == 0:
-			return BossDamageResult.REJECTED
-		armor_damage = boss_armor_fixed_step
-	boss_armor = maxf(boss_armor - armor_damage, 0.0)
+func _receive_boss_armor_damage(event: DamageEvent) -> void:
+	boss_armor = maxf(boss_armor - event.amount, 0.0)
 	boss_armor_changed.emit(boss_armor, boss_max_armor)
 	if is_zero_approx(boss_armor):
 		boss_armor_broken.emit()
-	return BossDamageResult.ACCEPTED
 
 
 func request_projectile(
@@ -478,16 +451,12 @@ func clear_profiles() -> void:
 
 func configure_boss(
 	armor: float,
-	exposed_health: float,
-	armor_policy: ArmorPolicy = ArmorPolicy.LEGACY_AMOUNT_BASED,
-	fixed_step: float = 110.0
+	exposed_health: float
 ) -> void:
 	boss_mode = true
 	_boss_base_health = maxf(exposed_health, 1.0)
 	boss_max_armor = maxf(armor, 1.0)
 	boss_armor = boss_max_armor
-	boss_armor_policy = armor_policy
-	boss_armor_fixed_step = maxf(fixed_step, 1.0)
 	max_health = _boss_base_health * cycle_health_multiplier
 	current_health = max_health
 	boss_armor_changed.emit(boss_armor, boss_max_armor)
@@ -530,8 +499,6 @@ func deactivate() -> void:
 	_boss_base_health = 0.0
 	boss_armor = 0.0
 	boss_max_armor = 0.0
-	boss_armor_policy = ArmorPolicy.LEGACY_AMOUNT_BASED
-	boss_armor_fixed_step = 110.0
 	hidden_authority = false
 	active = false
 	dead = false

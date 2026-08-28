@@ -30,7 +30,7 @@ func after_each() -> void:
 func test_choir_prime_uses_five_pylons_three_connections_and_commits_crown_first() -> void:
 	_start_royal()
 	assert_eq(session.active_definition.armor, 330.0)
-	assert_eq(session.active_definition.armor_fixed_step, 110.0)
+	assert_eq(session.active_definition.armor_milestone_step, 110.0)
 	assert_eq(_visible_pylon_count(), 5)
 	assert_true(royal.all_pylons_distinct())
 	assert_eq(royal.live_support_count(), 0)
@@ -309,7 +309,7 @@ func _charged_event(attack_id: int) -> DamageEvent:
 	return DamageEvent.new(
 		attack_id,
 		city.robot,
-		999.0,
+		110.0,
 		&"jab_cross",
 		Vector2.ZERO,
 		Vector2.RIGHT,

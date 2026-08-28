@@ -1,6 +1,17 @@
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+const PLAYER_ATTACK_DAMAGE_TYPES: Array[StringName] = [
+	&"jab_cross",
+	&"ground_smash",
+	&"punch_shockwave",
+	&"machine_gun",
+	&"missile",
+	&"laser",
+	&"flamethrower",
+	&"tesla_tower",
+	&"debris_impact",
+]
 
 var city: CitySlice
 var session: CommandBossSession
@@ -28,116 +39,53 @@ func test_boss_reuses_one_tank_and_enters_reserved_barrage() -> void:
 	assert_eq(city.projectile_root.reservation_count(&"shell"), 1)
 
 
-func test_only_jab_cross_breaks_armor_then_body_accepts_damage() -> void:
+func test_every_player_attack_type_damages_default_boss_armor() -> void:
 	assert_true(session.start())
 	var boss: TankEnemy = session.boss
-	var armor_before: float = boss.boss_armor
-	assert_false(boss.receive_damage(DamageEvent.new(
-		1001, city.robot, 999.0, &"ground_smash"
-	)))
-	assert_almost_eq(boss.boss_armor, armor_before, 0.001)
-	for index: int in range(3):
+	for index: int in range(PLAYER_ATTACK_DAMAGE_TYPES.size()):
+		var armor_before: float = boss.boss_armor
 		assert_true(boss.receive_damage(DamageEvent.new(
-			1010 + index,
+			1001 + index,
 			city.robot,
-			110.0,
-			&"jab_cross"
+			10.0,
+			PLAYER_ATTACK_DAMAGE_TYPES[index]
 		)))
+		assert_almost_eq(boss.boss_armor, armor_before - 10.0, 0.001)
+	assert_true(boss.receive_damage(DamageEvent.new(
+		1020, city.robot, boss.boss_armor, &"unregistered_future_player_attack"
+	)))
 	assert_eq(session.state, CommandBossSession.STATE_EXPOSED)
 	assert_almost_eq(boss.boss_armor, 0.0, 0.001)
 	assert_true(boss.receive_damage(DamageEvent.new(
-		1020, city.robot, 80.0, &"ground_smash"
+		1021, city.robot, 80.0, &"ground_smash"
 	)))
 	assert_almost_eq(boss.current_health, CommandBossSession.HEALTH - 80.0, 0.001)
 
 
-func test_legacy_amount_policy_still_accepts_one_oversized_jab_cross() -> void:
-	assert_true(session.start())
-	assert_eq(
-		session.boss.boss_armor_policy,
-		EnemyActor2D.ArmorPolicy.LEGACY_AMOUNT_BASED
-	)
-	assert_true(session.boss.receive_damage(DamageEvent.new(
-		1050, city.robot, CommandBossSession.ARMOR, &"jab_cross"
-	)))
-	assert_eq(session.state, CommandBossSession.STATE_EXPOSED)
-	assert_almost_eq(session.boss.boss_armor, 0.0, 0.001)
-
-
-func test_later_campaign_policy_requires_three_distinct_full_charge_fixed_steps() -> void:
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[1]
-	assert_true(session.start_definition(definition))
-	var boss: TankEnemy = session.boss
-	assert_eq(boss.boss_armor_policy, EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP)
-	assert_false(boss.receive_damage(DamageEvent.new(
-		1060, city.robot, 999.0, &"jab_cross"
-	)))
-	assert_almost_eq(boss.boss_armor, 330.0, 0.001)
-	for index: int in range(3):
-		assert_true(boss.receive_damage(DamageEvent.new(
-			1061 + index,
-			city.robot,
-			999.0,
-			&"jab_cross",
-			Vector2.ZERO,
-			Vector2.RIGHT,
-			0.0,
-			0,
-			0,
-			DamageEvent.FLAG_FULL_CHARGE
-		)))
-		assert_almost_eq(boss.boss_armor, 220.0 - 110.0 * index, 0.001)
-	assert_eq(session.state, CommandBossSession.STATE_EXPOSED)
-	assert_false(boss.receive_damage(DamageEvent.new(
-		1063, city.robot, 40.0, &"impact"
-	)))
-	assert_true(boss.receive_damage(DamageEvent.new(
-		1070, city.robot, 40.0, &"impact"
-	)))
-	assert_almost_eq(boss.current_health, definition.health - 40.0, 0.001)
-
-
-func test_later_campaign_armor_rejections_provide_exact_input_feedback() -> void:
-	var definition: BossEncounterDefinition = BossCampaignCatalog.definitions()[1]
-	assert_true(session.start_definition(definition))
-	var rig: BossRig2D = session.utility_pool.rig
-	assert_false(rig.receive_damage(DamageEvent.new(
-		1090, city.robot, 999.0, &"ground_smash"
-	)))
-	assert_eq(
-		String(session.live_boss_feedback().objective),
-		L10n.t("boss.feedback.keep_moving")
-	)
-	assert_false(rig.receive_damage(DamageEvent.new(
-		1091, city.robot, 999.0, &"jab_cross"
-	)))
-	assert_eq(
-		String(session.live_boss_feedback().objective),
-		L10n.t("boss.feedback.full_charge")
-	)
-	assert_false(rig.receive_damage(DamageEvent.new(
-		1092, city.robot, 999.0, &"bullet"
-	)))
-	assert_eq(
-		String(session.live_boss_feedback().objective),
-		L10n.t("boss.feedback.armor_locked")
-	)
-	assert_true(rig.receive_damage(DamageEvent.new(
-		1093,
-		city.robot,
-		999.0,
-		&"jab_cross",
-		Vector2.ZERO,
-		Vector2.RIGHT,
-		0.0,
-		1093,
-		0,
-		DamageEvent.FLAG_FULL_CHARGE
-	)))
-	assert_eq(
-		String(session.live_boss_feedback().objective),
-		L10n.t("boss.objective.business.connect", {"current": 1, "total": 3})
-	)
+func test_every_player_attack_type_damages_every_campaign_boss_armor() -> void:
+	var attack_id: int = 1050
+	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
+		assert_true(session.start_definition(definition), String(definition.boss_id))
+		var boss: TankEnemy = session.boss
+		var rig: BossRig2D = session.utility_pool.rig
+		var flash_count_before: int = rig.damage_flash_count
+		for damage_type: StringName in PLAYER_ATTACK_DAMAGE_TYPES:
+			var armor_before: float = boss.boss_armor
+			assert_true(rig.receive_damage(DamageEvent.new(
+				attack_id, city.robot, 1.0, damage_type
+			)), "%s %s" % [definition.boss_id, damage_type])
+			assert_almost_eq(
+				boss.boss_armor,
+				armor_before - 1.0,
+				0.001,
+				"%s %s" % [definition.boss_id, damage_type]
+			)
+			attack_id += 1
+		assert_eq(
+			rig.damage_flash_count,
+			flash_count_before + PLAYER_ATTACK_DAMAGE_TYPES.size()
+		)
+		session.stop()
 
 
 func test_jab_cross_event_propagates_full_charge_flag() -> void:
@@ -152,7 +100,7 @@ func test_jab_cross_event_propagates_full_charge_flag() -> void:
 	assert_ne(event.effect_flags & DamageEvent.FLAG_FULL_CHARGE, 0)
 
 
-func test_repeated_legacy_and_campaign_start_stop_loops_do_not_grow_runtime() -> void:
+func test_repeated_default_and_campaign_start_stop_loops_do_not_grow_runtime() -> void:
 	var baseline: Dictionary = RuntimeBudget.snapshot(city)
 	for loop_index: int in range(25):
 		assert_true(

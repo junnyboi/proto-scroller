@@ -1,8 +1,6 @@
 class_name BossRig2D
 extends Node2D
 
-signal damage_forwarded(event: DamageEvent, accepted: bool)
-
 const HURTBOX_LAYER: int = 1 << 6
 const PART_CAPACITY: int = 6
 const SOCKET_CAPACITY: int = 8
@@ -149,7 +147,6 @@ func receive_damage(event: DamageEvent) -> bool:
 	var accepted: bool = host.receive_damage(event)
 	if accepted:
 		_flash_damage()
-	damage_forwarded.emit(event, accepted)
 	return accepted
 
 

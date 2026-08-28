@@ -24,9 +24,7 @@ const DEFAULT_GROUND_SMASH_RADIUS: float = 96.0
 @export_range(1.0, 5000.0, 1.0) var health: float = 320.0
 @export_range(0.0, 20.0, 0.05) var screen_seconds: float = 4.0
 @export var phase_thresholds: PackedFloat32Array = PackedFloat32Array()
-@export var armor_damage_type: StringName = &"jab_cross"
-@export var armor_policy: int = EnemyActor2D.ArmorPolicy.LEGACY_AMOUNT_BASED
-@export_range(1.0, 1000.0, 1.0) var armor_fixed_step: float = 110.0
+@export_range(1.0, 1000.0, 1.0) var armor_milestone_step: float = 110.0
 @export var direct_damage_route: bool = true
 @export var exposed_damage_types: PackedStringArray = PackedStringArray()
 @export var phases: Array[BossPhaseDefinition] = []
@@ -108,19 +106,8 @@ func _validate_damage(errors: PackedStringArray) -> void:
 		errors.append("invalid durability for %s" % boss_id)
 	if not direct_damage_route or exposed_damage_types.is_empty():
 		errors.append("direct damage route missing for %s" % boss_id)
-	if armor_damage_type.is_empty():
-		errors.append("armor damage type missing for %s" % boss_id)
-	if armor_policy not in [
-		EnemyActor2D.ArmorPolicy.LEGACY_AMOUNT_BASED,
-		EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP,
-		EnemyActor2D.ArmorPolicy.ALL_DAMAGE,
-	]:
-		errors.append("invalid armor policy for %s" % boss_id)
-	if (
-		armor_policy == EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP
-		and armor_fixed_step <= 0.0
-	):
-		errors.append("fixed armor step missing for %s" % boss_id)
+	if armor_milestone_step <= 0.0:
+		errors.append("armor milestone step missing for %s" % boss_id)
 	var previous_threshold: float = 1.01
 	for threshold: float in phase_thresholds:
 		if threshold <= 0.0 or threshold >= previous_threshold:

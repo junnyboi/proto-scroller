@@ -355,7 +355,10 @@ func test_automatic_rubble_preserves_stage_and_arsenal_payloads() -> void:
 		_start(StringName(test_case.boss_id))
 		var armor_steps: int = 0
 		while session.boss.boss_armor > 0.0 and armor_steps < 12:
-			assert_true(session.boss.receive_damage(_charged_event(attack_id)))
+			assert_true(session.boss.receive_damage(_charged_event(
+				attack_id,
+				session.active_definition.armor_milestone_step
+			)))
 			attack_id += 1
 			armor_steps += 1
 		assert_eq(session.boss.boss_armor, 0.0)
@@ -407,11 +410,11 @@ func _attack_cycle_seconds() -> float:
 	)
 
 
-func _charged_event(attack_id: int) -> DamageEvent:
+func _charged_event(attack_id: int, amount: float = 999.0) -> DamageEvent:
 	return DamageEvent.new(
 		attack_id,
 		city.robot,
-		999.0,
+		amount,
 		&"jab_cross",
 		Vector2.ZERO,
 		Vector2.RIGHT,

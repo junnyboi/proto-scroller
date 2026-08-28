@@ -46,7 +46,6 @@ var _state_elapsed: float = 0.0
 var _screen_duration: float = SCREEN_DURATION
 var _pending_attempt_restore: Dictionary = {}
 var _completion_payload: Dictionary = {}
-var _armor_feedback_key: String = ""
 var _royal_finisher_attacks: Dictionary[int, bool] = {}
 var _royal_finisher_roots: Dictionary[int, bool] = {}
 
@@ -77,7 +76,6 @@ func setup(p_dependencies: UrbanSiegeDependencies) -> void:
 	royal_finale.severance_receiver_moved.connect(_on_severance_receiver_moved)
 	royal_finale.attack_changed.connect(_on_royal_boss_attack_changed)
 	add_child(royal_finale)
-	utility_pool.rig.damage_forwarded.connect(_on_rig_damage_forwarded)
 
 
 func start() -> bool:
@@ -141,9 +139,7 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 		boss.set_meta(&"enemy_boss_id", active_definition.boss_id)
 		boss.configure_boss(
 			active_definition.armor,
-			active_definition.health * exposed_health_multiplier,
-			active_definition.armor_policy,
-			active_definition.armor_fixed_step
+			active_definition.health * exposed_health_multiplier
 		)
 		_configure_campaign_runtime()
 	if _is_choir_prime():
@@ -161,7 +157,6 @@ func _start_encounter(definition: BossEncounterDefinition) -> bool:
 	last_repair_drop_count = 0
 	automatic_rubble_commit_count = 0
 	path_clear_camera_reveal_count = 0
-	_armor_feedback_key = ""
 	_royal_finisher_attacks.clear()
 	_royal_finisher_roots.clear()
 	_apply_pending_attempt_restore()
@@ -277,8 +272,6 @@ func live_boss_feedback() -> Dictionary:
 		feedback = utility_pool.escalation.hud_feedback()
 	elif royal_finale.active():
 		feedback = royal_finale.hud_feedback()
-	if not _armor_feedback_key.is_empty():
-		feedback["objective"] = L10n.t(_armor_feedback_key)
 	return feedback
 
 
@@ -320,22 +313,22 @@ func _on_boss_health_changed(current: float, maximum: float) -> void:
 
 func _on_boss_armor_changed(current: float, maximum: float) -> void:
 	if _is_choir_prime():
-		var connection_count: int = roundi(
-			(maximum - current) / maxf(active_definition.armor_fixed_step, 1.0)
+		var connection_count: int = floori(
+			(maximum - current) / maxf(active_definition.armor_milestone_step, 1.0)
 		)
 		while royal_finale.armor_connections < connection_count:
 			royal_finale.register_armor_connection()
 		if connection_count >= BossRoyalFinaleController.CONNECTION_COUNT:
 			_commit_crown_pylon_transaction()
 	elif utility_pool.vertical_slice.active():
-		var connection_count: int = roundi(
-			(maximum - current) / maxf(active_definition.armor_fixed_step, 1.0)
+		var connection_count: int = floori(
+			(maximum - current) / maxf(active_definition.armor_milestone_step, 1.0)
 		)
 		while utility_pool.vertical_slice.armor_connections < connection_count:
 			utility_pool.vertical_slice.register_armor_connection()
 	elif utility_pool.escalation.active():
-		var connection_count: int = roundi(
-			(maximum - current) / maxf(active_definition.armor_fixed_step, 1.0)
+		var connection_count: int = floori(
+			(maximum - current) / maxf(active_definition.armor_milestone_step, 1.0)
 		)
 		while utility_pool.escalation.armor_connections < connection_count:
 			utility_pool.escalation.register_armor_connection()
@@ -343,7 +336,6 @@ func _on_boss_armor_changed(current: float, maximum: float) -> void:
 
 
 func _on_boss_armor_broken() -> void:
-	_armor_feedback_key = ""
 	utility_pool.rig.set_armor_target_active(false)
 	var slice_state: Dictionary = (
 		utility_pool.vertical_slice.capture_state()
@@ -751,22 +743,6 @@ func _rig_facing() -> StringName:
 		if dependencies.robot.global_position.x < boss.global_position.x
 		else BossRig2D.DIRECTION_EAST
 	)
-
-
-func _on_rig_damage_forwarded(event: DamageEvent, accepted: bool) -> void:
-	if event == null or boss == null or boss.boss_armor <= 0.0:
-		return
-	if accepted:
-		_armor_feedback_key = ""
-	elif event.damage_type == &"ground_smash":
-		_armor_feedback_key = "boss.feedback.keep_moving"
-	elif event.damage_type == &"jab_cross" and (
-		event.effect_flags & DamageEvent.FLAG_FULL_CHARGE == 0
-	):
-		_armor_feedback_key = "boss.feedback.full_charge"
-	else:
-		_armor_feedback_key = "boss.feedback.armor_locked"
-	feedback_changed.emit()
 
 
 func _next_generation() -> void:

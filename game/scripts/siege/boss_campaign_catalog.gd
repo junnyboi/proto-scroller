@@ -298,12 +298,9 @@ static func _ensure_catalog() -> void:
 			PackedVector2Array([Vector2(-128.0, 0.0), Vector2(128.0, 0.0)])
 			),
 		]
-	var first_boss: BossEncounterDefinition = _definitions.front()
-	first_boss.armor_policy = EnemyActor2D.ArmorPolicy.ALL_DAMAGE
-	first_boss.armor_damage_type = &"all"
 	var finale: BossEncounterDefinition = _definitions.back()
 	finale.armor = 330.0
-	finale.armor_fixed_step = 110.0
+	finale.armor_milestone_step = 110.0
 	_definitions_by_id.clear()
 	_definitions_by_trigger.clear()
 	for definition_value: BossEncounterDefinition in _definitions:
@@ -345,13 +342,9 @@ static func _make_definition(
 	definition_value.health = 320.0
 	definition_value.screen_seconds = 4.0
 	definition_value.phase_thresholds = PackedFloat32Array([0.66, 0.33])
-	definition_value.armor_damage_type = &"jab_cross"
-	definition_value.armor_policy = EnemyActor2D.ArmorPolicy.FULL_CHARGE_FIXED_STEP
-	definition_value.armor_fixed_step = 110.0
+	definition_value.armor_milestone_step = 110.0
 	definition_value.direct_damage_route = true
-	definition_value.exposed_damage_types = PackedStringArray([
-		"jab_cross", "ground_smash", "bullet", "shell", "rocket", "impact",
-	])
+	definition_value.exposed_damage_types = PackedStringArray(["all"])
 	definition_value.phases = _make_phases(phase_ids, support_reservations)
 	definition_value.rig_preset = preset_id
 	definition_value.behavior_preset = preset_id
