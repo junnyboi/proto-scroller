@@ -23,7 +23,34 @@ func test_project_maps_standard_gamepad_pilot_controls() -> void:
 	assert_true(_has_joy_button(&"move_right", JOY_BUTTON_DPAD_RIGHT))
 	assert_true(_has_joy_button(&"stomp", JOY_BUTTON_A))
 	assert_true(_has_joy_button(&"dodge", JOY_BUTTON_B))
+	assert_true(_has_key(&"stomp", KEY_SPACE))
+	assert_false(_has_key(&"ui_accept", KEY_SPACE))
 	assert_eq(InputBindingSettings.keyboard_key(&"dodge"), KEY_SHIFT)
+	_record_test_execution()
+
+
+func test_spacebar_is_reserved_for_melee_and_sanitized_from_other_actions() -> void:
+	var ui_space: InputEventKey = InputEventKey.new()
+	ui_space.keycode = KEY_SPACE
+	ui_space.unicode = int(KEY_SPACE)
+	InputMap.action_add_event(&"ui_accept", ui_space)
+	var movement_space: InputEventKey = InputEventKey.new()
+	movement_space.physical_keycode = KEY_SPACE
+	InputMap.action_add_event(&"move_left", movement_space)
+	assert_true(_has_key(&"ui_accept", KEY_SPACE))
+	assert_true(_has_key(&"move_left", KEY_SPACE))
+	InputBindingSettings.enforce_spacebar_melee_exclusivity()
+	assert_false(_has_key(&"ui_accept", KEY_SPACE))
+	assert_false(_has_key(&"move_left", KEY_SPACE))
+	assert_true(_has_key(&"stomp", KEY_SPACE))
+	assert_false(
+		InputBindingSettings.set_keyboard_binding(
+			&"move_right",
+			KEY_SPACE,
+			TEST_PREFERENCE_PATH
+		)
+	)
+	assert_eq(InputBindingSettings.keyboard_key(&"move_right"), KEY_D)
 	_record_test_execution()
 
 
@@ -184,6 +211,20 @@ func _has_joy_button(action: StringName, button_index: JoyButton) -> bool:
 	for event: InputEvent in InputMap.action_get_events(action):
 		var button_event: InputEventJoypadButton = event as InputEventJoypadButton
 		if button_event != null and button_event.button_index == button_index:
+			return true
+	return false
+
+
+func _has_key(action: StringName, keycode: Key) -> bool:
+	for event: InputEvent in InputMap.action_get_events(action):
+		var key_event: InputEventKey = event as InputEventKey
+		if key_event == null:
+			continue
+		if (
+			key_event.keycode == keycode
+			or key_event.physical_keycode == keycode
+			or key_event.unicode == int(keycode)
+		):
 			return true
 	return false
 
