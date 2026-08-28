@@ -41,7 +41,7 @@ var _portrait: bool = false
 func _ready() -> void:
 	name = "RuntimeTweakPanel"
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	z_index = 90
 	visible = false
@@ -121,6 +121,10 @@ func refresh_locale() -> void:
 func apply_responsive_layout(viewport_size: Vector2) -> void:
 	if frame == null:
 		return
+	# Main is a plain Node, so Control anchors have no parent rectangle to resolve.
+	# Own the viewport rectangle explicitly before sizing anchored children.
+	position = Vector2.ZERO
+	size = viewport_size
 	var portrait: bool = viewport_size.y > viewport_size.x
 	_portrait = portrait
 	var margin: float = 14.0 if portrait else 22.0

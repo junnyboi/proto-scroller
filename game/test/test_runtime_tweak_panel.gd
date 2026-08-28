@@ -96,6 +96,8 @@ func test_panel_fits_landscape_and_portrait_without_rebuilding_rows() -> void:
 		row_ids.append(row.get_instance_id())
 	for size: Vector2 in [Vector2(1280.0, 720.0), Vector2(720.0, 1280.0)]:
 		panel.apply_responsive_layout(size)
+		assert_eq(panel.position, Vector2.ZERO)
+		assert_eq(panel.size, size)
 		assert_gte(panel.frame.position.x, 0.0)
 		assert_gte(panel.frame.position.y, 0.0)
 		assert_lte(panel.frame.position.x + panel.frame.size.x, size.x)
