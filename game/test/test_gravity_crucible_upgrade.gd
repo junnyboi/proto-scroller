@@ -114,6 +114,52 @@ func test_release_aims_each_debris_body_towards_nearby_enemies() -> void:
 	assert_gte(second.max_linear_speed, 2050.0)
 
 
+func test_locked_air_target_receives_every_debris_ahead_of_ground_targets() -> void:
+	var city: CitySlice = await _spawn_city()
+	var runtime: GravityCrucibleRuntime = _runtime(city)
+	assert_true(runtime.apply_rank(3))
+	var debris_bodies: Array[DebrisBody2D] = [
+		_spawn_debris(city, Vector2(-120.0, 0.0)),
+		_spawn_debris(city, Vector2.ZERO),
+		_spawn_debris(city, Vector2(120.0, 0.0)),
+	]
+	var ground_target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"tank",
+		city.robot.global_position + Vector2(300.0, 0.0)
+	)
+	var air_target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"helicopter",
+		city.robot.global_position + Vector2(-80.0, -420.0)
+	)
+	assert_not_null(ground_target)
+	assert_not_null(air_target)
+	ground_target.set_physics_process(false)
+	air_target.set_physics_process(false)
+	ground_target.velocity = Vector2.ZERO
+	air_target.velocity = Vector2.ZERO
+	city.air_target_lock_runtime.set("_locked_target", air_target)
+	var spec: AttackSpec = _attack(41_024)
+	_start_capture(runtime, spec)
+	var expected_directions: Array[Vector2] = []
+	for debris: DebrisBody2D in debris_bodies:
+		expected_directions.append(
+			debris.global_position.direction_to(air_target.global_position)
+		)
+	runtime.call(&"_on_charge_released", spec, 0.8, 1.4)
+	for index: int in range(debris_bodies.size()):
+		var launched: DebrisBody2D = debris_bodies[index]
+		assert_gt(
+			launched.linear_velocity.normalized().dot(expected_directions[index]),
+			0.99
+		)
+		assert_lt(
+			launched.linear_velocity.normalized().dot(
+				launched.global_position.direction_to(ground_target.global_position)
+			),
+			0.80
+		)
+
+
 func test_release_without_nearby_enemies_uses_an_even_radial_burst() -> void:
 	var city: CitySlice = await _spawn_city()
 	var runtime: GravityCrucibleRuntime = _runtime(city)

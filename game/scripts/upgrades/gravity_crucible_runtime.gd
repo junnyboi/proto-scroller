@@ -20,6 +20,7 @@ var attacks: ContextualAttackController
 var debris_pool: DebrisPool
 var enemy_scrap_pool: DebrisPool
 var remains_factory: EnemyRemainsFactory
+var air_target_lock_runtime: AirTargetLockRuntime
 var encounter_runtime: EncounterRuntime
 var captured: Array[Node2D] = []
 var captured_categories: PackedInt32Array = PackedInt32Array()
@@ -52,6 +53,7 @@ func setup_combat(
 	p_debris_pool: DebrisPool,
 	p_enemy_scrap_pool: DebrisPool,
 	p_remains_factory: EnemyRemainsFactory,
+	p_air_target_lock_runtime: AirTargetLockRuntime,
 	p_encounter_runtime: EncounterRuntime
 ) -> void:
 	robot = p_robot
@@ -59,6 +61,7 @@ func setup_combat(
 	debris_pool = p_debris_pool
 	enemy_scrap_pool = p_enemy_scrap_pool
 	remains_factory = p_remains_factory
+	air_target_lock_runtime = p_air_target_lock_runtime
 	encounter_runtime = p_encounter_runtime
 	_connect_detonation_source(debris_pool)
 	_connect_detonation_source(enemy_scrap_pool)
@@ -344,6 +347,9 @@ func _release_capture(spec: AttackSpec) -> void:
 
 
 func _nearby_enemies() -> Array[EnemyActor2D]:
+	var locked_targets: Array[EnemyActor2D] = _locked_air_targets()
+	if not locked_targets.is_empty():
+		return locked_targets
 	var targets: Array[EnemyActor2D] = []
 	if encounter_runtime == null or robot == null:
 		return targets
@@ -355,6 +361,22 @@ func _nearby_enemies() -> Array[EnemyActor2D]:
 		if robot.global_position.distance_squared_to(enemy.global_position) <= radius_squared:
 			targets.append(enemy)
 	targets.sort_custom(_enemy_before)
+	return targets
+
+
+func _locked_air_targets() -> Array[EnemyActor2D]:
+	var targets: Array[EnemyActor2D] = []
+	if air_target_lock_runtime == null:
+		return targets
+	var target: EnemyActor2D = air_target_lock_runtime.current_target()
+	if (
+		target != null
+		and is_instance_valid(target)
+		and target.active
+		and not target.dead
+		and target.is_in_group(AerialDebrisLauncher.AIRBORNE_GROUP)
+	):
+		targets.append(target)
 	return targets
 
 
