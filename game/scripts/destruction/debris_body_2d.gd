@@ -70,6 +70,7 @@ var _crucible_delivery_id: int = 0
 var _crucible_damage: float = 0.0
 var _crucible_effect_flags: int = DamageEvent.FLAG_NONE
 var _crucible_kinetic_bonus: float = 0.0
+var _crucible_gravity_restore_delay: float = 0.0
 var _capture_linear_velocity: Vector2 = Vector2.ZERO
 var _capture_angular_velocity: float = 0.0
 var _capture_collision_layer: int = 0
@@ -246,7 +247,9 @@ func release_from_crucible(
 	launch_angular_velocity: float,
 	source_event: DamageEvent,
 	damage: float,
-	delivery_id: int
+	delivery_id: int,
+	gravity_multiplier: float = 1.0,
+	gravity_restore_delay: float = 0.0
 ) -> bool:
 	if not _crucible_captured or source_event == null:
 		return false
@@ -261,6 +264,9 @@ func release_from_crucible(
 	)
 	_crucible_kinetic_bonus = source_event.kinetic_debris_bonus
 	_crucible_armed = _crucible_damage > 0.0 and delivery_id != 0
+	if _crucible_armed:
+		gravity_scale = _capture_gravity_scale * maxf(gravity_multiplier, 0.0)
+		_crucible_gravity_restore_delay = maxf(gravity_restore_delay, 0.0)
 	return _crucible_armed
 
 
@@ -304,6 +310,7 @@ func deactivate() -> void:
 func _physics_process(delta: float) -> void:
 	if not _active:
 		return
+	_advance_crucible_gravity(delta)
 	_age += delta
 	_last_motion_age += delta
 	if linear_velocity.length() >= MIN_GROUND_IMPACT_SPEED:
@@ -662,6 +669,8 @@ func _restore_after_crucible(
 
 func _clear_crucible_delivery() -> void:
 	max_linear_speed = _capture_max_linear_speed
+	if not _crucible_captured:
+		gravity_scale = _capture_gravity_scale
 	_crucible_armed = false
 	_crucible_source = null
 	_crucible_root_attack_id = 0
@@ -669,3 +678,15 @@ func _clear_crucible_delivery() -> void:
 	_crucible_damage = 0.0
 	_crucible_effect_flags = DamageEvent.FLAG_NONE
 	_crucible_kinetic_bonus = 0.0
+	_crucible_gravity_restore_delay = 0.0
+
+
+func _advance_crucible_gravity(delta: float) -> void:
+	if not _crucible_armed or _crucible_gravity_restore_delay <= 0.0:
+		return
+	_crucible_gravity_restore_delay = maxf(
+		_crucible_gravity_restore_delay - maxf(delta, 0.0),
+		0.0
+	)
+	if is_zero_approx(_crucible_gravity_restore_delay):
+		gravity_scale = _capture_gravity_scale

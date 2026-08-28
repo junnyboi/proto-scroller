@@ -105,13 +105,66 @@ func test_release_aims_each_debris_body_towards_nearby_enemies() -> void:
 	_start_capture(runtime, spec)
 	var first_direction: Vector2 = first.global_position.direction_to(target.global_position)
 	var second_direction: Vector2 = second.global_position.direction_to(target.global_position)
-	runtime.call(&"_on_charge_released", spec, 0.8, 1.4)
+	runtime.call(&"_on_charge_released", spec, 2.0, 2.0)
 	assert_gt(first.linear_velocity.normalized().dot(first_direction), 0.99)
 	assert_gt(second.linear_velocity.normalized().dot(second_direction), 0.99)
 	assert_almost_eq(first.linear_velocity.length(), 2050.0, 0.01)
 	assert_almost_eq(second.linear_velocity.length(), 2050.0, 0.01)
 	assert_gte(first.max_linear_speed, 2050.0)
 	assert_gte(second.max_linear_speed, 2050.0)
+	assert_eq(first.gravity_scale, 0.0)
+	assert_eq(second.gravity_scale, 0.0)
+
+
+func test_charge_amount_scales_force_accuracy_and_trajectory() -> void:
+	var city: CitySlice = await _spawn_city()
+	var runtime: GravityCrucibleRuntime = _runtime(city)
+	assert_true(runtime.apply_rank(3))
+	var target: EnemyActor2D = city.encounter_runtime.acquire(
+		&"tank",
+		city.robot.global_position + Vector2(620.0, 0.0)
+	)
+	assert_not_null(target)
+	target.set_physics_process(false)
+	target.velocity = Vector2.ZERO
+	var weak: DebrisBody2D = _spawn_debris(city, Vector2(80.0, 0.0))
+	var weak_spec: AttackSpec = _attack(41_025)
+	_start_capture(runtime, weak_spec)
+	var weak_direct: Vector2 = weak.global_position.direction_to(target.global_position)
+	runtime.call(&"_on_charge_released", weak_spec, 0.5, 1.25)
+	assert_almost_eq(weak.linear_velocity.length(), 512.5, 0.01)
+	assert_almost_eq(float(weak.get("_crucible_damage")), 14.0, 0.001)
+	assert_almost_eq(weak.angular_velocity, 2.5, 0.001)
+	assert_almost_eq(weak.gravity_scale, 1.0125, 0.0001)
+	assert_between(weak.linear_velocity.normalized().dot(weak_direct), 0.96, 0.98)
+	var weak_flight_time: float = (
+		(target.global_position.x - weak.global_position.x) / weak.linear_velocity.x
+	)
+	var weak_arrival_y: float = (
+		weak.global_position.y
+		+ weak.linear_velocity.y * weak_flight_time
+		+ 0.5 * 980.0 * weak.gravity_scale * weak_flight_time * weak_flight_time
+	)
+	assert_gt(weak_arrival_y, target.global_position.y + 100.0)
+	city.debris_pool.release(weak)
+	var full: DebrisBody2D = _spawn_debris(city, Vector2(80.0, 0.0))
+	var full_spec: AttackSpec = _attack(41_026)
+	_start_capture(runtime, full_spec)
+	var full_direct: Vector2 = full.global_position.direction_to(target.global_position)
+	runtime.call(&"_on_charge_released", full_spec, 2.0, 2.0)
+	assert_almost_eq(full.linear_velocity.length(), 2050.0, 0.01)
+	assert_almost_eq(float(full.get("_crucible_damage")), 56.0, 0.001)
+	assert_gt(full.linear_velocity.normalized().dot(full_direct), 0.9999)
+	assert_eq(full.gravity_scale, 0.0)
+	assert_almost_eq(
+		float(full.get("_crucible_gravity_restore_delay")),
+		GravityCrucibleRuntime.FULL_CHARGE_STRAIGHT_SECONDS,
+		0.001
+	)
+	full.call(&"_physics_process", 0.84)
+	assert_eq(full.gravity_scale, 0.0)
+	full.call(&"_physics_process", 0.02)
+	assert_eq(full.gravity_scale, 1.0)
 
 
 func test_locked_air_target_receives_every_debris_ahead_of_ground_targets() -> void:
@@ -145,7 +198,7 @@ func test_locked_air_target_receives_every_debris_ahead_of_ground_targets() -> v
 		expected_directions.append(
 			debris.global_position.direction_to(air_target.global_position)
 		)
-	runtime.call(&"_on_charge_released", spec, 0.8, 1.4)
+	runtime.call(&"_on_charge_released", spec, 2.0, 2.0)
 	for index: int in range(debris_bodies.size()):
 		var launched: DebrisBody2D = debris_bodies[index]
 		assert_gt(
@@ -172,7 +225,7 @@ func test_release_without_nearby_enemies_uses_an_even_radial_burst() -> void:
 	]
 	var spec: AttackSpec = _attack(41_022)
 	_start_capture(runtime, spec)
-	runtime.call(&"_on_charge_released", spec, 0.8, 1.4)
+	runtime.call(&"_on_charge_released", spec, 2.0, 2.0)
 	var direction_sum: Vector2 = Vector2.ZERO
 	for debris: DebrisBody2D in debris_bodies:
 		direction_sum += debris.linear_velocity.normalized()
@@ -196,7 +249,7 @@ func test_release_restores_physics_and_delivers_one_tagged_hit_per_body() -> voi
 	)
 	_start_capture(runtime, spec)
 	assert_true(debris.is_crucible_captured())
-	runtime.call(&"_on_charge_released", spec, 1.0, 1.5)
+	runtime.call(&"_on_charge_released", spec, 2.0, 2.0)
 	assert_false(debris.is_crucible_captured())
 	assert_false(debris.freeze)
 	assert_eq(debris.collision_layer, DebrisBody2D.ACTIVE_COLLISION_LAYER)
@@ -291,7 +344,7 @@ func test_ordinary_wrecks_are_captured_but_boss_owned_wrecks_are_outside_registr
 	assert_eq(runtime.captured_count(), 1)
 	assert_same(runtime.captured[0], wreck)
 	assert_true(wreck.is_crucible_captured())
-	runtime.call(&"_on_charge_released", spec, 0.7, 1.35)
+	runtime.call(&"_on_charge_released", spec, 2.0, 2.0)
 	assert_false(wreck.is_crucible_captured())
 	assert_ne(wreck.collision_mask & EnemyWreck2D.ENEMY_LAYER, 0)
 	assert_eq(city.enemy_remains_factory.active_count(), 1)

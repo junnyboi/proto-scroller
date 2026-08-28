@@ -14,6 +14,12 @@ const ORBIT_SPEED: float = 3.8
 const ORBIT_ARC_SPACING: float = 48.0
 const PULL_SPEED: float = 1800.0
 const RELEASE_TARGET_RADIUS: float = 1000.0
+const LOW_CHARGE_GRAVITY_MULTIPLIER: float = 1.35
+const MAX_LOW_CHARGE_SPREAD_RADIANS: float = PI * 0.10
+const FULL_CHARGE_STRAIGHT_SECONDS: float = 0.85
+const AIM_SPREAD_PATTERN: Array[float] = [
+	-1.0, 0.72, -0.48, 1.0, -0.82, 0.36, 0.58, -0.24,
+]
 
 var robot: GiantRobotController
 var attacks: ContextualAttackController
@@ -185,13 +191,13 @@ func _on_charge_updated(
 func _on_charge_released(
 	spec: AttackSpec,
 	_duration: float,
-	_multiplier: float
+	multiplier: float
 ) -> void:
 	if spec == null or spec.attack_id != _charge_attack_id:
 		_cancel_capture()
 		return
 	if _capture_started:
-		_release_capture(spec)
+		_release_capture(spec, clampf(multiplier - 1.0, 0.0, 1.0))
 	else:
 		_clear_runtime_state()
 
@@ -301,7 +307,17 @@ func _update_orbits(delta: float) -> void:
 		valid_index += 1
 
 
-func _release_capture(spec: AttackSpec) -> void:
+func _release_capture(spec: AttackSpec, charge_progress: float) -> void:
+	var launch_speed: float = THROW_SPEEDS[current_rank] * charge_progress
+	var impact_damage: float = IMPACT_DAMAGE[current_rank] * charge_progress
+	var gravity_multiplier: float = lerpf(
+		LOW_CHARGE_GRAVITY_MULTIPLIER,
+		0.0,
+		charge_progress
+	)
+	var gravity_restore_delay: float = (
+		FULL_CHARGE_STRAIGHT_SECONDS if charge_progress >= 1.0 else 0.0
+	)
 	var direction: Vector2 = Vector2(float(spec.facing), -0.12).normalized()
 	var source_event: DamageEvent = DamageEvent.new(
 		spec.attack_id,
@@ -310,7 +326,7 @@ func _release_capture(spec: AttackSpec) -> void:
 		&"debris_impact",
 		robot.global_position,
 		direction,
-		THROW_SPEEDS[current_rank],
+		launch_speed,
 		spec.attack_id,
 		0,
 		spec.effect_flags | DamageEvent.FLAG_GRAVITY_CRUCIBLE,
@@ -328,18 +344,22 @@ func _release_capture(spec: AttackSpec) -> void:
 			release_index,
 			release_total,
 			targets,
-			spec.facing
+			spec.facing,
+			launch_speed,
+			charge_progress
 		)
-		var launch_velocity: Vector2 = launch_direction * THROW_SPEEDS[current_rank]
+		var launch_velocity: Vector2 = launch_direction * launch_speed
 		var delivery_id: int = 3_000_000 + spec.attack_id * 10 + release_index + 1
 		if bool(body.call(
 			&"release_from_crucible",
 			launch_velocity,
-			(10.0 + float(release_index % 5))
+			(10.0 + float(release_index % 5)) * charge_progress
 			* (-1.0 if release_index % 2 else 1.0),
 			source_event,
-			IMPACT_DAMAGE[current_rank],
-			delivery_id
+			impact_damage,
+			delivery_id,
+			gravity_multiplier,
+			gravity_restore_delay
 		)):
 			release_count_total += 1
 		release_index += 1
@@ -385,13 +405,15 @@ func _release_direction(
 	release_index: int,
 	release_total: int,
 	targets: Array[EnemyActor2D],
-	facing: int
+	facing: int,
+	launch_speed: float,
+	charge_progress: float
 ) -> Vector2:
 	if not targets.is_empty():
 		var target: EnemyActor2D = targets[release_index % targets.size()]
 		var travel_time: float = body.global_position.distance_to(
 			target.global_position
-		) / maxf(THROW_SPEEDS[current_rank], 1.0)
+		) / maxf(launch_speed, 1.0)
 		var predicted_position: Vector2 = (
 			target.global_position
 			+ target.velocity * clampf(travel_time, 0.0, 0.75)
@@ -400,7 +422,13 @@ func _release_direction(
 			predicted_position
 		)
 		if not targeted_direction.is_zero_approx():
-			return targeted_direction
+			var spread_scale: float = 1.0 - charge_progress
+			var spread_angle: float = (
+				AIM_SPREAD_PATTERN[release_index % AIM_SPREAD_PATTERN.size()]
+				* MAX_LOW_CHARGE_SPREAD_RADIANS
+				* spread_scale
+			)
+			return targeted_direction.rotated(spread_angle)
 	var facing_angle: float = 0.0 if facing >= 0 else PI
 	var radial_angle: float = (
 		facing_angle

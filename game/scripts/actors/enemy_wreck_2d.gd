@@ -55,6 +55,7 @@ var _crucible_delivery_id: int = 0
 var _crucible_damage: float = 0.0
 var _crucible_effect_flags: int = DamageEvent.FLAG_NONE
 var _crucible_launch_velocity: Vector2 = Vector2.ZERO
+var _crucible_gravity_restore_delay: float = 0.0
 var _capture_linear_velocity: Vector2 = Vector2.ZERO
 var _capture_angular_velocity: float = 0.0
 var _capture_collision_layer: int = 0
@@ -292,6 +293,7 @@ func visible_bottom_y() -> float:
 
 
 func _physics_process(delta: float) -> void:
+	_advance_crucible_gravity(delta)
 	if not settling_to_road or scrapped_state or freeze:
 		return
 	_settle_elapsed += delta
@@ -360,7 +362,9 @@ func release_from_crucible(
 	launch_angular_velocity: float,
 	source_event: DamageEvent,
 	damage: float,
-	delivery_id: int
+	delivery_id: int,
+	gravity_multiplier: float = 1.0,
+	gravity_restore_delay: float = 0.0
 ) -> bool:
 	if not _crucible_captured or source_event == null:
 		return false
@@ -375,6 +379,8 @@ func release_from_crucible(
 	_crucible_launch_velocity = launch_velocity
 	_crucible_armed = _crucible_damage > 0.0 and delivery_id != 0
 	if _crucible_armed:
+		gravity_scale = _capture_gravity_scale * maxf(gravity_multiplier, 0.0)
+		_crucible_gravity_restore_delay = maxf(gravity_restore_delay, 0.0)
 		collision_mask = _capture_collision_mask | ENEMY_LAYER
 	return _crucible_armed
 
@@ -654,6 +660,8 @@ func _restore_after_crucible(
 
 
 func _clear_crucible_delivery() -> void:
+	if not _crucible_captured:
+		gravity_scale = _capture_gravity_scale
 	_crucible_armed = false
 	_crucible_source = null
 	_crucible_root_attack_id = 0
@@ -661,8 +669,20 @@ func _clear_crucible_delivery() -> void:
 	_crucible_damage = 0.0
 	_crucible_effect_flags = DamageEvent.FLAG_NONE
 	_crucible_launch_velocity = Vector2.ZERO
+	_crucible_gravity_restore_delay = 0.0
 	if not _crucible_captured and collision_layer != 0:
 		collision_mask = _capture_collision_mask
+
+
+func _advance_crucible_gravity(delta: float) -> void:
+	if not _crucible_armed or _crucible_gravity_restore_delay <= 0.0:
+		return
+	_crucible_gravity_restore_delay = maxf(
+		_crucible_gravity_restore_delay - maxf(delta, 0.0),
+		0.0
+	)
+	if is_zero_approx(_crucible_gravity_restore_delay):
+		gravity_scale = _capture_gravity_scale
 
 
 static func _allocate_crash_attack_id() -> int:
