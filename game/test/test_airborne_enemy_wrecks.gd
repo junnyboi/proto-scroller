@@ -34,6 +34,7 @@ func test_every_airborne_archetype_spawns_as_a_physical_crash() -> void:
 		assert_not_null(wreck, String(archetype_id))
 		assert_true(wreck is RigidBody2D, String(archetype_id))
 		assert_true(wreck.is_crashing(), String(archetype_id))
+		assert_true(wreck.is_settling_to_road(), String(archetype_id))
 		assert_false(wreck.freeze, String(archetype_id))
 		assert_gt(wreck.gravity_scale, 1.0, String(archetype_id))
 		assert_gt(wreck.linear_velocity.y, 0.0, String(archetype_id))
@@ -95,7 +96,9 @@ func test_airborne_wreck_falls_and_lands_on_the_remains_ground_layer() -> void:
 
 	assert_gt(wreck.global_position.y, start_position.y + 200.0)
 	assert_false(wreck.is_crashing())
+	assert_false(wreck.is_settling_to_road())
 	assert_eq(wreck.crash_landing_count, 1)
+	assert_almost_eq(wreck.visible_bottom_y(), 520.0, 2.0)
 	assert_true(wreck.can_sleep)
 	assert_eq(
 		wreck.collision_mask
