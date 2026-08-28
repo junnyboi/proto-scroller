@@ -212,7 +212,7 @@ Per current project directive, repository-wide certification, slow Xvfb matrices
 | Work package | Status | Source revision | Evidence |
 |---|---|---|---|
 | WP0 | Complete | `1c3423c164ae60cfd13724ce6b3f1ec423c3470a` | Fixed due-hazard activation/removal, reconciled the Aegis Patch Cell at 50 HP, and passed `runtime_tweak_prerequisites`: 2 tests / 7 assertions. |
-| WP1 | In progress | — | Typed catalog, service, snapshots, hash, provenance, and persistence implemented; source integration pending. |
+| WP1 | Complete | `924815ef4066dac25e69eaa84422c8713b334553` | Added 50 typed descriptors, res-first validated deltas, canonical SHA-256 identity, run/district/attack/spawn boundaries, sticky provenance, and atomic debounced persistence. `runtime_tweak_catalog`: 4 tests / 468 assertions; `runtime_tweak_service`: 8 tests / 53 assertions; `title_transition`: 3 tests / 47 assertions. |
 | WP2 | Pending | — | — |
 | WP3 | Pending | — | — |
 | WP4 | Pending | — | — |
