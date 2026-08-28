@@ -24,7 +24,7 @@ The package cleanup is conservative. Dynamically constructed dossier resources a
 | 1 | Safe runtime-package cleanup and eight PCM SFX imports | Web-preset exclusions plus QOA import | **832,068 bytes (0.794 MiB) measured** | Low–moderate | **Complete** |
 | 2 | Lossless enemy archetypes and upgrade icons | Convert eligible PNG imports to lossy quality `0.70` | **1,941,024 bytes (1.851 MiB) measured** | Moderate | **Complete** |
 | 3 | Existing boss and robot atlas compression | Boss quality `0.70→0.55`; robot `0.80→0.60` | **1,185,888 bytes (1.131 MiB) measured** | Moderate | **Complete** |
-| 4 | Selective audio bandwidth reduction | Voice-first 24 kHz trial, then bounded SFX expansion | 0.18–1.11 MiB depending scope | Moderate–high | Planned |
+| 4 | Selective audio bandwidth reduction | Voice-first 24 kHz trial, then bounded SFX expansion | **493,024 bytes (0.470 MiB) measured** | Moderate–high | **Complete** |
 | 5 | Grid-preserving atlas repacks | 75% boss-cell repack and robot idle-row split | At least 3.57 MiB for bosses; robot TBD | High | Planned |
 | 6 | Permanent package-budget enforcement | Inventory manifest, allowlists, and CI/export regression thresholds | Prevents recurrence | Low | Planned |
 
@@ -89,6 +89,12 @@ Phase 4 is split into two release candidates. Candidate A limits the twelve voic
 
 The listening matrix covers speech intelligibility, sibilance, transient attack, loop boundaries, positional localization, dense-combat masking, mobile speakers, headphones, and browser worklet playback. Bright mechanical impacts, recharge tones, and UI transients receive stricter comparison than low-frequency debris or speech. No source master is resampled destructively. Any rejected cue receives a per-file sample-rate exception.
 
+The completed Phase 4 revalidation found that all 49 non-music WAV imports already use QOA, while one voice cue and fourteen hazard cues were already capped at 24 kHz through Godot's canonical `force/max_rate` fields. Candidate A therefore changed only the remaining eleven voice imports. Candidate B retained Candidate A and changed the remaining twenty-three SFX imports, leaving all fifteen pre-existing caps semantically untouched. All 49 final imports now use QOA at a 24 kHz maximum rate; the 48 kHz, 16-bit mono source masters, source hashes, UIDs, duration, trim, normalization, loop, and routing contracts remain unchanged.
+
+Against canonical same-tree baseline `a53c530`, Candidate A reduced the Web PCK from 23,413,516 to 23,228,140 bytes, saving 185,376 bytes. Candidate B reduced it further to **22,920,492 bytes**, for an incremental 307,648-byte SFX saving and a total **493,024-byte reduction (0.470 MiB; 2.105724 percent)**. Imported QOA payloads fell from 1,179,857 to 686,817 bytes.
+
+Audibility was tested rather than inferred. Godot 4.7.2 decoded every final stream to nonzero stereo frames, preserved RMS within 0.9632–1.0002 of baseline and peak within 0.7315–1.2224, preserved duration within 0.000021 seconds, started every stream on its assigned Voice or SFX bus, and found Master, SFX, and Voice present, at 0 dB, and unmuted. An isolated Chromium Web export then started all 49 nonempty audio buffers through a running Web Audio context; both local worklets fulfilled, all twelve voice and thirty-seven SFX players entered active playback, and browser errors and request failures were empty. The machine-readable source/import census and audibility evidence are stored in `docs/manifests/asset_optimization_phase4_audio.json` and `docs/manifests/asset_optimization_phase4_audio_verification.json`.
+
 ## 8. Phase 5 — Structural atlas repacks
 
 Phase 5 is intentionally separate because it changes source geometry and runtime contracts. The boss repack resizes every cell on exact 8×4 grid boundaries to approximately 75% linear resolution, updates `EXPECTED_CELL_SIZES`, regenerates manifests and hashes, and validates sockets, visible-bottom calibration, attack regions, display envelope, and defeat presentation. Generic `process/size_limit=4096` is forbidden: it generated non-divisible heights for four atlases and regressed CHOIR Prime to its old one-times cell size.
@@ -114,7 +120,7 @@ No phase may claim additive savings by summing overlapping standalone experiment
 | 1 | Implemented in `af5dc4a` and preserved through combined gameplay head `6d2f48d` | Candidate measured at 26,317,184 bytes before final combined export | Complete through the companion WebDev checkpoint and published host |
 | 2 | Thirty lossless textures normalized at quality `0.70` | 24,402,480-byte candidate; 1,941,024-byte same-tree reduction | Complete through the companion Phase 2 checkpoint |
 | 3 | Five boss atlases at `0.55`; robot atlas at `0.60` | 23,216,672-byte candidate; 1,185,888-byte same-tree reduction | Complete through the companion Phase 3 checkpoint |
-| 4 | Planned | Not started | Not started |
+| 4 | Thirty-four newly capped imports plus fifteen preserved 24 kHz imports; all 49 non-music WAVs remain QOA | 22,920,492-byte Candidate B; 493,024-byte same-tree reduction | Source candidate complete; WebDev synchronization pending |
 | 5 | Planned | Not started | Not started |
 | 6 | Planned | Not started | Not started |
 

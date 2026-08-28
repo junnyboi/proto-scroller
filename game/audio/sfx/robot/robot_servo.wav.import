@@ -14,8 +14,8 @@ dest_files=["res://.godot/imported/robot_servo.wav-29fe2a24f135257183f4a07d76b9d
 
 force/8_bit=false
 force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/max_rate=true
+force/max_rate_hz=24000
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=0
