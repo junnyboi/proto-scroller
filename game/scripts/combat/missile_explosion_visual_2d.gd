@@ -54,9 +54,10 @@ func _ready() -> void:
 	deactivate()
 
 
-func activate(world_position: Vector2) -> void:
+func activate(world_position: Vector2, scale_multiplier: float = 1.0) -> void:
 	global_position = world_position
 	rotation = 0.0
+	scale = Vector2.ONE * clampf(scale_multiplier, 0.1, 3.0)
 	age = 0.0
 	active = true
 	visible = true

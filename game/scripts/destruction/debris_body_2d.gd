@@ -13,6 +13,7 @@ signal ground_impact_accepted(
 	target: EnemyActor2D,
 	impact_speed: float
 )
+signal crucible_detonated(body: DebrisBody2D, event: DamageEvent)
 
 const CONCRETE_DEBRIS_TEXTURE: Texture2D = preload(
 	"res://art/city/destructibles/debris/concrete_chunk.png"
@@ -78,6 +79,7 @@ var _capture_contact_monitor: bool = false
 var _capture_max_contacts: int = 0
 var _capture_can_sleep: bool = true
 var _capture_shape_disabled: bool = false
+var _capture_max_linear_speed: float = 1500.0
 
 
 func _ready() -> void:
@@ -196,6 +198,7 @@ func is_crucible_eligible() -> bool:
 func begin_crucible_capture() -> bool:
 	if not is_crucible_eligible():
 		return false
+	_clear_crucible_delivery()
 	var shape_node: CollisionShape2D = _collision_shape()
 	_capture_linear_velocity = linear_velocity
 	_capture_angular_velocity = angular_velocity
@@ -206,6 +209,7 @@ func begin_crucible_capture() -> bool:
 	_capture_max_contacts = max_contacts_reported
 	_capture_can_sleep = can_sleep
 	_capture_shape_disabled = shape_node.disabled if shape_node != null else false
+	_capture_max_linear_speed = max_linear_speed
 	_crucible_captured = true
 	_crucible_armed = false
 	set_physics_process(false)
@@ -247,6 +251,7 @@ func release_from_crucible(
 	if not _crucible_captured or source_event == null:
 		return false
 	_restore_after_crucible(launch_velocity, launch_angular_velocity)
+	max_linear_speed = maxf(_capture_max_linear_speed, launch_velocity.length())
 	_crucible_source = source_event.source
 	_crucible_root_attack_id = source_event.root_attack_id
 	_crucible_delivery_id = delivery_id
@@ -409,16 +414,15 @@ func _resolve_ground_enemy_impact(body: Node) -> void:
 
 
 func _resolve_crucible_impact(body: Node) -> void:
-	var target: EnemyActor2D = _find_damage_receiver(body) as EnemyActor2D
-	if target == null or not target.active or target.dead:
+	if not _crucible_armed:
 		return
-	var target_velocity: Vector2 = target.velocity
+	var target: EnemyActor2D = _find_damage_receiver(body) as EnemyActor2D
+	if target != null and (not target.active or target.dead):
+		target = null
+	var target_velocity: Vector2 = target.velocity if target != null else Vector2.ZERO
 	var relative_velocity: Vector2 = _impact_relative_velocity(target_velocity)
 	var impact_speed: float = relative_velocity.length()
 	if impact_speed < MIN_GROUND_IMPACT_SPEED:
-		return
-	var target_id: int = target.get_instance_id()
-	if _ground_hit_generations.get(target_id, -1) == target.activation_generation:
 		return
 	var direction: Vector2 = relative_velocity.normalized()
 	if direction.is_zero_approx():
@@ -437,10 +441,14 @@ func _resolve_crucible_impact(body: Node) -> void:
 		_crucible_kinetic_bonus
 	)
 	_clear_crucible_delivery()
-	if target.receive_damage(event):
-		_ground_hit_generations[target_id] = target.activation_generation
-		ground_hit_count += 1
-		ground_impact_accepted.emit(self, event, target, impact_speed)
+	if target != null:
+		var target_id: int = target.get_instance_id()
+		if target.receive_damage(event):
+			_ground_hit_generations[target_id] = target.activation_generation
+			ground_hit_count += 1
+			ground_impact_accepted.emit(self, event, target, impact_speed)
+	crucible_detonated.emit(self, event)
+	recycle_requested.emit(self)
 
 
 func _impact_relative_velocity(target_velocity: Vector2) -> Vector2:
@@ -653,6 +661,7 @@ func _restore_after_crucible(
 
 
 func _clear_crucible_delivery() -> void:
+	max_linear_speed = _capture_max_linear_speed
 	_crucible_armed = false
 	_crucible_source = null
 	_crucible_root_attack_id = 0

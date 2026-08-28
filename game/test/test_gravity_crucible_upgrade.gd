@@ -32,8 +32,9 @@ func test_all_debris_in_1000px_are_captured_nearest_first_at_every_rank() -> voi
 	assert_eq(GravityCrucibleRuntime.CAPACITY, 60)
 	assert_eq(GravityCrucibleRuntime.CAPTURE_CAPS, [0, 60, 60, 60])
 	assert_eq(GravityCrucibleRuntime.CAPTURE_RADII, [0.0, 1000.0, 1000.0, 1000.0])
-	assert_eq(GravityCrucibleRuntime.THROW_SPEEDS, [0.0, 760.0, 850.0, 940.0])
-	assert_eq(GravityCrucibleRuntime.IMPACT_DAMAGE, [0.0, 12.0, 16.0, 20.0])
+	assert_eq(GravityCrucibleRuntime.THROW_SPEEDS, [0.0, 1450.0, 1750.0, 2050.0])
+	assert_eq(GravityCrucibleRuntime.IMPACT_DAMAGE, [0.0, 30.0, 42.0, 56.0])
+	assert_eq(GravityCrucibleRuntime.EXPLOSION_VISUAL_CAPACITY, 12)
 	assert_true(runtime.apply_rank(1))
 	var spec: AttackSpec = _attack(41_002)
 	_start_capture(runtime, spec)
@@ -107,8 +108,10 @@ func test_release_aims_each_debris_body_towards_nearby_enemies() -> void:
 	runtime.call(&"_on_charge_released", spec, 0.8, 1.4)
 	assert_gt(first.linear_velocity.normalized().dot(first_direction), 0.99)
 	assert_gt(second.linear_velocity.normalized().dot(second_direction), 0.99)
-	assert_almost_eq(first.linear_velocity.length(), 940.0, 0.01)
-	assert_almost_eq(second.linear_velocity.length(), 940.0, 0.01)
+	assert_almost_eq(first.linear_velocity.length(), 2050.0, 0.01)
+	assert_almost_eq(second.linear_velocity.length(), 2050.0, 0.01)
+	assert_gte(first.max_linear_speed, 2050.0)
+	assert_gte(second.max_linear_speed, 2050.0)
 
 
 func test_release_without_nearby_enemies_uses_an_even_radial_burst() -> void:
@@ -127,12 +130,12 @@ func test_release_without_nearby_enemies_uses_an_even_radial_burst() -> void:
 	var direction_sum: Vector2 = Vector2.ZERO
 	for debris: DebrisBody2D in debris_bodies:
 		direction_sum += debris.linear_velocity.normalized()
-		assert_almost_eq(debris.linear_velocity.length(), 850.0, 0.01)
+		assert_almost_eq(debris.linear_velocity.length(), 1750.0, 0.01)
 	assert_lt(direction_sum.length(), 0.001)
-	assert_gt(debris_bodies[0].linear_velocity.x, 800.0)
-	assert_gt(debris_bodies[1].linear_velocity.y, 800.0)
-	assert_lt(debris_bodies[2].linear_velocity.x, -800.0)
-	assert_lt(debris_bodies[3].linear_velocity.y, -800.0)
+	assert_gt(debris_bodies[0].linear_velocity.x, 1700.0)
+	assert_gt(debris_bodies[1].linear_velocity.y, 1700.0)
+	assert_lt(debris_bodies[2].linear_velocity.x, -1700.0)
+	assert_lt(debris_bodies[3].linear_velocity.y, -1700.0)
 
 
 func test_release_restores_physics_and_delivers_one_tagged_hit_per_body() -> void:
@@ -151,7 +154,7 @@ func test_release_restores_physics_and_delivers_one_tagged_hit_per_body() -> voi
 	assert_false(debris.is_crucible_captured())
 	assert_false(debris.freeze)
 	assert_eq(debris.collision_layer, DebrisBody2D.ACTIVE_COLLISION_LAYER)
-	assert_gt(debris.linear_velocity.x, 900.0)
+	assert_gt(debris.linear_velocity.x, 2000.0)
 	assert_ne(
 		int(debris.get("_crucible_effect_flags"))
 		& DamageEvent.FLAG_GRAVITY_CRUCIBLE,
@@ -170,11 +173,16 @@ func test_release_restores_physics_and_delivers_one_tagged_hit_per_body() -> voi
 	target.set_physics_process(false)
 	target.max_health = 1000.0
 	target.current_health = 1000.0
-	debris.linear_velocity = Vector2(940.0, 0.0)
+	debris.linear_velocity = Vector2(2050.0, 0.0)
 	debris.call(&"_resolve_crucible_impact", target)
-	assert_almost_eq(target.current_health, 974.0, 0.001)
+	assert_almost_eq(target.current_health, 938.0, 0.001)
+	assert_eq(city.debris_pool.active_count(), 0)
+	assert_eq(runtime.explosion_count_total, 1)
+	assert_true(runtime.explosion_visuals[0].active)
+	assert_almost_eq(runtime.explosion_visuals[0].scale.x, 1.35, 0.001)
 	debris.call(&"_resolve_crucible_impact", target)
-	assert_almost_eq(target.current_health, 974.0, 0.001)
+	assert_almost_eq(target.current_health, 938.0, 0.001)
+	assert_eq(runtime.explosion_count_total, 1)
 	assert_eq(runtime.release_count_total, 1)
 
 
@@ -241,6 +249,14 @@ func test_ordinary_wrecks_are_captured_but_boss_owned_wrecks_are_outside_registr
 	assert_false(wreck.is_crucible_captured())
 	assert_ne(wreck.collision_mask & EnemyWreck2D.ENEMY_LAYER, 0)
 	assert_eq(city.enemy_remains_factory.active_count(), 1)
+	wreck.linear_velocity = Vector2(2050.0, 0.0)
+	var impact_surface: Node = Node.new()
+	add_child_autofree(impact_surface)
+	wreck.call(&"_resolve_crucible_impact", impact_surface)
+	assert_eq(city.enemy_remains_factory.active_count(), 0)
+	assert_eq(city.enemy_scrap_pool.active_count(), 8)
+	assert_true(wreck.is_scrapped())
+	assert_eq(runtime.explosion_count_total, 1)
 
 
 func test_captured_body_is_not_recycled_when_a_fixed_pool_is_saturated() -> void:

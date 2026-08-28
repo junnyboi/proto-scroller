@@ -2,12 +2,13 @@ class_name GravityCrucibleRuntime
 extends UpgradeRuntime
 
 const CAPACITY: int = 60
+const EXPLOSION_VISUAL_CAPACITY: int = 12
 const CAPTURE_THRESHOLD_SECONDS: float = 0.35
 const CAPTURE_CAPS: Array[int] = [0, CAPACITY, CAPACITY, CAPACITY]
 const CAPTURE_RADII: Array[float] = [0.0, 1000.0, 1000.0, 1000.0]
 const ORBIT_RADII: Array[float] = [0.0, 96.0, 108.0, 120.0]
-const THROW_SPEEDS: Array[float] = [0.0, 760.0, 850.0, 940.0]
-const IMPACT_DAMAGE: Array[float] = [0.0, 12.0, 16.0, 20.0]
+const THROW_SPEEDS: Array[float] = [0.0, 1450.0, 1750.0, 2050.0]
+const IMPACT_DAMAGE: Array[float] = [0.0, 30.0, 42.0, 56.0]
 const ORBIT_HEIGHT: float = -34.0
 const ORBIT_SPEED: float = 3.8
 const ORBIT_ARC_SPACING: float = 48.0
@@ -22,6 +23,7 @@ var remains_factory: EnemyRemainsFactory
 var encounter_runtime: EncounterRuntime
 var captured: Array[Node2D] = []
 var captured_categories: PackedInt32Array = PackedInt32Array()
+var explosion_visuals: Array[MissileExplosionVisual2D] = []
 var _candidates: Array[Dictionary] = []
 var _charging: bool = false
 var _capture_started: bool = false
@@ -29,12 +31,19 @@ var _charge_attack_id: int = 0
 var _orbit_time: float = 0.0
 var capture_count_total: int = 0
 var release_count_total: int = 0
+var explosion_count_total: int = 0
+var _explosion_visual_cursor: int = 0
 
 
 func _init() -> void:
 	setup(&"GRAVITY_CRUCIBLE", 3)
 	captured.resize(CAPACITY)
 	captured_categories.resize(CAPACITY)
+	for index: int in range(EXPLOSION_VISUAL_CAPACITY):
+		var visual: MissileExplosionVisual2D = MissileExplosionVisual2D.new()
+		visual.name = "CrucibleExplosion%02d" % index
+		add_child(visual)
+		explosion_visuals.append(visual)
 
 
 func setup_combat(
@@ -51,6 +60,9 @@ func setup_combat(
 	enemy_scrap_pool = p_enemy_scrap_pool
 	remains_factory = p_remains_factory
 	encounter_runtime = p_encounter_runtime
+	_connect_detonation_source(debris_pool)
+	_connect_detonation_source(enemy_scrap_pool)
+	_connect_detonation_source(remains_factory)
 	if attacks != null:
 		if not attacks.charge_started.is_connected(_on_charge_started):
 			attacks.charge_started.connect(_on_charge_started)
@@ -83,10 +95,14 @@ func apply_rank(total_rank: int, _context: Dictionary = {}) -> bool:
 
 func set_paused(value: bool) -> void:
 	super.set_paused(value)
+	for visual: MissileExplosionVisual2D in explosion_visuals:
+		visual.paused = value
 
 
 func stop_and_release() -> void:
 	_cancel_capture()
+	for visual: MissileExplosionVisual2D in explosion_visuals:
+		visual.deactivate()
 	super.stop_and_release()
 
 
@@ -95,6 +111,11 @@ func reset_run() -> void:
 	super.reset_run()
 	capture_count_total = 0
 	release_count_total = 0
+	explosion_count_total = 0
+	_explosion_visual_cursor = 0
+	for visual: MissileExplosionVisual2D in explosion_visuals:
+		visual.paused = false
+		visual.deactivate()
 
 
 func captured_count() -> int:
@@ -112,6 +133,8 @@ func snapshot() -> Dictionary:
 		"captured": captured_count(),
 		"capture_total": capture_count_total,
 		"release_total": release_count_total,
+		"explosion_total": explosion_count_total,
+		"explosion_visual_slots": explosion_visuals.size(),
 		"capture_started": _capture_started,
 	}, true)
 	return data
@@ -309,7 +332,7 @@ func _release_capture(spec: AttackSpec) -> void:
 		if bool(body.call(
 			&"release_from_crucible",
 			launch_velocity,
-			(4.0 + float(release_index % 7))
+			(10.0 + float(release_index % 5))
 			* (-1.0 if release_index % 2 else 1.0),
 			source_event,
 			IMPACT_DAMAGE[current_rank],
@@ -413,3 +436,20 @@ func _enemy_before(first: EnemyActor2D, second: EnemyActor2D) -> bool:
 	if not is_equal_approx(first_distance, second_distance):
 		return first_distance < second_distance
 	return first.get_instance_id() < second.get_instance_id()
+
+
+func _connect_detonation_source(source: Node) -> void:
+	if source == null or not source.has_signal(&"crucible_detonated"):
+		return
+	if not source.is_connected(&"crucible_detonated", _on_crucible_detonated):
+		source.connect(&"crucible_detonated", _on_crucible_detonated)
+
+
+func _on_crucible_detonated(_body: Node2D, event: DamageEvent) -> void:
+	if event == null or explosion_visuals.is_empty():
+		return
+	explosion_visuals[_explosion_visual_cursor].activate(event.hit_position, 1.35)
+	_explosion_visual_cursor = (
+		(_explosion_visual_cursor + 1) % explosion_visuals.size()
+	)
+	explosion_count_total += 1

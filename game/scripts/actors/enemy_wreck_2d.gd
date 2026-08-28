@@ -4,6 +4,7 @@ extends RigidBody2D
 signal scrapped(wreck: EnemyWreck2D, event: DamageEvent)
 signal crash_landed(wreck: EnemyWreck2D)
 signal crash_impact_accepted(wreck: EnemyWreck2D, event: DamageEvent, target: Node)
+signal crucible_detonated(wreck: EnemyWreck2D, event: DamageEvent)
 
 const ENEMY_LAYER: int = 1 << 2
 const BUILDING_LAYER: int = 1 << 3
@@ -53,6 +54,7 @@ var _crucible_root_attack_id: int = 0
 var _crucible_delivery_id: int = 0
 var _crucible_damage: float = 0.0
 var _crucible_effect_flags: int = DamageEvent.FLAG_NONE
+var _crucible_launch_velocity: Vector2 = Vector2.ZERO
 var _capture_linear_velocity: Vector2 = Vector2.ZERO
 var _capture_angular_velocity: float = 0.0
 var _capture_collision_layer: int = 0
@@ -370,6 +372,7 @@ func release_from_crucible(
 	_crucible_effect_flags = (
 		source_event.effect_flags | DamageEvent.FLAG_GRAVITY_CRUCIBLE
 	)
+	_crucible_launch_velocity = launch_velocity
 	_crucible_armed = _crucible_damage > 0.0 and delivery_id != 0
 	if _crucible_armed:
 		collision_mask = _capture_collision_mask | ENEMY_LAYER
@@ -583,10 +586,18 @@ func _resolved_content_rect(requested_rect: Rect2) -> Rect2:
 
 
 func _resolve_crucible_impact(body: Node) -> void:
-	var receiver: EnemyActor2D = _find_damage_receiver(body) as EnemyActor2D
-	if receiver == null or not receiver.active or receiver.dead:
+	if not _crucible_armed:
 		return
-	var relative_velocity: Vector2 = linear_velocity - receiver.velocity
+	var receiver: EnemyActor2D = _find_damage_receiver(body) as EnemyActor2D
+	if receiver != null and (not receiver.active or receiver.dead):
+		receiver = null
+	var receiver_velocity: Vector2 = (
+		receiver.velocity if receiver != null else Vector2.ZERO
+	)
+	var relative_velocity: Vector2 = linear_velocity - receiver_velocity
+	var launched_relative: Vector2 = _crucible_launch_velocity - receiver_velocity
+	if launched_relative.length_squared() > relative_velocity.length_squared():
+		relative_velocity = launched_relative
 	if relative_velocity.length() < MIN_CRASH_IMPACT_SPEED:
 		return
 	var direction: Vector2 = relative_velocity.normalized()
@@ -605,9 +616,11 @@ func _resolve_crucible_impact(body: Node) -> void:
 		_crucible_effect_flags
 	)
 	_clear_crucible_delivery()
-	if receiver.receive_damage(event):
+	if receiver != null and receiver.receive_damage(event):
 		crash_impact_count += 1
 		crash_impact_accepted.emit(self, event, receiver)
+	crucible_detonated.emit(self, event)
+	_turn_to_scrap(event)
 
 
 func _find_damage_receiver(start_node: Node) -> Node:
@@ -647,6 +660,7 @@ func _clear_crucible_delivery() -> void:
 	_crucible_delivery_id = 0
 	_crucible_damage = 0.0
 	_crucible_effect_flags = DamageEvent.FLAG_NONE
+	_crucible_launch_velocity = Vector2.ZERO
 	if not _crucible_captured and collision_layer != 0:
 		collision_mask = _capture_collision_mask
 

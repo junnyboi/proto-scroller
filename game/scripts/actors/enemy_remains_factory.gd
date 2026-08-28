@@ -3,6 +3,7 @@ extends Node
 
 signal wreck_scrapped(wreck: EnemyWreck2D, event: DamageEvent, points: int)
 signal wreck_spawned(enemy: EnemyActor2D, wreck: EnemyWreck2D)
+signal crucible_detonated(wreck: EnemyWreck2D, event: DamageEvent)
 
 const ENEMY_WRECK_SCRIPT: Script = preload("res://scripts/actors/enemy_wreck_2d.gd")
 const REMAINS_LAYER: int = 1 << 9
@@ -39,6 +40,7 @@ func _ready() -> void:
 		var wreck: EnemyWreck2D = ENEMY_WRECK_SCRIPT.new() as EnemyWreck2D
 		wreck.name = "MachineWreck_%02d" % index
 		wreck.scrapped.connect(_on_wreck_scrapped)
+		wreck.crucible_detonated.connect(_on_crucible_detonated)
 		_wreck_root.add_child(wreck)
 		wreck.deactivate()
 		_free_wrecks.append(wreck)
@@ -142,6 +144,10 @@ func _on_wreck_scrapped(wreck: EnemyWreck2D, event: DamageEvent) -> void:
 	var points: int = 300 if wreck.airborne_crash else 400
 	wreck_scrapped.emit(wreck, event, points)
 	_release_wreck(wreck, true)
+
+
+func _on_crucible_detonated(wreck: EnemyWreck2D, event: DamageEvent) -> void:
+	crucible_detonated.emit(wreck, event)
 
 
 func spawn_scrap(wreck: EnemyWreck2D, event: DamageEvent) -> void:

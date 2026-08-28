@@ -12,6 +12,7 @@ signal ground_impact_accepted(
 	target: EnemyActor2D,
 	impact_speed: float
 )
+signal crucible_detonated(body: DebrisBody2D, event: DamageEvent)
 
 @export var debris_scene: PackedScene
 @export_range(1, 128, 1) var capacity: int = 48
@@ -44,6 +45,7 @@ func _ready() -> void:
 		body.recycle_requested.connect(_on_recycle_requested)
 		body.aerial_impact_accepted.connect(_on_aerial_impact_accepted)
 		body.ground_impact_accepted.connect(_on_ground_impact_accepted)
+		body.crucible_detonated.connect(_on_crucible_detonated)
 		add_child(body)
 		body.deactivate()
 		_free.append(body)
@@ -182,3 +184,7 @@ func _on_ground_impact_accepted(
 	impact_speed: float
 ) -> void:
 	ground_impact_accepted.emit(body, event, target, impact_speed)
+
+
+func _on_crucible_detonated(body: DebrisBody2D, event: DamageEvent) -> void:
+	crucible_detonated.emit(body, event)

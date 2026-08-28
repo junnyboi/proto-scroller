@@ -273,7 +273,7 @@
   "upgrade.siege_drill.name": "SIEGE DRILL",
   "upgrade.siege_drill.description": "Deploy a power drill while dashing. Each contacted target is struck once per dash.",
   "upgrade.gravity_crucible.name": "GRAVITY CRUCIBLE",
-  "upgrade.gravity_crucible.description": "Hold a melee charge to pull in all debris and wrecks within 1000px, then launch them at nearby enemies.",
+  "upgrade.gravity_crucible.description": "Hold a melee charge to orbit all debris and wrecks within 1000px, then violently launch them into explosive impacts.",
   "upgrade.tesla_tower.name": "TESLA TOWER",
   "upgrade.tesla_tower.description": "A fully charged melee release plants a tower that arcs lightning into nearby enemies.",
   "upgrade.destruction.name": "DESTRUCTION",
