@@ -71,9 +71,9 @@ func test_rank_three_pulse_hits_three_nearest_living_targets_in_fixed_registry()
 		target.max_health = 1000.0
 		target.current_health = 1000.0
 	runtime.tower.call(&"_pulse")
-	assert_almost_eq(targets[0].current_health, 978.0, 0.001)
-	assert_almost_eq(targets[1].current_health, 978.0, 0.001)
-	assert_almost_eq(targets[2].current_health, 978.0, 0.001)
+	assert_almost_eq(targets[0].current_health, 934.0, 0.001)
+	assert_almost_eq(targets[1].current_health, 934.0, 0.001)
+	assert_almost_eq(targets[2].current_health, 934.0, 0.001)
 	assert_almost_eq(targets[3].current_health, 1000.0, 0.001)
 	assert_eq(runtime.tower.active_arc_count(), 3)
 	assert_eq(runtime.tower.pulse_count, 1)
@@ -120,7 +120,7 @@ func test_rank_one_range_includes_the_additive_500_pixel_radius() -> void:
 		target.max_health = 1000.0
 		target.current_health = 1000.0
 	runtime.tower.call(&"_pulse")
-	assert_almost_eq(inside.current_health, 982.0, 0.001)
+	assert_almost_eq(inside.current_health, 946.0, 0.001)
 	assert_almost_eq(outside.current_health, 1000.0, 0.001)
 
 
@@ -175,7 +175,8 @@ func test_rank_tables_match_the_approved_tesla_tuning() -> void:
 	assert_eq(TeslaTower2D.PULSE_INTERVALS, [0.0, 1.2, 1.0, 0.9])
 	assert_eq(TeslaTower2D.RANGES, [0.0, 930.0, 1000.0, 1070.0])
 	assert_eq(TeslaTower2D.TARGET_CAPS, [0, 1, 2, 3])
-	assert_eq(TeslaTower2D.DAMAGE, [0.0, 18.0, 20.0, 22.0])
+	assert_eq(TeslaTower2D.DAMAGE_MULTIPLIER, 3.0)
+	assert_eq(TeslaTower2D.DAMAGE, [0.0, 54.0, 60.0, 66.0])
 	assert_eq(TeslaTower2D.ARMING_SECONDS, 0.25)
 
 

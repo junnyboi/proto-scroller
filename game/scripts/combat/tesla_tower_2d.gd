@@ -19,7 +19,13 @@ const RANGES: Array[float] = [
 	570.0 + RANGE_RADIUS_BONUS,
 ]
 const TARGET_CAPS: Array[int] = [0, 1, 2, 3]
-const DAMAGE: Array[float] = [0.0, 18.0, 20.0, 22.0]
+const DAMAGE_MULTIPLIER: float = 3.0
+const DAMAGE: Array[float] = [
+	0.0,
+	18.0 * DAMAGE_MULTIPLIER,
+	20.0 * DAMAGE_MULTIPLIER,
+	22.0 * DAMAGE_MULTIPLIER,
+]
 
 static var _next_pulse_attack_id: int = 4_000_000
 
