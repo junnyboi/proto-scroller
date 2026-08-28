@@ -86,6 +86,21 @@ func test_simplified_chinese_shop_catalog_has_no_english_fallbacks() -> void:
 		assert_ne(chinese_value, english_values[key], "English shop fallback: %s" % key)
 
 
+func test_new_skill_debrief_names_have_explicit_simplified_chinese_copy() -> void:
+	var expected: Dictionary[String, String] = {
+		"debrief.weapon.siege_drill": "攻城钻头",
+		"debrief.weapon.gravity_crucible": "重力熔炉",
+		"debrief.weapon.tesla_tower": "特斯拉塔",
+	}
+	var english_values: Dictionary[String, String] = {}
+	for key: String in expected:
+		english_values[key] = L10n.t(key)
+	assert_true(L10n.set_locale("zh-CN"))
+	for key: String in expected:
+		assert_eq(L10n.t(key), expected[key], key)
+		assert_ne(L10n.t(key), english_values[key], key)
+
+
 func test_unsupported_locale_is_rejected_without_mutation() -> void:
 	assert_false(L10n.set_locale("fr-FR"))
 	assert_eq(L10n.current_locale(), "en")

@@ -94,10 +94,25 @@ func test_tutorial_localizes_and_stays_inside_landscape_and_portrait() -> void:
 	add_child_autofree(tutorial)
 	await get_tree().process_frame
 	tutorial.start_for_test()
-	assert_eq(tutorial.title_label.text, "移动原型机")
-	assert_true(tutorial.body_label.text.contains("移动端摇杆"))
+	assert_eq(tutorial.progress_label.text, "战斗连接  01 / 06")
+	assert_eq(tutorial.skip_button.text, "跳过")
+	_assert_chinese_copy(tutorial, "移动原型机", "左摇杆")
+	tutorial._advance_to(FirstRunCombatTutorial.Step.GROUND_SMASH)
+	_assert_chinese_copy(tutorial, "地面重击近战", "范围地面重击")
+	tutorial._advance_to(FirstRunCombatTutorial.Step.JAB_CROSS)
+	_assert_chinese_copy(tutorial, "刺拳连击近战", "两段拳击")
+	tutorial._advance_to(FirstRunCombatTutorial.Step.CHARGE_ATTACK)
+	_assert_chinese_copy(tutorial, "蓄力攻击", "核心闪出蓝白光")
+	tutorial.apply_responsive_layout(Vector2(1280.0, 720.0))
+	await get_tree().process_frame
+	assert_eq(
+		tutorial.body_label.get_visible_line_count(),
+		tutorial.body_label.get_line_count()
+	)
+	tutorial._advance_to(FirstRunCombatTutorial.Step.DASH)
+	_assert_chinese_copy(tutorial, "冲刺", "拨动左摇杆两次")
 	tutorial._advance_to(FirstRunCombatTutorial.Step.DASH_PUNCH)
-	assert_eq(tutorial.title_label.text, "冲刺 + 出拳")
+	_assert_chinese_copy(tutorial, "冲刺 + 出拳", "取消冲刺并向前出拳")
 	tutorial.apply_responsive_layout(Vector2(1280.0, 720.0))
 	await get_tree().process_frame
 	assert_true(Rect2(Vector2.ZERO, Vector2(1280.0, 720.0)).encloses(
@@ -117,7 +132,20 @@ func test_tutorial_localizes_and_stays_inside_landscape_and_portrait() -> void:
 		tutorial.body_label.get_line_count()
 	)
 	assert_gte(tutorial.body_label.get_theme_font_size(&"font_size"), 20)
+	tutorial._finish_tutorial(false)
+	_assert_chinese_copy(tutorial, "战斗连接完成", "武器会自动开火")
 	_record_test_execution()
+
+
+func _assert_chinese_copy(
+	tutorial: FirstRunCombatTutorial,
+	expected_title: String,
+	expected_body_phrase: String
+) -> void:
+	assert_eq(tutorial.title_label.text, expected_title)
+	assert_true(tutorial.body_label.text.contains(expected_body_phrase))
+	assert_false(tutorial.title_label.text.contains("tutorial."))
+	assert_false(tutorial.body_label.text.contains("tutorial."))
 
 
 func _remove_test_preference() -> void:

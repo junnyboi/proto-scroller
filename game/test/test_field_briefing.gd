@@ -6,11 +6,13 @@ const TEST_PREFERENCE_PATH: String = "user://test-field-briefing-bindings.cfg"
 
 
 func before_each() -> void:
+	L10n.set_locale("en")
 	InputBindingSettings.reset_to_defaults(TEST_PREFERENCE_PATH, false)
 	_clear_preference()
 
 
 func after_each() -> void:
+	L10n.set_locale("en")
 	InputBindingSettings.reset_to_defaults(TEST_PREFERENCE_PATH, false)
 	_clear_preference()
 
@@ -120,6 +122,23 @@ func test_title_field_briefing_displays_the_shared_six_tip_doctrine() -> void:
 	assert_true(Rect2(Vector2.ZERO, viewport_size).encloses(
 		screen.briefing_tips_panel.get_rect()
 	))
+
+
+func test_title_field_briefing_localizes_all_six_moves_in_simplified_chinese() -> void:
+	L10n.set_locale("zh-CN")
+	var screen: TitleScreen = TITLE_SCENE.instantiate() as TitleScreen
+	add_child_autofree(screen)
+	await get_tree().process_frame
+	assert_true(screen.open_briefing())
+	assert_eq(
+		screen.briefing_tips_label.text,
+		L10n.t("briefing.tips_body", InputBindingSettings.display_placeholders())
+	)
+	assert_eq(screen.briefing_tips_label.text.count("\n"), 5)
+	for move_name: String in [
+		"行走", "冲刺", "地面重击", "刺拳连击", "蓄力攻击", "冲刺 + 出拳",
+	]:
+		assert_true(screen.briefing_tips_label.text.contains(move_name), move_name)
 
 
 func _spawn_city() -> CitySlice:

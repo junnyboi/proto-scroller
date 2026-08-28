@@ -3,8 +3,13 @@ extends GutTest
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 
+func before_each() -> void:
+	L10n.set_locale("en")
+
+
 func after_each() -> void:
 	Input.action_release(&"stomp")
+	L10n.set_locale("en")
 
 
 func test_upgrade_setup_executes_outside_release_stripped_assertions() -> void:
@@ -110,6 +115,49 @@ func test_level_offer_uses_two_fixed_cards_and_preserves_mobile_touches() -> voi
 	get_tree().root.size = Vector2i(1280, 720)
 
 
+func test_every_upgrade_card_has_complete_simplified_chinese_copy() -> void:
+	L10n.set_locale("zh-CN")
+	var overlay: UpgradeChoiceOverlay = UpgradeChoiceOverlay.new()
+	add_child_autofree(overlay)
+	await get_tree().process_frame
+	assert_eq(overlay.title_label.text, "选择本局升级")
+	var catalog: UpgradeCatalog = load(
+		"res://resources/upgrades/upgrade_catalog.tres"
+	) as UpgradeCatalog
+	var expected_new_skill_names: Dictionary[StringName, String] = {
+		&"SIEGE_DRILL": "攻城钻头",
+		&"GRAVITY_CRUCIBLE": "重力熔炉",
+		&"TESLA_TOWER": "特斯拉塔",
+	}
+	var verified_new_skills: int = 0
+	for profile: UpgradeProfile in catalog.sorted_profiles():
+		L10n.set_locale("en")
+		var english_name: String = L10n.t(profile.display_name)
+		var english_description: String = L10n.t(profile.description)
+		L10n.set_locale("zh-CN")
+		overlay.cards[0].configure(profile, 0)
+		var chinese_name: String = overlay.cards[0].title_label.text
+		var chinese_description: String = overlay.cards[0].description_label.text
+		assert_eq(chinese_name, L10n.t(profile.display_name), String(profile.upgrade_id))
+		assert_eq(
+			chinese_description,
+			L10n.t(profile.description),
+			String(profile.upgrade_id)
+		)
+		assert_ne(chinese_name, english_name, String(profile.upgrade_id))
+		assert_ne(chinese_description, english_description, String(profile.upgrade_id))
+		assert_true(_contains_han(chinese_name), String(profile.upgrade_id))
+		assert_true(_contains_han(chinese_description), String(profile.upgrade_id))
+		if expected_new_skill_names.has(profile.upgrade_id):
+			assert_eq(
+				chinese_name,
+				String(expected_new_skill_names[profile.upgrade_id]),
+				String(profile.upgrade_id)
+			)
+			verified_new_skills += 1
+	assert_eq(verified_new_skills, expected_new_skill_names.size())
+
+
 func test_runtime_budget_reports_fixed_upgrade_ui_shape() -> void:
 	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
 	add_child_autofree(city)
@@ -139,3 +187,11 @@ func _drag(index: int, position: Vector2) -> InputEventScreenDrag:
 
 func _viewport_rect() -> Rect2:
 	return Rect2(Vector2.ZERO, Vector2(get_tree().root.size))
+
+
+func _contains_han(value: String) -> bool:
+	for index: int in range(value.length()):
+		var codepoint: int = value.unicode_at(index)
+		if codepoint >= 0x3400 and codepoint <= 0x9FFF:
+			return true
+	return false
