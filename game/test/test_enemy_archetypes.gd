@@ -319,6 +319,58 @@ func test_defeated_vehicle_remains_ground_matches_road_center_lane() -> void:
 	)
 
 
+func test_every_machine_wreck_inherits_opaque_bounds_and_grounded_road_baseline() -> void:
+	var machine_kinds: Array[StringName] = [&"tank", &"helicopter"]
+	for archetype_id: StringName in EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		if StringName(profile.get("remains", &"")) != &"infantry":
+			machine_kinds.append(archetype_id)
+	assert_eq(machine_kinds.size(), 38)
+	for index: int in range(machine_kinds.size()):
+		var kind: StringName = machine_kinds[index]
+		var actor: EnemyActor2D = runtime.acquire(
+			kind,
+			Vector2(980.0 + float(index) * 24.0, 120.0)
+		)
+		assert_not_null(actor, kind)
+		var expected_content_rect: Rect2 = actor.visual.get_meta(
+			EnemyActor2D.VISUAL_CONTENT_RECT_META
+		)
+		var wreck: EnemyWreck2D = city.enemy_remains_factory.spawn_wreck(
+			actor,
+			DamageEvent.new(
+				81_000 + index,
+				city.robot,
+				actor.current_health,
+				&"impact",
+				actor.global_position,
+				Vector2.RIGHT,
+				180.0
+			)
+		)
+		assert_not_null(wreck, kind)
+		assert_eq(wreck.visual_content_rect, expected_content_rect, kind)
+		assert_true(wreck.is_settling_to_road(), kind)
+		if not EnemyArchetypeCatalog.is_airborne(kind):
+			assert_almost_eq(
+				wreck.visible_bottom_y(),
+				CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y,
+				0.01,
+				kind
+			)
+		wreck._physics_process(EnemyWreck2D.ROAD_SETTLE_TIMEOUT_SECONDS + 0.01)
+		assert_false(wreck.is_settling_to_road(), kind)
+		assert_almost_eq(wreck.rotation, 0.0, 0.001, kind)
+		assert_almost_eq(
+			wreck.visible_bottom_y(),
+			CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y,
+			EnemyWreck2D.ROAD_SETTLE_TOLERANCE,
+			kind
+		)
+		city.enemy_remains_factory.release_wreck(wreck)
+		runtime.release(actor)
+
+
 func test_vehicle_weight_tiers_resist_live_hits_but_wrecks_launch() -> void:
 	var heavy_vehicle: EnemyActor2D = runtime.acquire(&"tank", Vector2(1080.0, 542.5))
 	var light_vehicle: EnemyActor2D = runtime.acquire(&"jackal", Vector2(1240.0, 554.0))

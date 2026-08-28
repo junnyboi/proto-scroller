@@ -55,6 +55,7 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 	var wreck: EnemyWreck2D = _free_wrecks.pop_back()
 	_active_wrecks.append(wreck)
 	peak_active_count = maxi(peak_active_count, _active_wrecks.size())
+	wreck.configure_visual_content_rect(_visual_content_rect(enemy))
 	if enemy is ProceduralEnemy:
 		var procedural: ProceduralEnemy = enemy as ProceduralEnemy
 		var display_size: Vector2 = procedural.profile.get("display", Vector2(235.0, 100.0)) as Vector2
@@ -121,6 +122,15 @@ func release_all() -> void:
 
 func total_count() -> int:
 	return _active_wrecks.size() + _free_wrecks.size()
+
+
+func _visual_content_rect(enemy: EnemyActor2D) -> Rect2:
+	if enemy == null or enemy.visual == null or enemy.visual.texture == null:
+		return Rect2()
+	return enemy.visual.get_meta(
+		EnemyActor2D.VISUAL_CONTENT_RECT_META,
+		Rect2(-enemy.visual.texture.get_size() * 0.5, enemy.visual.texture.get_size())
+	)
 
 
 func release_wreck(wreck: EnemyWreck2D) -> void:

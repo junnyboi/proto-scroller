@@ -16,6 +16,9 @@ const MAX_CRASH_IMPACT_DAMAGE: float = 180.0
 const CRASH_IMPACT_DAMAGE_SCALE: float = 0.12
 const PLAYER_ATTACK_KNOCKBACK_SCALE: float = 1.10
 const NON_PLAYER_KNOCKBACK_SCALE: float = 0.32
+const ROAD_SETTLE_BASELINE_Y: float = CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y
+const ROAD_SETTLE_TIMEOUT_SECONDS: float = 2.5
+const ROAD_SETTLE_TOLERANCE: float = 2.0
 
 static var _next_crash_attack_id: int = 2_000_000
 
@@ -27,8 +30,10 @@ var scrapped_state: bool = false
 var display_size: Vector2 = Vector2(220.0, 90.0)
 var collision_size: Vector2 = Vector2(205.0, 72.0)
 var wreck_texture: Texture2D
+var visual_content_rect: Rect2 = Rect2()
 var fatal_event: DamageEvent
 var airborne_crash: bool = false
+var settling_to_road: bool = false
 var crash_landing_count: int = 0
 var crash_impact_count: int = 0
 var finisher_requires_ground_smash: bool = false
@@ -40,6 +45,7 @@ var _crash_attack_id: int = 0
 var _crash_impact_targets: Dictionary[int, bool] = {}
 var _last_crash_velocity: Vector2 = Vector2.ZERO
 var _steel_profile: StructuralMaterialProfile
+var _settle_elapsed: float = 0.0
 var _crucible_captured: bool = false
 var _crucible_armed: bool = false
 var _crucible_source: Node
@@ -95,6 +101,9 @@ func activate(
 	current_scrap_health = scrap_health
 	fatal_event = p_fatal_event
 	airborne_crash = p_airborne_crash
+	settling_to_road = true
+	visual_content_rect = _resolved_content_rect(visual_content_rect)
+	_settle_elapsed = 0.0
 	crash_landing_count = 0
 	crash_impact_count = 0
 	configure_finisher_policy(p_finisher_requires_ground_smash, p_fatal_event)
@@ -136,6 +145,7 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	airborne_crash = false
+	settling_to_road = false
 	crash_impact_count = 0
 	finisher_requires_ground_smash = false
 	finisher_damage_types = PackedStringArray()
@@ -145,6 +155,8 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	_crash_attack_id = 0
 	_crash_impact_targets.clear()
 	_last_crash_velocity = Vector2.ZERO
+	_settle_elapsed = 0.0
+	visual_content_rect = Rect2()
 	gravity_scale = 1.0
 	linear_damp = 0.9
 	angular_damp = 1.5
@@ -222,6 +234,10 @@ func configure_one_hit_melee_finisher(p_fatal_event: DamageEvent = fatal_event) 
 	)
 
 
+func configure_visual_content_rect(content_rect: Rect2) -> void:
+	visual_content_rect = content_rect
+
+
 func configure_automatic_scrap() -> void:
 	finisher_requires_ground_smash = false
 	finisher_damage_types = PackedStringArray()
@@ -256,6 +272,29 @@ func is_scrapped() -> bool:
 
 func is_crashing() -> bool:
 	return airborne_crash
+
+
+func is_settling_to_road() -> bool:
+	return settling_to_road
+
+
+func visible_bottom_y() -> float:
+	var visual: Sprite2D = get_node_or_null(^"WreckVisual") as Sprite2D
+	if visual == null or visual.texture == null:
+		return global_position.y + collision_size.y * 0.5
+	var local_bottom: Vector2 = Vector2(
+		visual_content_rect.get_center().x,
+		visual_content_rect.end.y
+	)
+	return visual.to_global(local_bottom).y
+
+
+func _physics_process(delta: float) -> void:
+	if not settling_to_road or scrapped_state or freeze:
+		return
+	_settle_elapsed += delta
+	if _settle_elapsed >= ROAD_SETTLE_TIMEOUT_SECONDS:
+		_snap_to_road_baseline()
 
 
 func is_crucible_captured() -> bool:
@@ -371,9 +410,16 @@ func _update_visual() -> void:
 			display_size.y / maxf(texture_size.y, 1.0)
 		)
 		visual.scale = Vector2.ONE * fit_scale
-	visual.modulate = Color("625d58")
-	visual.position.y = (collision_size.y - display_size.y) * 0.5
-	visual.visible = true
+		visual.modulate = Color("625d58")
+		if airborne_crash:
+			visual.position.y = 0.0
+		else:
+			visual.position.y = (
+				ROAD_SETTLE_BASELINE_Y
+				- global_position.y
+				- visual_content_rect.end.y * absf(visual.scale.y)
+			)
+		visual.visible = true
 
 
 func _apply_fatal_impact() -> void:
@@ -403,13 +449,15 @@ func _on_body_entered(body: Node) -> void:
 	if _crucible_armed:
 		_resolve_crucible_impact(body)
 		return
-	if not airborne_crash or not body is CollisionObject2D:
+	if not settling_to_road or not body is CollisionObject2D:
 		return
 	var collision_body: CollisionObject2D = body as CollisionObject2D
 	if collision_body.collision_layer & REMAINS_GROUND_LAYER != 0:
-		_finish_crash_landing()
+		if linear_velocity.y < -5.0:
+			return
+		_finish_road_settling(_road_surface_y(collision_body))
 		return
-	if collision_body.collision_layer & ENEMY_LAYER != 0:
+	if airborne_crash and collision_body.collision_layer & ENEMY_LAYER != 0:
 		_queue_crash_damage(body)
 
 
@@ -472,16 +520,66 @@ func _apply_crash_damage(receiver: Node, impact_velocity: Vector2) -> void:
 		crash_impact_accepted.emit(self, event, receiver)
 
 
-func _finish_crash_landing() -> void:
+func _finish_road_settling(road_surface_y: float = ROAD_SETTLE_BASELINE_Y) -> void:
+	var was_airborne_crash: bool = airborne_crash
 	airborne_crash = false
-	crash_landing_count += 1
+	settling_to_road = false
+	if was_airborne_crash:
+		crash_landing_count += 1
+	rotation = 0.0
+	global_position.y = road_surface_y - collision_size.y * 0.5
+	linear_velocity.y = 0.0
+	angular_velocity = 0.0
 	gravity_scale = 1.0
 	linear_damp = 1.1
 	angular_damp = 1.8
 	can_sleep = true
 	collision_mask = REMAINS_GROUND_LAYER | ROBOT_LAYER
 	_last_crash_velocity = Vector2.ZERO
-	crash_landed.emit(self)
+	_settle_elapsed = 0.0
+	_align_visual_to_road_contact(road_surface_y)
+	if was_airborne_crash:
+		crash_landed.emit(self)
+
+
+func _snap_to_road_baseline() -> void:
+	rotation = 0.0
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	global_position.y = ROAD_SETTLE_BASELINE_Y - collision_size.y * 0.5
+	_finish_road_settling()
+
+
+func _align_visual_to_road_contact(road_surface_y: float) -> void:
+	var visual: Sprite2D = get_node_or_null(^"WreckVisual") as Sprite2D
+	if visual == null or visual.texture == null:
+		return
+	visual.position.y += road_surface_y - visible_bottom_y()
+	if absf(visible_bottom_y() - road_surface_y) > ROAD_SETTLE_TOLERANCE:
+		visual.position.y = (
+			road_surface_y
+			- global_position.y
+			- visual_content_rect.end.y * absf(visual.scale.y)
+		)
+
+
+func _road_surface_y(ground_body: CollisionObject2D) -> float:
+	for child: Node in ground_body.get_children():
+		var collision: CollisionShape2D = child as CollisionShape2D
+		if collision == null or collision.disabled or not collision.shape is RectangleShape2D:
+			continue
+		var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
+		return collision.to_global(Vector2(0.0, -rectangle.size.y * 0.5)).y
+	return ROAD_SETTLE_BASELINE_Y
+
+
+func _resolved_content_rect(requested_rect: Rect2) -> Rect2:
+	if requested_rect.has_area():
+		return requested_rect
+	if wreck_texture == null:
+		return Rect2(-display_size * 0.5, display_size)
+	var texture_size: Vector2 = wreck_texture.get_size()
+	return Rect2(-texture_size * 0.5, texture_size)
 
 
 func _resolve_crucible_impact(body: Node) -> void:
