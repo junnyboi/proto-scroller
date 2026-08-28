@@ -3,6 +3,7 @@ extends Control
 
 signal start_requested
 signal audio_activation_requested
+signal settings_closed
 
 const LANDSCAPE_ART: Texture2D = preload(
 	"res://art/ui/title_screen/command_deck_landscape.jpg"
@@ -33,6 +34,7 @@ var initialized: bool = false
 var briefing_open: bool = false
 var settings_open: bool = false
 var leaderboard_open: bool = false
+var settings_only_mode: bool = false
 var locale_preference_path: String = L10n.PREFERENCE_PATH
 var audio_preference_path: String = AudioVolumeSettings.PREFERENCE_PATH
 var input_preference_path: String = InputBindingSettings.PREFERENCE_PATH
@@ -45,6 +47,7 @@ var leaderboard_bridge: LeaderboardBridge
 var _capture_action: StringName = &""
 var _capture_gamepad: bool = false
 var _audio_activation_emitted: bool = false
+var _web_title_backdrop_active: bool = false
 
 @onready var background_art: TextureRect = %BackgroundArt
 @onready var briefing_layer: Control = %BriefingLayer
@@ -115,13 +118,21 @@ func configure_leaderboard(store: PlayerCombatProfileStore) -> void:
 	combat_profile = store
 
 
+func configure_settings_only() -> void:
+	settings_only_mode = true
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
 func _ready() -> void:
-	_set_web_title_backdrop_active(true)
+	if not settings_only_mode:
+		_set_web_title_backdrop_active(true)
+		_web_title_backdrop_active = true
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	briefing_toggle.pressed.connect(toggle_briefing)
 	briefing_backdrop.pressed.connect(close_briefing)
-	_build_campaign_archive()
-	_build_leaderboard()
+	if not settings_only_mode:
+		_build_campaign_archive()
+		_build_leaderboard()
 	leaderboard_button.pressed.connect(open_leaderboard)
 	settings_button.pressed.connect(open_settings)
 	settings_backdrop.pressed.connect(close_settings)
@@ -169,22 +180,28 @@ func _ready() -> void:
 	_update_audio_volume_values()
 	_refresh_binding_labels()
 	_update_mute_button_texts()
-	initialize_button.call_deferred("grab_focus")
+	if not settings_only_mode:
+		initialize_button.call_deferred("grab_focus")
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_localized_text()
 	L10n.apply_locale_font(self)
 	L10n.apply_cjk_font(chinese_button)
 	_apply_responsive_layout()
+	if settings_only_mode:
+		_prepare_settings_only_presentation()
 
 
 func _exit_tree() -> void:
-	_set_web_title_backdrop_active(false)
+	if _web_title_backdrop_active:
+		_set_web_title_backdrop_active(false)
+		_web_title_backdrop_active = false
 
 
 func _input(event: InputEvent) -> void:
-	_request_title_audio_activation(event)
-	if _capture_action.is_empty() and _handle_briefing_shortcut(event):
-		return
+	if not settings_only_mode:
+		_request_title_audio_activation(event)
+		if _capture_action.is_empty() and _handle_briefing_shortcut(event):
+			return
 	if _capture_action.is_empty():
 		return
 	if not _capture_gamepad and event is InputEventKey:
@@ -256,6 +273,11 @@ func _request_title_audio_activation(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if settings_only_mode:
+		if settings_open and event.is_action_pressed(&"ui_cancel"):
+			close_settings(false)
+			get_viewport().set_input_as_handled()
+		return
 	if leaderboard_open and event.is_action_pressed(&"ui_cancel"):
 		close_leaderboard()
 		get_viewport().set_input_as_handled()
@@ -346,9 +368,20 @@ func close_settings(restore_focus: bool = true) -> bool:
 	_cancel_binding_capture()
 	settings_open = false
 	settings_layer.visible = false
-	if restore_focus and not initialized:
+	if restore_focus and not initialized and not settings_only_mode:
 		settings_button.call_deferred("grab_focus")
+	settings_closed.emit()
 	return true
+
+
+func _prepare_settings_only_presentation() -> void:
+	for child: Node in get_children():
+		if child == settings_layer:
+			continue
+		var canvas_item: CanvasItem = child as CanvasItem
+		if canvas_item != null:
+			canvas_item.visible = false
+	settings_layer.visible = settings_open
 
 
 func open_leaderboard() -> bool:
