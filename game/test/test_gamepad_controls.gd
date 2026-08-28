@@ -268,7 +268,8 @@ func test_settings_capture_updates_labels_and_reset_restores_defaults() -> void:
 	screen._input(reserved_confirm_event)
 	assert_eq(InputBindingSettings.gamepad_button(&"dodge"), JOY_BUTTON_Y)
 	assert_eq(dodge_gamepad.text, "Y / TRIANGLE")
-	assert_true((screen.get_node("%ControlsLabel") as Label).text.contains("MOVE J/D"))
+	assert_null(screen.get_node_or_null("StatusRail"))
+	assert_null(screen.get_node_or_null("%ControlsLabel"))
 	var vibration_toggle: CheckButton = (
 		screen.get_node("%ControllerVibrationToggle") as CheckButton
 	)
@@ -279,7 +280,8 @@ func test_settings_capture_updates_labels_and_reset_restores_defaults() -> void:
 	assert_eq(InputBindingSettings.gamepad_button(&"dodge"), JOY_BUTTON_B)
 	assert_true(InputBindingSettings.controller_vibration_enabled())
 	assert_true(vibration_toggle.button_pressed)
-	assert_true((screen.get_node("%ControlsLabel") as Label).text.contains("MOVE A/D"))
+	assert_eq(left_keyboard.text, "A")
+	assert_eq(dodge_gamepad.text, "B / CIRCLE")
 	_record_test_execution()
 
 

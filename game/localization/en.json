@@ -6,7 +6,6 @@
   "title.story": "At 04:17, Obelisk's city defense grid went silent.\nIts weapon lab, PROJECT CHOIR, is still transmitting.",
   "title.controls_heading": "PILOT CONTROLS",
   "title.controls_body": "MOVE   {move_left} / {move_right}   •   Left stick / {pad_left} + {pad_right}   •   Mobile joystick\nCHARGE  Hold {smash}, {pad_smash}, or Mobile SMASH; release to strike\nDASH   {dodge}   •   {pad_dodge}   •   Mobile DASH   •   Double-tap {move_left} / {move_right} or flick twice.",
-  "title.controls_compact": "CONTROLS   MOVE {move_left}/{move_right}  ·  STICK / D-PAD / TOUCH\nCHARGE   HOLD {smash} / {pad_smash}  ·  RELEASE TO STRIKE\nDASH   {dodge} / {pad_dodge}  ·  DOUBLE-TAP {move_left} / {move_right}",
   "title.field_note": "Weapons fire automatically after acquisition.\nBindings can be changed in SETTINGS.  /  AUTO SAVE",
   "title.begin": "BEGIN EXPEDITION",
   "title.objectives_heading": "EXPEDITION OBJECTIVES",
