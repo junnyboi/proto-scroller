@@ -593,10 +593,10 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	background_art.texture = LANDSCAPE_ART
 	briefing_art.texture = _briefing_texture(false)
 	_set_rect(%TitleLabel, Rect2(52.0, 246.0 + vertical_offset, 680.0, 78.0))
-	_set_rect(%InstructionLabel, Rect2(52.0, 326.0 + vertical_offset, 740.0, 110.0))
-	_set_rect(initialize_button, Rect2(52.0, 446.0 + vertical_offset, 360.0, 80.0))
-	_set_rect(language_selector, Rect2(52.0, 542.0 + vertical_offset, 282.0, 48.0))
-	_set_rect($StatusRail, Rect2(52.0, 602.0 + vertical_offset, 760.0, 74.0))
+	_set_rect(%InstructionLabel, Rect2(52.0, 326.0 + vertical_offset, 740.0, 145.0))
+	_set_rect(initialize_button, Rect2(52.0, 480.0 + vertical_offset, 360.0, 80.0))
+	_set_rect(language_selector, Rect2(52.0, 576.0 + vertical_offset, 282.0, 48.0))
+	_set_rect($StatusRail, Rect2(52.0, 636.0 + vertical_offset, 760.0, 74.0))
 	_set_rect(
 		briefing_toggle,
 		Rect2(viewport_size.x - 430.0, viewport_size.y - 72.0, 398.0, 58.0)
