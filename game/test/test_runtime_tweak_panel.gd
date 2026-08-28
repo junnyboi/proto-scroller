@@ -99,14 +99,22 @@ func test_bottom_right_hud_button_opens_pause_safe_tuning_panel() -> void:
 	var panel: RuntimeTweakPanel = main.runtime_tweak_panel
 	var hud: GameplayHud = main.city_slice.gameplay_hud
 	var button: Button = hud.tweak_controls_button
+	var disclaimer: Label = hud.tweak_leaderboard_disclaimer
 	var viewport_size: Vector2 = main.get_viewport().get_visible_rect().size
 	assert_not_null(button)
+	assert_not_null(disclaimer)
 	assert_eq(button.text, "TWEAK CONTROLS")
 	assert_true(button.visible)
 	assert_eq(button.size, Vector2(138.0, 24.0))
 	assert_eq(button.get_theme_font_size(&"font_size"), 9)
+	hud._set_tuning_provenance({"ranked_eligible": true})
+	assert_false(disclaimer.visible)
 	assert_lte(button.position.x + button.size.x, viewport_size.x)
 	assert_lte(button.position.y + button.size.y, viewport_size.y)
+	main.runtime_tweak_service.mark_sandbox(&"hud_disclaimer_test")
+	assert_true(disclaimer.visible)
+	assert_eq(disclaimer.text, "tweaks active, leaderboard disabled")
+	assert_eq(disclaimer.get_theme_color(&"font_color"), Color("ff695c"))
 	for size: Vector2 in [Vector2(1280.0, 720.0), Vector2(720.0, 1280.0)]:
 		hud._layout_tweak_controls_button(size)
 		assert_eq(button.size, Vector2(138.0, 24.0))
@@ -114,6 +122,9 @@ func test_bottom_right_hud_button_opens_pause_safe_tuning_panel() -> void:
 			button.get_theme_font_size(&"font_size"),
 			8 if size.y > size.x else 9
 		)
+		assert_gte(disclaimer.position.y, button.position.y + button.size.y)
+		assert_lte(disclaimer.position.x + disclaimer.size.x, size.x)
+		assert_lte(disclaimer.position.y + disclaimer.size.y, size.y)
 	assert_false(panel.is_open())
 	button.pressed.emit()
 	assert_true(panel.is_open())

@@ -217,10 +217,45 @@ func test_all_twenty_variants_show_unique_fixed_sprite_anticipation() -> void:
 			archetype_id,
 			archetype_id
 		)
+		assert_false(
+			city.telegraph_presenter.uses_procedural_rendering(enemy._telegraph_id),
+			archetype_id
+		)
+		assert_eq(
+			enemy._presentation_sprites[0].global_position,
+			enemy.telegraph_origin(),
+			archetype_id
+		)
 		enemy.cancel_telegraph()
 		assert_eq(_visible_presentation_count(enemy), 0, archetype_id)
 		assert_eq(city.projectile_root.reservation_count(), 0, archetype_id)
 		city.encounter_runtime.release(enemy)
+
+
+func test_missing_authored_attack_sprite_keeps_procedural_fallback() -> void:
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+	city.encounter_runtime.release_all()
+	var lobber: ProceduralEnemy = city.encounter_runtime.acquire(
+		&"lobber",
+		Vector2(1100.0, 542.0)
+	) as ProceduralEnemy
+	assert_not_null(lobber)
+	lobber.set_physics_process(false)
+	lobber._attack_vfx_id = &"missing_attack_sprite"
+	lobber._begin_attack()
+	assert_true(lobber.is_telegraphing())
+	assert_eq(_visible_presentation_count(lobber), 0)
+	assert_true(city.telegraph_presenter.uses_procedural_rendering(lobber._telegraph_id))
+	var snapshot: Dictionary = city.telegraph_presenter.snapshot(lobber._telegraph_id)
+	assert_false(
+		bool((snapshot.get("style_data", {}) as Dictionary).get(
+			TelegraphPresenter2D.AUTHORED_TELEGRAPH_STYLE_KEY,
+			false
+		))
+	)
+	lobber.cancel_telegraph()
 
 
 func test_actor_only_variants_complete_without_projectiles_or_mechanical_drift() -> void:

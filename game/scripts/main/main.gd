@@ -387,6 +387,7 @@ func _spawn_city_slice() -> void:
 	)
 	if runtime_tweak_service != null:
 		runtime_tweak_service.bind_city(city_slice)
+		city_slice.gameplay_hud.bind_runtime_tweak_service(runtime_tweak_service)
 
 
 func _show_title(restart_music: bool = false) -> void:
@@ -401,6 +402,7 @@ func _show_title(restart_music: bool = false) -> void:
 		)
 	title_screen = TITLE_SCENE.instantiate() as TitleScreen
 	title_screen.configure_campaign(campaign_progress.snapshot())
+	title_screen.configure_leaderboard(combat_profile)
 	title_screen.audio_activation_requested.connect(
 		_activate_title_music_from_interaction
 	)

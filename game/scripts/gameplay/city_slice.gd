@@ -12,6 +12,7 @@ const PROP_LAYER: int = 1 << 7
 const REMAINS_LAYER: int = 1 << 9
 const REMAINS_GROUND_LAYER: int = 1 << 10
 const LAND_VISUAL_BASELINE_Y: float = 655.0
+const GROUND_SMASH_WRECK_RADIUS_BONUS: float = 100.0
 const MOBILE_CONTROLS_SCRIPT: Script = preload("res://scripts/input/mobile_controls.gd")
 const GAMEPLAY_HUD_SCRIPT: Script = preload("res://scripts/ui/gameplay_hud.gd")
 const HAPTICS_SCRIPT: Script = preload("res://scripts/input/haptics_adapter.gd")
@@ -100,6 +101,7 @@ var soldier_defeat_body: SoldierDefeatBody2D
 var tank_wreck: EnemyWreck2D
 var helicopter_wreck: EnemyWreck2D
 var game_over_active: bool = false
+var last_player_damage_source_id: StringName = DefeatSourceResolver.UNKNOWN
 var score: int:
 	get:
 		return rampage_session.current_score() if rampage_session != null else 0
@@ -128,6 +130,7 @@ func _ready() -> void:
 		_on_robot_damage_received,
 		_on_robot_defeated
 	)
+	enemy_remains_factory.set_player(robot)
 	_build_world_stream()
 	contextual_attacks = ContextualAttackController.new()
 	contextual_attacks.name = "ContextualAttackController"
@@ -411,6 +414,14 @@ func _on_robot_heavy_impact(
 	options.damage_type = &"ground_smash"
 	options.structural_damage_scale = structural_damage / maxf(actor_damage, 0.001)
 	upgrade_assembler.decorate_damage_options(options, contextual_attacks.current_spec)
+	_reduce_enemy_wrecks_to_rubble(
+		origin,
+		radius + GROUND_SMASH_WRECK_RADIUS_BONUS,
+		actor_damage,
+		impulse_per_mass,
+		attack_id,
+		options
+	)
 	destruction_director.queue_explosion(
 		origin,
 		radius,
@@ -431,6 +442,48 @@ func _on_robot_heavy_impact(
 		air_target_lock_runtime.consume_volley_target(attack_id)
 	)
 	gameplay_hud.set_objective("objective.impact_registered")
+
+
+func _reduce_enemy_wrecks_to_rubble(
+	origin: Vector2,
+	radius: float,
+	damage: float,
+	impulse_per_mass: float,
+	attack_id: int,
+	options: DamageQueryOptions
+) -> int:
+	if enemy_remains_factory == null or radius <= 0.0 or damage <= 0.0:
+		return 0
+	var candidates: Array[EnemyWreck2D] = []
+	for index: int in range(enemy_remains_factory.active_count()):
+		var wreck: EnemyWreck2D = enemy_remains_factory.active_wreck_at(index)
+		if wreck != null:
+			candidates.append(wreck)
+	var reduced_count: int = 0
+	var radius_squared: float = radius * radius
+	for wreck: EnemyWreck2D in candidates:
+		if origin.distance_squared_to(wreck.global_position) > radius_squared:
+			continue
+		var direction: Vector2 = origin.direction_to(wreck.global_position)
+		if direction.is_zero_approx():
+			direction = Vector2.UP
+		var event: DamageEvent = DamageEvent.new(
+			attack_id,
+			robot,
+			damage,
+			&"ground_smash",
+			origin,
+			direction,
+			impulse_per_mass,
+			options.root_attack_id,
+			options.causal_depth,
+			options.effect_flags,
+			options.kinetic_debris_bonus
+		)
+		if wreck.reduce_to_rubble(event):
+			reduced_count += 1
+	return reduced_count
+
 
 func _material_for_target(
 	target: Node,
@@ -633,6 +686,7 @@ func _on_ground_debris_impact_accepted(
 
 
 func _on_robot_damage_received(event: DamageEvent, accepted_damage: float) -> void:
+	last_player_damage_source_id = DefeatSourceResolver.resolve(event, self)
 	rampage_events.player_damage_received(event, accepted_damage, robot)
 
 

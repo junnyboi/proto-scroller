@@ -29,8 +29,16 @@ func after_each() -> void:
 
 func test_choir_prime_uses_five_pylons_three_connections_and_commits_crown_first() -> void:
 	_start_royal()
-	assert_eq(session.active_definition.armor, 330.0)
-	assert_eq(session.active_definition.armor_milestone_step, 110.0)
+	assert_eq(
+		session.active_definition.armor,
+		BossCampaignCatalog.BASE_ARMOR
+		* BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER
+	)
+	assert_eq(
+		session.active_definition.armor_milestone_step,
+		BossCampaignCatalog.BASE_ARMOR_MILESTONE_STEP
+		* BossCampaignCatalog.BOSS_DURABILITY_MULTIPLIER
+	)
 	assert_eq(_visible_pylon_count(), 5)
 	assert_true(royal.all_pylons_distinct())
 	assert_eq(royal.live_support_count(), 0)
@@ -168,7 +176,11 @@ func test_mid_attempt_retry_restores_pylons_attack_and_single_grammar() -> void:
 	assert_true(session.start_definition(BossCampaignCatalog.definition(&"CHOIR_PRIME")))
 	assert_eq(royal.armor_connections, 2)
 	assert_eq(royal.remaining_pylon_count(), 1)
-	assert_almost_eq(session.boss.boss_armor, 110.0, 0.001)
+	assert_almost_eq(
+		session.boss.boss_armor,
+		session.active_definition.armor_milestone_step,
+		0.001
+	)
 	assert_eq(royal.active_mechanic, expected_mechanic)
 	assert_eq(royal.active_mechanic_count(), 1)
 	assert_eq(royal.active_composition_echo_count(), 1)
@@ -188,15 +200,10 @@ func test_choir_prime_crown_canon_and_royal_support_stop_before_wreck() -> void:
 	assert_eq(planned.visual_key, ProjectileVisualCatalog.ENEMY_ROCKET_DIRECT)
 	assert_eq(planned.planned, 2)
 	assert_almost_eq(planned.presentation_scale, 1.5, 0.001)
-	var warning: Dictionary = city.telegraph_presenter.snapshot(planned.telegraph_id)
-	assert_eq(warning.origin, session.utility_pool.rig.attack_telegraph_origin())
-	assert_eq(warning.kind, &"rocket")
-	assert_eq(warning.presentation_variant, BossProjectileVolley.TELEGRAPH_PRESENTATION_VARIANT)
-	assert_eq((warning.style_data.origins as Array).size(), 2)
-	assert_eq((warning.style_data.targets as Array).size(), 2)
-	assert_eq((warning.style_data.projectile_origins as Array).size(), 2)
-	for warning_origin: Vector2 in warning.style_data.origins as Array:
-		assert_eq(warning_origin, warning.origin)
+	assert_eq(planned.telegraph_id, 0)
+	assert_eq(city.telegraph_presenter.active_count(), 0)
+	assert_eq((planned.origins as Array).size(), 2)
+	assert_eq((planned.targets as Array).size(), 2)
 	assert_eq(city.projectile_root.reservation_count(&"rocket"), 2)
 	royal.advance(BossRoyalFinaleController.TELEGRAPH_SECONDS)
 	assert_eq(city.projectile_root.active_count(&"rocket"), 1)
@@ -309,7 +316,7 @@ func _charged_event(attack_id: int) -> DamageEvent:
 	return DamageEvent.new(
 		attack_id,
 		city.robot,
-		110.0,
+		session.active_definition.armor_milestone_step,
 		&"jab_cross",
 		Vector2.ZERO,
 		Vector2.RIGHT,

@@ -17,6 +17,7 @@ var _wreck_root: Node2D
 var _scrap_pool: DebrisPool
 var _tank_texture: Texture2D
 var _helicopter_texture: Texture2D
+var _player: GiantRobotController
 var _free_wrecks: Array[EnemyWreck2D] = []
 var _active_wrecks: Array[EnemyWreck2D] = []
 
@@ -44,6 +45,10 @@ func _ready() -> void:
 		_wreck_root.add_child(wreck)
 		wreck.deactivate()
 		_free_wrecks.append(wreck)
+
+
+func set_player(player: GiantRobotController) -> void:
+	_player = player
 
 
 func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
@@ -103,6 +108,7 @@ func spawn_wreck(enemy: EnemyActor2D, event: DamageEvent) -> EnemyWreck2D:
 			event,
 			true
 		)
+	wreck.eject_from_player_if_overlapping(_player)
 	wreck_spawned.emit(enemy, wreck)
 	return wreck
 

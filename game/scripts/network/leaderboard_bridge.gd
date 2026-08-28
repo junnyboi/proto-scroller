@@ -11,19 +11,21 @@ const MAX_RESPONSE_ROWS: int = 20
 const QUEUE_NAME: String = "__PROTO_SCROLLER_LEADERBOARD_RESPONSES__"
 
 var profile_store: PlayerCombatProfileStore
-var panel: MatchDebriefPanel
+var panel: Node
 var state: StringName = &"native_local"
 var last_submission_blocked: bool = false
 var _request_counter: int = 0
 var _pending: Dictionary = {}
 
 
-func setup(store: PlayerCombatProfileStore, debrief_panel: MatchDebriefPanel) -> void:
+func setup(store: PlayerCombatProfileStore, leaderboard_panel: Node) -> void:
 	profile_store = store
-	panel = debrief_panel
+	panel = leaderboard_panel
 	if panel != null:
-		panel.global_refresh_requested.connect(request_list)
-		panel.callsign_saved.connect(_on_callsign_saved)
+		if panel.has_signal(&"global_refresh_requested"):
+			panel.connect(&"global_refresh_requested", request_list)
+		if panel.has_signal(&"callsign_saved"):
+			panel.connect(&"callsign_saved", _on_callsign_saved)
 	if not OS.has_feature("web"):
 		_set_state(&"native_local")
 		set_process(false)
@@ -89,7 +91,7 @@ func _process(_delta: float) -> void:
 			callsign_timed_out = true
 		_pending.erase(request_id)
 	if callsign_timed_out and is_instance_valid(panel):
-		panel.set_callsign_uplink_state(&"failure")
+		_call_panel(&"set_callsign_uplink_state", [&"failure"])
 	if not timed_out.is_empty():
 		_set_state(&"local_fallback")
 
@@ -120,7 +122,7 @@ func _send_request(request_type: StringName, payload: Dictionary) -> void:
 	var sent: bool = bool(JavaScriptBridge.eval(script, true))
 	if not sent:
 		if request_type == &"update_callsign" and is_instance_valid(panel):
-			panel.set_callsign_uplink_state(&"failure")
+			_call_panel(&"set_callsign_uplink_state", [&"failure"])
 		_set_state(&"local_fallback")
 		return
 	_pending[request_id] = {
@@ -194,9 +196,9 @@ func _handle_response(response: Dictionary) -> void:
 	if not bool(response.get("ok", false)):
 		if request_type == &"update_callsign":
 			var error_code: String = String(response.get("error", "UPLINK_UNAVAILABLE"))
-			panel.set_callsign_uplink_state(
+			_call_panel(&"set_callsign_uplink_state", [
 				&"rejected" if error_code == "CALLSIGN_REJECTED" else &"failure"
-			)
+			])
 			return
 		_set_state(&"local_fallback")
 		return
@@ -210,7 +212,7 @@ func _handle_response(response: Dictionary) -> void:
 	)
 	_set_state(&"online", entries, personal_rank)
 	if request_type == &"update_callsign" and is_instance_valid(panel):
-		panel.set_callsign_uplink_state(&"success")
+		_call_panel(&"set_callsign_uplink_state", [&"success"])
 
 
 func _sanitize_entries(raw_entries: Array) -> Array[Dictionary]:
@@ -267,5 +269,10 @@ func _set_state(
 ) -> void:
 	state = new_state
 	if is_instance_valid(panel):
-		panel.set_global_state(new_state, entries, personal_rank)
+		_call_panel(&"set_global_state", [new_state, entries, personal_rank])
 	state_changed.emit(new_state)
+
+
+func _call_panel(method: StringName, arguments: Array = []) -> void:
+	if is_instance_valid(panel) and panel.has_method(method):
+		panel.callv(method, arguments)

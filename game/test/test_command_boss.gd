@@ -36,6 +36,7 @@ func test_boss_reuses_one_tank_and_enters_reserved_barrage() -> void:
 	assert_eq(session.state, CommandBossSession.STATE_BARRAGE)
 	session.boss._begin_shell()
 	assert_true(session.boss.is_telegraphing())
+	assert_eq(city.telegraph_presenter.active_count(), 0)
 	assert_eq(city.projectile_root.reservation_count(&"shell"), 1)
 
 
@@ -66,6 +67,11 @@ func test_every_player_attack_type_damages_every_campaign_boss_armor() -> void:
 	var attack_id: int = 1050
 	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
 		assert_true(session.start_definition(definition), String(definition.boss_id))
+		assert_eq(
+			city.telegraph_presenter.active_count(),
+			0,
+			String(definition.boss_id)
+		)
 		var boss: TankEnemy = session.boss
 		var rig: BossRig2D = session.utility_pool.rig
 		var flash_count_before: int = rig.damage_flash_count
@@ -170,11 +176,11 @@ func test_district_signal_waits_until_boss_defeat_spectacle_completes() -> void:
 	assert_signal_not_emitted(city.urban_siege, "district_completed")
 	assert_true(session.start_definition(BossCampaignCatalog.definition(&"CHOIR_PRIME")))
 	var boss: TankEnemy = session.boss
-	for index: int in range(5):
+	for index: int in range(BossRoyalFinaleController.CONNECTION_COUNT):
 		boss.receive_damage(DamageEvent.new(
 			1200 + index,
 			city.robot,
-			110.0,
+			session.active_definition.armor_milestone_step,
 			&"jab_cross",
 			Vector2.ZERO,
 			Vector2.RIGHT,

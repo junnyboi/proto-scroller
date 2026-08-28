@@ -1,9 +1,8 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/title_screen.gd" id="1_script"]
 [ext_resource type="Theme" path="res://resources/title_theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" path="res://art/ui/title_screen/command_deck_landscape.jpg" id="3_landscape"]
-[ext_resource type="Texture2D" path="res://art/ui/title_screen/command_deck_briefing_landscape.jpg" id="4_briefing"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBriefingTips"]
 bg_color = Color(0.00392157, 0.0196078, 0.0313725, 0.97)
@@ -275,6 +274,24 @@ theme_override_styles/pressed = SubResource("StyleLanguagePressed")
 theme_override_styles/focus = SubResource("StyleToggleFocus")
 text = ""
 
+[node name="LeaderboardButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 824.0
+offset_top = 24.0
+offset_right = 1040.0
+offset_bottom = 72.0
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.584314, 0.72549, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(0.870588, 1, 0.956863, 1)
+theme_override_colors/font_focus_color = Color(0.352941, 1, 0.827451, 1)
+theme_override_styles/normal = SubResource("StyleLanguageNormal")
+theme_override_styles/hover = SubResource("StyleLanguageHover")
+theme_override_styles/pressed = SubResource("StyleLanguagePressed")
+theme_override_styles/focus = SubResource("StyleToggleFocus")
+text = ""
+
 [node name="BriefingLayer" type="Control" parent="."]
 unique_name_in_owner = true
 visible = false
@@ -286,7 +303,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 
-[node name="BriefingArt" type="TextureRect" parent="BriefingLayer"]
+[node name="BriefingBackground" type="ColorRect" parent="BriefingLayer"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -295,10 +312,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture_filter = 2
-texture = ExtResource("4_briefing")
-expand_mode = 1
-stretch_mode = 6
+color = Color(0, 0.0117647, 0.0235294, 1)
 
 [node name="BriefingBackdrop" type="Button" parent="BriefingLayer"]
 unique_name_in_owner = true

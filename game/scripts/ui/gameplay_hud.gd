@@ -67,6 +67,7 @@ var first_run_tutorial: FirstRunCombatTutorial
 var transmission_toast: TransmissionToast
 var field_briefing: FieldBriefingPanel
 var tweak_controls_button: Button
+var tweak_leaderboard_disclaimer: Label
 var boss_panel: ColorRect
 var boss_label: Label
 var boss_armor_track: ColorRect
@@ -113,6 +114,7 @@ var _boss_armor_ratio: float = 0.0
 var _boss_health_ratio: float = 0.0
 var _hud_tuning_scale: float = 1.0
 var _hud_tuning_tint: Color = Color.WHITE
+var _runtime_tweak_service: RuntimeTweakService
 
 
 func setup(
@@ -123,6 +125,24 @@ func setup(
 	_robot = robot
 	_contextual_attacks = contextual_attacks
 	_combat_profile = combat_profile
+
+
+func bind_runtime_tweak_service(service: RuntimeTweakService) -> void:
+	if (
+		_runtime_tweak_service != null
+		and _runtime_tweak_service.run_provenance_changed.is_connected(
+			_set_tuning_provenance
+		)
+	):
+		_runtime_tweak_service.run_provenance_changed.disconnect(
+			_set_tuning_provenance
+		)
+	_runtime_tweak_service = service
+	if _runtime_tweak_service == null:
+		_set_tuning_provenance({"ranked_eligible": true})
+		return
+	_runtime_tweak_service.run_provenance_changed.connect(_set_tuning_provenance)
+	_set_tuning_provenance(_runtime_tweak_service.provenance_snapshot())
 
 
 func _ready() -> void:
@@ -1049,6 +1069,9 @@ func _apply_live_visual_tuning() -> void:
 		_hud_tuning_tint = next_tint
 		for child: Node in get_children():
 			if child is CanvasItem:
+				if child == tweak_leaderboard_disclaimer:
+					(child as CanvasItem).self_modulate = Color.WHITE
+					continue
 				(child as CanvasItem).self_modulate = next_tint
 
 
@@ -1068,18 +1091,39 @@ func _build_tweak_controls_button() -> void:
 	)
 	tweak_controls_button.pressed.connect(tweak_controls_requested.emit)
 	add_child(tweak_controls_button)
+	tweak_leaderboard_disclaimer = Label.new()
+	tweak_leaderboard_disclaimer.name = "TweakLeaderboardDisclaimer"
+	tweak_leaderboard_disclaimer.text = L10n.t(
+		"tuning.hud.leaderboard_disabled"
+	)
+	tweak_leaderboard_disclaimer.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	tweak_leaderboard_disclaimer.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tweak_leaderboard_disclaimer.clip_text = true
+	tweak_leaderboard_disclaimer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tweak_leaderboard_disclaimer.z_index = 10
+	tweak_leaderboard_disclaimer.add_theme_color_override(
+		&"font_color", Color("ff695c")
+	)
+	tweak_leaderboard_disclaimer.add_theme_constant_override(&"outline_size", 4)
+	tweak_leaderboard_disclaimer.add_theme_color_override(
+		&"font_outline_color", Color(0.0, 0.0, 0.0, 0.94)
+	)
+	tweak_leaderboard_disclaimer.visible = false
+	add_child(tweak_leaderboard_disclaimer)
 
 
 func _layout_tweak_controls_button(viewport_size: Vector2) -> void:
-	if tweak_controls_button == null:
+	if tweak_controls_button == null or tweak_leaderboard_disclaimer == null:
 		return
 	var width: float = minf(TWEAK_BUTTON_WIDTH, viewport_size.x - 32.0)
 	var bottom_margin: float = 18.0
 	if DisplayServer.is_touchscreen_available():
 		bottom_margin = 274.0
+	var disclaimer_height: float = 22.0
+	var disclaimer_y: float = viewport_size.y - bottom_margin - disclaimer_height
 	tweak_controls_button.position = Vector2(
 		viewport_size.x - width - 24.0,
-		viewport_size.y - bottom_margin - TWEAK_BUTTON_HEIGHT
+		disclaimer_y - 4.0 - TWEAK_BUTTON_HEIGHT
 	)
 	tweak_controls_button.size = Vector2(width, TWEAK_BUTTON_HEIGHT)
 	tweak_controls_button.add_theme_font_size_override(
@@ -1087,6 +1131,22 @@ func _layout_tweak_controls_button(viewport_size: Vector2) -> void:
 		TWEAK_BUTTON_PORTRAIT_FONT_SIZE
 		if viewport_size.y > viewport_size.x
 		else TWEAK_BUTTON_LANDSCAPE_FONT_SIZE
+	)
+	tweak_leaderboard_disclaimer.position = Vector2(
+		viewport_size.x - width - 24.0,
+		disclaimer_y
+	)
+	tweak_leaderboard_disclaimer.size = Vector2(width, disclaimer_height)
+	tweak_leaderboard_disclaimer.add_theme_font_size_override(
+		&"font_size", 12 if viewport_size.y > viewport_size.x else 13
+	)
+
+
+func _set_tuning_provenance(snapshot: Dictionary) -> void:
+	if tweak_leaderboard_disclaimer == null:
+		return
+	tweak_leaderboard_disclaimer.visible = not bool(
+		snapshot.get("ranked_eligible", true)
 	)
 
 

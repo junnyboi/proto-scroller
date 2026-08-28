@@ -371,6 +371,136 @@ func test_every_machine_wreck_inherits_opaque_bounds_and_grounded_road_baseline(
 		runtime.release(actor)
 
 
+func test_all_machine_wrecks_overlapping_player_eject_up_and_out() -> void:
+	city.robot.set_physics_process(false)
+	city.robot.global_position = Vector2(1280.0, 520.0)
+	var machine_kinds: Array[StringName] = [&"tank", &"helicopter"]
+	for archetype_id: StringName in EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS:
+		var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+		if StringName(profile.get("remains", &"")) != &"infantry":
+			machine_kinds.append(archetype_id)
+	assert_eq(machine_kinds.size(), 38)
+	for index: int in range(machine_kinds.size()):
+		var kind: StringName = machine_kinds[index]
+		var actor: EnemyActor2D = runtime.acquire(kind, city.robot.global_position)
+		assert_not_null(actor, kind)
+		var expected_direction: float = -1.0 if index % 2 == 0 else 1.0
+		var event: DamageEvent = DamageEvent.new(
+			82_000 + index,
+			city.robot,
+			actor.current_health,
+			&"impact",
+			actor.global_position,
+			Vector2(expected_direction, -0.1),
+			240.0
+		)
+		var wreck: EnemyWreck2D = city.enemy_remains_factory.spawn_wreck(actor, event)
+		assert_not_null(wreck, kind)
+		assert_eq(wreck.player_overlap_ejection_count, 1, kind)
+		assert_true(wreck.is_player_overlap_ejecting(), kind)
+		assert_lte(
+			wreck.linear_velocity.y,
+			-EnemyWreck2D.PLAYER_OVERLAP_EJECTION_UPWARD_SPEED,
+			kind
+		)
+		assert_gte(
+			absf(wreck.linear_velocity.x),
+			EnemyWreck2D.PLAYER_OVERLAP_EJECTION_OUTWARD_SPEED,
+			kind
+		)
+		assert_eq(signf(wreck.linear_velocity.x), expected_direction, kind)
+		assert_gte(
+			absf(wreck.angular_velocity),
+			EnemyWreck2D.PLAYER_OVERLAP_EJECTION_ANGULAR_SPEED,
+			kind
+		)
+		assert_eq(wreck.collision_mask & EnemyWreck2D.ROBOT_LAYER, 0, kind)
+		city.enemy_remains_factory.release_wreck(wreck)
+		runtime.release(actor)
+	var safe_actor: EnemyActor2D = runtime.acquire(
+		&"tank",
+		city.robot.global_position + Vector2(900.0, 0.0)
+	)
+	var safe_event: DamageEvent = DamageEvent.new(
+		82_100,
+		city.robot,
+		safe_actor.current_health,
+		&"impact",
+		safe_actor.global_position,
+		Vector2.RIGHT,
+		240.0
+	)
+	var safe_wreck: EnemyWreck2D = city.enemy_remains_factory.spawn_wreck(
+		safe_actor,
+		safe_event
+	)
+	assert_not_null(safe_wreck)
+	assert_eq(safe_wreck.player_overlap_ejection_count, 0)
+	assert_false(safe_wreck.is_player_overlap_ejecting())
+	assert_ne(safe_wreck.collision_mask & EnemyWreck2D.ROBOT_LAYER, 0)
+	city.enemy_remains_factory.release_wreck(safe_wreck)
+	runtime.release(safe_actor)
+
+
+func test_overlap_ejected_vehicle_clears_player_then_lands_elsewhere() -> void:
+	city.urban_siege.stop_run()
+	runtime.release_all()
+	city.robot.set_physics_process(false)
+	city.robot.global_position = Vector2(1280.0, 520.0)
+	var actor: EnemyActor2D = runtime.acquire(&"tank", city.robot.global_position)
+	var event: DamageEvent = DamageEvent.new(
+		82_200,
+		city.robot,
+		actor.current_health,
+		&"impact",
+		actor.global_position,
+		Vector2.RIGHT,
+		240.0
+	)
+	var wreck: EnemyWreck2D = city.enemy_remains_factory.spawn_wreck(actor, event)
+	assert_not_null(wreck)
+	assert_true(wreck.is_player_overlap_ejecting())
+	for frame: int in range(180):
+		await get_tree().physics_frame
+		if not wreck.is_settling_to_road():
+			break
+	assert_false(wreck.is_player_overlap_ejecting())
+	assert_ne(wreck.collision_mask & EnemyWreck2D.ROBOT_LAYER, 0)
+	assert_false(wreck.is_settling_to_road())
+	assert_gt(
+		absf(wreck.global_position.x - city.robot.global_position.x),
+		wreck.collision_size.x * 0.5 + 46.0
+	)
+	assert_almost_eq(
+		wreck.visible_bottom_y(),
+		CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y,
+		EnemyWreck2D.ROAD_SETTLE_TOLERANCE
+	)
+
+
+func test_crucible_capture_preserves_pending_ejection_collision_restore() -> void:
+	city.robot.set_physics_process(false)
+	city.robot.global_position = Vector2(1280.0, 520.0)
+	var actor: EnemyActor2D = runtime.acquire(&"tank", city.robot.global_position)
+	var event: DamageEvent = DamageEvent.new(
+		82_300,
+		city.robot,
+		actor.current_health,
+		&"impact",
+		actor.global_position,
+		Vector2.RIGHT,
+		240.0
+	)
+	var wreck: EnemyWreck2D = city.enemy_remains_factory.spawn_wreck(actor, event)
+	assert_true(wreck.is_player_overlap_ejecting())
+	assert_true(wreck.begin_crucible_capture())
+	wreck.update_crucible_capture(city.robot.global_position + Vector2(900.0, -200.0), 0.0)
+	wreck._physics_process(0.0)
+	assert_false(wreck.is_player_overlap_ejecting())
+	wreck.cancel_crucible_capture()
+	assert_ne(wreck.collision_mask & EnemyWreck2D.ROBOT_LAYER, 0)
+
+
 func test_vehicle_weight_tiers_resist_live_hits_but_wrecks_launch() -> void:
 	var heavy_vehicle: EnemyActor2D = runtime.acquire(&"tank", Vector2(1080.0, 542.5))
 	var light_vehicle: EnemyActor2D = runtime.acquire(&"jackal", Vector2(1240.0, 554.0))

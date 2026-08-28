@@ -89,6 +89,27 @@ func test_duplicate_entitlement_claim_changes_nothing() -> void:
 	assert_eq(session.rng_draw_count, 0)
 
 
+func test_unacquired_upgrades_receive_double_offer_weight() -> void:
+	var catalog: UpgradeCatalog = _catalog(3)
+	for profile: UpgradeProfile in catalog.profiles:
+		profile.offer_weight = 100
+	var session: UpgradeSession = _session(713, catalog)
+	var acquired: UpgradeProfile = catalog.profiles[0]
+	var unacquired: UpgradeProfile = catalog.profiles[1]
+	session.ranks[acquired.upgrade_id] = 1
+	assert_eq(session._effective_offer_weight(acquired), 100)
+	assert_eq(
+		session._effective_offer_weight(unacquired),
+		100 * UpgradeSession.UNACQUIRED_OFFER_WEIGHT_MULTIPLIER
+	)
+	var unacquired_first_draws: int = 0
+	for draw_index: int in range(1000):
+		var choices: PackedStringArray = session._draw_two(session.legal_profiles())
+		if session.rank_of(choices[0]) == 0:
+			unacquired_first_draws += 1
+	assert_gt(unacquired_first_draws, 730)
+
+
 func _session(p_seed: int, catalog: UpgradeCatalog) -> UpgradeSession:
 	var session: UpgradeSession = UpgradeSession.new()
 	add_child_autofree(session)

@@ -119,9 +119,10 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 		(screen.get_node("%InstructionLabel") as Label).text,
 		L10n.t("title.command_hook")
 	)
-	assert_true(
-		(screen.get_node("%BriefingArt") as TextureRect)
-		.texture.resource_path.contains("briefing_landscape_zh_cn")
+	assert_null(screen.get_node_or_null("%BriefingArt"))
+	assert_eq(
+		screen.campaign_panel.codex_button.text,
+		L10n.t("narrative.campaign.open_codex")
 	)
 	var title_font: Font = (screen.get_node("%TitleLabel") as Label).get_theme_font(&"font")
 	assert_true(title_font.has_char("中".unicode_at(0)))

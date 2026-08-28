@@ -3,6 +3,7 @@ extends UpgradeRuntime
 
 const TOWER_CAPACITY: int = 1
 const ARC_CAPACITY: int = TeslaTower2D.ARC_CAPACITY
+const DEPLOYMENT_OFFSET: Vector2 = Vector2(0.0, 40.0)
 
 var robot: GiantRobotController
 var attacks: ContextualAttackController
@@ -106,7 +107,7 @@ func _on_charge_released(
 		visual_ground.global_position
 		if visual_ground != null
 		else robot.global_position + Vector2(0.0, 126.0)
-	)
+	) + DEPLOYMENT_OFFSET
 	if tower.activate(origin, current_rank, spec.attack_id):
 		deployment_count += 1
 

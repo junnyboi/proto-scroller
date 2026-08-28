@@ -93,9 +93,10 @@ func test_launch_scene_contract() -> void:
 		(screen.get_node("%SettingsHeading") as Label).text,
 		L10n.t("title.settings_heading")
 	)
-	assert_true(
-		(screen.get_node("%BriefingArt") as TextureRect)
-		.texture.resource_path.contains("briefing_landscape_zh_cn")
+	assert_null(screen.get_node_or_null("%BriefingArt"))
+	assert_gt(
+		(screen.get_node("%BriefingBackground") as ColorRect).color.a,
+		0.95
 	)
 	assert_true(screen.select_language("en"))
 	assert_eq(L10n.preferred_locale(LANGUAGE_PREFERENCE_PATH), "en")
@@ -134,6 +135,27 @@ func test_spacebar_does_not_activate_the_focused_launch_button() -> void:
 	await get_tree().process_frame
 	assert_eq(signal_counts.start, 1)
 	assert_true(screen.initialized)
+	_record_test_execution()
+
+
+func test_tab_opens_field_briefing_without_rotating_button_focus() -> void:
+	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
+	initialize_button.grab_focus()
+	assert_true(initialize_button.has_focus())
+	var tab_press: InputEventKey = InputEventKey.new()
+	tab_press.keycode = KEY_TAB
+	tab_press.physical_keycode = KEY_TAB
+	tab_press.pressed = true
+	Input.parse_input_event(tab_press)
+	await get_tree().process_frame
+	assert_true(screen.briefing_open)
+	assert_true((screen.get_node("%BriefingLayer") as Control).visible)
+	assert_true(initialize_button.has_focus())
+	assert_false((screen.get_node("%EnglishButton") as Button).has_focus())
+	assert_false((screen.get_node("%ChineseButton") as Button).has_focus())
+	var tab_release: InputEventKey = tab_press.duplicate() as InputEventKey
+	tab_release.pressed = false
+	Input.parse_input_event(tab_release)
 	_record_test_execution()
 
 
@@ -360,7 +382,7 @@ func test_settings_and_briefing_are_mutually_exclusive() -> void:
 	_record_test_execution()
 
 
-func test_campaign_archive_renders_injected_progress_and_focus_safe_codex() -> void:
+func test_campaign_archive_shows_only_focus_safe_codex_button() -> void:
 	var archive_screen: TitleScreen = TITLE_SCREEN_SCENE.instantiate() as TitleScreen
 	archive_screen.configure_campaign({
 		"dossiers": PackedStringArray([
@@ -376,10 +398,20 @@ func test_campaign_archive_renders_injected_progress_and_focus_safe_codex() -> v
 	add_child_autofree(archive_screen)
 	await get_tree().process_frame
 	assert_true(archive_screen.open_briefing())
-	assert_true(archive_screen.campaign_panel.progress_label.text.contains("1 / 25"))
-	assert_true(archive_screen.campaign_panel.continuity_label.text.contains("3"))
-	assert_true(archive_screen.campaign_panel.endings_label.text.contains("ASH PROTOCOL"))
-	assert_true(archive_screen.campaign_panel.endings_label.text.contains("SEVERANCE"))
+	assert_false(archive_screen.campaign_panel.panel.visible)
+	for summary_label: Label in [
+		archive_screen.campaign_panel.heading_label,
+		archive_screen.campaign_panel.progress_label,
+		archive_screen.campaign_panel.evidence_label,
+		archive_screen.campaign_panel.continuity_label,
+		archive_screen.campaign_panel.endings_label,
+	]:
+		assert_false(summary_label.visible)
+	assert_true(archive_screen.campaign_panel.codex_button.is_visible_in_tree())
+	assert_eq(
+		archive_screen.campaign_panel.codex_button.text,
+		L10n.t("narrative.campaign.open_codex")
+	)
 	archive_screen.campaign_panel.codex_button.pressed.emit()
 	assert_true(archive_screen.dossier_codex.visible)
 	assert_true(
@@ -403,7 +435,10 @@ func test_campaign_archive_renders_injected_progress_and_focus_safe_codex() -> v
 		archive_screen.campaign_panel.codex_button
 	)
 	assert_true(archive_screen.select_language("zh-CN"))
-	assert_true(archive_screen.campaign_panel.heading_label.text.contains("合唱"))
+	assert_eq(
+		archive_screen.campaign_panel.codex_button.text,
+		L10n.t("narrative.campaign.open_codex")
+	)
 	assert_eq(int(archive_screen.campaign_snapshot.dossier_count), 1)
 	_record_test_execution()
 
@@ -446,11 +481,14 @@ func test_launch_action_does_not_overlap_briefing_action() -> void:
 	_record_test_execution()
 
 
-func test_generated_art_contract_replaces_procedural_rendering() -> void:
+func test_generated_title_art_and_minimal_briefing_contract() -> void:
 	var background: TextureRect = screen.get_node("%BackgroundArt") as TextureRect
-	var briefing: TextureRect = screen.get_node("%BriefingArt") as TextureRect
 	assert_true(background.texture.resource_path.contains("command_deck_landscape.jpg"))
-	assert_true(briefing.texture.resource_path.contains("command_deck_briefing_landscape.jpg"))
+	assert_null(screen.get_node_or_null("%BriefingArt"))
+	var briefing_background: ColorRect = (
+		screen.get_node("%BriefingBackground") as ColorRect
+	)
+	assert_gt(briefing_background.color.a, 0.95)
 	var source_file: FileAccess = FileAccess.open("res://scripts/title_screen.gd", FileAccess.READ)
 	var source: String = source_file.get_as_text()
 	assert_false(source.contains("func _draw"), "Procedural title graphics are forbidden.")

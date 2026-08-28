@@ -20,6 +20,9 @@ const NON_PLAYER_KNOCKBACK_SCALE: float = 0.32
 const ROAD_SETTLE_BASELINE_Y: float = CityStreetChunk.LAND_ENEMY_VISUAL_BASELINE_Y
 const ROAD_SETTLE_TIMEOUT_SECONDS: float = 2.5
 const ROAD_SETTLE_TOLERANCE: float = 2.0
+const PLAYER_OVERLAP_EJECTION_UPWARD_SPEED: float = 820.0
+const PLAYER_OVERLAP_EJECTION_OUTWARD_SPEED: float = 540.0
+const PLAYER_OVERLAP_EJECTION_ANGULAR_SPEED: float = 10.0
 
 static var _next_crash_attack_id: int = 2_000_000
 
@@ -37,6 +40,7 @@ var airborne_crash: bool = false
 var settling_to_road: bool = false
 var crash_landing_count: int = 0
 var crash_impact_count: int = 0
+var player_overlap_ejection_count: int = 0
 var finisher_requires_ground_smash: bool = false
 var finisher_damage_types: PackedStringArray = PackedStringArray()
 var _seen_attacks: Dictionary[int, bool] = {}
@@ -65,6 +69,7 @@ var _capture_linear_damp: float = 0.0
 var _capture_angular_damp: float = 0.0
 var _capture_can_sleep: bool = true
 var _capture_shape_disabled: bool = false
+var _player_overlap_ejection_target: GiantRobotController
 
 
 func _ready() -> void:
@@ -109,6 +114,8 @@ func activate(
 	_settle_elapsed = 0.0
 	crash_landing_count = 0
 	crash_impact_count = 0
+	player_overlap_ejection_count = 0
+	_player_overlap_ejection_target = null
 	configure_finisher_policy(p_finisher_requires_ground_smash, p_fatal_event)
 	_crash_impact_targets.clear()
 	_crash_attack_id = _allocate_crash_attack_id() if airborne_crash else 0
@@ -150,6 +157,8 @@ func deactivate(preserve_scrapped: bool = false) -> void:
 	airborne_crash = false
 	settling_to_road = false
 	crash_impact_count = 0
+	player_overlap_ejection_count = 0
+	_player_overlap_ejection_target = null
 	finisher_requires_ground_smash = false
 	finisher_damage_types = PackedStringArray()
 	_finisher_receiver_active = false
@@ -208,6 +217,25 @@ func receive_damage(event: DamageEvent) -> bool:
 	if current_scrap_health <= 0.0:
 		_turn_to_scrap(event)
 	return true
+
+
+func reduce_to_rubble(event: DamageEvent) -> bool:
+	if event == null or event.amount <= 0.0:
+		return false
+	var finisher_event: DamageEvent = DamageEvent.new(
+		event.attack_id,
+		event.source,
+		maxf(event.amount, current_scrap_health),
+		event.damage_type,
+		event.hit_position,
+		event.direction,
+		event.impulse_per_mass,
+		event.root_attack_id,
+		event.causal_depth,
+		event.effect_flags,
+		event.kinetic_debris_bonus
+	)
+	return receive_damage(finisher_event)
 
 
 func configure_finisher_policy(
@@ -292,7 +320,35 @@ func visible_bottom_y() -> float:
 	return visual.to_global(local_bottom).y
 
 
+func eject_from_player_if_overlapping(player: GiantRobotController) -> bool:
+	if player == null or not _overlaps_player(player):
+		return false
+	var outward_sign: float = _player_ejection_direction(player)
+	linear_velocity = Vector2(
+		outward_sign * maxf(
+			absf(linear_velocity.x),
+			PLAYER_OVERLAP_EJECTION_OUTWARD_SPEED
+		),
+		minf(linear_velocity.y, -PLAYER_OVERLAP_EJECTION_UPWARD_SPEED)
+	)
+	angular_velocity = outward_sign * PLAYER_OVERLAP_EJECTION_ANGULAR_SPEED
+	linear_damp = 0.25
+	angular_damp = 0.45
+	can_sleep = false
+	sleeping = false
+	collision_mask &= ~ROBOT_LAYER
+	_player_overlap_ejection_target = player
+	player_overlap_ejection_count += 1
+	reset_physics_interpolation()
+	return true
+
+
+func is_player_overlap_ejecting() -> bool:
+	return _player_overlap_ejection_target != null
+
+
 func _physics_process(delta: float) -> void:
+	_advance_player_overlap_ejection()
 	_advance_crucible_gravity(delta)
 	if not settling_to_road or scrapped_state or freeze:
 		return
@@ -544,6 +600,7 @@ func _finish_road_settling(road_surface_y: float = ROAD_SETTLE_BASELINE_Y) -> vo
 	angular_damp = 1.8
 	can_sleep = true
 	collision_mask = REMAINS_GROUND_LAYER | ROBOT_LAYER
+	_player_overlap_ejection_target = null
 	_last_crash_velocity = Vector2.ZERO
 	_settle_elapsed = 0.0
 	_align_visual_to_road_contact(road_surface_y)
@@ -580,6 +637,69 @@ func _road_surface_y(ground_body: CollisionObject2D) -> float:
 		var rectangle: RectangleShape2D = collision.shape as RectangleShape2D
 		return collision.to_global(Vector2(0.0, -rectangle.size.y * 0.5)).y
 	return ROAD_SETTLE_BASELINE_Y
+
+
+func _advance_player_overlap_ejection() -> void:
+	if _player_overlap_ejection_target == null:
+		return
+	if (
+		is_instance_valid(_player_overlap_ejection_target)
+		and _overlaps_player(_player_overlap_ejection_target)
+	):
+		return
+	_player_overlap_ejection_target = null
+	if _crucible_captured:
+		_capture_collision_mask |= ROBOT_LAYER
+	elif collision_layer != 0:
+		collision_mask |= ROBOT_LAYER
+
+
+func _overlaps_player(player: GiantRobotController) -> bool:
+	var wreck_collision: CollisionShape2D = (
+		get_node_or_null(^"WreckCollision") as CollisionShape2D
+	)
+	var player_collision: CollisionShape2D = (
+		player.get_node_or_null(^"BodyCollision") as CollisionShape2D
+	)
+	if (
+		wreck_collision == null
+		or wreck_collision.shape == null
+		or player_collision == null
+		or player_collision.shape == null
+	):
+		var fallback_half_size: Vector2 = collision_size * 0.5 + Vector2(46.0, 102.5)
+		var fallback_delta: Vector2 = global_position - player.global_position
+		return (
+			absf(fallback_delta.x) < fallback_half_size.x
+			and absf(fallback_delta.y) < fallback_half_size.y
+		)
+	return _collision_world_bounds(wreck_collision).intersects(
+		_collision_world_bounds(player_collision),
+		true
+	)
+
+
+func _collision_world_bounds(collision: CollisionShape2D) -> Rect2:
+	var local_bounds: Rect2 = collision.shape.get_rect()
+	var corners: Array[Vector2] = [
+		local_bounds.position,
+		Vector2(local_bounds.end.x, local_bounds.position.y),
+		local_bounds.end,
+		Vector2(local_bounds.position.x, local_bounds.end.y),
+	]
+	var world_bounds: Rect2 = Rect2(collision.to_global(corners[0]), Vector2.ZERO)
+	for corner_index: int in range(1, corners.size()):
+		world_bounds = world_bounds.expand(collision.to_global(corners[corner_index]))
+	return world_bounds
+
+
+func _player_ejection_direction(player: GiantRobotController) -> float:
+	var horizontal_delta: float = global_position.x - player.global_position.x
+	if absf(horizontal_delta) > 1.0:
+		return signf(horizontal_delta)
+	if fatal_event != null and absf(fatal_event.direction.x) > 0.05:
+		return signf(fatal_event.direction.x)
+	return -1.0 if player.facing < 0 else 1.0
 
 
 func _resolved_content_rect(requested_rect: Rect2) -> Rect2:
@@ -692,6 +812,7 @@ static func _allocate_crash_attack_id() -> int:
 
 func _turn_to_scrap(event: DamageEvent) -> void:
 	scrapped_state = true
+	_player_overlap_ejection_target = null
 	freeze = true
 	collision_layer = 0
 	collision_mask = 0

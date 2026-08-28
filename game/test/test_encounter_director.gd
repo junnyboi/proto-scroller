@@ -171,8 +171,7 @@ func test_tank_warning_fires_exact_snapshot_from_reserved_slot() -> void:
 	assert_eq(city.projectile_root.reservation_count(&"shell"), 1)
 	assert_eq(city.telegraph_presenter.active_count(), 1)
 	var warning: Dictionary = city.telegraph_presenter.snapshot(tank._telegraph_id)
-	assert_eq(warning.origin, tank.visual.global_position)
-	assert_ne(warning.origin, origin)
+	assert_eq(warning.origin, origin)
 	assert_eq(tank.telegraph_origin(), origin)
 	assert_almost_eq(
 		float(warning.thickness_scale),
@@ -222,7 +221,7 @@ func test_warning_and_reservation_cancel_atomically_on_reuse() -> void:
 	assert_eq(city.telegraph_presenter.get_child_count(), 0)
 
 
-func test_ground_vehicle_uses_visible_bottom_and_center_for_presentation() -> void:
+func test_ground_vehicle_uses_visible_bounds_for_forward_weapon_anchor() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.encounter_runtime.release_all()
 	var jackal: ProceduralEnemy = city.encounter_runtime.acquire(
@@ -242,61 +241,107 @@ func test_ground_vehicle_uses_visible_bottom_and_center_for_presentation() -> vo
 		EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
 		0.01
 	)
-	var visible_center: Vector2 = jackal.attack_telegraph_origin()
-	assert_ne(visible_center, jackal.visual.global_position)
-	assert_eq(visible_center, jackal.visual.to_global(content_rect.get_center()))
+	var weapon_anchor: Vector2 = jackal.attack_telegraph_origin()
+	var expected_anchor: Vector2 = _expected_forward_weapon_anchor(jackal)
+	assert_ne(weapon_anchor, jackal.visual.global_position)
+	assert_eq(weapon_anchor, expected_anchor)
 	assert_true(jackal.begin_telegraph(
 		&"bullet",
 		0.5,
-		jackal.global_position,
+		weapon_anchor,
 		city.robot.global_position,
 		6.0
 	))
 	var warning: Dictionary = city.telegraph_presenter.snapshot(jackal._telegraph_id)
-	assert_eq(warning.origin, visible_center)
+	assert_eq(warning.origin, weapon_anchor)
 	jackal.cancel_telegraph()
 
 
-func test_humanoid_telegraphs_use_visible_grounded_center() -> void:
+func test_all_ground_enemies_share_forward_center_for_warning_and_projectile() -> void:
 	var city: CitySlice = await _spawn_city()
 	city.encounter_runtime.release_all()
-	var humanoid_ids: Array[StringName] = [
-		&"soldier", &"bulwark", &"lobber", &"sapper", &"lancer",
-		&"covenant_warden", &"intake_shepherd", &"memorial_usher",
-		&"suture_marshal", &"privy_chirurgeon",
-	]
-	for archetype_id: StringName in humanoid_ids:
+	var ground_ids: Array[StringName] = [&"soldier", &"tank"]
+	for archetype_id: StringName in EnemyArchetypeCatalog.ALL_SPAWNABLE_IDS:
+		if not EnemyArchetypeCatalog.is_airborne(archetype_id):
+			ground_ids.append(archetype_id)
+	for archetype_id: StringName in ground_ids:
 		var enemy: EnemyActor2D = city.encounter_runtime.acquire(
 			archetype_id,
 			Vector2(1080.0, 200.0)
 		)
 		assert_not_null(enemy, archetype_id)
 		enemy.set_physics_process(false)
-		var content_rect: Rect2 = enemy.visual.get_meta(
+		for direction: int in [-1, 1]:
+			city.robot.global_position.x = enemy.global_position.x + float(direction) * 300.0
+			enemy._update_facing()
+			var expected_origin: Vector2 = _expected_forward_weapon_anchor(enemy)
+			var attack_origin: Vector2 = enemy.attack_telegraph_origin()
+			assert_eq(enemy.facing, direction, archetype_id)
+			assert_eq(attack_origin, expected_origin, archetype_id)
+			assert_true(enemy.begin_telegraph(
+				&"bullet",
+				0.5,
+				attack_origin,
+				attack_origin + Vector2(float(direction) * 300.0, 0.0),
+				6.0
+			), archetype_id)
+			var warning: Dictionary = city.telegraph_presenter.snapshot(enemy._telegraph_id)
+			assert_eq(warning.origin, attack_origin, archetype_id)
+			var projectile: Projectile2D = enemy.fire_telegraphed_projectile(400.0, 6.0)
+			assert_not_null(projectile, archetype_id)
+			assert_eq(projectile.global_position, attack_origin, archetype_id)
+			city.projectile_root.release(projectile)
+		city.encounter_runtime.release(enemy)
+
+
+func test_ground_boss_support_reskins_refresh_forward_center_for_warning() -> void:
+	var city: CitySlice = await _spawn_city()
+	city.encounter_runtime.release_all()
+	var support_cases: Array[Dictionary] = [
+		{"shell": &"goliath", "presentation": &"reclaimed_breacher"},
+		{"shell": &"jackal", "presentation": &"graft_runner"},
+	]
+	for support_case: Dictionary in support_cases:
+		var presentation_id: StringName = StringName(support_case.presentation)
+		var enemy: ProceduralEnemy = city.encounter_runtime.acquire(
+			StringName(support_case.shell),
+			Vector2(1080.0, 200.0)
+		) as ProceduralEnemy
+		assert_not_null(enemy, presentation_id)
+		var shell_content_rect: Rect2 = enemy.visual.get_meta(
 			EnemyActor2D.VISUAL_CONTENT_RECT_META
 		)
-		var local_ground_center: Vector2 = Vector2(
-			content_rect.get_center().x * (-1.0 if enemy.visual.flip_h else 1.0),
-			content_rect.end.y
+		assert_true(enemy.configure_boss_support(presentation_id), presentation_id)
+		var support_content_rect: Rect2 = enemy.visual.get_meta(
+			EnemyActor2D.VISUAL_CONTENT_RECT_META
 		)
-		var expected_origin: Vector2 = enemy.visual.to_global(local_ground_center)
-		var projectile_muzzle: Vector2 = enemy.global_position + Vector2(31.0, -17.0)
-		assert_true(enemy.begin_telegraph(
-			&"bullet",
-			0.5,
-			projectile_muzzle,
-			city.robot.global_position,
-			6.0
-		), archetype_id)
-		var warning: Dictionary = city.telegraph_presenter.snapshot(enemy._telegraph_id)
-		assert_eq(warning.origin, expected_origin, archetype_id)
+		assert_ne(support_content_rect, shell_content_rect, presentation_id)
+		assert_eq(
+			support_content_rect,
+			city.encounter_runtime._visible_content_rect(enemy.visual.texture),
+			presentation_id
+		)
+		var visible_bottom_y: float = enemy.visual.to_global(Vector2(
+			support_content_rect.get_center().x,
+			support_content_rect.end.y
+		)).y
 		assert_almost_eq(
-			float(warning.origin.y),
+			visible_bottom_y,
 			EncounterRuntime.LAND_ENEMY_VISUAL_BASELINE_Y,
 			0.01,
-			archetype_id
+			presentation_id
 		)
-		assert_eq(enemy.telegraph_origin(), projectile_muzzle, archetype_id)
+		for direction: int in [-1, 1]:
+			city.robot.global_position.x = enemy.global_position.x + float(direction) * 300.0
+			enemy._update_facing()
+			var expected_origin: Vector2 = _expected_forward_weapon_anchor(enemy)
+			assert_eq(enemy.facing, direction, presentation_id)
+			assert_eq(enemy.attack_telegraph_origin(), expected_origin, presentation_id)
+			enemy._begin_attack()
+			assert_true(enemy.is_telegraphing(), presentation_id)
+			var warning: Dictionary = city.telegraph_presenter.snapshot(enemy._telegraph_id)
+			assert_eq(warning.origin, expected_origin, presentation_id)
+			enemy.cancel_telegraph()
 		city.encounter_runtime.release(enemy)
 
 
@@ -329,6 +374,24 @@ func _spawn_city() -> CitySlice:
 	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
 		enemy.set_physics_process(false)
 	return city
+
+
+func _expected_forward_weapon_anchor(enemy: EnemyActor2D) -> Vector2:
+	var content_rect: Rect2 = enemy.visual.get_meta(EnemyActor2D.VISUAL_CONTENT_RECT_META)
+	var rendered_left: float = -content_rect.end.x if enemy.visual.flip_h else content_rect.position.x
+	var rendered_right: float = -content_rect.position.x if enemy.visual.flip_h else content_rect.end.x
+	var rendered_top: float = -content_rect.end.y if enemy.visual.flip_v else content_rect.position.y
+	var rendered_bottom: float = (
+		-content_rect.position.y if enemy.visual.flip_v else content_rect.end.y
+	)
+	var local_origin: Vector2 = Vector2(
+		rendered_right if enemy.facing > 0 else rendered_left,
+		(rendered_top + rendered_bottom) * 0.5
+	)
+	return enemy.visual.to_global(local_origin) + Vector2(
+		float(enemy.facing) * EnemyActor2D.ATTACK_ORIGIN_FORWARD_CLEARANCE,
+		0.0
+	)
 
 
 func _acquire_test_projectile(

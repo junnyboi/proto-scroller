@@ -10,40 +10,43 @@ const LANDSCAPE_ART: Texture2D = preload(
 const PORTRAIT_ART: Texture2D = preload(
 	"res://art/ui/title_screen/command_deck_portrait.jpg"
 )
-const LANDSCAPE_BRIEFING_ART: Texture2D = preload(
-	"res://art/ui/title_screen/command_deck_briefing_landscape.jpg"
-)
-const PORTRAIT_BRIEFING_ART: Texture2D = preload(
-	"res://art/ui/title_screen/command_deck_briefing_portrait.jpg"
-)
-const LANDSCAPE_BRIEFING_ART_ZH_CN: Texture2D = preload(
-	"res://art/ui/title_screen/command_deck_briefing_landscape_zh_cn.jpg"
-)
-const PORTRAIT_BRIEFING_ART_ZH_CN: Texture2D = preload(
-	"res://art/ui/title_screen/command_deck_briefing_portrait_zh_cn.jpg"
-)
 const CAMPAIGN_PANEL_SCRIPT: Script = preload(
 	"res://scripts/ui/campaign_progress_panel.gd"
 )
 const DOSSIER_CODEX_SCRIPT: Script = preload(
 	"res://scripts/ui/dossier_codex_overlay.gd"
 )
+const LEADERBOARD_OVERLAY_SCRIPT: Script = preload(
+	"res://scripts/ui/title_leaderboard_overlay.gd"
+)
+const LEADERBOARD_BRIDGE_SCRIPT: Script = preload(
+	"res://scripts/network/leaderboard_bridge.gd"
+)
+const BRIEFING_LANDSCAPE_CONTROLS_SIZE: Vector2 = Vector2(674.0, 214.0)
+const BRIEFING_LANDSCAPE_ARCHIVE_WIDTH: float = 430.0
+const BRIEFING_LANDSCAPE_GAP: float = 72.0
+const BRIEFING_PORTRAIT_CONTROLS_SIZE: Vector2 = Vector2(536.0, 214.0)
+const BRIEFING_PORTRAIT_ARCHIVE_HEIGHT: float = 72.0
+const BRIEFING_PORTRAIT_GAP: float = 32.0
 
 var initialized: bool = false
 var briefing_open: bool = false
 var settings_open: bool = false
+var leaderboard_open: bool = false
 var locale_preference_path: String = L10n.PREFERENCE_PATH
 var audio_preference_path: String = AudioVolumeSettings.PREFERENCE_PATH
 var input_preference_path: String = InputBindingSettings.PREFERENCE_PATH
 var campaign_snapshot: Dictionary = {}
 var campaign_panel: CampaignProgressPanel
 var dossier_codex: DossierCodexOverlay
+var combat_profile: PlayerCombatProfileStore
+var leaderboard_overlay: TitleLeaderboardOverlay
+var leaderboard_bridge: LeaderboardBridge
 var _capture_action: StringName = &""
 var _capture_gamepad: bool = false
 var _audio_activation_emitted: bool = false
 
 @onready var background_art: TextureRect = %BackgroundArt
-@onready var briefing_art: TextureRect = %BriefingArt
 @onready var briefing_layer: Control = %BriefingLayer
 @onready var briefing_backdrop: Button = %BriefingBackdrop
 @onready var briefing_toggle: Button = %BriefingToggle
@@ -51,6 +54,7 @@ var _audio_activation_emitted: bool = false
 @onready var briefing_tips_label: Label = %BriefingTipsLabel
 @onready var initialize_button: Button = %InitializeButton
 @onready var settings_button: Button = %SettingsButton
+@onready var leaderboard_button: Button = %LeaderboardButton
 @onready var settings_layer: Control = %SettingsLayer
 @onready var settings_backdrop: Button = %SettingsBackdrop
 @onready var settings_panel: PanelContainer = %SettingsPanel
@@ -107,12 +111,18 @@ func configure_campaign(snapshot: Dictionary) -> void:
 	campaign_snapshot = snapshot.duplicate(true)
 
 
+func configure_leaderboard(store: PlayerCombatProfileStore) -> void:
+	combat_profile = store
+
+
 func _ready() -> void:
 	_set_web_title_backdrop_active(true)
 	initialize_button.pressed.connect(_on_initialize_pressed)
 	briefing_toggle.pressed.connect(toggle_briefing)
 	briefing_backdrop.pressed.connect(close_briefing)
 	_build_campaign_archive()
+	_build_leaderboard()
+	leaderboard_button.pressed.connect(open_leaderboard)
 	settings_button.pressed.connect(open_settings)
 	settings_backdrop.pressed.connect(close_settings)
 	settings_close_button.pressed.connect(close_settings)
@@ -173,6 +183,8 @@ func _exit_tree() -> void:
 
 func _input(event: InputEvent) -> void:
 	_request_title_audio_activation(event)
+	if _capture_action.is_empty() and _handle_briefing_shortcut(event):
+		return
 	if _capture_action.is_empty():
 		return
 	if not _capture_gamepad and event is InputEventKey:
@@ -206,6 +218,24 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _handle_briefing_shortcut(event: InputEvent) -> bool:
+	if initialized or settings_open or leaderboard_open:
+		return false
+	if dossier_codex != null and dossier_codex.visible:
+		return false
+	var key_event: InputEventKey = event as InputEventKey
+	if (
+		key_event == null
+		or not key_event.pressed
+		or key_event.echo
+		or key_event.keycode != KEY_TAB
+	):
+		return false
+	toggle_briefing()
+	get_viewport().set_input_as_handled()
+	return true
+
+
 func _request_title_audio_activation(event: InputEvent) -> void:
 	if _audio_activation_emitted or initialized:
 		return
@@ -226,6 +256,10 @@ func _request_title_audio_activation(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if leaderboard_open and event.is_action_pressed(&"ui_cancel"):
+		close_leaderboard()
+		get_viewport().set_input_as_handled()
+		return
 	if dossier_codex != null and dossier_codex.visible:
 		if event.is_action_pressed(&"ui_cancel"):
 			dossier_codex.close()
@@ -237,12 +271,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if settings_open:
 		return
-	if event is InputEventKey:
-		var key_event: InputEventKey = event as InputEventKey
-		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_TAB:
-			toggle_briefing()
-			get_viewport().set_input_as_handled()
-			return
 	if briefing_open and event.is_action_pressed(&"ui_cancel"):
 		close_briefing()
 		get_viewport().set_input_as_handled()
@@ -254,6 +282,7 @@ func initialize_game() -> bool:
 	initialized = true
 	close_briefing(false)
 	close_settings(false)
+	close_leaderboard(false)
 	status_label.text = L10n.t("title.expedition_active")
 	status_label.modulate = Color("72ffd6")
 	instruction_label.text = L10n.t("title.deployment_authorized")
@@ -263,6 +292,7 @@ func initialize_game() -> bool:
 	initialize_button.disabled = true
 	briefing_toggle.disabled = true
 	settings_button.disabled = true
+	leaderboard_button.disabled = true
 	english_button.disabled = true
 	chinese_button.disabled = true
 	return true
@@ -272,6 +302,7 @@ func open_briefing() -> bool:
 	if initialized or briefing_open:
 		return false
 	close_settings(false)
+	close_leaderboard(false)
 	briefing_open = true
 	briefing_layer.visible = true
 	briefing_toggle.text = L10n.t("title.briefing_close")
@@ -302,6 +333,7 @@ func open_settings() -> bool:
 	if initialized or settings_open:
 		return false
 	close_briefing(false)
+	close_leaderboard(false)
 	settings_open = true
 	settings_layer.visible = true
 	master_volume_slider.call_deferred("grab_focus")
@@ -317,6 +349,28 @@ func close_settings(restore_focus: bool = true) -> bool:
 	if restore_focus and not initialized:
 		settings_button.call_deferred("grab_focus")
 	return true
+
+
+func open_leaderboard() -> bool:
+	if initialized or leaderboard_open or leaderboard_overlay == null:
+		return false
+	close_briefing(false)
+	close_settings(false)
+	leaderboard_open = true
+	leaderboard_overlay.open(leaderboard_button)
+	L10n.apply_locale_font(leaderboard_overlay)
+	return true
+
+
+func close_leaderboard(restore_focus: bool = true) -> bool:
+	if not leaderboard_open or leaderboard_overlay == null:
+		return false
+	leaderboard_open = false
+	return leaderboard_overlay.close(restore_focus)
+
+
+func _on_leaderboard_closed() -> void:
+	leaderboard_open = false
 
 
 func select_language(locale: String) -> bool:
@@ -490,11 +544,24 @@ func is_portrait_layout() -> bool:
 func _build_campaign_archive() -> void:
 	campaign_panel = CAMPAIGN_PANEL_SCRIPT.new() as CampaignProgressPanel
 	campaign_panel.name = "CampaignProgressPanel"
+	campaign_panel.set_button_only(true)
 	campaign_panel.setup(campaign_snapshot)
 	campaign_panel.codex_requested.connect(_open_dossier_codex)
 	briefing_layer.add_child(campaign_panel)
 	dossier_codex = DOSSIER_CODEX_SCRIPT.new() as DossierCodexOverlay
 	add_child(dossier_codex)
+
+
+func _build_leaderboard() -> void:
+	leaderboard_overlay = LEADERBOARD_OVERLAY_SCRIPT.new() as TitleLeaderboardOverlay
+	add_child(leaderboard_overlay)
+	leaderboard_overlay.configure_profile(combat_profile)
+	leaderboard_overlay.closed.connect(_on_leaderboard_closed)
+	if combat_profile != null:
+		leaderboard_bridge = LEADERBOARD_BRIDGE_SCRIPT.new() as LeaderboardBridge
+		leaderboard_bridge.name = "TitleLeaderboardBridge"
+		add_child(leaderboard_bridge)
+		leaderboard_bridge.setup(combat_profile, leaderboard_overlay)
 
 
 func _open_dossier_codex() -> void:
@@ -535,6 +602,7 @@ func _apply_localized_text() -> void:
 		InputBindingSettings.display_placeholders()
 	)
 	settings_button.text = L10n.t("title.settings")
+	leaderboard_button.text = L10n.t("title.leaderboard")
 	settings_heading.text = L10n.t("title.settings_heading")
 	master_volume_label.text = L10n.t("title.master_volume")
 	music_volume_label.text = L10n.t("title.music_volume")
@@ -569,6 +637,8 @@ func _apply_localized_text() -> void:
 	($SemanticContract/ObjectiveTwo as Label).text = L10n.t("title.objective_two")
 	($SemanticContract/ObjectiveThree as Label).text = L10n.t("title.objective_three")
 	_refresh_campaign_archive()
+	if leaderboard_overlay != null:
+		leaderboard_overlay.refresh_locale()
 
 
 func _refresh_control_copy() -> void:
@@ -590,12 +660,19 @@ func _apply_responsive_layout() -> void:
 		campaign_panel.apply_responsive_layout(viewport_size)
 	if dossier_codex != null:
 		dossier_codex.apply_responsive_layout(viewport_size)
+	if leaderboard_overlay != null:
+		leaderboard_overlay.apply_responsive_layout(viewport_size)
 
 
 func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	var vertical_offset: float = maxf(0.0, (viewport_size.y - 720.0) * 0.5)
+	var briefing_group_width: float = (
+		BRIEFING_LANDSCAPE_CONTROLS_SIZE.x
+		+ BRIEFING_LANDSCAPE_GAP
+		+ BRIEFING_LANDSCAPE_ARCHIVE_WIDTH
+	)
+	var briefing_group_left: float = (viewport_size.x - briefing_group_width) * 0.5
 	background_art.texture = LANDSCAPE_ART
-	briefing_art.texture = _briefing_texture(false)
 	_set_rect(%TitleLabel, Rect2(52.0, 246.0 + vertical_offset, 680.0, 78.0))
 	_set_rect(%InstructionLabel, Rect2(52.0, 326.0 + vertical_offset, 740.0, 145.0))
 	_set_rect(initialize_button, Rect2(52.0, 480.0 + vertical_offset, 360.0, 80.0))
@@ -604,9 +681,15 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 		briefing_toggle,
 		Rect2(viewport_size.x - 430.0, viewport_size.y - 72.0, 398.0, 58.0)
 	)
-	_set_rect(briefing_tips_panel, Rect2(52.0, 454.0, 674.0, 214.0))
+	_set_rect(briefing_tips_panel, Rect2(
+		briefing_group_left,
+		(viewport_size.y - BRIEFING_LANDSCAPE_CONTROLS_SIZE.y) * 0.5,
+		BRIEFING_LANDSCAPE_CONTROLS_SIZE.x,
+		BRIEFING_LANDSCAPE_CONTROLS_SIZE.y
+	))
 	briefing_tips_label.add_theme_font_size_override(&"font_size", 18)
 	_set_rect(settings_button, Rect2(viewport_size.x - 212.0, 16.0, 196.0, 48.0))
+	_set_rect(leaderboard_button, Rect2(viewport_size.x - 440.0, 16.0, 216.0, 48.0))
 	_set_rect(
 		settings_panel,
 		Rect2(
@@ -622,8 +705,13 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	var horizontal_center: float = viewport_size.x * 0.5
 	var vertical_offset: float = maxf(0.0, (viewport_size.y - 1280.0) * 0.5)
+	var briefing_group_height: float = (
+		BRIEFING_PORTRAIT_CONTROLS_SIZE.y
+		+ BRIEFING_PORTRAIT_GAP
+		+ BRIEFING_PORTRAIT_ARCHIVE_HEIGHT
+	)
+	var briefing_group_top: float = (viewport_size.y - briefing_group_height) * 0.5
 	background_art.texture = PORTRAIT_ART
-	briefing_art.texture = _briefing_texture(true)
 	_set_rect(%TitleLabel, Rect2(horizontal_center - 304.0, 88.0, 608.0, 82.0))
 	_set_rect(
 		%InstructionLabel, Rect2(horizontal_center - 304.0, 174.0, 608.0, 160.0)
@@ -642,10 +730,16 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	)
 	_set_rect(
 		briefing_tips_panel,
-		Rect2(horizontal_center - 268.0, 560.0, 536.0, 214.0)
+		Rect2(
+			horizontal_center - BRIEFING_PORTRAIT_CONTROLS_SIZE.x * 0.5,
+			briefing_group_top,
+			BRIEFING_PORTRAIT_CONTROLS_SIZE.x,
+			BRIEFING_PORTRAIT_CONTROLS_SIZE.y
+		)
 	)
 	briefing_tips_label.add_theme_font_size_override(&"font_size", 15)
 	_set_rect(settings_button, Rect2(viewport_size.x - 216.0, 20.0, 200.0, 56.0))
+	_set_rect(leaderboard_button, Rect2(viewport_size.x - 448.0, 20.0, 216.0, 56.0))
 	_set_rect(
 		settings_panel,
 		Rect2(
@@ -657,13 +751,6 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	)
 	_set_font_sizes(24, 48, 24)
 
-
-func _briefing_texture(portrait: bool) -> Texture2D:
-	if L10n.current_locale() == "zh-CN":
-		return PORTRAIT_BRIEFING_ART_ZH_CN if portrait else LANDSCAPE_BRIEFING_ART_ZH_CN
-	return PORTRAIT_BRIEFING_ART if portrait else LANDSCAPE_BRIEFING_ART
-
-
 func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	for label_node: Node in find_children("*", "Label", true, false):
 		var label: Label = label_node as Label
@@ -672,6 +759,7 @@ func _set_font_sizes(body_size: int, title_size: int, button_size: int) -> void:
 	initialize_button.add_theme_font_size_override(&"font_size", button_size)
 	briefing_toggle.add_theme_font_size_override(&"font_size", body_size)
 	settings_button.add_theme_font_size_override(&"font_size", body_size)
+	leaderboard_button.add_theme_font_size_override(&"font_size", body_size)
 	settings_close_button.add_theme_font_size_override(&"font_size", body_size)
 	for mute_button: Button in _mute_buttons():
 		mute_button.add_theme_font_size_override(&"font_size", body_size)

@@ -47,7 +47,7 @@ func begin(
 	speed: float,
 	damage: float,
 	shot_scale: float,
-	telegraph_seconds: float
+	_telegraph_seconds: float
 ) -> bool:
 	var origin_points: Array[Vector2] = []
 	if rig == null:
@@ -66,7 +66,7 @@ func begin(
 		speed,
 		damage,
 		shot_scale,
-		telegraph_seconds
+		_telegraph_seconds
 	)
 
 
@@ -79,13 +79,12 @@ func begin_from_origins(
 	speed: float,
 	damage: float,
 	shot_scale: float,
-	telegraph_seconds: float
+	_telegraph_seconds: float
 ) -> bool:
 	cancel()
 	if (
 		encounter_runtime == null
 		or encounter_runtime.projectile_pool == null
-		or encounter_runtime.telegraphs == null
 		or owner == null
 		or not is_instance_valid(owner)
 		or not owner.active
@@ -118,31 +117,6 @@ func begin_from_origins(
 		_origins.append(origin_points[shot_index])
 		_targets.append(target_points[shot_index])
 		_delays.append(maxf(shot_delays[shot_index], 0.0))
-	var presentation_origin: Vector2 = rig.attack_telegraph_origin()
-	var presentation_origins: Array[Vector2] = []
-	presentation_origins.resize(_origins.size())
-	presentation_origins.fill(presentation_origin)
-	telegraph_id = encounter_runtime.telegraphs.reserve(
-		owner,
-		kind,
-		presentation_origin,
-		_targets[0],
-		maxf(telegraph_seconds, 0.01),
-		base_damage * float(_reservation_ids.size()),
-		TELEGRAPH_PRESENTATION_VARIANT,
-		visual_key,
-		{
-			&"volley_count": _reservation_ids.size(),
-			&"presentation_scale": presentation_scale,
-			&"origins": presentation_origins,
-			&"projectile_origins": _origins.duplicate(),
-			&"targets": _targets.duplicate(),
-		}
-	)
-	if telegraph_id == 0:
-		denial_count += 1
-		cancel()
-		return false
 	return true
 
 

@@ -27,7 +27,9 @@ const TELEGRAPH_REFERENCE_DAMAGE: float = 16.0
 const TELEGRAPH_MINIMUM_COLOR_INTENSITY: float = 0.72
 const TELEGRAPH_MAXIMUM_COLOR_INTENSITY: float = 1.55
 const VISUAL_CONTENT_RECT_META: StringName = &"enemy_visual_content_rect"
+const ATTACK_ORIGIN_FORWARD_CLEARANCE: float = 8.0
 const ENEMY_DAMAGE_MULTIPLIER: float = 0.75
+const HIDDEN_BOSS_TELEGRAPH_ID: int = -1
 
 @export var max_health: float = 60.0
 
@@ -521,7 +523,9 @@ func begin_telegraph(
 	visual_key: StringName = &"",
 	style_data: Dictionary = {}
 ) -> bool:
-	if not attack_gate_enabled or telegraph_presenter == null or _telegraph_id != 0:
+	if not attack_gate_enabled or _telegraph_id != 0:
+		return false
+	if not boss_mode and telegraph_presenter == null:
 		return false
 	if kind != &"support" and projectile_pool != null:
 		_projectile_reservation_id = projectile_pool.reserve(kind)
@@ -532,22 +536,25 @@ func begin_telegraph(
 		duration * telegraph_multiplier,
 		MINIMUM_TELEGRAPH_SECONDS
 	)
-	_telegraph_id = telegraph_presenter.reserve(
-		self,
-		kind,
-		attack_telegraph_origin(),
-		target_point,
-		adjusted_duration,
-		damage_output,
-		presentation_variant,
-		visual_key,
-		style_data
-	)
-	if _telegraph_id == 0:
-		if projectile_pool != null and _projectile_reservation_id != 0:
-			projectile_pool.cancel_reservation(_projectile_reservation_id)
-			_projectile_reservation_id = 0
-		return false
+	if boss_mode:
+		_telegraph_id = HIDDEN_BOSS_TELEGRAPH_ID
+	else:
+		_telegraph_id = telegraph_presenter.reserve(
+			self,
+			kind,
+			origin,
+			target_point,
+			adjusted_duration,
+			damage_output,
+			presentation_variant,
+			visual_key,
+			style_data
+		)
+		if _telegraph_id == 0:
+			if projectile_pool != null and _projectile_reservation_id != 0:
+				projectile_pool.cancel_reservation(_projectile_reservation_id)
+				_projectile_reservation_id = 0
+			return false
 	_telegraph_kind = kind
 	_telegraph_remaining = adjusted_duration
 	_telegraph_origin = origin
@@ -561,23 +568,30 @@ func attack_telegraph_origin() -> Vector2:
 			VISUAL_CONTENT_RECT_META,
 			Rect2(-visual.texture.get_size() * 0.5, visual.texture.get_size())
 		)
-		var local_center: Vector2 = content_rect.get_center()
-		local_center.x *= -1.0 if visual.flip_h else 1.0
-		if _uses_grounded_humanoid_telegraph():
-			local_center.y = (
-				-content_rect.position.y if visual.flip_v else content_rect.end.y
-			)
-		else:
-			local_center.y *= -1.0 if visual.flip_v else 1.0
-		return visual.to_global(local_center)
-	return global_position
+		var rendered_left: float = content_rect.position.x
+		var rendered_right: float = content_rect.end.x
+		var rendered_top: float = content_rect.position.y
+		var rendered_bottom: float = content_rect.end.y
+		if visual.flip_h:
+			rendered_left = -content_rect.end.x
+			rendered_right = -content_rect.position.x
+		if visual.flip_v:
+			rendered_top = -content_rect.end.y
+			rendered_bottom = -content_rect.position.y
+		var local_origin: Vector2 = Vector2(
+			rendered_right if facing > 0 else rendered_left,
+			(rendered_top + rendered_bottom) * 0.5
+		)
+		return visual.to_global(local_origin) + _attack_forward_direction() \
+			* ATTACK_ORIGIN_FORWARD_CLEARANCE
+	return global_position + _attack_forward_direction() * ATTACK_ORIGIN_FORWARD_CLEARANCE
 
 
-func _uses_grounded_humanoid_telegraph() -> bool:
-	if self is SoldierEnemy:
-		return true
-	var archetype_id: StringName = StringName(get_meta(&"enemy_archetype", &""))
-	return not archetype_id.is_empty() and EnemyArchetypeCatalog.is_human_enemy(archetype_id)
+func _attack_forward_direction() -> Vector2:
+	var actor_right: Vector2 = global_transform.x.normalized()
+	if actor_right.is_zero_approx():
+		actor_right = Vector2.RIGHT
+	return actor_right * float(facing)
 
 
 func attack_telegraph_thickness_scale() -> float:
@@ -664,7 +678,7 @@ func fire_telegraphed_projectile(
 		finish_telegraph()
 	return projectile
 func cancel_telegraph() -> void:
-	if telegraph_presenter != null and _telegraph_id != 0:
+	if telegraph_presenter != null and _telegraph_id > 0:
 		telegraph_presenter.cancel(_telegraph_id)
 	if projectile_pool != null and _projectile_reservation_id != 0:
 		projectile_pool.cancel_reservation(_projectile_reservation_id)

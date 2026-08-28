@@ -478,6 +478,38 @@ func _configure_procedural_shell(enemy: ProceduralEnemy, kind: StringName) -> vo
 	enemy.set_meta(&"enemy_family", enemy.family)
 
 
+func configure_boss_support_visual(
+	enemy: ProceduralEnemy,
+	presentation_id: StringName,
+	presentation: Dictionary
+) -> bool:
+	if enemy == null or enemy.visual == null:
+		return false
+	var texture: Texture2D = load(String(presentation.get("texture", ""))) as Texture2D
+	if texture == null:
+		return false
+	var display_size: Vector2 = (
+		presentation.get("display", texture.get_size()) as Vector2
+	) * EnemyArchetypeCatalog.presentation_scale(presentation_id)
+	var texture_size: Vector2 = texture.get_size()
+	var visual: Sprite2D = enemy.visual
+	visual.texture = texture
+	visual.scale = display_size / Vector2(
+		maxf(texture_size.x, 1.0),
+		maxf(texture_size.y, 1.0)
+	)
+	_cache_visual_content_rect(visual, texture)
+	if not EnemyArchetypeCatalog.is_airborne(presentation_id):
+		_align_visual_bottom(
+			visual,
+			enemy.global_position.y,
+			LAND_ENEMY_VISUAL_BASELINE_Y
+		)
+	enemy._visual_rest_position = visual.position
+	enemy.set_authored_visual_scale(visual.scale)
+	return true
+
+
 func _configure_actor_nodes(
 	enemy: EnemyActor2D,
 	kind: StringName,

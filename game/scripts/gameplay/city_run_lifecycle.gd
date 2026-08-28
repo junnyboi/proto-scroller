@@ -72,6 +72,7 @@ func _boss_attempt_summary() -> RunSummarySnapshot:
 		"completed": false,
 		"boss_result": &"ATTEMPT_FAILED",
 		"contract_result": &"FAILED",
+		"defeat_source_id": city.last_player_damage_source_id,
 	}
 	if city.urban_siege != null:
 		var directive: DirectiveProfile = city.urban_siege.directives.selected_profile
@@ -305,6 +306,8 @@ func _finish_run(completed: bool, ending_id: StringName = &"NONE") -> void:
 	city.game_over_active = true
 	city.upgrade_assembler.session.stop_run()
 	var run_metrics: Dictionary = {"completed": completed}
+	if not completed:
+		run_metrics.defeat_source_id = city.last_player_damage_source_id
 	if city.urban_siege != null:
 		var directive: DirectiveProfile = city.urban_siege.directives.selected_profile
 		run_metrics.directive_path = (

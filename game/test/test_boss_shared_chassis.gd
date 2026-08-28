@@ -319,7 +319,7 @@ func _charged_event(attack_id: int, root_attack_id: int) -> DamageEvent:
 	return DamageEvent.new(
 		attack_id,
 		city.robot,
-		110.0,
+		session.active_definition.armor_milestone_step,
 		&"jab_cross",
 		Vector2.ZERO,
 		Vector2.RIGHT,

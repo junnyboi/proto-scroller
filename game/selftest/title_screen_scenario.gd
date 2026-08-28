@@ -349,7 +349,7 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 	)
 	_check(
 		"movement_melee_doctrine_present",
-		tips.count("\n") == 4
+		tips.count("\n") == 5
 		and tips
 		== L10n.t("briefing.tips_body", InputBindingSettings.display_placeholders()),
 		"tips=%s" % [tips]
@@ -403,7 +403,9 @@ func _check_language_selector(screen: TitleScreen) -> void:
 
 func _check_briefing_interaction(screen: TitleScreen) -> void:
 	var briefing_layer: Control = screen.get_node("%BriefingLayer") as Control
-	var briefing_art: TextureRect = screen.get_node("%BriefingArt") as TextureRect
+	var briefing_background: ColorRect = (
+		screen.get_node("%BriefingBackground") as ColorRect
+	)
 	var opened: bool = screen.open_briefing()
 	_check(
 		"briefing_opens",
@@ -411,9 +413,26 @@ func _check_briefing_interaction(screen: TitleScreen) -> void:
 		"visible=%s" % [briefing_layer.visible]
 	)
 	_check(
-		"briefing_uses_generated_art",
-		briefing_art.texture.resource_path.contains("command_deck_briefing"),
-		"texture=%s" % [briefing_art.texture.resource_path]
+		"briefing_uses_minimal_background",
+		screen.get_node_or_null("%BriefingArt") == null
+		and briefing_background.color.a > 0.95,
+		"background=%s" % [briefing_background.color]
+	)
+	_check(
+		"briefing_shows_only_controls_and_archive_action",
+		screen.briefing_tips_panel.is_visible_in_tree()
+		and screen.campaign_panel.codex_button.is_visible_in_tree()
+		and not screen.campaign_panel.panel.visible
+		and not screen.campaign_panel.heading_label.visible
+		and not screen.campaign_panel.progress_label.visible
+		and not screen.campaign_panel.evidence_label.visible
+		and not screen.campaign_panel.continuity_label.visible
+		and not screen.campaign_panel.endings_label.visible,
+		"controls=%s archive=%s"
+		% [
+			screen.briefing_tips_panel.is_visible_in_tree(),
+			screen.campaign_panel.codex_button.is_visible_in_tree(),
+		]
 	)
 	var closed: bool = screen.close_briefing()
 	_check(

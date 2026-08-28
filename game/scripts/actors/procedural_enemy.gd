@@ -164,17 +164,36 @@ func configure_boss_support(presentation_id: StringName) -> bool:
 	behavior = StringName(presentation.behavior)
 	movement_style = StringName(presentation.movement_style)
 	attack_style = StringName(presentation.attack_style)
+	visual_faces_right_by_default = bool(presentation.get("faces_right", false))
 	if visual != null:
-		visual.texture = load(String(presentation.texture)) as Texture2D
-		var display_size: Vector2 = (
-			presentation.display as Vector2
-		) * EnemyArchetypeCatalog.presentation_scale(presentation_id)
-		var texture_size: Vector2 = visual.texture.get_size()
-		visual.scale = display_size / Vector2(
-			maxf(texture_size.x, 1.0),
-			maxf(texture_size.y, 1.0)
-		)
-		set_authored_visual_scale(visual.scale)
+		if (
+			encounter_runtime == null
+			or not encounter_runtime.configure_boss_support_visual(
+				self,
+				presentation_id,
+				presentation
+			)
+		):
+			var texture: Texture2D = load(String(presentation.texture)) as Texture2D
+			if texture == null:
+				return false
+			visual.texture = texture
+			var display_size: Vector2 = (
+				presentation.display as Vector2
+			) * EnemyArchetypeCatalog.presentation_scale(presentation_id)
+			var texture_size: Vector2 = visual.texture.get_size()
+			visual.scale = display_size / Vector2(
+				maxf(texture_size.x, 1.0),
+				maxf(texture_size.y, 1.0)
+			)
+			visual.set_meta(
+				VISUAL_CONTENT_RECT_META,
+				Rect2(-texture_size * 0.5, texture_size)
+			)
+			_visual_rest_position = visual.position
+			set_authored_visual_scale(visual.scale)
+	if target != null:
+		_update_facing()
 	set_meta(&"boss_support_id", boss_support_id)
 	return true
 
@@ -335,11 +354,7 @@ func _can_attack() -> bool:
 
 
 func _begin_attack() -> void:
-	var presentation_scale: float = EnemyArchetypeCatalog.presentation_scale(archetype_id)
-	var origin: Vector2 = global_position + Vector2(
-		float(facing) * 48.0,
-		-18.0
-	) * presentation_scale
+	var origin: Vector2 = attack_telegraph_origin()
 	if airborne:
 		origin = global_position + Vector2(float(facing) * 52.0, 15.0)
 	var target_point: Vector2 = target.global_position + Vector2(0.0, 30.0)
@@ -359,12 +374,14 @@ func _begin_attack() -> void:
 	)
 	var telegraph_visual_key: StringName = _attack_vfx_id
 	var telegraph_style_data: Dictionary = {}
-	if not _attack_vfx_id.is_empty():
+	var authored_attack_phase: Dictionary = _authored_attack_phase()
+	if not authored_attack_phase.is_empty():
 		telegraph_style_data = {
 			"attack_vfx_id": _attack_vfx_id,
 			"delivery": StringName(
 				EnemyAttackVfxCatalog.spec(_attack_vfx_id).get("delivery", &"")
 			),
+			TelegraphPresenter2D.AUTHORED_TELEGRAPH_STYLE_KEY: true,
 		}
 	if not begin_telegraph(
 		telegraph_kind,
@@ -390,7 +407,7 @@ func _begin_attack() -> void:
 	state = State.ANTICIPATE
 	_state_time = 0.0
 	_attack_kick = 1.0
-	_show_district_attack_anticipation()
+	_show_district_attack_anticipation(authored_attack_phase)
 
 
 func _complete_attack() -> void:
@@ -686,19 +703,38 @@ func _show_world_completion(
 	_presentation_remaining = duration
 
 
-func _show_district_attack_anticipation() -> void:
+func _authored_attack_phase() -> Dictionary:
 	if _attack_vfx_id.is_empty():
-		return
-	_reset_presentation_sprites()
+		return {}
 	var attack_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
 		_attack_vfx_id,
 		&"attack"
 	)
 	if attack_phase.is_empty():
+		return {}
+	var texture: Texture2D = attack_phase.get("texture") as Texture2D
+	var display_size: Vector2 = attack_phase.get("display_size", Vector2.ZERO) as Vector2
+	var region: Rect2i = attack_phase.get("region", Rect2i()) as Rect2i
+	if texture == null or display_size.x <= 0.0 or display_size.y <= 0.0:
+		return {}
+	if region.size.x <= 0 or region.size.y <= 0:
+		return {}
+	var texture_size: Vector2i = Vector2i(texture.get_size())
+	if (
+		region.position.x < 0
+		or region.position.y < 0
+		or region.end.x > texture_size.x
+		or region.end.y > texture_size.y
+	):
+		return {}
+	return attack_phase
+
+
+func _show_district_attack_anticipation(attack_phase: Dictionary = {}) -> void:
+	if attack_phase.is_empty():
 		return
-	var attack_offset: Vector2 = Vector2(float(facing) * 56.0, -16.0)
-	if airborne:
-		attack_offset = Vector2(float(facing) * 50.0, 14.0)
+	_reset_presentation_sprites()
+	var attack_offset: Vector2 = to_local(telegraph_origin())
 	var attack_sprite: Sprite2D = _configure_presentation_sprite(
 		0,
 		attack_phase.texture as Texture2D,
@@ -716,7 +752,7 @@ func _show_district_attack_anticipation() -> void:
 			1,
 			payload_phase.texture as Texture2D,
 			payload_phase.display_size as Vector2,
-			Vector2(float(facing) * 92.0, -6.0 if not airborne else 28.0),
+			attack_offset + Vector2(float(facing) * 36.0, 0.0),
 			Rect2(payload_phase.region as Rect2i)
 		)
 		payload_sprite.flip_h = facing < 0

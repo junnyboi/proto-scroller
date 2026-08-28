@@ -19,6 +19,7 @@ const EXTREME_THREAT_START: float = 1.30
 const EXTREME_THREAT_COLOR: Color = Color(1.0, 0.90, 0.86, 1.0)
 const DARK_BACKGROUND_RGB_GAIN: float = 1.16
 const DARK_BACKGROUND_ALPHA_GAIN: float = 1.22
+const AUTHORED_TELEGRAPH_STYLE_KEY: StringName = &"authored_telegraph"
 
 @export_range(1, 16, 1) var capacity: int = RuntimeBudget.TELEGRAPH_RECORDS
 
@@ -116,8 +117,15 @@ func snapshot(record_id: int) -> Dictionary:
 	return {}
 
 
+func uses_procedural_rendering(record_id: int) -> bool:
+	var record: Dictionary = snapshot(record_id)
+	return not record.is_empty() and not _has_authored_telegraph(record)
+
+
 func _draw() -> void:
 	for record: Dictionary in _records:
+		if _has_authored_telegraph(record):
+			continue
 		var progress: float = 1.0 - float(record.remaining) / float(record.duration)
 		var origin: Vector2 = to_local(record.origin)
 		var target: Vector2 = to_local(record.target)
@@ -175,6 +183,11 @@ func _draw() -> void:
 				true
 			)
 			draw_circle(origin, 5.0 + progress * 4.0, base_color)
+
+
+func _has_authored_telegraph(record: Dictionary) -> bool:
+	var style_data: Dictionary = record.get("style_data", {}) as Dictionary
+	return bool(style_data.get(AUTHORED_TELEGRAPH_STYLE_KEY, false))
 
 
 func _draw_boss_volley_paths(

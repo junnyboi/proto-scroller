@@ -64,6 +64,9 @@ var ending_id: StringName:
 var completed: bool:
 	get:
 		return _completed
+var defeat_source_id: StringName:
+	get:
+		return _defeat_source_id
 var highest_combo_tier: int:
 	get:
 		return _highest_combo_tier
@@ -134,6 +137,7 @@ var _run_seed: int
 var _cycle_count: int
 var _ending_id: StringName
 var _completed: bool
+var _defeat_source_id: StringName
 var _highest_combo_tier: int
 var _total_enemies_defeated: int
 var _unique_enemy_types: int
@@ -182,6 +186,7 @@ func _init(
 	_cycle_count = int(metrics.get("cycle_count", 1))
 	_ending_id = metrics.get("ending_id", &"NONE") as StringName
 	_completed = bool(metrics.get("completed", false))
+	_defeat_source_id = metrics.get("defeat_source_id", DefeatSourceResolver.UNKNOWN) as StringName
 	_highest_combo_tier = maxi(int(metrics.get("highest_combo_tier", 0)), 0)
 	_total_enemies_defeated = maxi(int(metrics.get("total_enemies_defeated", 0)), 0)
 	_enemy_kills = _copy_counts(metrics.get("enemy_kills", {}) as Dictionary)
@@ -253,6 +258,7 @@ func _metric_snapshot() -> Dictionary:
 		"cycle_count": _cycle_count,
 		"ending_id": _ending_id,
 		"completed": _completed,
+		"defeat_source_id": _defeat_source_id,
 		"highest_combo_tier": _highest_combo_tier,
 		"total_enemies_defeated": _total_enemies_defeated,
 		"unique_enemy_types": _unique_enemy_types,

@@ -49,6 +49,56 @@ func test_enemy_defeats_track_concrete_type_family_and_fatal_weapon() -> void:
 	_record_test_execution()
 
 
+func test_skill_flags_attribute_drill_and_crucible_kills_separately() -> void:
+	var session: RampageSession = _session()
+	var adapter: RampageEventAdapter = RampageEventAdapter.new(session)
+	var robot: GiantRobotController = GiantRobotController.new()
+	var enemy: EnemyActor2D = EnemyActor2D.new()
+	add_child_autofree(robot)
+	add_child_autofree(enemy)
+	enemy.set_meta(&"enemy_archetype", &"covenant_warden")
+	enemy.set_meta(&"enemy_family", &"infantry")
+	var fatal_events: Array[DamageEvent] = [
+		DamageEvent.new(
+			9100,
+			robot,
+			100.0,
+			&"jab_cross",
+			Vector2.ZERO,
+			Vector2.RIGHT,
+			0.0,
+			9100,
+			0,
+			DamageEvent.FLAG_SIEGE_DRILL
+		),
+		DamageEvent.new(
+			9101,
+			robot,
+			100.0,
+			&"debris_impact",
+			Vector2.ZERO,
+			Vector2.RIGHT,
+			0.0,
+			9101,
+			1,
+			DamageEvent.FLAG_GRAVITY_CRUCIBLE
+		),
+	]
+	for fatal_event: DamageEvent in fatal_events:
+		enemy.activation_generation += 1
+		assert_true(adapter.enemy_defeated(enemy, fatal_event, 100, robot))
+	var telemetry: Dictionary = session.combat_telemetry.snapshot()
+	assert_eq(int(telemetry.weapon_kills.get(&"SIEGE_DRILL", 0)), 1)
+	assert_eq(int(telemetry.weapon_kills.get(&"GRAVITY_CRUCIBLE", 0)), 1)
+	assert_eq(int(telemetry.weapon_kills.get(&"JAB_CROSS", 0)), 0)
+	assert_eq(int(telemetry.weapon_kills.get(&"ENVIRONMENT", 0)), 0)
+	assert_eq(
+		CombatRunTelemetry.weapon_id_for_damage_event(null),
+		CombatRunTelemetry.UNKNOWN_WEAPON
+	)
+	_record_test_execution()
+
+
 func test_highest_authored_combo_tier_survives_multiplier_cap_and_freezes() -> void:
 	var session: RampageSession = _session()
 	for index: int in range(23):
@@ -261,10 +311,10 @@ func test_debrief_presents_bounded_rankings_and_both_responsive_layouts() -> voi
 			&"tank": 3,
 		},
 		{
-			&"MISSILE": 9,
-			&"GROUND_SMASH": 8,
-			&"JAB_CROSS": 5,
-			&"LASER": 4,
+			&"SIEGE_DRILL": 9,
+			&"GRAVITY_CRUCIBLE": 8,
+			&"MISSILE": 5,
+			&"GROUND_SMASH": 4,
 		}
 	).with_career_result({
 		"new_combo_record": true,
@@ -282,7 +332,13 @@ func test_debrief_presents_bounded_rankings_and_both_responsive_layouts() -> voi
 	assert_true(state.visible)
 	assert_true(String(state.combo).contains("EXTINCTION EVENT"))
 	assert_true(state.personal_best)
+	assert_eq(String(state.killed_by), "")
+	assert_false(panel.killer_label.visible)
 	assert_eq((state.weapon_rows as PackedStringArray).size(), 3)
+	assert_true(panel.weapon_preferred_label.text.contains("SIEGE DRILL"))
+	var weapon_rows_text: String = "\n".join(state.weapon_rows as PackedStringArray)
+	assert_true(weapon_rows_text.contains("SIEGE DRILL"))
+	assert_true(weapon_rows_text.contains("GRAVITY CRUCIBLE"))
 	assert_eq((state.enemy_rows as PackedStringArray).size(), 4)
 	assert_true(panel.crest.texture is Texture2D)
 
@@ -307,6 +363,115 @@ func test_debrief_presents_bounded_rankings_and_both_responsive_layouts() -> voi
 	panel.title_button.pressed.emit()
 	assert_eq(int(signal_counts.retry), 1)
 	assert_eq(int(signal_counts.title), 1)
+	_record_test_execution()
+
+
+func test_game_over_debrief_names_the_fatal_enemy_in_both_layouts() -> void:
+	L10n.set_locale("en")
+	var panel: MatchDebriefPanel = MatchDebriefPanel.new()
+	add_child_autofree(panel)
+	await get_tree().process_frame
+	var summary: RunSummarySnapshot = _make_summary(
+		35_700,
+		3,
+		false,
+		{&"covenant_warden": 17},
+		{&"ENVIRONMENT": 9},
+		&"covenant_warden"
+	)
+	panel.present(summary, "GAME OVER", 2, 1)
+	assert_eq(
+		String(panel.debug_snapshot().killed_by),
+		"KILLED BY 'COVENANT WARDEN'"
+	)
+	assert_true(panel.killer_label.visible)
+	panel.apply_responsive_layout(Vector2(1280.0, 720.0))
+	assert_almost_eq(
+		panel.killer_label.position.y,
+		panel.result_label.position.y,
+		0.01
+	)
+	assert_gt(
+		panel.killer_label.position.x,
+		panel.result_label.position.x
+	)
+	assert_lte(
+		panel.killer_label.position.x + panel.killer_label.size.x,
+		panel.grade_label.position.x
+	)
+	assert_lte(
+		panel.killer_label.position.y + panel.killer_label.size.y,
+		panel.run_meta_label.position.y
+	)
+	panel.apply_responsive_layout(Vector2(720.0, 1280.0))
+	assert_almost_eq(
+		panel.killer_label.position.y,
+		panel.result_label.position.y,
+		0.01
+	)
+	assert_gt(
+		panel.killer_label.position.x,
+		panel.result_label.position.x
+	)
+	assert_lte(
+		panel.killer_label.position.y + panel.killer_label.size.y,
+		panel.run_meta_label.position.y
+	)
+	panel.set_page(MatchDebriefPanel.Page.CAREER)
+	assert_false(panel.killer_label.visible)
+	panel.set_page(MatchDebriefPanel.Page.AFTER_ACTION)
+	assert_true(panel.killer_label.visible)
+	_record_test_execution()
+
+
+func test_fatal_damage_source_resolution_survives_summary_enrichment() -> void:
+	var robot: GiantRobotController = GiantRobotController.new()
+	var enemy: EnemyActor2D = EnemyActor2D.new()
+	var attack_child: Node2D = Node2D.new()
+	add_child_autofree(robot)
+	add_child_autofree(enemy)
+	enemy.add_child(attack_child)
+	enemy.set_meta(&"enemy_archetype", &"ninefold_witness")
+	var fatal_event: DamageEvent = DamageEvent.new(
+		18_001,
+		attack_child,
+		robot.max_health + 1.0
+	)
+	assert_true(robot.receive_damage(fatal_event))
+	assert_eq(
+		DefeatSourceResolver.resolve(fatal_event),
+		&"ninefold_witness"
+	)
+	assert_eq(
+		DefeatSourceResolver.resolve(DamageEvent.new(
+			18_002,
+			null,
+			1.0,
+			&"hazard",
+			Vector2.ZERO,
+			Vector2.RIGHT,
+			0.0,
+			0,
+			0,
+			DamageEvent.FLAG_HAZARD
+		)),
+		DefeatSourceResolver.ENVIRONMENT
+	)
+	assert_eq(
+		DefeatSourceResolver.resolve(DamageEvent.new(18_003, null, 1.0)),
+		DefeatSourceResolver.UNKNOWN
+	)
+	var summary: RunSummarySnapshot = _make_summary(
+		100,
+		1,
+		false,
+		{},
+		{},
+		&"ninefold_witness"
+	)
+	summary = summary.with_tuning_provenance({"status": &"BASELINE"})
+	summary = summary.with_career_result({"career_snapshot": {"total_runs": 1}})
+	assert_eq(summary.defeat_source_id, &"ninefold_witness")
 	_record_test_execution()
 
 
@@ -559,16 +724,30 @@ func test_run_lifecycle_submits_profile_once_and_presents_enriched_dossier() -> 
 	city.combat_profile = store
 	add_child_autofree(city)
 	await get_tree().process_frame
-	for enemy: EnemyActor2D in city.encounter_runtime.all_actors():
+	var actors: Array[EnemyActor2D] = city.encounter_runtime.all_actors()
+	for enemy: EnemyActor2D in actors:
 		enemy.set_physics_process(false)
+	assert_false(actors.is_empty())
+	var fatal_enemy: EnemyActor2D = actors[0]
+	fatal_enemy.set_meta(&"enemy_archetype", &"covenant_warden")
 	var event: GameplayEvent = _kill_event(501, &"choir_siren", &"air", &"LASER")
 	assert_true(city.rampage_session.publish(event))
-	city.run_lifecycle._finish_run(false)
+	assert_true(city.robot.receive_damage(DamageEvent.new(
+		18_100,
+		fatal_enemy,
+		city.robot.current_health + 1.0,
+		&"shell"
+	)))
 	var summary: RunSummarySnapshot = city.rampage_session.frozen_summary
 	assert_not_null(summary)
+	assert_eq(summary.defeat_source_id, &"covenant_warden")
 	assert_eq(summary.total_enemies_defeated, 1)
 	assert_eq(int(summary.career_snapshot.total_runs), 1)
 	assert_true(city.gameplay_hud.match_debrief.visible)
+	assert_eq(
+		city.gameplay_hud.match_debrief.killer_label.text,
+		"KILLED BY 'COVENANT WARDEN'"
+	)
 	assert_eq(int(store.snapshot().total_runs), 1)
 	city.run_lifecycle._finish_run(false)
 	assert_eq(int(store.snapshot().total_runs), 1)
@@ -607,7 +786,8 @@ func _make_summary(
 	highest_combo_tier: int,
 	completed: bool,
 	enemy_kills: Dictionary,
-	weapon_kills: Dictionary
+	weapon_kills: Dictionary,
+	defeat_source_id: StringName = DefeatSourceResolver.UNKNOWN
 ) -> RunSummarySnapshot:
 	var total_kills: int = 0
 	for value: Variant in enemy_kills.values():
@@ -628,6 +808,7 @@ func _make_summary(
 		{},
 		{
 			"completed": completed,
+			"defeat_source_id": defeat_source_id,
 			"grade": &"S" if completed else &"C",
 			"highest_combo_tier": highest_combo_tier,
 			"total_enemies_defeated": total_kills,

@@ -140,7 +140,7 @@ func enemy_defeated(
 	)
 	gameplay_event.enemy_archetype_id = _enemy_archetype_id(enemy)
 	gameplay_event.enemy_family_id = _enemy_family_id(enemy, gameplay_event.enemy_archetype_id)
-	gameplay_event.weapon_id = CombatRunTelemetry.weapon_id_for_damage_type(event.damage_type)
+	gameplay_event.weapon_id = CombatRunTelemetry.weapon_id_for_damage_event(event)
 	return _publish_damage(gameplay_event, event, enemy, robot)
 
 

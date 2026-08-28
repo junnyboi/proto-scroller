@@ -18,6 +18,7 @@ const AMBER: Color = Color("f1b36f")
 const RED: Color = Color("ff695c")
 const PERSONAL_ROW_HIGHLIGHT: Color = Color(0.12, 0.52, 0.62, 0.28)
 const AFTER_ACTION_HEADER_BOTTOM_PADDING: float = 12.0
+const KILLER_INLINE_GAP: float = 18.0
 const LANDSCAPE_SIZE: Vector2 = Vector2(
 	1160.0,
 	636.0 + AFTER_ACTION_HEADER_BOTTOM_PADDING
@@ -43,6 +44,7 @@ var enemy_panel: ColorRect
 var result_label: Label
 var grade_label: Label
 var score_label: Label
+var killer_label: Label
 var run_meta_label: Label
 var crest: TextureRect
 var combo_header_label: Label
@@ -127,6 +129,13 @@ func present(
 	result_label.text = result_text
 	grade_label.text = L10n.t("debrief.grade", {"grade": summary.grade})
 	score_label.text = L10n.t("debrief.score", {"score": "%08d" % summary.score})
+	if summary.completed:
+		killer_label.text = ""
+		killer_label.tooltip_text = ""
+	else:
+		var killer_name: String = _killer_name(summary.defeat_source_id)
+		killer_label.text = L10n.t("debrief.killed_by", {"killer": killer_name})
+		killer_label.tooltip_text = killer_label.text
 	run_meta_label.text = L10n.t("debrief.run_meta", {
 		"acts": summary.waves_cleared,
 		"cycle": summary.cycle_count,
@@ -196,6 +205,7 @@ func set_page(page: Page) -> void:
 	for index: int in range(tab_buttons.size()):
 		tab_buttons[index].button_pressed = index == page
 	if page == Page.AFTER_ACTION and presented_summary != null:
+		killer_label.visible = not presented_summary.completed
 		personal_best_label.visible = (
 			presented_summary.new_combo_record or presented_summary.new_score_record
 		)
@@ -253,6 +263,7 @@ func debug_snapshot() -> Dictionary:
 		"visible": visible,
 		"page": Page.keys()[current_page],
 		"result": result_label.text if result_label != null else "",
+		"killed_by": killer_label.text if killer_label != null and killer_label.visible else "",
 		"combo": combo_value_label.text if combo_value_label != null else "",
 		"personal_best": personal_best_label.visible if personal_best_label != null else false,
 		"weapon_rows": _visible_row_text(weapon_rows),
@@ -326,6 +337,8 @@ func _build_after_action_controls() -> void:
 	result_label = _label("Result", 42, MUTED)
 	grade_label = _label("Grade", 34, AMBER, HORIZONTAL_ALIGNMENT_CENTER)
 	score_label = _label("Score", 34, AMBER, HORIZONTAL_ALIGNMENT_RIGHT)
+	killer_label = _label("KilledBy", 18, RED)
+	killer_label.clip_text = true
 	run_meta_label = _label("RunMeta", 16, MUTED)
 	combo_header_label = _section_label("ComboHeader", "debrief.highest_combo")
 	combo_value_label = _label("ComboValue", 28, AMBER)
@@ -356,7 +369,7 @@ func _build_after_action_controls() -> void:
 	recommendation_label.clip_text = true
 	_after_action_controls.assign([
 		combo_panel, career_panel, weapon_panel, enemy_panel, result_label, grade_label,
-		score_label, run_meta_label, combo_header_label, combo_value_label,
+		score_label, killer_label, run_meta_label, combo_header_label, combo_value_label,
 		combo_detail_label, personal_best_label, crest, career_header_label,
 		career_value_label, weapon_header_label, weapon_preferred_label,
 		enemy_header_label, enemy_total_label, recommendation_label,
@@ -764,6 +777,14 @@ func _enemy_name(enemy_id: StringName) -> String:
 	return _prettify_identifier(enemy_id)
 
 
+func _killer_name(source_id: StringName) -> String:
+	if source_id == DefeatSourceResolver.ENVIRONMENT:
+		return L10n.t("debrief.killer.environment")
+	if source_id.is_empty() or source_id == DefeatSourceResolver.UNKNOWN:
+		return L10n.t("debrief.killer.unknown")
+	return _enemy_name(source_id)
+
+
 func _prettify_identifier(identifier: StringName) -> String:
 	return String(identifier).replace("_", " ").replace(":", " ").to_upper()
 
@@ -783,6 +804,7 @@ func _apply_landscape_layout(viewport_size: Vector2) -> void:
 	score_label.position = Vector2(845.0, 56.0 + body_offset)
 	score_label.size = Vector2(285.0, 48.0)
 	score_label.add_theme_font_size_override(&"font_size", 28)
+	_place_killer_inline(grade_label.position.x - 20.0)
 	run_meta_label.position = Vector2(30.0, 100.0 + body_offset)
 	run_meta_label.size = Vector2(1100.0, 24.0)
 	combo_panel.position = Vector2(20.0, 130.0 + body_offset)
@@ -920,6 +942,7 @@ func _apply_portrait_layout(viewport_size: Vector2) -> void:
 	score_label.position = Vector2(220.0, 116.0 + body_offset)
 	score_label.size = Vector2(432.0, 42.0)
 	score_label.add_theme_font_size_override(&"font_size", 26)
+	_place_killer_inline(652.0)
 	run_meta_label.position = Vector2(20.0, 160.0 + body_offset)
 	run_meta_label.size = Vector2(632.0, 24.0)
 	combo_panel.position = Vector2(16.0, 192.0 + body_offset)
@@ -1046,9 +1069,23 @@ func _layout_global_portrait() -> void:
 
 func _apply_after_action_header_bottom_padding() -> void:
 	for control: Control in _after_action_controls:
-		if control in [result_label, grade_label, score_label]:
+		if control in [result_label, grade_label, score_label, killer_label]:
 			continue
 		control.position.y += AFTER_ACTION_HEADER_BOTTOM_PADDING
+
+
+func _place_killer_inline(max_right: float) -> void:
+	var result_font: Font = result_label.get_theme_font(&"font")
+	var result_font_size: int = result_label.get_theme_font_size(&"font_size")
+	var result_width: float = result_font.get_string_size(
+		result_label.text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1.0,
+		result_font_size
+	).x
+	var killer_x: float = result_label.position.x + result_width + KILLER_INLINE_GAP
+	killer_label.position = Vector2(killer_x, result_label.position.y)
+	killer_label.size = Vector2(maxf(max_right - killer_x, 0.0), result_label.size.y)
 
 
 func _layout_tabs(x: float, y: float, total_width: float, height: float) -> void:

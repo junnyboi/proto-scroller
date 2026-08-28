@@ -67,12 +67,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _begin_shell() -> void:
-	var vehicle_scale: float = EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE
-	var cannon_y: float = visual.position.y - 22.0 * vehicle_scale if visual != null else -96.0
-	var origin: Vector2 = global_position + Vector2(
-		float(facing) * 112.0 * vehicle_scale,
-		cannon_y
-	)
+	var origin: Vector2 = attack_telegraph_origin()
 	var target_point: Vector2 = target.global_position + Vector2(0.0, 35.0)
 	if role_id == &"SUPPORT_BREAKER" and structural_target != null:
 		var cell: Destructible2D = structural_target.get_cell(1, 1)

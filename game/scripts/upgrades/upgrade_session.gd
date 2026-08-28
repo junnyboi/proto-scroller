@@ -26,6 +26,7 @@ enum State {
 
 const SYSTEM_SALT: int = 0x51A71E5
 const MAX_PENDING: int = 64
+const UNACQUIRED_OFFER_WEIGHT_MULTIPLIER: int = 2
 
 var run_seed: int
 var run_generation: int
@@ -264,17 +265,23 @@ func _draw_two(legal: Array[UpgradeProfile]) -> PackedStringArray:
 	for draw_index: int in range(2):
 		var total_weight: int = 0
 		for profile: UpgradeProfile in candidates:
-			total_weight += profile.offer_weight
+			total_weight += _effective_offer_weight(profile)
 		var roll: int = rng.randi_range(0, total_weight - 1)
 		rng_draw_count += 1
 		var cumulative: int = 0
 		for index: int in range(candidates.size()):
-			cumulative += candidates[index].offer_weight
+			cumulative += _effective_offer_weight(candidates[index])
 			if roll < cumulative:
 				choices.append(candidates[index].upgrade_id)
 				candidates.remove_at(index)
 				break
 	return choices
+
+
+func _effective_offer_weight(profile: UpgradeProfile) -> int:
+	if rank_of(profile.upgrade_id) == 0:
+		return profile.offer_weight * UNACQUIRED_OFFER_WEIGHT_MULTIPLIER
+	return profile.offer_weight
 
 
 func _apply_upgrade(upgrade_id: StringName, offer: UpgradeOffer) -> int:

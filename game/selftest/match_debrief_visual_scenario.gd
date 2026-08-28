@@ -31,7 +31,11 @@ func _run() -> void:
 	root.add_child(store)
 	store.setup(PROFILE_PATH)
 	store.set_callsign("ECHO-7")
-	var summary: RunSummarySnapshot = _build_history(store)
+	var game_over: bool = OS.get_environment("PROTO_SCROLLER_DEBRIEF_GAME_OVER") == "1"
+	var skill_affinity: bool = (
+		OS.get_environment("PROTO_SCROLLER_DEBRIEF_SKILL_AFFINITY") == "1"
+	)
+	var summary: RunSummarySnapshot = _build_history(store, game_over, skill_affinity)
 	var scene: PackedScene = load("res://scenes/gameplay/city_slice.tscn") as PackedScene
 	if scene == null:
 		_finish(false, "city scene missing")
@@ -44,7 +48,10 @@ func _run() -> void:
 	city.encounter_runtime.release_all()
 	city.encounter_director.process_mode = Node.PROCESS_MODE_DISABLED
 	city.gameplay_hud._set_campaign_summary(25, 2)
-	city.gameplay_hud.show_district_complete(summary)
+	if game_over:
+		city.gameplay_hud.show_game_over(summary)
+	else:
+		city.gameplay_hud.show_district_complete(summary)
 	for _frame: int in range(4):
 		await process_frame
 	var panel: MatchDebriefPanel = city.gameplay_hud.match_debrief
@@ -69,7 +76,7 @@ func _run() -> void:
 		and viewport_rect.encloses(snapshot.panel_rect as Rect2)
 		and viewport_rect.encloses(snapshot.retry_rect as Rect2)
 		and viewport_rect.encloses(snapshot.title_rect as Rect2)
-		and _page_valid(page_name, snapshot)
+		and _page_valid(page_name, snapshot, game_over, skill_affinity)
 	)
 	if not valid:
 		_finish(false, JSON.stringify(_json_safe_snapshot(snapshot)))
@@ -84,7 +91,14 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(
 		ProjectSettings.globalize_path("res://artifacts/match_debrief")
 	)
-	var shot_path: String = "res://artifacts/match_debrief/match-debrief-%s.png" % page_name
+	var shot_name: String = (
+		"skill-affinity"
+		if skill_affinity
+		else ("game-over-killer" if game_over else page_name)
+	)
+	if target_size.y > target_size.x:
+		shot_name += "-portrait"
+	var shot_path: String = "res://artifacts/match_debrief/match-debrief-%s.png" % shot_name
 	var save_error: Error = image.save_png(ProjectSettings.globalize_path(shot_path))
 	if save_error != OK or image.get_size() != target_size:
 		_finish(false, "shot error=%s size=%s" % [save_error, image.get_size()])
@@ -99,6 +113,7 @@ func _run() -> void:
 			"total_enemy_kills": summary.total_enemies_defeated,
 			"unique_enemy_types": summary.unique_enemy_types,
 			"preferred_weapon": String(summary.preferred_weapon),
+			"defeat_source_id": String(summary.defeat_source_id),
 		},
 		"layout": _json_safe_snapshot(snapshot),
 		"shot": shot_path,
@@ -114,12 +129,31 @@ func _run() -> void:
 	quit(0)
 
 
-func _build_history(store: PlayerCombatProfileStore) -> RunSummarySnapshot:
+func _build_history(
+	store: PlayerCombatProfileStore,
+	game_over: bool,
+	skill_affinity: bool
+) -> RunSummarySnapshot:
 	var latest: RunSummarySnapshot
 	for index: int in range(8):
 		var score: int = 84_000 + index * 112_000
 		if index == 7:
 			score = 874_200
+		var weapon_kills: Dictionary = {
+			&"GROUND_SMASH": 12 + index * 4,
+			&"MISSILE": 18 + (7 - index) * 2,
+			&"LASER": 5 + index * 3,
+		}
+		var preferred_weapon: StringName = &"GROUND_SMASH" if index >= 4 else &"MISSILE"
+		var preferred_weapon_kills: int = 42 if index == 7 else 18 + index * 4
+		if skill_affinity and index == 7:
+			weapon_kills = {
+				&"SIEGE_DRILL": 32,
+				&"GRAVITY_CRUCIBLE": 26,
+				&"JAB_CROSS": 20,
+			}
+			preferred_weapon = &"SIEGE_DRILL"
+			preferred_weapon_kills = 32
 		latest = RunSummarySnapshot.new(
 			score,
 			mini(index + 1, 5),
@@ -128,8 +162,17 @@ func _build_history(store: PlayerCombatProfileStore) -> RunSummarySnapshot:
 			index,
 			{&"SKYBREAKER": index},
 			{
-				"completed": index % 2 == 1,
-				"grade": &"S" if index == 7 else &"B",
+				"completed": false if game_over and index == 7 else index % 2 == 1,
+				"defeat_source_id": (
+					&"covenant_warden"
+					if game_over and index == 7
+					else DefeatSourceResolver.UNKNOWN
+				),
+				"grade": (
+					&"D"
+					if game_over and index == 7
+					else (&"S" if index == 7 else &"B")
+				),
 				"mastery_points": 982 if index == 7 else 200 + index * 40,
 				"objective": "summary.retry.reach_next_act",
 				"cycle_count": 2 if index == 7 else 1,
@@ -141,13 +184,9 @@ func _build_history(store: PlayerCombatProfileStore) -> RunSummarySnapshot:
 					&"choir_siren": 4 + index,
 					&"pale_engine": index,
 				},
-				"weapon_kills": {
-					&"GROUND_SMASH": 12 + index * 4,
-					&"MISSILE": 18 + (7 - index) * 2,
-					&"LASER": 5 + index * 3,
-				},
-				"preferred_weapon": &"GROUND_SMASH" if index >= 4 else &"MISSILE",
-				"preferred_weapon_kills": 42 if index == 7 else 18 + index * 4,
+				"weapon_kills": weapon_kills,
+				"preferred_weapon": preferred_weapon,
+				"preferred_weapon_kills": preferred_weapon_kills,
 			}
 		)
 		latest = store.enrich_and_submit(latest)
@@ -171,7 +210,12 @@ func _global_rows() -> Array[Dictionary]:
 	return rows
 
 
-func _page_valid(page_name: String, snapshot: Dictionary) -> bool:
+func _page_valid(
+	page_name: String,
+	snapshot: Dictionary,
+	game_over: bool,
+	skill_affinity: bool
+) -> bool:
 	if page_name == "career":
 		return (
 			String(snapshot.page) == "CAREER"
@@ -185,12 +229,23 @@ func _page_valid(page_name: String, snapshot: Dictionary) -> bool:
 			and String(snapshot.global_state) == "online"
 			and (snapshot.global_rows as PackedStringArray).size() == 10
 		)
+	var weapon_rows_text: String = "\n".join(snapshot.weapon_rows as PackedStringArray)
 	return (
 		String(snapshot.page) == "AFTER_ACTION"
-		and String(snapshot.result) == "DISTRICT CLEARED"
+		and String(snapshot.result) == ("GAME OVER" if game_over else "DISTRICT CLEARED")
+		and String(snapshot.killed_by) == (
+			"KILLED BY 'COVENANT WARDEN'" if game_over else ""
+		)
 		and String(snapshot.combo).contains("EXTINCTION EVENT")
 		and bool(snapshot.personal_best)
 		and (snapshot.weapon_rows as PackedStringArray).size() == 3
+		and (
+			not skill_affinity
+			or (
+				weapon_rows_text.contains("SIEGE DRILL")
+				and weapon_rows_text.contains("GRAVITY CRUCIBLE")
+			)
+		)
 		and (snapshot.enemy_rows as PackedStringArray).size() == 3
 	)
 
@@ -235,6 +290,7 @@ func _json_safe_snapshot(snapshot: Dictionary) -> Dictionary:
 		"visible": bool(snapshot.visible),
 		"page": String(snapshot.page),
 		"result": String(snapshot.result),
+		"killed_by": String(snapshot.killed_by),
 		"combo": String(snapshot.combo),
 		"personal_best": bool(snapshot.personal_best),
 		"callsign": String(snapshot.callsign),

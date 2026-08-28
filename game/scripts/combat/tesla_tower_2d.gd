@@ -6,9 +6,18 @@ const TOWER_TEXTURE: Texture2D = preload(
 )
 const ARC_CAPACITY: int = 3
 const ARMING_SECONDS: float = 0.25
-const LIFETIMES: Array[float] = [0.0, 5.0, 6.0, 7.0]
+const LIFETIME_SECONDS: float = 30.0
+const RANGE_RADIUS_BONUS: float = 500.0
+const LIFETIMES: Array[float] = [
+	0.0, LIFETIME_SECONDS, LIFETIME_SECONDS, LIFETIME_SECONDS,
+]
 const PULSE_INTERVALS: Array[float] = [0.0, 1.20, 1.00, 0.90]
-const RANGES: Array[float] = [0.0, 430.0, 500.0, 570.0]
+const RANGES: Array[float] = [
+	0.0,
+	430.0 + RANGE_RADIUS_BONUS,
+	500.0 + RANGE_RADIUS_BONUS,
+	570.0 + RANGE_RADIUS_BONUS,
+]
 const TARGET_CAPS: Array[int] = [0, 1, 2, 3]
 const DAMAGE: Array[float] = [0.0, 18.0, 20.0, 22.0]
 

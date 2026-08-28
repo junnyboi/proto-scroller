@@ -18,7 +18,10 @@ func test_only_full_charge_release_plants_on_whiff_at_robot_ground() -> void:
 	assert_false(runtime.tower.active)
 	var full: AttackSpec = _attack(51_002, 2.0)
 	var ground: Node2D = city.robot.get_node(^"VisualRoot/VisualGroundOrigin") as Node2D
-	var expected_origin: Vector2 = ground.global_position
+	var expected_origin: Vector2 = (
+		ground.global_position + TeslaTowerRuntime.DEPLOYMENT_OFFSET
+	)
+	assert_eq(TeslaTowerRuntime.DEPLOYMENT_OFFSET, Vector2(0.0, 40.0))
 	runtime.call(&"_on_charge_released", full, 2.0, 2.0)
 	assert_true(runtime.tower.active)
 	assert_eq(runtime.tower.global_position, expected_origin)
@@ -102,6 +105,25 @@ func test_tesla_damage_preserves_root_attribution_and_never_redeploys() -> void:
 	assert_eq(CombatRunTelemetry.weapon_id_for_damage_type(&"tesla_tower"), &"TESLA_TOWER")
 
 
+func test_rank_one_range_includes_the_additive_500_pixel_radius() -> void:
+	var city: CitySlice = await _spawn_city()
+	var runtime: TeslaTowerRuntime = _runtime(city)
+	assert_true(runtime.apply_rank(1))
+	runtime.call(&"_on_charge_released", _attack(51_007, 2.0), 2.0, 2.0)
+	var origin: Vector2 = runtime.tower.global_position
+	var inside: EnemyActor2D = city.encounter_runtime.soldiers[0]
+	var outside: EnemyActor2D = city.encounter_runtime.soldiers[1]
+	inside.activate(origin + Vector2(TeslaTower2D.RANGES[1], 0.0), city.robot)
+	outside.activate(origin + Vector2(TeslaTower2D.RANGES[1] + 1.0, 0.0), city.robot)
+	for target: EnemyActor2D in [inside, outside]:
+		target.set_physics_process(false)
+		target.max_health = 1000.0
+		target.current_health = 1000.0
+	runtime.tower.call(&"_pulse")
+	assert_almost_eq(inside.current_health, 982.0, 0.001)
+	assert_almost_eq(outside.current_health, 1000.0, 0.001)
+
+
 func test_arming_pause_lifetime_reset_and_node_count_remain_bounded() -> void:
 	var city: CitySlice = await _spawn_city()
 	var runtime: TeslaTowerRuntime = _runtime(city)
@@ -128,6 +150,16 @@ func test_arming_pause_lifetime_reset_and_node_count_remain_bounded() -> void:
 	assert_eq(runtime.tower.pulse_count, 0)
 	runtime.tower.call(&"_process", 0.02)
 	assert_eq(runtime.tower.pulse_count, 1)
+	assert_almost_eq(
+		before_pause,
+		TeslaTower2D.LIFETIME_SECONDS,
+		0.001
+	)
+	var remaining_before_expiry: float = runtime.tower.lifetime_remaining
+	runtime.tower.call(&"_process", remaining_before_expiry - 0.01)
+	assert_true(runtime.tower.active)
+	runtime.tower.call(&"_process", 0.02)
+	assert_false(runtime.tower.active)
 	runtime.reset_run()
 	assert_false(runtime.tower.active)
 	assert_eq(runtime.current_rank, 0)
@@ -137,9 +169,11 @@ func test_arming_pause_lifetime_reset_and_node_count_remain_bounded() -> void:
 
 
 func test_rank_tables_match_the_approved_tesla_tuning() -> void:
-	assert_eq(TeslaTower2D.LIFETIMES, [0.0, 5.0, 6.0, 7.0])
+	assert_eq(TeslaTower2D.LIFETIME_SECONDS, 30.0)
+	assert_eq(TeslaTower2D.RANGE_RADIUS_BONUS, 500.0)
+	assert_eq(TeslaTower2D.LIFETIMES, [0.0, 30.0, 30.0, 30.0])
 	assert_eq(TeslaTower2D.PULSE_INTERVALS, [0.0, 1.2, 1.0, 0.9])
-	assert_eq(TeslaTower2D.RANGES, [0.0, 430.0, 500.0, 570.0])
+	assert_eq(TeslaTower2D.RANGES, [0.0, 930.0, 1000.0, 1070.0])
 	assert_eq(TeslaTower2D.TARGET_CAPS, [0, 1, 2, 3])
 	assert_eq(TeslaTower2D.DAMAGE, [0.0, 18.0, 20.0, 22.0])
 	assert_eq(TeslaTower2D.ARMING_SECONDS, 0.25)

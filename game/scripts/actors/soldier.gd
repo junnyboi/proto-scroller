@@ -63,8 +63,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _begin_fire() -> void:
-	var muzzle_y: float = visual.position.y - 18.0 if visual != null else -28.0
-	var origin: Vector2 = global_position + Vector2(float(facing) * 34.0, muzzle_y)
+	var origin: Vector2 = attack_telegraph_origin()
 	var target_point: Vector2 = target.global_position + Vector2(0.0, 45.0)
 	if (
 		role_id == &"CATALYST_MARKER"

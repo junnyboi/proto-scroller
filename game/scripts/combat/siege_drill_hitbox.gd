@@ -14,7 +14,8 @@ const TARGET_MASK: int = (
 )
 const QUERY_SIZE: Vector2 = Vector2(126.0, 92.0)
 const FORWARD_OFFSET: float = 106.0
-const VERTICAL_OFFSET: float = 8.0
+const VISUAL_SCALE_MULTIPLIER: float = 1.5
+const ROBOT_VISUAL_PATH: NodePath = ^"VisualRoot/RobotAnimatedSprite"
 const MAX_RESULTS: int = 24
 const ACTOR_DAMAGE: Array[float] = [0.0, 40.0, 48.0, 56.0]
 const STRUCTURAL_DAMAGE: Array[float] = [0.0, 36.0, 44.0, 52.0]
@@ -95,11 +96,16 @@ func hit_target_count() -> int:
 
 func _sync_transform() -> void:
 	facing = -1 if _robot.facing < 0 else 1
-	global_position = _robot.global_position + Vector2(
+	global_position = _robot_visual_center() + Vector2(
 		float(facing) * FORWARD_OFFSET,
-		VERTICAL_OFFSET
+		0.0
 	)
-	_visual.scale = Vector2(float(facing), 1.0)
+	_visual.scale = Vector2(float(facing), 1.0) * VISUAL_SCALE_MULTIPLIER
+
+
+func _robot_visual_center() -> Vector2:
+	var robot_visual: Node2D = _robot.get_node_or_null(ROBOT_VISUAL_PATH) as Node2D
+	return robot_visual.global_position if robot_visual != null else _robot.global_position
 
 
 func _resolve_contacts() -> int:
@@ -170,13 +176,17 @@ func _make_event(collider: Node2D, receiver: Node) -> DamageEvent:
 		collider.global_position,
 		direction,
 		IMPULSE_PER_MASS[current_rank],
-		attack_id
+		attack_id,
+		0,
+		DamageEvent.FLAG_SIEGE_DRILL
 	)
 
 
 func _deliver_damage(receiver: Node, event: DamageEvent) -> bool:
 	if receiver == null or not receiver.has_method("receive_damage"):
 		return false
+	if receiver is EnemyWreck2D:
+		return (receiver as EnemyWreck2D).reduce_to_rubble(event)
 	return bool(receiver.call("receive_damage", event))
 
 

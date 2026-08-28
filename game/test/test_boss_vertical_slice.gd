@@ -250,13 +250,10 @@ func test_residential_has_four_attacks_dry_lane_cradle_and_glass_separation() ->
 	assert_eq(projectile.visual_key, BossVerticalSliceController.RESIDENTIAL_PROJECTILE_VISUAL)
 	assert_almost_eq(projectile.presentation_scale, 1.5, 0.001)
 	assert_eq(projectile.planned, 1)
-	assert_gt(projectile.telegraph_id, 0)
-	var warning: Dictionary = city.telegraph_presenter.snapshot(projectile.telegraph_id)
-	assert_eq(warning.origin, session.utility_pool.rig.attack_telegraph_origin())
-	assert_eq(warning.presentation_variant, BossProjectileVolley.TELEGRAPH_PRESENTATION_VARIANT)
-	assert_eq((warning.style_data.origins as Array).size(), 1)
-	assert_eq((warning.style_data.origins as Array)[0], warning.origin)
-	var projectile_origin: Vector2 = (warning.style_data.projectile_origins as Array)[0]
+	assert_eq(projectile.telegraph_id, 0)
+	assert_eq(city.telegraph_presenter.active_count(), 0)
+	assert_eq((projectile.origins as Array).size(), 1)
+	var projectile_origin: Vector2 = (projectile.origins as Array)[0]
 	assert_eq(slice.active_attack_choices(), [&"TRIAGE_SWEEP", &"PRESSURE_SENTENCE"])
 	assert_true(slice.central_cradle_preserved)
 	assert_true(slice.mechanical_targets_clear_of_glass())

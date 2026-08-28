@@ -7,6 +7,8 @@ const UNKNOWN_WEAPON: StringName = &"UNKNOWN"
 const WEAPON_PRIORITY: Array[StringName] = [
 	&"GROUND_SMASH",
 	&"JAB_CROSS",
+	&"SIEGE_DRILL",
+	&"GRAVITY_CRUCIBLE",
 	&"MACHINE_GUN",
 	&"MISSILE",
 	&"LASER",
@@ -102,6 +104,16 @@ static func weapon_id_for_damage_type(damage_type: StringName) -> StringName:
 		&"debris", &"debris_impact", &"explosion", &"volatile":
 			return &"ENVIRONMENT"
 	return UNKNOWN_WEAPON
+
+
+static func weapon_id_for_damage_event(event: DamageEvent) -> StringName:
+	if event == null:
+		return UNKNOWN_WEAPON
+	if (event.effect_flags & DamageEvent.FLAG_SIEGE_DRILL) != 0:
+		return &"SIEGE_DRILL"
+	if (event.effect_flags & DamageEvent.FLAG_GRAVITY_CRUCIBLE) != 0:
+		return &"GRAVITY_CRUCIBLE"
+	return weapon_id_for_damage_type(event.damage_type)
 
 
 static func ranked_entries(counts: Dictionary, limit: int = 0) -> Array[Dictionary]:

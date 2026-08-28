@@ -52,6 +52,38 @@ func test_ranks_change_payload_without_changing_dodge_contract() -> void:
 		)
 
 
+func test_drill_visual_tracks_player_center_at_one_hundred_fifty_percent() -> void:
+	var city: CitySlice = await _spawn_city()
+	var runtime: SiegeDrillRuntime = _runtime(city)
+	var robot: GiantRobotController = city.robot
+	var robot_visual: AnimatedSprite2D = (
+		robot.get_node(SiegeDrillHitbox.ROBOT_VISUAL_PATH) as AnimatedSprite2D
+	)
+	assert_true(runtime.apply_rank(1))
+	robot.global_position = Vector2(520.0, 460.0)
+	for expected_facing: int in [1, -1]:
+		robot.dodge_cooldown_remaining = 0.0
+		assert_true(robot._start_dodge(expected_facing))
+		runtime.hitbox.advance()
+		var expected_center: Vector2 = robot_visual.global_position + Vector2(
+			float(expected_facing) * SiegeDrillHitbox.FORWARD_OFFSET,
+			0.0
+		)
+		assert_eq(runtime.hitbox.global_position, expected_center)
+		assert_eq(runtime.hitbox._visual.global_position, expected_center)
+		assert_eq(
+			runtime.hitbox._visual.scale,
+			Vector2(float(expected_facing), 1.0)
+				* SiegeDrillHitbox.VISUAL_SCALE_MULTIPLIER
+		)
+		assert_almost_eq(
+			runtime.hitbox.global_position.y,
+			robot_visual.global_position.y,
+			0.001
+		)
+		assert_true(robot.cancel_dodge())
+
+
 func test_drill_hits_forward_enemy_once_per_dash_and_ignores_rear_enemy() -> void:
 	var city: CitySlice = await _spawn_city()
 	var runtime: SiegeDrillRuntime = _runtime(city)
@@ -72,6 +104,13 @@ func test_drill_hits_forward_enemy_once_per_dash_and_ignores_rear_enemy() -> voi
 	var forward_health: float = forward.current_health
 	var rear_health: float = rear.current_health
 	assert_true(city.robot._start_dodge(1))
+	var drill_event: DamageEvent = runtime.hitbox._make_event(forward, forward)
+	assert_eq(drill_event.damage_type, &"jab_cross")
+	assert_ne(drill_event.effect_flags & DamageEvent.FLAG_SIEGE_DRILL, 0)
+	assert_eq(
+		CombatRunTelemetry.weapon_id_for_damage_event(drill_event),
+		&"SIEGE_DRILL"
+	)
 	runtime.hitbox.advance()
 	runtime.hitbox.advance()
 	assert_almost_eq(forward.current_health, forward_health - 48.0, 0.001)
@@ -79,6 +118,57 @@ func test_drill_hits_forward_enemy_once_per_dash_and_ignores_rear_enemy() -> voi
 	assert_eq(runtime.hitbox.accepted_hit_count, 1)
 	assert_eq(runtime.hitbox.hit_target_count(), 1)
 	city.robot.cancel_dodge()
+
+
+func test_drill_reduces_destroyed_enemy_machine_to_rubble_in_one_contact() -> void:
+	var city: CitySlice = await _spawn_city()
+	var runtime: SiegeDrillRuntime = _runtime(city)
+	assert_true(runtime.apply_rank(1))
+	city.robot.global_position = Vector2(520.0, 460.0)
+	city.robot.facing = 1
+	assert_true(city.robot._start_dodge(1))
+	var wreck: EnemyWreck2D = _standalone_wreck(
+		city,
+		runtime.hitbox.global_position,
+		81_001
+	)
+	wreck.current_scrap_health = 10_000.0
+	await get_tree().physics_frame
+	runtime.hitbox.advance()
+	assert_true(wreck.is_scrapped())
+	assert_eq(runtime.hitbox.accepted_hit_count, 1)
+	city.robot.cancel_dodge()
+
+
+func test_ground_slam_rubble_reach_adds_exactly_one_hundred_pixels() -> void:
+	var city: CitySlice = await _spawn_city()
+	var origin: Vector2 = (
+		city.robot.get_node(^"GroundImpactOrigin") as Marker2D
+	).global_position
+	var base_radius: float = 320.0
+	assert_eq(CitySlice.GROUND_SMASH_WRECK_RADIUS_BONUS, 100.0)
+	var inside: EnemyWreck2D = _factory_wreck(
+		city,
+		origin + Vector2(base_radius + 99.0, 0.0),
+		81_010
+	)
+	var outside: EnemyWreck2D = _factory_wreck(
+		city,
+		origin + Vector2(base_radius + 101.0, 0.0),
+		81_011
+	)
+	inside.current_scrap_health = 10_000.0
+	outside.current_scrap_health = 10_000.0
+	city._on_robot_heavy_impact(
+		origin,
+		base_radius,
+		360.0,
+		360.0,
+		1020.0,
+		81_012
+	)
+	assert_true(inside.is_scrapped())
+	assert_false(outside.is_scrapped())
 
 
 func test_dash_cancel_retracts_before_jab_cross_and_cleanup_is_fixed() -> void:
@@ -134,3 +224,60 @@ func _durable_enemy(
 		enemy.max_health = 1000.0
 		enemy.current_health = enemy.max_health
 	return enemy
+
+
+func _standalone_wreck(
+	city: CitySlice,
+	position: Vector2,
+	attack_id: int
+) -> EnemyWreck2D:
+	var wreck: EnemyWreck2D = EnemyWreck2D.new()
+	city.add_child(wreck)
+	wreck.activate(
+		&"tank",
+		null,
+		Vector2(120.0, 64.0),
+		Vector2(96.0, 54.0),
+		40.0,
+		120.0,
+		position,
+		DamageEvent.new(
+			attack_id,
+			city.robot,
+			999.0,
+			&"impact",
+			position,
+			Vector2.RIGHT,
+			200.0
+		)
+	)
+	wreck.freeze = true
+	wreck.settling_to_road = false
+	return wreck
+
+
+func _factory_wreck(
+	city: CitySlice,
+	position: Vector2,
+	attack_id: int
+) -> EnemyWreck2D:
+	var enemy: EnemyActor2D = city.encounter_runtime.acquire(&"tank", position)
+	assert_not_null(enemy)
+	enemy.set_physics_process(false)
+	var wreck: EnemyWreck2D = city.enemy_remains_factory.spawn_wreck(
+		enemy,
+		DamageEvent.new(
+			attack_id,
+			city.robot,
+			999.0,
+			&"impact",
+			position,
+			Vector2.RIGHT,
+			200.0
+		)
+	)
+	assert_not_null(wreck)
+	wreck.global_position = position
+	wreck.freeze = true
+	wreck.settling_to_road = false
+	return wreck
