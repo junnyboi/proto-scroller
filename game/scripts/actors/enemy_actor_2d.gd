@@ -98,6 +98,9 @@ var _seen_attacks: Dictionary[int, bool] = {}
 var _bounce_phase: float = 0.0
 var _visual_rest_position: Vector2
 var _visual_rest_scale: Vector2 = Vector2.ONE
+var _visual_authored_scale: Vector2 = Vector2.ONE
+var _visual_tuning_scale: float = 1.0
+var _visual_tuning_tint: Color = Color.WHITE
 var _base_collision_layer: int = 0
 var _base_collision_mask: int = 0
 var _telegraph_id: int = 0
@@ -126,7 +129,11 @@ func _ready() -> void:
 	role_badge.visible = false
 	if visual != null:
 		_visual_rest_position = visual.position
-		_visual_rest_scale = visual.scale
+		set_authored_visual_scale(visual.scale)
+		apply_live_visual_tuning(
+			RuntimeTweakAccess.live_color(&"enemy.visual.tint", Color.WHITE),
+			float(RuntimeTweakAccess.live_value(&"enemy.visual.scale", 1.0))
+		)
 
 
 func update_movement_bounce(delta: float) -> void:
@@ -155,6 +162,26 @@ func update_movement_bounce(delta: float) -> void:
 	visual.position = visual.position.move_toward(_visual_rest_position, 30.0 * delta)
 	visual.scale = visual.scale.move_toward(_visual_rest_scale, 0.8 * delta)
 	visual.rotation = move_toward(visual.rotation, 0.0, 0.3 * delta)
+
+
+func set_authored_visual_scale(authored_scale: Vector2) -> void:
+	_visual_authored_scale = authored_scale
+	_visual_rest_scale = authored_scale * _visual_tuning_scale
+	if visual != null:
+		visual.scale = _visual_rest_scale
+
+
+func apply_live_visual_tuning(tint: Color, size_multiplier: float) -> void:
+	if visual == null:
+		return
+	var safe_scale: float = maxf(size_multiplier, 0.01)
+	if not is_equal_approx(safe_scale, _visual_tuning_scale):
+		_visual_tuning_scale = safe_scale
+		_visual_rest_scale = _visual_authored_scale * safe_scale
+		visual.scale = _visual_rest_scale
+	if tint != _visual_tuning_tint:
+		_visual_tuning_tint = tint
+		visual.self_modulate = tint
 
 
 func set_target(p_target: GiantRobotController) -> void:

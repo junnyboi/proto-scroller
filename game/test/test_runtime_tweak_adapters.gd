@@ -1,6 +1,7 @@
 extends GutTest
 
 const SAVE_ROOT: String = "user://runtime_tweak_adapter_tests"
+const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
 
 var service: RuntimeTweakService
 
@@ -148,6 +149,47 @@ func test_facade_attack_snapshot_captures_three_values_once_for_chain_reuse() ->
 	)
 	var reused: Dictionary = facade.tuning_snapshot_for_event(generated_chain)
 	assert_eq(reused, snapshot)
+
+
+func test_live_visual_tint_and_size_adapters_preserve_gameplay_geometry() -> void:
+	assert_true(bool(service.set_values({
+		&"player.visual.scale": 1.2,
+		&"player.visual.tint": "#62f5df",
+		&"enemy.visual.scale": 1.4,
+		&"enemy.visual.tint": "#ff8040",
+		&"interface.hud.scale": 1.15,
+		&"interface.hud.tint": "#80a0ff",
+	}).ok))
+	service.freeze_run(106)
+	var city: CitySlice = CITY_SCENE.instantiate() as CitySlice
+	add_child_autofree(city)
+	await get_tree().process_frame
+
+	var presenter: RobotAnimationPresenter = city.robot.get_node(
+		^"RobotAnimationPresenter"
+	) as RobotAnimationPresenter
+	var player_sprite: AnimatedSprite2D = presenter.sprite
+	presenter._apply_live_visual_tuning()
+	assert_eq(player_sprite.self_modulate, Color("62f5df"))
+	assert_eq(player_sprite.scale, presenter._authored_sprite_scale * 1.2)
+	var body_shape: CapsuleShape2D = (
+		city.robot.get_node(^"BodyCollision") as CollisionShape2D
+	).shape as CapsuleShape2D
+	assert_almost_eq(body_shape.height, 205.0, 0.001)
+
+	city.encounter_runtime._process(0.0)
+	var enemy: EnemyActor2D = city.encounter_runtime.soldiers[0]
+	assert_eq(enemy.visual.self_modulate, Color("ff8040"))
+	assert_eq(enemy._visual_rest_scale, enemy._visual_authored_scale * 1.4)
+	var enemy_shape: RectangleShape2D = (
+		enemy.get_node(^"CollisionShape2D") as CollisionShape2D
+	).shape as RectangleShape2D
+	assert_eq(enemy_shape.size, Vector2(42.0, 95.0))
+
+	city.gameplay_hud._apply_live_visual_tuning()
+	assert_almost_eq(city.gameplay_hud.transform.x.length(), 1.15, 0.001)
+	assert_eq(city.gameplay_hud.status_panel.self_modulate, Color("80a0ff"))
+	assert_true(service.provenance.ranked_eligible())
 
 
 func _cleanup() -> void:

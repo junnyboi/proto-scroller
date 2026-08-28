@@ -16,9 +16,9 @@ The system borrows the strongest lesson from the supplied Qinzhou Backstreet pro
 
 The panel follows Proto Scroller’s existing cyan tactical interface. A near-black translucent command surface sits above a dimmed frozen game. Cyan denotes baseline and navigation, amber denotes pending values, red denotes validation failures or unranked state, and green denotes saved identity-compatible state. Styling is restrained: one border weight, one corner radius, short labels, no decorative dashboard chrome, and no generated artwork.
 
-The header shows **TUNING LAB**, the current category, run state (`BASELINE`, `TUNED`, or `SANDBOX`), and the short preset hash. A compact category selector and search field filter a fixed set of prebuilt rows. Each row presents a label, effective numeric value, unit, application badge, integrity badge, slider, and one-value reset action. The detail line explains the parameter in one sentence and distinguishes **requested** from **active** values.
+The header shows **TUNING LAB**, the current category, run state (`BASELINE`, `TUNED`, or `SANDBOX`), and the short preset hash. A compact category selector and search field filter fixed prebuilt rows. Each parameter occupies one 42-pixel line: label, application badge, inline slider/toggle/native color picker, requested-versus-active value, and reset. Descriptions live in tooltips instead of consuming a permanent second line. Categories use natural wheel, trackpad, touch, and keyboard scrolling with no page-step controls.
 
-Landscape uses a centered 1160×640 command surface. Portrait uses a 680×1136 single-column surface with the same hierarchy, minimum 48-pixel touch targets, a taller scroll body, and a fixed footer. Godot Containers and anchors perform reflow; canonical 1280×720 and 720×1280 gameplay viewports are not changed.
+Landscape uses a near-fullscreen command surface with dense one-line rows. Portrait collapses secondary badges, narrows labels, and keeps the same continuous scroll body. Godot Containers and anchors perform reflow; canonical 1280×720 and 720×1280 gameplay viewports are not changed.
 
 ## Interaction model
 
@@ -58,7 +58,7 @@ Accepted edits update memory synchronously and restart a 0.40-second always-proc
 
 ## Scope of the first complete release
 
-The first shipped release enables **50 active descriptors** across Player, Opposition, Siege, Bosses, World, Progression, and Interface. It includes representative controls for every application boundary and integrity class, plus the sandbox actions above. Another 50 audited candidates remain documented but disabled until their scoped selectors, fixed-array editors, and saturation matrices are implemented. Disabled descriptors are not rendered.
+The current shipped release enables **56 active descriptors** across Player, Opposition, Siege, Bosses, World, Progression, and Interface. Six LIVE/COSMETIC controls adjust player artwork tint/size, enemy artwork tint/size, and gameplay-HUD tint/size. Visual size never changes collision, hurtboxes, attack reach, targeting, or spawn geometry. It includes representative controls for every application boundary and integrity class, plus the sandbox actions above. Additional audited candidates remain disabled until their ownership and saturation matrices are implemented. Disabled descriptors are not rendered.
 
 The release does not expose pool capacities, reservation counts, collision layers/shapes, catalog cardinality, actor IDs, random draw counts, event protocol fields, leaderboard protocol fields, save schema keys, boss armor geometry, facade topology, or canonical viewport sizes.
 

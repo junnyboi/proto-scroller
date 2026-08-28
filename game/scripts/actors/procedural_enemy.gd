@@ -174,7 +174,7 @@ func configure_boss_support(presentation_id: StringName) -> bool:
 			maxf(texture_size.x, 1.0),
 			maxf(texture_size.y, 1.0)
 		)
-		_visual_rest_scale = visual.scale
+		set_authored_visual_scale(visual.scale)
 	set_meta(&"boss_support_id", boss_support_id)
 	return true
 

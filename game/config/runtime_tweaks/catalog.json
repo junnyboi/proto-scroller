@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_revision": "2026.08.28.1",
+  "catalog_revision": "2026.08.28.2",
   "descriptors": [
     {
       "id": "boss.animation_moving_fps",
@@ -201,6 +201,41 @@
       "step": 0.05
     },
     {
+      "id": "enemy.visual.scale",
+      "category": "OPPOSITION",
+      "type": "float",
+      "default": 1.0,
+      "unit": "×",
+      "apply_mode": "LIVE",
+      "integrity": "COSMETIC",
+      "label_key": "tuning.param.enemy_visual_scale",
+      "description_key": "tuning.desc.enemy_visual_scale",
+      "tags": [
+        "appearance",
+        "size"
+      ],
+      "enabled": true,
+      "minimum": 0.5,
+      "maximum": 1.75,
+      "step": 0.05
+    },
+    {
+      "id": "enemy.visual.tint",
+      "category": "OPPOSITION",
+      "type": "color",
+      "default": "#ffffff",
+      "unit": "",
+      "apply_mode": "LIVE",
+      "integrity": "COSMETIC",
+      "label_key": "tuning.param.enemy_visual_tint",
+      "description_key": "tuning.desc.enemy_visual_tint",
+      "tags": [
+        "appearance",
+        "color"
+      ],
+      "enabled": true
+    },
+    {
       "id": "feedback.full_charge_hit_stop_ms",
       "category": "PLAYER",
       "type": "int",
@@ -322,6 +357,43 @@
       "minimum": 0.15,
       "maximum": 0.75,
       "step": 0.05
+    },
+    {
+      "id": "interface.hud.scale",
+      "category": "INTERFACE",
+      "type": "float",
+      "default": 1.0,
+      "unit": "×",
+      "apply_mode": "LIVE",
+      "integrity": "COSMETIC",
+      "label_key": "tuning.param.interface_hud_scale",
+      "description_key": "tuning.desc.interface_hud_scale",
+      "tags": [
+        "appearance",
+        "size",
+        "hud"
+      ],
+      "enabled": true,
+      "minimum": 0.75,
+      "maximum": 1.35,
+      "step": 0.05
+    },
+    {
+      "id": "interface.hud.tint",
+      "category": "INTERFACE",
+      "type": "color",
+      "default": "#ffffff",
+      "unit": "",
+      "apply_mode": "LIVE",
+      "integrity": "COSMETIC",
+      "label_key": "tuning.param.interface_hud_tint",
+      "description_key": "tuning.desc.interface_hud_tint",
+      "tags": [
+        "appearance",
+        "color",
+        "hud"
+      ],
+      "enabled": true
     },
     {
       "id": "interface.leaderboard_timeout_seconds",
@@ -466,6 +538,41 @@
       "minimum": 180.0,
       "maximum": 340.0,
       "step": 10.0
+    },
+    {
+      "id": "player.visual.scale",
+      "category": "PLAYER",
+      "type": "float",
+      "default": 1.0,
+      "unit": "×",
+      "apply_mode": "LIVE",
+      "integrity": "COSMETIC",
+      "label_key": "tuning.param.player_visual_scale",
+      "description_key": "tuning.desc.player_visual_scale",
+      "tags": [
+        "appearance",
+        "size"
+      ],
+      "enabled": true,
+      "minimum": 0.5,
+      "maximum": 1.5,
+      "step": 0.05
+    },
+    {
+      "id": "player.visual.tint",
+      "category": "PLAYER",
+      "type": "color",
+      "default": "#ffffff",
+      "unit": "",
+      "apply_mode": "LIVE",
+      "integrity": "COSMETIC",
+      "label_key": "tuning.param.player_visual_tint",
+      "description_key": "tuning.desc.player_visual_tint",
+      "tags": [
+        "appearance",
+        "color"
+      ],
+      "enabled": true
     },
     {
       "id": "progression.combo.base_grace_seconds",

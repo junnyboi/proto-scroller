@@ -1,10 +1,10 @@
 extends GutTest
 
 
-func test_catalog_has_fifty_unique_sorted_enabled_descriptors() -> void:
+func test_catalog_has_fifty_six_unique_sorted_enabled_descriptors() -> void:
 	var catalog: RuntimeTweakCatalog = RuntimeTweakCatalog.load_catalog()
 	assert_true(catalog.is_valid(), str(catalog.errors))
-	assert_eq(catalog.enabled_count(), 50)
+	assert_eq(catalog.enabled_count(), 56)
 	var ids: Array[StringName] = catalog.ids()
 	var sorted: Array[StringName] = ids.duplicate()
 	sorted.sort_custom(func(first: StringName, second: StringName) -> bool:
@@ -15,7 +15,7 @@ func test_catalog_has_fifty_unique_sorted_enabled_descriptors() -> void:
 	for identifier: StringName in ids:
 		assert_false(unique.has(identifier), identifier)
 		unique[identifier] = true
-	assert_eq(unique.size(), 50)
+	assert_eq(unique.size(), 56)
 	assert_eq(catalog.categories().size(), 7)
 
 
@@ -66,3 +66,6 @@ func test_validation_rejects_unknown_types_and_non_finite_numbers() -> void:
 	assert_false(bool(catalog.validate_value(&"player.move.max_speed", INF).ok))
 	assert_eq(catalog.validate_value(&"player.move.max_speed", 333.0).value, 330.0)
 	assert_eq(catalog.validate_value(&"spawn.quantity_multiplier", 1.8).value, 2)
+	assert_false(bool(catalog.validate_value(&"player.visual.tint", "laser kiwi").ok))
+	assert_eq(catalog.validate_value(&"player.visual.tint", "62f5df").value, "#62f5df")
+	assert_eq(catalog.validate_value(&"enemy.visual.tint", Color("ff8040")).value, "#ff8040")

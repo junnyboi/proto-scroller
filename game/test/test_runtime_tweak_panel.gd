@@ -136,6 +136,39 @@ func test_panel_fits_landscape_and_portrait_without_rebuilding_rows() -> void:
 	assert_eq(final_ids, row_ids)
 
 
+func test_parameter_list_is_dense_scroll_first_and_color_editable() -> void:
+	main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	var panel: RuntimeTweakPanel = main.runtime_tweak_panel
+	var player_index: int = -1
+	for index: int in range(panel.category_selector.item_count):
+		if StringName(panel.category_selector.get_item_metadata(index)) == &"PLAYER":
+			player_index = index
+			break
+	assert_gte(player_index, 0)
+	panel.category_selector.select(player_index)
+	panel._on_filter_changed(player_index)
+	assert_eq(panel._filtered.size(), 12)
+	assert_eq(panel.rows_scroll.vertical_scroll_mode, ScrollContainer.SCROLL_MODE_AUTO)
+	assert_true(panel.rows_scroll.follow_focus)
+	var visible_rows: int = 0
+	var color_row: TweakControlRow
+	for row: TweakControlRow in panel.rows:
+		assert_lte(row.custom_minimum_size.y, 42.0)
+		if row.visible:
+			visible_rows += 1
+		if row.descriptor != null and row.descriptor.id == &"player.visual.tint":
+			color_row = row
+	assert_eq(visible_rows, 12)
+	assert_not_null(color_row)
+	assert_true(color_row.color_picker.visible)
+	assert_false(color_row.slider.visible)
+	assert_false(color_row.toggle.visible)
+	color_row.color_picker.color_changed.emit(Color("62f5df"))
+	assert_eq(main.runtime_tweak_service.requested_value(&"player.visual.tint"), "#62f5df")
+
+
 func test_sandbox_denial_is_clean_and_success_marks_run_without_node_growth() -> void:
 	main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)
