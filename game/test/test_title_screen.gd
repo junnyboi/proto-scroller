@@ -84,8 +84,8 @@ func test_launch_scene_contract() -> void:
 	assert_false(english_button.button_pressed)
 	assert_eq(
 		instruction_label.text,
-		"他们杀死了所有你爱的人，并利用纳米技术，以义体结构替代人体的体液与组织，"
-		+ "还将其称作人类的进化……是时候终结他们的恐怖统治了！"
+		"他们杀尽了你爱的人，并用纳米技术，以义体替代人体的体液与组织，"
+		+ "还将其称作人类进化……是时候终结他们的恐怖统治了！"
 	)
 	assert_eq(instruction_label.autowrap_mode, TextServer.AUTOWRAP_ARBITRARY)
 	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
