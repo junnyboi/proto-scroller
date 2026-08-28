@@ -34,6 +34,7 @@ var responsive_viewport: ResponsiveViewport
 var campaign_progress: CampaignProgressStore
 var combat_profile: PlayerCombatProfileStore
 var runtime_tweak_service: RuntimeTweakService
+var runtime_tweak_layer: CanvasLayer
 var runtime_tweak_panel: RuntimeTweakPanel
 var forced_next_run_seed: int = -1
 var title_transition_active: bool = false
@@ -76,8 +77,12 @@ func _ready() -> void:
 	add_child(runtime_tweak_service)
 	var tuning_errors: PackedStringArray = runtime_tweak_service.setup()
 	assert(tuning_errors.is_empty(), "Runtime tuning setup failed: %s" % [tuning_errors])
+	runtime_tweak_layer = CanvasLayer.new()
+	runtime_tweak_layer.name = "RuntimeTweakLayer"
+	runtime_tweak_layer.layer = 200
+	add_child(runtime_tweak_layer)
 	runtime_tweak_panel = RUNTIME_TWEAK_PANEL_SCENE.instantiate() as RuntimeTweakPanel
-	add_child(runtime_tweak_panel)
+	runtime_tweak_layer.add_child(runtime_tweak_panel)
 	runtime_tweak_panel.configure(self, runtime_tweak_service)
 	_show_title()
 	_publish_title_transition_phase("idle")

@@ -71,6 +71,9 @@ func test_main_mounts_fixed_panel_and_space_cannot_activate_focused_close() -> v
 	await get_tree().process_frame
 	var panel: RuntimeTweakPanel = main.runtime_tweak_panel
 	assert_not_null(panel)
+	assert_not_null(main.runtime_tweak_layer)
+	assert_eq(main.runtime_tweak_layer.layer, 200)
+	assert_eq(panel.get_parent(), main.runtime_tweak_layer)
 	assert_eq(panel.rows.size(), RuntimeTweakPanel.ROW_POOL_SIZE)
 	assert_eq(panel.category_selector.item_count, 8)
 	assert_true(panel.open())
