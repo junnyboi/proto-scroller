@@ -219,7 +219,8 @@ func _release_section_burst(event: DamageEvent) -> void:
 		origin,
 		event.direction,
 		maxf(event.impulse_per_mass, 260.0),
-		profile
+		profile,
+		StringName(get_meta(&"district_id", &"BUSINESS"))
 	)
 
 

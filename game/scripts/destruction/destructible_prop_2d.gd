@@ -13,6 +13,7 @@ const TERMINAL_RUBBLE_HEIGHT: float = 34.0
 @export var wreck_health: float = 45.0
 @export_range(1, 8, 1) var gameplay_chunk_count: int = 4
 @export var debris_pool_path: NodePath
+@export var rubble_dust_pool_path: NodePath
 @export var intact_texture: Texture2D
 @export var destroyed_texture: Texture2D
 @export var intact_display_size: Vector2 = Vector2(150.0, 80.0)
@@ -22,6 +23,7 @@ const TERMINAL_RUBBLE_HEIGHT: float = 34.0
 @export var ground_smash_breaks_immediately: bool = false
 @export var wreck_next_hit_fully_destroys: bool = false
 @export var terminal_rubble_material_id: StringName = &"steel"
+@export var terminal_rubble_district_id: StringName = &"BUSINESS"
 
 var current_health: float
 var is_broken: bool = false
@@ -31,6 +33,7 @@ var _seen_attacks: Dictionary[int, bool] = {}
 var _base_collision_layer: int = 0
 var _base_collision_mask: int = 0
 var _base_collision_size: Vector2 = Vector2.ZERO
+var _rubble_dust_pool: BuildingSectionBurstPool
 
 @onready var visual: Sprite2D = get_node(^"Visual") as Sprite2D
 @onready var collision_shape: CollisionShape2D = get_node(^"CollisionShape2D") as CollisionShape2D
@@ -86,6 +89,13 @@ func terminal_rubble_active() -> bool:
 
 func terminal_rubble_piece_count() -> int:
 	return terminal_rubble.active_piece_count() if terminal_rubble != null else 0
+
+
+func configure_terminal_district(district_id: StringName) -> void:
+	terminal_rubble_district_id = district_id if not district_id.is_empty() else &"BUSINESS"
+	set_meta(&"district_id", terminal_rubble_district_id)
+	if terminal_rubble != null:
+		_configure_terminal_rubble()
 
 
 func capture_stream_state() -> Dictionary:
@@ -162,6 +172,7 @@ func _fully_destroy_prop(event: DamageEvent) -> void:
 	visual.visible = false
 	_configure_terminal_rubble()
 	terminal_rubble.set_active(true)
+	_release_rubble_dust()
 	collision_layer = 0
 	collision_mask = 0
 	collision_shape.set_deferred("disabled", true)
@@ -245,7 +256,25 @@ func _configure_terminal_rubble() -> void:
 		posmod(hash(seed_key), 2_000_000_000) + 1,
 		visual_ground_offset,
 		minf(TERMINAL_RUBBLE_HEIGHT, maxf(footprint.y * 0.42, 18.0)),
-		TERMINAL_RUBBLE_PIECE_COUNT
+		TERMINAL_RUBBLE_PIECE_COUNT,
+		terminal_rubble_district_id
+	)
+
+
+func _release_rubble_dust() -> void:
+	if terminal_rubble == null:
+		return
+	if _rubble_dust_pool == null and not rubble_dust_pool_path.is_empty():
+		_rubble_dust_pool = get_node_or_null(rubble_dust_pool_path) as BuildingSectionBurstPool
+	if _rubble_dust_pool == null:
+		return
+	var dust_origin: Vector2 = terminal_rubble.to_global(
+		Vector2(0.0, terminal_rubble.baseline_y() - 4.0)
+	)
+	_rubble_dust_pool.spawn_rubble_dust(
+		dust_origin,
+		destroyed_display_size.x,
+		terminal_rubble_district_id
 	)
 
 
