@@ -137,6 +137,43 @@ func test_spacebar_does_not_activate_the_focused_launch_button() -> void:
 	_record_test_execution()
 
 
+func test_gamepad_melee_does_not_activate_the_focused_launch_button() -> void:
+	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
+	initialize_button.grab_focus()
+	var signal_counts: Dictionary = {"start": 0}
+	screen.start_requested.connect(func() -> void: signal_counts.start += 1)
+	var melee_press: InputEventJoypadButton = InputEventJoypadButton.new()
+	melee_press.device = 0
+	melee_press.button_index = JOY_BUTTON_X
+	melee_press.pressed = true
+	assert_true(InputMap.event_is_action(melee_press, &"stomp"))
+	assert_false(InputMap.event_is_action(melee_press, &"ui_accept"))
+	Input.parse_input_event(melee_press)
+	var melee_release: InputEventJoypadButton = melee_press.duplicate() as InputEventJoypadButton
+	melee_release.pressed = false
+	Input.parse_input_event(melee_release)
+	await get_tree().process_frame
+	assert_eq(signal_counts.start, 0)
+	assert_false(screen.initialized)
+	assert_true(initialize_button.has_focus())
+	var confirm_press: InputEventJoypadButton = InputEventJoypadButton.new()
+	confirm_press.device = 0
+	confirm_press.button_index = JOY_BUTTON_A
+	confirm_press.pressed = true
+	assert_true(InputMap.event_is_action(confirm_press, &"ui_accept"))
+	assert_false(InputMap.event_is_action(confirm_press, &"stomp"))
+	Input.parse_input_event(confirm_press)
+	var confirm_release: InputEventJoypadButton = (
+		confirm_press.duplicate() as InputEventJoypadButton
+	)
+	confirm_release.pressed = false
+	Input.parse_input_event(confirm_release)
+	await get_tree().process_frame
+	assert_eq(signal_counts.start, 1)
+	assert_true(screen.initialized)
+	_record_test_execution()
+
+
 func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> void:
 	var hook: String = (screen.get_node("%InstructionLabel") as Label).text
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
@@ -151,7 +188,7 @@ func test_command_deck_teaches_core_loop_and_briefing_preserves_full_intel() -> 
 		"TOUCH",
 		"HOLD",
 		"SPACE",
-		"A / CROSS",
+		"X / SQUARE",
 		"RELEASE TO STRIKE",
 		"DASH",
 		"SHIFT",

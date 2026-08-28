@@ -133,7 +133,7 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 	)
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
 	assert_true(controls.contains("移动 A/D"))
-	assert_true(controls.contains("强化   按住 SPACE / A / CROSS"))
+	assert_true(controls.contains("强化   按住 SPACE / X / SQUARE"))
 	assert_true(controls.contains("释放时发动"))
 	assert_true(controls.contains("冲刺   SHIFT / B / CIRCLE"))
 	assert_true(controls.contains("双击 A / D"))
