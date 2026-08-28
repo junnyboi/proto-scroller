@@ -143,7 +143,8 @@ const DISTRICT_VARIANT_PROFILES: Dictionary = {
 		"base_archetype_id": &"ossuary_crawler", "display_name": "GLASSBACK DOUBLE",
 		"texture": "res://art/city/enemies/archetypes/36-glassback-double.png",
 		"faces_right": false, "display": Vector2(220.0, 100.0),
-		"collision": Vector2(190.0, 72.0), "health": 185.0,
+		"collision": Vector2(190.0, 72.0), "presentation_scale": 1.0,
+		"health": 185.0,
 		"speed": 290.0, "acceleration": 780.0,
 		"preferred_range": 340.0, "minimum_range": 170.0,
 		"attack_interval": 1.1, "projectile_speed": 820.0, "damage": 6.0,
@@ -662,6 +663,9 @@ static func is_airborne(kind: StringName) -> bool:
 
 
 static func presentation_scale(kind: StringName) -> float:
+	var configured_scale: float = float(profile(kind).get("presentation_scale", 0.0))
+	if configured_scale > 0.0:
+		return configured_scale
 	return GROUND_VEHICLE_SCALE if is_ground_vehicle(kind) else 1.0
 
 

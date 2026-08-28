@@ -280,6 +280,38 @@ func test_concrete_variant_canonicalizes_first_contact_without_duplicate_event()
 	assert_eq(transmission_ids.count(&"hybrid_ossuary_crawler_contact"), 1)
 
 
+func test_glassback_double_live_body_and_wreck_are_half_previous_size() -> void:
+	var archetype_id: StringName = &"glassback_double"
+	var profile: Dictionary = EnemyArchetypeCatalog.profile(archetype_id)
+	assert_true(EnemyArchetypeCatalog.is_ground_vehicle(archetype_id))
+	assert_almost_eq(
+		EnemyArchetypeCatalog.presentation_scale(archetype_id),
+		EnemyArchetypeCatalog.GROUND_VEHICLE_SCALE * 0.5,
+		0.001
+	)
+	var actor: ProceduralEnemy = runtime.acquire(
+		archetype_id, Vector2(1100.0, float(profile.spawn_y))
+	) as ProceduralEnemy
+	assert_not_null(actor)
+	var rendered_size: Vector2 = actor.visual.texture.get_size() * actor.visual.scale.abs()
+	assert_almost_eq(rendered_size.y, 100.0, 0.01)
+	assert_lte(rendered_size.x, 220.0)
+	var body: RectangleShape2D = (
+		actor.get_node(^"CollisionShape2D").shape as RectangleShape2D
+	)
+	var hurtbox: RectangleShape2D = (
+		actor.get_node(^"Hurtbox/CollisionShape2D").shape as RectangleShape2D
+	)
+	assert_eq(body.size, Vector2(190.0, 72.0))
+	assert_eq(hurtbox.size, Vector2(190.0, 72.0) * 1.12)
+	var wreck: EnemyWreck2D = city.enemy_remains_factory.spawn_wreck(
+		actor, DamageEvent.new(91_000, city.robot, actor.current_health)
+	)
+	assert_not_null(wreck)
+	assert_eq(wreck.display_size, Vector2(220.0, 100.0))
+	assert_eq(wreck.collision_size, Vector2(190.0, 72.0))
+
+
 func _capture_transmission(
 	event_id: StringName,
 	_speaker: String,
