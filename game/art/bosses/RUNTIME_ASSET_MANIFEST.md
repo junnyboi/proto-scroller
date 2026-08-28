@@ -30,7 +30,7 @@ The synchronized 1.18-second voiceover SFX is documented in `game/audio/voice/PR
 
 ## Settlement Engine shockwave
 
-Settlement Engine S-04's three replacement attacks use `attacks/settlement-shockwave-ring.webp`, a **192×192**, **13,426-byte** alpha WebP with SHA-256 `b0757bf36568d2cd8cae88e06e6dac5d14a8a3be7cc0a01e3f2e51f9df619047`. GPT Image 2 supplied the energy detail; deterministic cleanup retained only the physical annulus. Godot scales that detail across one to three bounded, traveling road-plane pressure fronts while retaining exact telegraph, collision-band, dodge, and damage authority. Complete provenance is recorded in `attacks/PROVENANCE.md`.
+Settlement Engine S-04's single **Core Shockwave** adds no dedicated texture. It reuses the player's existing `art/player/vfx/photon_core_orb.png` (**96,541 bytes**, SHA-256 `40c00024feb729d1c7701860c75a38445432707e8449f7d676988d5af66ba7d8`) for 72 converging cyan particles and a massive core sphere, then reuses `art/player/vfx/photon_release_shockwave.png` (**282,040 bytes**, SHA-256 `ec3108f63584358bbba7744c42ad6b872ef468a44eac5bbdb8eafc0cc8ce4cee`) for one outward release. Godot retains exact socket anchoring, charge timing, contact-band collision, dodge, damage deduplication, and cleanup authority. The obsolete 13,426-byte dedicated amber ring and its standalone provenance record were removed.
 
 ## Defeat spectacle
 

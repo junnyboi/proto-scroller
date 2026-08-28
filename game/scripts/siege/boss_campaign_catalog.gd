@@ -176,9 +176,7 @@ static func _ensure_catalog() -> void:
 			},
 			{&"procedural_infantry": 8},
 			[
-				&"ASSESSMENT_LEVY",
-				&"DOUBLE_ENTRY_RUPTURE",
-				&"COMPOUND_DEFAULT",
+				&"CORE_SHOCKWAVE",
 			]
 		),
 				_make_definition(

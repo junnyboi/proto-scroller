@@ -1,82 +1,91 @@
-# Settlement Engine S-04 Shockwave Combat Design
+# Settlement Engine S-04 Core Shockwave Design
 
 **Author:** Manus AI
 
-**Status:** Implemented in source; Web release pending
+**Status:** Implemented and focused-verified; source integration and Web release pending
 
-**Scope:** Replace Settlement Engine S-04's current single static radial hazard with a readable suite of telegraphed, outward-traveling ground shockwaves; ground defeated boss rubble on the road center line.
+**Scope:** Remove Settlement Engine S-04's existing attack patterns and amber multi-front telegraphs. Replace them with one readable, repeatable charge-and-release attack centered on the visible core of the boss sprite.
 
 ## Design Intent
 
-Settlement Engine S-04 should communicate industrial mass rather than abstract area damage. Its attacks therefore begin as visible pressure accumulating beneath the boss, disclose their wave count and reach before release, and then become bright physical fronts that propagate over the road. The player is attacked only when a traveling front intersects the robot, not merely because the robot stands somewhere inside a prefilled circular zone.
+Settlement Engine S-04 now communicates one combat promise: **energy gathers at the core, the core becomes critically bright, and one shockwave leaves that exact point**. The presentation intentionally mirrors the player's charged melee language so the mechanic is immediately legible without range rails, ghost rings, spoke counters, pattern rotations, or a separate telegraph vocabulary.[1] [2]
 
-> **Core readability rule:** the telegraph previews the same concentric front count, delay sequence, and maximum reach that will become lethal after release.
+> **Core readability rule:** every cyan photon moves toward the same growing blue sphere that becomes the origin of the damaging shockwave.
 
-The new system preserves the boss's existing armor/finisher structure, archive objective, support-soldier pressure, animation rig, damage multiplier, and campaign persistence. Only the first boss's offensive attack vocabulary is replaced.[1] [2]
+The redesign preserves the boss's armor and body phases, support-soldier cap, archive objective, optional structural transactions, animation rig, damage scaling, corpse finisher, grounded rubble, evidence outcome, retry state, and campaign progression. Only the first boss's offensive pattern and warning presentation change.[3]
 
-## Shockwave Vocabulary
+## Single Attack Cycle
 
-| Pattern | Combat phase | Telegraph | Released attack | Player response |
-| --- | --- | --- | --- | --- |
-| **Assessment Levy** | Armored opening | One amber range rail, one contracting charge ring, and a boss-centered ground flare | One fast white-hot pressure front expands to medium-long reach | Cross the front with a precisely timed dodge or stay outside its disclosed range |
-| **Double-Entry Rupture** | Armored and exposed | Two concentric ghost rings and two countdown spokes | Two visible fronts release with a deliberate inter-wave delay | Avoid spending dodge recovery on the first wave if the second is approaching |
-| **Compound Default** | Final exposed phase | Three concentric rails, accelerated pulse cadence, and red-white terminal strobe | Three increasingly fast fronts propagate to the widest reach | Reposition early, then time consecutive evasions through the compressed final cadence |
+| Stage | Duration | Presentation | Damage state |
+| --- | ---: | --- | --- |
+| **Charge** | 1.70 s | Seventy-two cyan-blue photon motes converge from a 300-pixel sphere into the boss's visible `CORE` socket. A blue energy sphere grows from 54 to approximately 238 pixels and accelerates its pulse near release. | Harmless. The particles and sphere are the complete telegraph. |
+| **Release** | 1.05 s | The incoming motes and core sphere disappear at the stage boundary. One cyan-white circular shockwave expands from the same core to a 900-pixel radius, with a bright leading edge and blue energy wake. | Only contact with the moving ring band inflicts damage. |
+| **Recovery** | 0.75 s | The shockwave is culled and the boss completes its recovery animation. | Harmless. S-04 may replenish its bounded support squad. |
 
-The attack sequence escalates by boss state. The armored phase alternates **Assessment Levy** and **Double-Entry Rupture**. The exposed phase alternates **Double-Entry Rupture** and **Compound Default**. Below one-third body health, **Compound Default** becomes the first choice and alternates with the double wave so the finale remains demanding without becoming an unbroken triple-wave loop.
+The same cycle repeats during armored, exposed, and final-health combat. There is no hidden alternate pattern and no phase-dependent change in front count. The HUD exposes only **CORE SHOCKWAVE // CHARGING**.
 
-## Telegraph-to-Release Language
+## Visual Language
 
-During **TELEGRAPH**, the attack area renders a warm translucent range rail on the road plane, a bright boss-centered emitter ring, one ghost ring per future wave, and a number of radial countdown spokes equal to the front count. Ghost rings remain non-damaging. Brightness and cadence accelerate toward release.
+The charge reuses the exact player photon source assets rather than introducing another visual dialect or increasing the Web package budget. `photon_core_orb.png` supplies both the converging motes and the energy sphere. `photon_release_shockwave.png` supplies the expanding release surface. S-04 shifts both toward saturated cyan and electric blue, scales the core far beyond the player's chest orb, and keeps all movement code-owned.[2] [4]
 
-At the **TELEGRAPH → ACTIVE** boundary, the range fill disappears, the authored pressure-ring texture flashes at the boss's ground contact point, and the first front begins expanding. Subsequent fronts remain visible as compressed launch rings until their configured release delays expire. Active fronts use a white-gold leading core, amber industrial fragments, restrained cyan interference, and a fading wake. The generated texture supplies high-frequency energy detail; deterministic Godot geometry controls exact position, radius, timing, collision, and alpha.
-
-During **RECOVERY**, all shockwave fronts disappear immediately. This prevents stale collision or lingering warnings from crossing into the next attack and leaves the support-soldier deployment readable.
+The prior dedicated ring texture, amber range fill, road-plane ellipse, range rail, ghost fronts, countdown spokes, delayed extra fronts, and red-white terminal strobe are removed. No generated image replaces them because the requested player-style photon assets already exist in the shipped runtime and provide stronger visual continuity.
 
 ## Damage and Collision Contract
 
-Each attack activation receives one unique root attack ID. A robot can be damaged at most once by that activation even when a multi-wave pattern contains two or three visible fronts. Collision is evaluated against a bounded radial band at the released front's horizontal road distance; the compressed vertical axis is presentation-only. Standing near the boss before a front reaches the robot is safe, standing behind an already-passed front is safe, and standing on the disclosed moving front is dangerous.
+The active shockwave is a true circular contact band centered at the visible boss core. Collision compares the player's world position with the current ring radius rather than treating the complete interior as dangerous. Standing inside a ring that has not reached the player is safe; standing behind a ring that has passed is safe; touching the visible leading band is dangerous.
 
-| Parameter | Assessment Levy | Double-Entry Rupture | Compound Default |
-| --- | ---: | ---: | ---: |
-| Fronts | 1 | 2 | 3 |
-| Release delays | 0.00 s | 0.00 / 0.30 s | 0.00 / 0.24 / 0.48 s |
-| Maximum radius | 760 px | 830 px | 900 px |
-| Front travel duration | 0.82 s | 0.90 s | 0.96 s |
-| Telegraph duration | 0.90 s | 1.05 s | 1.16 s |
-| Active duration | 0.95 s | 1.24 s | 1.50 s |
-| Base damage | 60 | 66 | 72 |
+| Parameter | Value |
+| --- | ---: |
+| Shockwave count | 1 |
+| Maximum radius | 900 px |
+| Travel duration | 1.00 s |
+| Contact-band thickness | 92 px |
+| Base damage | 66 |
+| Global hostile-output multiplier | 0.75 |
+| Effective cycle-one damage | 49.5 |
+| Damage deduplication | Once per attack activation |
+| Dodge interaction | Timed dodge invulnerability rejects contact damage |
 
-Damage remains multiplied by the existing enemy damage multiplier and is tagged as hazard damage. Unlike the superseded static radial pulse, the moving fronts respect the player's short dodge-invulnerability window because their escalating multi-wave timing is built around reading and crossing discrete pressure fronts.[3]
-
-## Defeated Boss Rubble
-
-The boss rubble bed is visually bottom-aligned so its lower edge rests exactly on `CityStreetChunk.ROAD_DIVIDER_Y`. Its horizontal position continues to follow the defeated wreck. This removes the previous floating presentation while preserving rubble scale, reward position, and pooled utility ownership.[4]
+The attack remains a hazard-tagged enemy event and continues to apply the central New Game+ cycle multiplier before the global hostile-output multiplier. The attack does not use `FLAG_UNBLOCKABLE`; the player's authored 0.30-second dodge window remains valid counterplay.[1] [5]
 
 ## Runtime Architecture
 
-`BossAttackArea2D` remains the single prewarmed first-boss shockwave node. It gains a bounded traveling-front profile containing at most three fixed release delays, a front travel duration, vertical road-plane compression, and a leading-band thickness. It continues to own collision and damage deduplication. `BossVerticalSliceController` selects the pattern, durations, reach, and damage from the current first-boss phase. `BossUtilityPool` keeps the existing fixed capacity of one radial shockwave node, so the feature adds no per-attack node allocation.
+`BossVerticalSliceController` now exposes only `CORE_SHOCKWAVE` for S-04 in every combat state. It anchors the pooled `BossAttackArea2D` at `BossRig2D.socket("CORE").global_position`, configures one 1,800-pixel-diameter release, and retains the existing recovery-driven infantry replenishment.[1] [3]
 
-The authored VFX texture is generated with GPT Image 2, alpha-cleaned deterministically, and imported as a compact Web texture. No additional animation atlas is required because the shockwave's visible motion comes from world-space radial propagation rather than frame animation.
+`BossAttackArea2D` prewarms one `CPUParticles2D`, one energy-core sprite, and one release sprite only for its radial role. The existing fixed radial utility slot is reused, so the attack creates no combat-time nodes and does not increase utility capacity. Generation cleanup, retry, armor transitions, body defeat, and recovery stop all particle emission and hide every charge or release surface.[2] [6]
+
+## Implementation Phases
+
+| Phase | Work package | Completion contract |
+| --- | --- | --- |
+| **1. Pattern collapse** | Remove all three former pattern identifiers, phase rotations, delayed fronts, and obsolete localization. | S-04 catalog and runtime expose one attack identifier. |
+| **2. Charge presentation** | Reuse the player's photon orb for cyan converging particles and a massive core sphere at the visible boss socket. | Charge visuals are the only telegraph and remain non-damaging. |
+| **3. Release authority** | Emit one expanding blue-white ring from the same core and bind damage to its moving contact band. | Contact damages once per activation; timed dodge rejects it. |
+| **4. Cleanup and continuity** | Remove the dedicated old ring asset and update tests, self-tests, manifests, and combat documentation. | No old pattern or texture reference remains; all newer boss and campaign systems survive. |
+| **5. Release synchronization** | Integrate shared `main`, fresh-export with Godot 4.7.2, remap both WASM and PCK, checkpoint, and publish the existing WebDev project. | Source, Web export, and deployed fullscreen iframe identify the same final revision. |
 
 ## Acceptance Criteria
 
 | Area | Acceptance criterion |
 | --- | --- |
-| Telegraph fidelity | Visible ghost-front count and reach match the released attack exactly |
-| Attack replacement | S-04 exposes only the three new shockwave patterns; the former static full-disc hazard is not selected |
-| Visible propagation | Every active attack shows one to three clearly expanding fronts centered at the boss's ground origin |
-| Collision fidelity | Damage occurs only at a released front band and at most once per activation |
-| Phase escalation | Armored, exposed, and final-health attack lists follow the pattern table above |
-| Pooling | One prewarmed `radial_shockwave` node handles every front without runtime node creation |
-| Rubble baseline | Defeated boss rubble lower edge equals the road middle line |
-| Responsive presentation | Telegraph and released fronts remain legible in landscape and portrait captures |
-| Deployment | The final source is pushed to shared `main`, freshly exported with Godot 4.7.2, and both WASM and PCK are remapped in the existing WebDev project |
+| Attack replacement | S-04 exposes only `CORE_SHOCKWAVE`; no old first-boss pattern can be selected. |
+| Telegraph simplicity | Only converging cyan photons and the growing blue core sphere warn the player. |
+| Core anchoring | Charge sphere and release share the rig's visible `CORE` socket in landscape and portrait. |
+| Visible release | One cyan-white ring expands continuously from the core to its authored radius. |
+| Collision fidelity | Only the moving ring band damages, at most once per activation. |
+| Counterplay | Dodge invulnerability prevents damage when the visible ring crosses the player. |
+| Pooling | The existing one-slot radial utility pool owns all charge and release nodes. |
+| Continuity | Support cap, armor/body damage, archive, finisher, grounded rubble, evidence, retry, and later bosses remain unchanged. |
+| Cleanup | Old multi-front identifiers, locale labels, test assertions, dedicated ring texture, and provenance references are absent. |
+| Deployment | The final shared source is freshly exported and both WebDev runtime payloads are remapped. |
 
-The focused Godot 4.7.2 acceptance pass completed **28 tests and 1,023 assertions** across the first-boss vertical slice, boss campaign/finisher lifecycle, and localization contracts. It proves all three front counts and phase rotations, front-band-only damage, timed dodge crossing, per-activation deduplication, generated texture ownership, localized HUD labels, and rubble bottom alignment on the road divider. Full release-gate certification was intentionally skipped under the project release-gate override.
+The focused Godot 4.7.2 pass completed **27 tests and 2,984 assertions** across the vertical slice, boss catalog, boss narrative, and bilingual localization contracts. It proves the one-attack vocabulary, exact core-socket anchoring, 72-particle charge, growing energy sphere, one released front, ring-band-only damage, dodge rejection, per-activation deduplication, recurring support cap, catalog validity, and English/Simplified Chinese coverage. Repository-wide release certification remains intentionally skipped under the project override.
 
 ## References
 
-[1]: ../game/scripts/siege/boss_vertical_slice_controller.gd "Settlement Engine and Samaritan vertical-slice controller"
-[2]: ../game/scripts/siege/command_boss_session.gd "Boss session state and animation integration"
-[3]: ../game/scripts/siege/boss_attack_area_2d.gd "Boss attack telegraph, collision, and damage area"
-[4]: ../game/scripts/world/city_street_chunk.gd "City road and lane geometry"
+[1]: ../game/scripts/siege/boss_vertical_slice_controller.gd "Settlement Engine vertical-slice attack controller"
+[2]: ../game/scripts/siege/boss_attack_area_2d.gd "Pooled boss charge and shockwave presenter"
+[3]: ../game/scripts/siege/command_boss_session.gd "Campaign boss session and animation integration"
+[4]: ../game/scripts/player/robot_animation_presenter.gd "Player photon charge visual language"
+[5]: ../game/scripts/player/giant_robot_controller.gd "Player dodge invulnerability and damage acceptance"
+[6]: ../game/scripts/siege/boss_utility_pool.gd "Fixed-capacity boss utility pool"
