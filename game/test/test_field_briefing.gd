@@ -100,8 +100,10 @@ func test_title_field_briefing_displays_the_shared_five_tip_doctrine() -> void:
 	assert_true(screen.open_briefing())
 	assert_true(screen.briefing_tips_panel.is_visible_in_tree())
 	assert_eq(screen.briefing_tips_label.text.count("\n"), 4)
-	assert_true(screen.briefing_tips_label.text.contains("←"))
-	assert_true(screen.briefing_tips_label.text.contains("→"))
+	assert_eq(
+		screen.briefing_tips_label.text,
+		L10n.t("briefing.tips_body", InputBindingSettings.display_placeholders())
+	)
 	var viewport_size: Vector2 = screen.get_viewport_rect().size
 	assert_true(Rect2(Vector2.ZERO, viewport_size).encloses(
 		screen.briefing_tips_panel.get_rect()

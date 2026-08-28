@@ -128,8 +128,8 @@ func test_simplified_chinese_title_screen_uses_catalog_copy() -> void:
 	assert_eq((screen.get_node("%TitleLabel") as Label).text, "PROTOS")
 	assert_eq(
 		(screen.get_node("%InstructionLabel") as Label).text,
-		"方尖碑杀死了你爱的一切。\n"
-		+ "圣咏计划保存了他们的意识。决定谁能活下去。"
+		"他们杀死了所有你爱的人，并利用纳米技术，以义体结构替代人体的体液与组织，"
+		+ "还将其称作人类的进化……是时候终结他们的恐怖统治了！"
 	)
 	var controls: String = (screen.get_node("%ControlsLabel") as Label).text
 	assert_true(controls.contains("移动 A/D"))

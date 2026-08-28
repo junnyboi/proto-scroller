@@ -59,6 +59,7 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	await get_tree().process_frame
 	assert_true(screen.is_portrait_layout())
 	var background: TextureRect = screen.get_node("%BackgroundArt") as TextureRect
+	var instruction_label: Label = screen.get_node("%InstructionLabel") as Label
 	var initialize_button: Button = screen.get_node("%InitializeButton") as Button
 	var briefing_toggle: Button = screen.get_node("%BriefingToggle") as Button
 	var settings_button: Button = screen.get_node("%SettingsButton") as Button
@@ -66,6 +67,7 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	assert_eq(background.texture.resource_path, "res://art/ui/title_screen/command_deck_portrait.jpg")
 	assert_true(_inside_viewport(background, PORTRAIT_SIZE))
 	assert_true(_inside_viewport(screen.get_node("%TitleLabel") as Control, PORTRAIT_SIZE))
+	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
 	var info_panel: Control = screen.get_node("StatusRail") as Control
 	var controls_label: Control = screen.get_node("%ControlsLabel") as Control
 	assert_true(_inside_viewport(info_panel, PORTRAIT_SIZE))
@@ -105,7 +107,8 @@ func test_title_reflows_inside_portrait_and_returns_to_landscape() -> void:
 	_set_viewport(LANDSCAPE_SIZE)
 	await get_tree().process_frame
 	assert_false(screen.is_portrait_layout())
-	assert_eq((screen.get_node("StatusRail") as Control).position, Vector2(52.0, 570.0))
+	assert_eq((screen.get_node("StatusRail") as Control).position, Vector2(52.0, 602.0))
+	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
 	assert_eq(background.texture.resource_path, "res://art/ui/title_screen/command_deck_landscape.jpg")
 	assert_true(_inside_viewport(briefing_toggle, LANDSCAPE_SIZE))
 	assert_true(_inside_viewport(settings_button, LANDSCAPE_SIZE))

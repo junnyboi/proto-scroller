@@ -61,11 +61,14 @@ func test_launch_scene_contract() -> void:
 	var chinese_button: Button = screen.get_node("%ChineseButton") as Button
 	assert_null(screen.get_node_or_null("%AutomaticButton"))
 	assert_eq(title_label.text, "PROTOS")
+	var instruction_label: Label = screen.get_node("%InstructionLabel") as Label
 	assert_eq(
-		(screen.get_node("%InstructionLabel") as Label).text,
-		"Obelisk killed everyone you loved.\n"
-		+ "PROJECT CHOIR kept their minds. Decide what survives."
+		instruction_label.text,
+		"They killed everyone you loved, and used nanotechnology to replace body fluids "
+		+ "and tissue with cybernetics, calling it the evolution of the human race... "
+		+ "It's time to put an end to their reign of terror!"
 	)
+	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
 	assert_null(screen.get_node_or_null("HintLabel"))
 	assert_eq(english_button.text, "EN")
 	assert_eq(chinese_button.text, "CN")
@@ -78,6 +81,12 @@ func test_launch_scene_contract() -> void:
 	assert_eq(title_label.text, "PROTOS")
 	assert_true(chinese_button.button_pressed)
 	assert_false(english_button.button_pressed)
+	assert_eq(
+		instruction_label.text,
+		"他们杀死了所有你爱的人，并利用纳米技术，以义体结构替代人体的体液与组织，"
+		+ "还将其称作人类的进化……是时候终结他们的恐怖统治了！"
+	)
+	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
 	assert_eq(
 		(screen.get_node("%SettingsHeading") as Label).text,
 		L10n.t("title.settings_heading")

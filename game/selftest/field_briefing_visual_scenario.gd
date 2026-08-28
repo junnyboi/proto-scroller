@@ -41,14 +41,14 @@ func _run() -> void:
 		return
 	for _frame: int in range(4):
 		await process_frame
-	if (
-		not briefing.is_open()
-		or not city.urban_siege.is_simulation_paused()
-		or city.robot.is_physics_processing()
-		or briefing.tips_label.text.count("\n") != 4
-		or not briefing.tips_label.text.contains("←")
-		or not briefing.tips_label.text.contains("→")
-	):
+		if (
+			not briefing.is_open()
+			or not city.urban_siege.is_simulation_paused()
+			or city.robot.is_physics_processing()
+			or briefing.tips_label.text.count("\n") != 4
+			or briefing.tips_label.text
+			!= L10n.t("briefing.tips_body", InputBindingSettings.display_placeholders())
+		):
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":

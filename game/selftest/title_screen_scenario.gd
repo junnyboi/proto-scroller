@@ -83,11 +83,13 @@ func _run() -> void:
 		button.text.contains(L10n.t("title.begin")),
 		"text=%s" % [button.text]
 	)
-	_check(
-		"choir_moral_hook",
-		(screen.get_node("%InstructionLabel") as Label).text.contains("\nPROJECT CHOIR"),
-		"text=%s" % [(screen.get_node("%InstructionLabel") as Label).text]
-	)
+		_check(
+			"reign_of_terror_hook",
+			(screen.get_node("%InstructionLabel") as Label).text.contains(
+				"It's time to put an end to their reign of terror!"
+			),
+			"text=%s" % [(screen.get_node("%InstructionLabel") as Label).text]
+		)
 	_check("input_hint_removed", screen.get_node_or_null("HintLabel") == null, "removed=true")
 	_check_briefing_content(screen)
 	_check_language_selector(screen)
@@ -383,7 +385,9 @@ func _check_briefing_content(screen: TitleScreen) -> void:
 	)
 	_check(
 		"movement_melee_doctrine_present",
-		tips.count("\n") == 4 and tips.contains("←") and tips.contains("→"),
+		tips.count("\n") == 4
+		and tips
+		== L10n.t("briefing.tips_body", InputBindingSettings.display_placeholders()),
 		"tips=%s" % [tips]
 	)
 
