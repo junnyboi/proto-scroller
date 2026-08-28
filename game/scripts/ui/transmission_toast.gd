@@ -5,6 +5,9 @@ const QUEUE_CAPACITY: int = 3
 const PANEL_COLOR: Color = Color(0.015, 0.035, 0.05, 0.92)
 const ACCENT_COLOR: Color = Color("72e5ec")
 const BODY_COLOR: Color = Color("d8e8ec")
+const HUD_LEFT_MARGIN: float = 24.0
+const LANDSCAPE_TOP: float = 172.0
+const PORTRAIT_TOP: float = 170.0
 
 var panel: ColorRect
 var speaker_label: Label
@@ -79,11 +82,11 @@ func active_event_id() -> StringName:
 
 func apply_responsive_layout(viewport_size: Vector2) -> void:
 	if viewport_size.y > viewport_size.x:
-		position = Vector2(24.0, 170.0)
+		position = Vector2(HUD_LEFT_MARGIN, PORTRAIT_TOP)
 		size = Vector2(maxf(viewport_size.x - 48.0, 320.0), 122.0)
 	else:
 		size = Vector2(minf(620.0, viewport_size.x - 80.0), 104.0)
-		position = Vector2((viewport_size.x - size.x) * 0.5, 172.0)
+		position = Vector2(HUD_LEFT_MARGIN, LANDSCAPE_TOP)
 	panel.size = size
 	speaker_label.position = Vector2(18.0, 12.0)
 	speaker_label.size = Vector2(size.x - 36.0, 26.0)
