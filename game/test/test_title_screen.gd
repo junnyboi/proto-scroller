@@ -103,6 +103,7 @@ func test_launch_scene_contract() -> void:
 	)
 	assert_eq(instruction_label.autowrap_mode, TextServer.AUTOWRAP_ARBITRARY)
 	assert_eq(instruction_label.get_visible_line_count(), instruction_label.get_line_count())
+	assert_eq((screen.get_node("%SettingsButton") as Button).text, "设置")
 	assert_eq(
 		(screen.get_node("%SettingsHeading") as Label).text,
 		L10n.t("title.settings_heading")
