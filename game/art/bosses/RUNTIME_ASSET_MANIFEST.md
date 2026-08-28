@@ -4,13 +4,15 @@
 
 **Engine:** Godot 4.7.2 stable, GL Compatibility, non-threaded Web export
 
-**Runtime source total:** 20,004,182 bytes
+**Runtime source total:** 20,026,498 bytes
 
-**Measured 2× Web PCK:** 27,070,880 bytes
+**Measured source revision:** `6acfe93a7b843338a17b40f7bfb5f35a0174f343`
+
+**Measured 2× Web PCK:** 27,009,868 bytes
 
 **Legacy presentation ceiling:** 16,777,216 bytes
 
-**Explicit 2× fidelity override:** 10,293,664 bytes above the legacy presentation ceiling
+**Explicit 2× fidelity override:** 10,232,652 bytes above the legacy presentation ceiling
 
 The five canonical animated boss atlases began with **GPT Image 2** 2560×1440 keyframes and locked-camera 1280×720 Veo carriers; the five instrumental themes were generated with **Lyria 3 Pro**. Every atlas cell is exactly twice its predecessor in both axes while the on-screen display envelope remains unchanged. Concept plates and generation masters remain outside the Web PCK. Runtime art is stored as transparent high-quality WebP atlases; music is loop-enabled mono Ogg Vorbis at 32 kHz. `BossMusicDirector` reuses one prewarmed player, switches themes by canonical boss ID, preserves music-bus user settings, and restores the city-pressure bed after the encounter. All five preloaded boss themes are explicitly retained by the Web preset; excluding their directory leaves the preloaded runtime script unable to compile.
 
@@ -30,7 +32,7 @@ The synchronized 1.18-second voiceover SFX is documented in `game/audio/voice/PR
 
 ## Settlement Engine shockwave
 
-Settlement Engine S-04's single **Core Shockwave** adds no dedicated texture. It reuses the player's existing `art/player/vfx/photon_core_orb.png` (**96,541 bytes**, SHA-256 `40c00024feb729d1c7701860c75a38445432707e8449f7d676988d5af66ba7d8`) for 72 converging cyan particles and a massive core sphere, then reuses `art/player/vfx/photon_release_shockwave.png` (**282,040 bytes**, SHA-256 `ec3108f63584358bbba7744c42ad6b872ef468a44eac5bbdb8eafc0cc8ce4cee`) for one outward release. Godot retains exact socket anchoring, charge timing, contact-band collision, dodge, damage deduplication, and cleanup authority. The obsolete 13,426-byte dedicated amber ring and its standalone provenance record were removed.
+Settlement Engine S-04's single **Core Shockwave** adds no dedicated texture. It reuses the player's existing `art/player/vfx/photon_core_orb.png` (**96,541 bytes**, SHA-256 `40c00024feb729d1c7701860c75a38445432707e8449f7d676988d5af66ba7d8`) for 72 converging cyan particles and a massive core sphere, then reuses `art/player/vfx/photon_release_shockwave.png` (**282,040 bytes**, SHA-256 `ec3108f63584358bbba7744c42ad6b872ef468a44eac5bbdb8eafc0cc8ce4cee`) for one outward release. `audio/sfx/boss/s04_core_charge.ogg` is a 1.45-second, 12,518-byte mono carrier derivative with SHA-256 `b916e6ffcd96ac9c02487d366bc68c3ea98f4f785010f9605397d395286cc9b1`; `audio/sfx/boss/s04_shockwave_release.ogg` is a 1.00-second, 9,798-byte mono carrier derivative with SHA-256 `4d8efbfc1dfde9c7cf2035757984a279d1bebb770ec8a8362ad8ac22c73a6f44`. Godot retains exact socket anchoring, charge/release sound boundaries, one restrained camera impulse, contact-band collision, dodge, damage deduplication, and cleanup authority. The obsolete 13,426-byte dedicated amber ring and its standalone provenance record remain removed. Complete SFX lineage is recorded in `game/audio/sfx/boss/PROVENANCE.md`.
 
 ## Defeat spectacle
 
@@ -42,7 +44,7 @@ The two particle textures were generated with **GPT Image 2**. `defeat_fx/boss-e
 
 | Artifact | Bytes | SHA-256 |
 |---|---:|---|
-| `game.html` | 5,439 | `63ef5b121e47fa0c2517b7ad823bf995a0895e18aa7bc29944ee900b6d972ced` |
+| `game.html` | 5,439 | `00e3c971ad4bb79ff5bb35d04fe12ee793e86611a0db01918a7f23fe17316e8a` |
 | `game.js` | 279,815 | `33c94cb3175f3333b82e2a3be5e8e86f77986f0aa2042b1631f6367a4e5bb6ba` |
 | `game.wasm` | 39,514,754 | `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0` |
-| `game.pck` | 27,070,880 | `c6aa70e1da8ac2e1301a28c964559cfc9aee0cbe36d669e6fc38d070f3ae76c3` |
+| `game.pck` | 27,009,868 | `b6053e6f892797eb38ae1b4ae694606d46a71481a4f996d0521e2d323dccf6a0` |

@@ -73,6 +73,26 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 		"res://art/player/vfx/photon_release_shockwave.png"
 	)
 	assert_eq(
+		String(initial_charge.charge_sfx),
+		"res://audio/sfx/boss/s04_core_charge.ogg"
+	)
+	assert_eq(
+		String(initial_charge.release_sfx),
+		"res://audio/sfx/boss/s04_shockwave_release.ogg"
+	)
+	assert_almost_eq(
+		BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS,
+		1.45,
+		0.001
+	)
+	assert_almost_eq(BossAttackArea2D.CORE_CHARGE_SFX.get_length(), 1.45, 0.02)
+	assert_almost_eq(BossAttackArea2D.SHOCKWAVE_RELEASE_SFX.get_length(), 1.0, 0.02)
+	assert_eq(shockwave._charge_sfx_player.bus, GameAudioBus.SFX)
+	assert_eq(shockwave._release_sfx_player.bus, GameAudioBus.SFX)
+	assert_eq(int(initial_charge.charge_sfx_play_count), 1)
+	assert_eq(int(initial_charge.release_sfx_play_count), 0)
+	assert_true(bool(initial_charge.charge_sfx_playing))
+	assert_eq(
 		int(initial_charge.charge_particle_capacity),
 		BossAttackArea2D.CHARGE_PARTICLE_CAPACITY
 	)
@@ -84,12 +104,23 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 	assert_gt(float(charged.core_diameter), 140.0)
 	assert_true(bool(charged.charge_particles_emitting))
 	var health_before: float = city.robot.current_health
+	city.camera_rig.reset_presentation()
+	assert_eq(session.core_shockwave_camera_impulse_count, 0)
 	slice.advance(BossVerticalSliceController.BUSINESS_SHOCKWAVE_TELEGRAPH_SECONDS)
 	assert_eq(shockwave.visual_state, BossAttackArea2D.VisualState.ARMED)
 	assert_false(shockwave.try_damage_body(city.robot))
 	var released_charge: Dictionary = shockwave.shockwave_snapshot()
 	assert_false(bool(released_charge.charge_particles_emitting))
 	assert_false(bool(released_charge.core_visible))
+	assert_false(bool(released_charge.charge_sfx_playing))
+	assert_true(bool(released_charge.release_sfx_playing))
+	assert_eq(int(released_charge.charge_sfx_play_count), 1)
+	assert_eq(int(released_charge.release_sfx_play_count), 1)
+	assert_eq(session.core_shockwave_camera_impulse_count, 1)
+	assert_eq(
+		city.camera_rig.impact_velocity,
+		Vector2(0.0, -CommandBossSession.CORE_SHOCKWAVE_CAMERA_IMPULSE * 42.0)
+	)
 	shockwave._process(0.42)
 	var released: Dictionary = shockwave.shockwave_snapshot()
 	var released_radii: PackedFloat32Array = released.radii
@@ -116,6 +147,7 @@ func test_business_uses_one_core_charge_shockwave_and_capped_recurring_soldiers(
 		0.001
 	)
 	assert_false(shockwave.try_damage_body(city.robot))
+	assert_eq(session.core_shockwave_camera_impulse_count, 1)
 	slice.advance(BossVerticalSliceController.BUSINESS_SHOCKWAVE_ACTIVE_SECONDS)
 	slice.advance(BossVerticalSliceController.RECOVERY_SECONDS)
 	assert_eq(slice.active_attack, BossVerticalSliceController.BUSINESS_CORE_SHOCKWAVE_ATTACK)

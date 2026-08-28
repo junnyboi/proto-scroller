@@ -71,12 +71,18 @@ func _process(_delta: float) -> void:
 	_poll_response_queue()
 	var now: float = Time.get_ticks_msec() / 1000.0
 	var timed_out: Array[String] = []
+	var callsign_timed_out: bool = false
 	for request_id: Variant in _pending:
 		var request: Dictionary = _pending[request_id] as Dictionary
 		if now >= float(request.get("deadline", 0.0)):
 			timed_out.append(String(request_id))
 	for request_id: String in timed_out:
+		var request: Dictionary = _pending.get(request_id, {}) as Dictionary
+		if StringName(request.get("type", &"")) == &"update_callsign":
+			callsign_timed_out = true
 		_pending.erase(request_id)
+	if callsign_timed_out and is_instance_valid(panel):
+		panel.set_callsign_uplink_state(&"failure")
 	if not timed_out.is_empty():
 		_set_state(&"local_fallback")
 
@@ -106,6 +112,8 @@ func _send_request(request_type: StringName, payload: Dictionary) -> void:
 	var script: String = "window.parent.postMessage(%s, window.location.origin); true;" % encoded
 	var sent: bool = bool(JavaScriptBridge.eval(script, true))
 	if not sent:
+		if request_type == &"update_callsign" and is_instance_valid(panel):
+			panel.set_callsign_uplink_state(&"failure")
 		_set_state(&"local_fallback")
 		return
 	_pending[request_id] = {
@@ -169,8 +177,16 @@ func _handle_response(response: Dictionary) -> void:
 	var request_id: String = String(response.get("requestId", ""))
 	if request_id.is_empty() or not _pending.has(request_id):
 		return
+	var request: Dictionary = _pending[request_id] as Dictionary
+	var request_type: StringName = StringName(request.get("type", &""))
 	_pending.erase(request_id)
 	if not bool(response.get("ok", false)):
+		if request_type == &"update_callsign":
+			var error_code: String = String(response.get("error", "UPLINK_UNAVAILABLE"))
+			panel.set_callsign_uplink_state(
+				&"rejected" if error_code == "CALLSIGN_REJECTED" else &"failure"
+			)
+			return
 		_set_state(&"local_fallback")
 		return
 	var data: Dictionary = response.get("data", {}) as Dictionary
@@ -182,6 +198,8 @@ func _handle_response(response: Dictionary) -> void:
 		else {}
 	)
 	_set_state(&"online", entries, personal_rank)
+	if request_type == &"update_callsign" and is_instance_valid(panel):
+		panel.set_callsign_uplink_state(&"success")
 
 
 func _sanitize_entries(raw_entries: Array) -> Array[Dictionary]:
