@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/30-receivership-ambulance.png-d1ed6effdca98f6
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

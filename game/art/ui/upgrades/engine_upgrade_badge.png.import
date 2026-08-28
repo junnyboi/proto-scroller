@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/engine_upgrade_badge.png-ab96e5dea9cc56333ae8
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

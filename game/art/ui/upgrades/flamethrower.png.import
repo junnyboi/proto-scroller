@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/flamethrower.png-37289f0469ec2ce18955e5a24b62
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
