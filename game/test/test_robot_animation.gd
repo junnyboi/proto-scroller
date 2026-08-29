@@ -294,6 +294,27 @@ func test_full_charge_stops_particles_at_two_seconds_but_keeps_first_frame_froze
 	assert_false(presenter._charge_voice_player.playing)
 
 
+func test_near_cap_release_snaps_to_full_charge_and_announces_once() -> void:
+	var city: CitySlice = await _spawn_city()
+	var attacks: ContextualAttackController = city.contextual_attacks
+	var presenter: RobotAnimationPresenter = (
+		city.robot.get_node(^"RobotAnimationPresenter") as RobotAnimationPresenter
+	)
+	assert_gt(attacks.begin_charge(), 0)
+	attacks._process(
+		ContextualAttackController.MAX_CHARGE_SECONDS
+		- ContextualAttackController.FULL_CHARGE_RELEASE_GRACE_SECONDS * 0.5
+	)
+	assert_lt(attacks.charge_progress(), 1.0)
+	assert_eq(presenter.full_charge_voice_play_count, 0)
+	assert_true(attacks.release_charge())
+	assert_true(attacks.current_spec.is_fully_charged())
+	assert_almost_eq(attacks.charge_progress(), 1.0, 0.0001)
+	assert_eq(presenter.full_charge_voice_play_count, 1)
+	assert_eq(presenter.last_audio_cue, &"fully_charged")
+	assert_true(presenter._charge_voice_player.playing)
+
+
 func test_confirmed_full_charge_enemy_hit_plays_signature_cue_and_world_flash_once() -> void:
 	var city: CitySlice = await _spawn_city()
 	var attacks: ContextualAttackController = city.contextual_attacks

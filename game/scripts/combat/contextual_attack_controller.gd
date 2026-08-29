@@ -22,6 +22,7 @@ enum Phase {
 const DODGE_CANCEL_MELEE_MOMENTUM_RATIO: float = 0.50
 const MAX_CHARGE_SECONDS: float = 2.0
 const MAX_CHARGE_DAMAGE_MULTIPLIER: float = 2.0
+const FULL_CHARGE_RELEASE_GRACE_SECONDS: float = 0.05
 
 var current_spec: AttackSpec
 var resolver: AttackResolver
@@ -192,6 +193,7 @@ func begin_charge() -> int:
 func release_charge() -> bool:
 	if not _charging or current_spec == null:
 		return false
+	_snap_full_charge_within_release_grace()
 	_charging = false
 	var release_duration: float = _charge_duration
 	var multiplier: float = charge_damage_multiplier()
@@ -200,6 +202,21 @@ func release_charge() -> bool:
 	charge_released.emit(current_spec, release_duration, multiplier)
 	_run_attack(current_spec)
 	return true
+
+
+func _snap_full_charge_within_release_grace() -> void:
+	if _charge_duration >= _active_charge_limit:
+		return
+	var remaining_seconds: float = _active_charge_limit - _charge_duration
+	if remaining_seconds > FULL_CHARGE_RELEASE_GRACE_SECONDS:
+		return
+	_charge_duration = _active_charge_limit
+	charge_updated.emit(
+		current_spec,
+		_charge_duration,
+		charge_progress(),
+		charge_damage_multiplier()
+	)
 
 
 func is_charging() -> bool:

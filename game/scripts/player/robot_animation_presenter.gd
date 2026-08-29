@@ -406,13 +406,8 @@ func _on_charge_updated(
 			&"shift_amount",
 			1.0 if last_charge_progress >= 1.0 else 0.0
 		)
-	if last_charge_progress >= 1.0 and not _full_charge_announced:
-		_full_charge_announced = true
-		if _charge_voice_player != null:
-			_charge_voice_player.stop()
-			_charge_voice_player.play()
-			full_charge_voice_play_count += 1
-			last_audio_cue = &"fully_charged"
+	if last_charge_progress >= 1.0:
+		_announce_full_charge()
 
 
 func _on_charge_released(
@@ -424,12 +419,24 @@ func _on_charge_released(
 		return
 	charging = false
 	if spec.is_fully_charged():
+		_announce_full_charge()
 		_start_release_shockwave()
 	if _charge_particles != null:
 		_charge_particles.emitting = false
 	_hide_charge_visuals()
 	sprite.speed_scale = 1.0
 	sprite.play()
+
+
+func _announce_full_charge() -> void:
+	if _full_charge_announced:
+		return
+	_full_charge_announced = true
+	if _charge_voice_player == null:
+		return
+	_charge_voice_player.play()
+	full_charge_voice_play_count += 1
+	last_audio_cue = &"fully_charged"
 
 
 func _on_attack_cancelled(spec: AttackSpec) -> void:
@@ -874,7 +881,6 @@ func _hide_charge_visuals() -> void:
 		_charge_core.rotation = 0.0
 	if _charge_core_material != null:
 		_charge_core_material.set_shader_parameter(&"shift_amount", 0.0)
-	_full_charge_announced = false
 	_charge_pulse_elapsed = 0.0
 
 
