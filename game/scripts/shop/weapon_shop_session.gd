@@ -75,6 +75,21 @@ func queue_royal_completion(cycle: int) -> bool:
 	return _queue_shop(&"ROYAL", ROYAL_ACT_INDEX, cycle, true)
 
 
+func ensure_act_completion(act_index: int, cycle: int) -> bool:
+	if not ACT_SHOP_DISTRICTS.has(act_index):
+		return false
+	return _ensure_shop(
+		ACT_SHOP_DISTRICTS[act_index] as StringName,
+		act_index,
+		cycle,
+		false
+	)
+
+
+func ensure_royal_completion(cycle: int) -> bool:
+	return _ensure_shop(&"ROYAL", ROYAL_ACT_INDEX, cycle, true)
+
+
 func purchase(product_id: StringName) -> bool:
 	if not active or run_score == null or effects == null:
 		return false
@@ -150,6 +165,38 @@ func _queue_shop(
 	pending_terminal = terminal
 	_open_pending()
 	return true
+
+
+func _ensure_shop(
+	district_id: StringName,
+	act_index: int,
+	cycle: int,
+	terminal: bool
+) -> bool:
+	var normalized_cycle: int = maxi(cycle, 1)
+	if active:
+		return (
+			active_district != null
+			and active_district.district_id == district_id
+			and active_act_index == act_index
+			and active_cycle == normalized_cycle
+			and active_terminal == terminal
+		)
+	if pending_district != null:
+		var matches_pending: bool = (
+			pending_district.district_id == district_id
+			and pending_act_index == act_index
+			and pending_cycle == normalized_cycle
+			and pending_terminal == terminal
+		)
+		if matches_pending:
+			_open_pending()
+		return matches_pending
+	var key: StringName = StringName(
+		"%d:%d:%s" % [normalized_cycle, act_index, district_id]
+	)
+	visited_acts.erase(key)
+	return _queue_shop(district_id, act_index, normalized_cycle, terminal)
 
 
 func _open_pending() -> void:

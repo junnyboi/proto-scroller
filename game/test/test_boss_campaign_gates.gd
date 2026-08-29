@@ -350,10 +350,24 @@ func test_success_opens_shop_after_fireworks_without_salvage_contact() -> void:
 	assert_true(siege.boss_session.defeat_celebration_active())
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_NONE)
 	assert_false(city.weapon_shop_assembler.session.active)
+	var ambient: EnemyActor2D = city.encounter_runtime.acquire(
+		&"soldier",
+		boss.global_position + Vector2(-420.0, 0.0)
+	)
+	assert_not_null(ambient)
+	assert_true(ambient.begin_telegraph(
+		&"support",
+		30.0,
+		ambient.global_position,
+		city.robot.global_position
+	))
+	assert_eq(city.telegraph_presenter.active_count(), 1)
 	siege.boss_session.utility_pool.defeat_spectacle.advance(
 		0.02
 	)
 	assert_false(siege.boss_session.defeat_celebration_active())
+	assert_false(ambient.is_telegraphing())
+	assert_eq(city.telegraph_presenter.active_count(), 0)
 	var rubble: Node2D = siege.boss_session.utility_pool.boss_rubble_record
 	var rubble_sprite: Sprite2D = rubble.get_child(0) as Sprite2D
 	assert_true(rubble.visible)
@@ -369,6 +383,7 @@ func test_success_opens_shop_after_fireworks_without_salvage_contact() -> void:
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SHOP)
 	assert_true(director.is_suspended_for_boss())
 	assert_true(city.weapon_shop_assembler.session.active)
+	assert_true(city.weapon_shop_assembler.overlay.visible)
 	assert_true(city.weapon_shop_assembler.session.close_shop())
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_NONE)
 	assert_eq(director.state, DistrictResponseDirector.STATE_WAITING)
@@ -380,7 +395,7 @@ func test_success_opens_shop_after_fireworks_without_salvage_contact() -> void:
 	assert_ne(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
 
 
-func test_failed_shop_queue_cannot_block_district_two_runtime() -> void:
+func test_stale_shop_visit_cannot_skip_shop_or_block_district_two_runtime() -> void:
 	var city: CitySlice = await _spawn_city()
 	var siege: UrbanSiegeRuntime = city.urban_siege
 	var director: DistrictResponseDirector = siege.director
@@ -408,7 +423,13 @@ func test_failed_shop_queue_cannot_block_district_two_runtime() -> void:
 	siege.boss_session.utility_pool.defeat_spectacle.advance(
 		BossDefeatSpectacle2D.PRESENTATION_SECONDS
 	)
-	assert_false(city.weapon_shop_assembler.session.active)
+	assert_true(city.weapon_shop_assembler.session.active)
+	assert_true(city.weapon_shop_assembler.overlay.visible)
+	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SHOP)
+	assert_eq(campaign.active_definition, first_definition)
+	assert_true(campaign.interlock.is_owned())
+	assert_true(director.is_suspended_for_boss())
+	assert_true(city.weapon_shop_assembler.session.close_shop())
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_NONE)
 	assert_null(campaign.active_definition)
 	assert_false(campaign.interlock.is_owned())

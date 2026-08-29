@@ -321,6 +321,7 @@ func _try_commit_completion() -> bool:
 	handoff_state = HANDOFF_SHOP_PENDING
 	if completed_definition.boss_id == &"CHOIR_PRIME":
 		pending_finale_outcome = int(payload.get("finale_outcome", -1))
+	_prepare_completed_boss_shop()
 	_queue_completed_boss_shop()
 	return true
 
@@ -365,7 +366,14 @@ func _queue_completed_boss_shop() -> bool:
 	if city.weapon_shop_assembler.queue_boss_salvage(active_definition):
 		handoff_state = HANDOFF_SHOP
 		return true
-	return _complete_handoff_route()
+	return false
+
+
+func _prepare_completed_boss_shop() -> void:
+	if siege.dependencies.encounter_runtime != null:
+		siege.dependencies.encounter_runtime.set_attack_gate(false)
+	if siege.dependencies.telegraphs != null:
+		siege.dependencies.telegraphs.cancel_all()
 
 
 func _finalize_handoff() -> bool:

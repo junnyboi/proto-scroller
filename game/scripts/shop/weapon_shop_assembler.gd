@@ -69,10 +69,10 @@ func queue_boss_salvage(definition: BossEncounterDefinition) -> bool:
 	):
 		return false
 	if definition.district_id == &"ROYAL":
-		return session.queue_royal_completion(siege.cycle_count)
+		return session.ensure_royal_completion(siege.cycle_count)
 	for district: CityDistrictProfile in CityDistrictCatalog.districts():
 		if district.district_id == definition.district_id:
-			return session.queue_act_completion(
+			return session.ensure_act_completion(
 				district.district_index,
 				siege.cycle_count
 			)

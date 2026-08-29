@@ -123,6 +123,19 @@ func test_every_boss_shop_waits_for_shared_defeat_celebration() -> void:
 		city.urban_siege.boss_session.utility_pool.defeat_spectacle
 	)
 	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
+		var act_index: int = WeaponShopSession.ROYAL_ACT_INDEX
+		if definition.district_id != &"ROYAL":
+			for district: CityDistrictProfile in CityDistrictCatalog.districts():
+				if district.district_id == definition.district_id:
+					act_index = district.district_index
+					break
+		assembler.session.visited_acts[StringName(
+			"%d:%d:%s" % [
+				city.urban_siege.cycle_count,
+				act_index,
+				definition.district_id,
+			]
+		)] = true
 		spectacle.activate(Vector2.ZERO)
 		assert_true(
 			city.urban_siege.boss_session.defeat_celebration_active(),
@@ -140,6 +153,12 @@ func test_every_boss_shop_waits_for_shared_defeat_celebration() -> void:
 			String(definition.boss_id)
 		)
 		assert_true(assembler.session.active, String(definition.boss_id))
+		assert_true(assembler.overlay.visible, String(definition.boss_id))
+		assert_eq(
+			assembler.session.active_district.district_id,
+			definition.district_id,
+			String(definition.boss_id)
+		)
 		assert_true(assembler.session.close_shop(), String(definition.boss_id))
 
 
