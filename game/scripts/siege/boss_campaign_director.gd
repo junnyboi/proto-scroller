@@ -332,6 +332,10 @@ func complete_shop_handoff(district_id: StringName) -> bool:
 		or active_definition.district_id != district_id
 	):
 		return false
+	return _complete_handoff_route()
+
+
+func _complete_handoff_route() -> bool:
 	var district_index: int = _active_district_index()
 	if district_index >= CityDistrictCatalog.DISTRICT_COUNT - 1:
 		return _finalize_handoff()
@@ -339,6 +343,8 @@ func complete_shop_handoff(district_id: StringName) -> bool:
 		return false
 	handoff_state = HANDOFF_CORRIDOR
 	siege.dependencies.gameplay_hud.set_objective("objective.clear_handoff_corridor")
+	if world_stream.post_boss_corridor_is_clear(district_index):
+		return _finalize_handoff()
 	return true
 
 
@@ -359,7 +365,7 @@ func _queue_completed_boss_shop() -> bool:
 	if city.weapon_shop_assembler.queue_boss_salvage(active_definition):
 		handoff_state = HANDOFF_SHOP
 		return true
-	return false
+	return _complete_handoff_route()
 
 
 func _finalize_handoff() -> bool:

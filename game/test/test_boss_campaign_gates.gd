@@ -370,12 +370,66 @@ func test_success_opens_shop_after_fireworks_without_salvage_contact() -> void:
 	assert_true(director.is_suspended_for_boss())
 	assert_true(city.weapon_shop_assembler.session.active)
 	assert_true(city.weapon_shop_assembler.session.close_shop())
-	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_CORRIDOR)
-	campaign._process(0.0)
+	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_NONE)
 	assert_eq(director.state, DistrictResponseDirector.STATE_WAITING)
 	assert_eq(director.beat_index, -1)
 	assert_eq(director.phase_index, 1)
 	assert_false(director.is_suspended_for_boss())
+	assert_false(campaign.interlock.is_owned())
+	assert_false(city.world_stream.resident_lease_active())
+	assert_ne(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
+
+
+func test_failed_shop_queue_cannot_block_district_two_runtime() -> void:
+	var city: CitySlice = await _spawn_city()
+	var siege: UrbanSiegeRuntime = city.urban_siege
+	var director: DistrictResponseDirector = siege.director
+	var campaign: BossCampaignDirector = siege.boss_campaign
+	director.stop()
+	city.encounter_runtime.release_all()
+	director.start()
+	director.advance(0.01)
+	var first_definition: BossEncounterDefinition = (
+		BossCampaignCatalog.definition_for_trigger(
+			BossCampaignCatalog.CANONICAL_TRIGGERS[0]
+		)
+	)
+	city.weapon_shop_assembler.session.visited_acts[
+		StringName("1:0:BUSINESS")
+	] = true
+	await _trigger(city, first_definition)
+	var boss: TankEnemy = siege.boss_session.boss
+	assert_true(boss.receive_damage(DamageEvent.new(
+		84_001, city.robot, first_definition.armor, &"bullet"
+	)))
+	assert_true(boss.receive_damage(DamageEvent.new(
+		84_002, city.robot, first_definition.health, &"impact"
+	)))
+	siege.boss_session.utility_pool.defeat_spectacle.advance(
+		BossDefeatSpectacle2D.PRESENTATION_SECONDS
+	)
+	assert_false(city.weapon_shop_assembler.session.active)
+	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_NONE)
+	assert_null(campaign.active_definition)
+	assert_false(campaign.interlock.is_owned())
+	assert_false(director.is_suspended_for_boss())
+	assert_eq(director.phase_index, 1)
+	assert_eq(city.world_stream.unlocked_district_index, 1)
+	assert_false(city.world_stream.resident_lease_active())
+	assert_ne(city.robot.collision_mask & CitySlice.BUILDING_LAYER, 0)
+	city.encounter_runtime.release_all()
+	director.advance(0.01)
+	assert_gt(director.pending_count(), 0)
+	director.advance(30.0)
+	assert_gt(city.encounter_runtime.active_count(), 0)
+	var second_definition: BossEncounterDefinition = (
+		BossCampaignCatalog.definition_for_trigger(
+			BossCampaignCatalog.CANONICAL_TRIGGERS[1]
+		)
+	)
+	await _trigger(city, second_definition)
+	assert_eq(campaign.active_definition, second_definition)
+	assert_eq(siege.boss_session.active_definition, second_definition)
 
 
 func test_completion_write_failure_retains_gate_then_retries_idempotently() -> void:
