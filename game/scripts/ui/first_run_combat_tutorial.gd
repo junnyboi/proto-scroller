@@ -14,10 +14,6 @@ enum Step {
 	COMPLETE,
 }
 
-const PREFERENCE_PATH: String = "user://combat_tutorial.cfg"
-const PREFERENCE_SECTION: String = "combat_tutorial"
-const PREFERENCE_KEY: String = "completed"
-const FORCE_ENV: String = "PROTO_SCROLLER_FORCE_TUTORIAL"
 const STEP_COUNT: int = 6
 const PANEL_COLOR: Color = Color(0.018, 0.042, 0.055, 0.94)
 const BORDER_COLOR: Color = Color("5dc9c2")
@@ -39,8 +35,6 @@ var skip_button: Button
 var _robot: GiantRobotController
 var _attacks: ContextualAttackController
 var _mobile_controls: MobileControls
-var _preference_path: String = PREFERENCE_PATH
-var _persist_completion: bool = true
 var _completion_generation: int = 0
 var _pending_dash_punch_attack_id: int = 0
 
@@ -48,16 +42,14 @@ var _pending_dash_punch_attack_id: int = 0
 func setup(
 	robot: GiantRobotController,
 	attacks: ContextualAttackController,
-	mobile_controls: MobileControls = null,
-	preference_path: String = PREFERENCE_PATH
+	mobile_controls: MobileControls = null
 ) -> void:
 	_robot = robot
 	_attacks = attacks
 	_mobile_controls = mobile_controls
-	_preference_path = preference_path
 	_bind_mechanic_signals()
 	if is_node_ready():
-		_start_if_needed()
+		_start_tutorial()
 
 
 func _ready() -> void:
@@ -69,11 +61,10 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_apply_viewport_layout)
 	_apply_viewport_layout()
 	L10n.apply_locale_font(self)
-	_start_if_needed()
+	_start_tutorial()
 
 
 func start_for_test() -> void:
-	_persist_completion = false
 	_start_tutorial()
 
 
@@ -173,18 +164,9 @@ func _bind_mechanic_signals() -> void:
 			_attacks.attack_started.connect(observe_attack_started)
 
 
-func _start_if_needed() -> void:
+func _start_tutorial() -> void:
 	if panel == null:
 		return
-	if OS.get_environment(FORCE_ENV) == "1" or not _completion_is_persisted():
-		_start_tutorial()
-	else:
-		completed = true
-		tutorial_active = false
-		visible = false
-
-
-func _start_tutorial() -> void:
 	_completion_generation += 1
 	_pending_dash_punch_attack_id = 0
 	current_step = Step.MOVE
@@ -214,8 +196,6 @@ func _finish_tutorial(was_skipped: bool) -> void:
 	tutorial_active = false
 	completed = true
 	skipped = was_skipped
-	if _persist_completion and not _save_completion():
-		push_warning("Unable to persist combat tutorial completion: %s" % _preference_path)
 	_update_copy()
 	tutorial_completed.emit(skipped)
 	_hold_completion_card(generation)
@@ -314,16 +294,3 @@ func _build_card() -> void:
 
 func _apply_viewport_layout() -> void:
 	apply_responsive_layout(get_viewport().get_visible_rect().size)
-
-
-func _completion_is_persisted() -> bool:
-	var config: ConfigFile = ConfigFile.new()
-	if config.load(_preference_path) != OK:
-		return false
-	return bool(config.get_value(PREFERENCE_SECTION, PREFERENCE_KEY, false))
-
-
-func _save_completion() -> bool:
-	var config: ConfigFile = ConfigFile.new()
-	config.set_value(PREFERENCE_SECTION, PREFERENCE_KEY, true)
-	return config.save(_preference_path) == OK

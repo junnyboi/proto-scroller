@@ -1,8 +1,9 @@
 extends GutTest
 
 const CITY_SCENE: PackedScene = preload("res://scenes/gameplay/city_slice.tscn")
+const MAIN_SCENE: PackedScene = preload("res://scenes/main/main.tscn")
 const TEST_COUNT_PATH: String = "res://artifacts/unit-tests-ran.txt"
-const TEST_PREFERENCE_PATH: String = "user://test_combat_tutorial.cfg"
+const LEGACY_PREFERENCE_PATH: String = "user://combat_tutorial.cfg"
 
 
 func before_each() -> void:
@@ -65,32 +66,73 @@ func test_mechanic_signals_advance_and_complete_the_six_step_uplink() -> void:
 	_record_test_execution()
 
 
-func test_completion_persists_and_skip_uses_the_same_first_run_contract() -> void:
+func test_skip_only_completes_the_current_tutorial_instance() -> void:
 	var first: FirstRunCombatTutorial = FirstRunCombatTutorial.new()
-	first.setup(null, null, null, TEST_PREFERENCE_PATH)
+	first.setup(null, null)
 	add_child_autofree(first)
 	await get_tree().process_frame
 	assert_true(first.tutorial_active)
 	first.skip_button.pressed.emit()
 	assert_true(first.completed)
 	assert_true(first.skipped)
-	assert_true(FileAccess.file_exists(TEST_PREFERENCE_PATH))
+	assert_false(FileAccess.file_exists(LEGACY_PREFERENCE_PATH))
 	first.queue_free()
 	await get_tree().process_frame
 	var second: FirstRunCombatTutorial = FirstRunCombatTutorial.new()
-	second.setup(null, null, null, TEST_PREFERENCE_PATH)
+	second.setup(null, null)
 	add_child_autofree(second)
 	await get_tree().process_frame
-	assert_true(second.completed)
-	assert_false(second.tutorial_active)
-	assert_false(second.visible)
+	assert_false(second.completed)
+	assert_true(second.tutorial_active)
+	assert_true(second.visible)
+	assert_eq(second.current_step, FirstRunCombatTutorial.Step.MOVE)
+	_record_test_execution()
+
+
+func test_every_title_launch_creates_a_fresh_active_tutorial() -> void:
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	await get_tree().process_frame
+	main.start_game()
+	await get_tree().process_frame
+	var first: FirstRunCombatTutorial = main.city_slice.gameplay_hud.first_run_tutorial
+	assert_true(first.tutorial_active)
+	var first_instance_id: int = first.get_instance_id()
+	first.skip_button.pressed.emit()
+	assert_true(first.completed)
+	main._return_to_title()
+	await get_tree().process_frame
+	assert_not_null(main.title_screen)
+	main.start_game()
+	await get_tree().process_frame
+	var second: FirstRunCombatTutorial = main.city_slice.gameplay_hud.first_run_tutorial
+	assert_ne(second.get_instance_id(), first_instance_id)
+	assert_false(second.completed)
+	assert_true(second.tutorial_active)
+	assert_true(second.visible)
+	assert_eq(second.current_step, FirstRunCombatTutorial.Step.MOVE)
+	_record_test_execution()
+
+
+func test_legacy_seen_cache_does_not_suppress_a_new_tutorial() -> void:
+	var legacy_config: ConfigFile = ConfigFile.new()
+	legacy_config.set_value("combat_tutorial", "completed", true)
+	assert_eq(legacy_config.save(LEGACY_PREFERENCE_PATH), OK)
+	var tutorial: FirstRunCombatTutorial = FirstRunCombatTutorial.new()
+	tutorial.setup(null, null)
+	add_child_autofree(tutorial)
+	await get_tree().process_frame
+	assert_false(tutorial.completed)
+	assert_true(tutorial.tutorial_active)
+	assert_true(tutorial.visible)
+	assert_eq(tutorial.current_step, FirstRunCombatTutorial.Step.MOVE)
 	_record_test_execution()
 
 
 func test_tutorial_localizes_and_stays_inside_landscape_and_portrait() -> void:
 	L10n.set_locale("zh-CN")
 	var tutorial: FirstRunCombatTutorial = FirstRunCombatTutorial.new()
-	tutorial.setup(null, null, null, TEST_PREFERENCE_PATH)
+	tutorial.setup(null, null)
 	add_child_autofree(tutorial)
 	await get_tree().process_frame
 	tutorial.start_for_test()
@@ -149,8 +191,8 @@ func _assert_chinese_copy(
 
 
 func _remove_test_preference() -> void:
-	if FileAccess.file_exists(TEST_PREFERENCE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_PREFERENCE_PATH))
+	if FileAccess.file_exists(LEGACY_PREFERENCE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(LEGACY_PREFERENCE_PATH))
 
 
 func _jab_cross_spec(
