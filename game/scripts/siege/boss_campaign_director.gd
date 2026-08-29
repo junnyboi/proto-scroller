@@ -10,7 +10,7 @@ const GATE_APPROACH_FRACTION: float = 0.62
 const GATE_INSET: float = 80.0
 const COMPLETION_RETRY_SECONDS: float = 1.0
 const HANDOFF_NONE: StringName = &"NONE"
-const HANDOFF_SALVAGE: StringName = &"SALVAGE"
+const HANDOFF_SHOP_PENDING: StringName = &"SHOP_PENDING"
 const HANDOFF_SHOP: StringName = &"SHOP"
 const HANDOFF_CORRIDOR: StringName = &"CORRIDOR"
 
@@ -27,7 +27,6 @@ var active_definition: BossEncounterDefinition
 var active_gate: BossGateMarker
 var attempt_failed: bool = false
 var completion_pending: bool = false
-var salvage_trigger: BossSalvageTrigger2D
 var handoff_state: StringName = HANDOFF_NONE
 var pending_finale_outcome: int = -1
 var _completion_retry_elapsed: float = 0.0
@@ -48,9 +47,6 @@ func setup(p_siege: UrbanSiegeRuntime) -> void:
 	add_child(arena_barrier)
 	attempt_started.connect(music_director.play_definition)
 	attempt_retried.connect(music_director.play_definition)
-	salvage_trigger = BossSalvageTrigger2D.new()
-	salvage_trigger.claimed.connect(_on_salvage_claimed)
-	add_child(salvage_trigger)
 	for definition: BossEncounterDefinition in BossCampaignCatalog.definitions():
 		var marker: BossGateMarker = BossGateMarker.new()
 		marker.configure(definition)
@@ -84,6 +80,9 @@ func _process(delta: float) -> void:
 		if _completion_retry_elapsed >= COMPLETION_RETRY_SECONDS:
 			_completion_retry_elapsed = 0.0
 			_try_commit_completion()
+		return
+	if handoff_state == HANDOFF_SHOP_PENDING:
+		_queue_completed_boss_shop()
 		return
 	if handoff_state == HANDOFF_CORRIDOR:
 		if world_stream.post_boss_corridor_is_clear(_active_district_index()):
@@ -136,8 +135,6 @@ func stop(preserve_music: bool = false) -> void:
 		active_gate.release()
 	if arena_barrier != null:
 		arena_barrier.deactivate(siege.dependencies.robot if siege != null else null)
-	if salvage_trigger != null:
-		salvage_trigger.deactivate()
 	arena_lease.release()
 	interlock.discard()
 	attempt_snapshot.clear()
@@ -321,14 +318,10 @@ func _try_commit_completion() -> bool:
 	attempt_snapshot.clear()
 	attempt_failed = false
 	siege.dependencies.gameplay_hud.hide_boss_status()
-	handoff_state = HANDOFF_SALVAGE
+	handoff_state = HANDOFF_SHOP_PENDING
 	if completed_definition.boss_id == &"CHOIR_PRIME":
 		pending_finale_outcome = int(payload.get("finale_outcome", -1))
-	salvage_trigger.configure(
-		completed_definition,
-		siege.boss_session.last_completed_wreck_position
-	)
-	siege.dependencies.gameplay_hud.set_objective("objective.boss_salvage")
+	_queue_completed_boss_shop()
 	return true
 
 
@@ -359,17 +352,14 @@ func _on_district_boss_ready(_district_id: StringName, district_index: int) -> v
 		return
 
 
-func _on_salvage_claimed() -> void:
-	if handoff_state != HANDOFF_SALVAGE or active_definition == null:
-		return
+func _queue_completed_boss_shop() -> bool:
+	if handoff_state != HANDOFF_SHOP_PENDING or active_definition == null:
+		return false
 	var city: CitySlice = siege.dependencies.city
 	if city.weapon_shop_assembler.queue_boss_salvage(active_definition):
 		handoff_state = HANDOFF_SHOP
-		return
-	salvage_trigger.configure(
-		active_definition,
-		siege.boss_session.last_completed_wreck_position
-	)
+		return true
+	return false
 
 
 func _finalize_handoff() -> bool:

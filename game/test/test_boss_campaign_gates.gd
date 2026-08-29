@@ -296,7 +296,7 @@ func test_every_boss_uses_one_close_right_flank_wall_that_drops_on_body_defeat()
 	assert_eq(city.robot.collision_mask & ARENA_WALL_LAYER, 0)
 
 
-func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
+func test_success_opens_shop_after_fireworks_without_salvage_contact() -> void:
 	var city: CitySlice = await _spawn_city()
 	var siege: UrbanSiegeRuntime = city.urban_siege
 	var director: DistrictResponseDirector = siege.director
@@ -365,9 +365,9 @@ func test_success_waits_for_salvage_shop_but_never_for_route_travel() -> void:
 		CityStreetChunk.ROAD_DIVIDER_Y,
 		0.001
 	)
-	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SALVAGE)
+	assert_null(campaign.get_node_or_null("BossSalvageTrigger2D"))
+	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_SHOP)
 	assert_true(director.is_suspended_for_boss())
-	campaign._on_salvage_claimed()
 	assert_true(city.weapon_shop_assembler.session.active)
 	assert_true(city.weapon_shop_assembler.session.close_shop())
 	assert_eq(campaign.handoff_state, BossCampaignDirector.HANDOFF_CORRIDOR)
