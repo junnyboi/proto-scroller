@@ -50,7 +50,7 @@ func test_next_run_progression_spawn_and_shop_adapters_share_one_snapshot() -> v
 	var baseline: Array[WeaponShopProduct] = WeaponShopCatalog.products_for(&"BUSINESS")
 	var priced: Array[WeaponShopProduct] = shop._priced_products_for(&"BUSINESS")
 	assert_eq(priced[0].price, roundi(float(baseline[0].price) * 1.25))
-	assert_eq(baseline[0].price, 12800)
+	assert_eq(baseline[0].price, 25600)
 	assert_ne(priced[0], baseline[0])
 
 

@@ -15,21 +15,21 @@ func test_catalog_has_three_unique_shop_only_products_per_district() -> void:
 	assert_eq(WeaponShopCatalog.validation_errors(), PackedStringArray())
 	assert_eq(WeaponShopVisualCatalog.validation_errors(), PackedStringArray())
 	var expected_prices: Dictionary[StringName, int] = {
-		&"foreclosure_slugs": 12800,
-		&"hostile_leverage": 16800,
-		&"collateral_refinance": 9600,
-		&"patchwork_nanoweld": 11200,
-		&"scrapheap_magnetics": 19200,
-		&"borrowed_shock_coils": 20800,
-		&"encore_capacitors": 24800,
-		&"jackpot_chamber": 27200,
-		&"backstage_triage": 15200,
-		&"siege_breaching_load": 32800,
-		&"hunter_killer_link": 36000,
-		&"gantry_overhaul": 20000,
-		&"sovereign_aegis": 48000,
-		&"crownfire_protocol": 54000,
-		&"chronoseal_governor": 44000,
+		&"foreclosure_slugs": 25600,
+		&"hostile_leverage": 33600,
+		&"collateral_refinance": 19200,
+		&"patchwork_nanoweld": 22400,
+		&"scrapheap_magnetics": 38400,
+		&"borrowed_shock_coils": 41600,
+		&"encore_capacitors": 49600,
+		&"jackpot_chamber": 54400,
+		&"backstage_triage": 30400,
+		&"siege_breaching_load": 65600,
+		&"hunter_killer_link": 72000,
+		&"gantry_overhaul": 40000,
+		&"sovereign_aegis": 96000,
+		&"crownfire_protocol": 108000,
+		&"chronoseal_governor": 88000,
 	}
 	var level_ids: Dictionary[StringName, bool] = {}
 	var level_catalog: UpgradeCatalog = load(
@@ -54,7 +54,8 @@ func test_catalog_has_three_unique_shop_only_products_per_district() -> void:
 func test_simplified_chinese_shop_localizes_every_visible_surface() -> void:
 	L10n.set_locale("zh-CN")
 	var city: CitySlice = await _spawn_city()
-	city.rampage_session.run_score.safe_score = 20_000
+	city.rampage_session.run_score.safe_score = 60_000
+	city.robot.current_health = city.robot.max_health * 0.5
 	_open_act_shop(city, 0)
 	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
 	assert_eq(overlay.title_label.text, "黑账本交易所")
@@ -78,7 +79,7 @@ func test_simplified_chinese_shop_localizes_every_visible_surface() -> void:
 	overlay.cards[2]._on_pressed()
 	assert_true(overlay.confirmation_panel.active)
 	assert_eq(overlay.confirmation_panel.prompt_label.text, "授权扣除破坏得分？")
-	assert_eq(overlay.confirmation_panel.confirm_button.text, "确认 / 9600")
+	assert_eq(overlay.confirmation_panel.confirm_button.text, "确认 / 19200")
 	assert_eq(overlay.confirmation_panel.cancel_button.text, "取消")
 
 
@@ -176,7 +177,7 @@ func test_royal_shop_is_terminal_only() -> void:
 func test_purchase_deducts_score_repairs_once_and_updates_hud() -> void:
 	var city: CitySlice = await _spawn_city()
 	var score: RunScore = city.rampage_session.run_score
-	score.safe_score = 20_000
+	score.safe_score = 30_000
 	city._on_score_changed(score.score, 0)
 	city.robot.current_health = 30.0
 	city.robot.health_changed.emit(city.robot.current_health, city.robot.max_health)
@@ -187,12 +188,12 @@ func test_purchase_deducts_score_repairs_once_and_updates_hud() -> void:
 	_open_act_shop(city, 1)
 	var session: WeaponShopSession = city.weapon_shop_assembler.session
 	assert_true(session.purchase(&"patchwork_nanoweld"))
-	assert_eq(score.score, 8800)
+	assert_eq(score.score, 7600)
 	assert_almost_eq(city.robot.current_health, expected_health, 0.01)
-	assert_eq(city.gameplay_hud.score_label.text, "00008800")
+	assert_eq(city.gameplay_hud.score_label.text, "00007600")
 	assert_eq(session.product_status(session.active_products[0]), &"sold")
 	assert_false(session.purchase(&"patchwork_nanoweld"))
-	assert_eq(score.score, 8800)
+	assert_eq(score.score, 7600)
 
 
 func test_insufficient_score_and_full_health_reject_without_spending() -> void:
@@ -221,7 +222,7 @@ func test_insufficient_score_and_full_health_reject_without_spending() -> void:
 func test_hover_preview_confirmation_and_upgrade_feedback_are_transactional() -> void:
 	var city: CitySlice = await _spawn_city()
 	var score: RunScore = city.rampage_session.run_score
-	score.safe_score = 20_000
+	score.safe_score = 60_000
 	_open_act_shop(city, 0)
 	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay
 	overlay.dialogue_panel._dismiss()
@@ -262,7 +263,7 @@ func test_hover_preview_confirmation_and_upgrade_feedback_are_transactional() ->
 
 func test_repair_confirmation_uses_distinct_audio_and_repair_particles() -> void:
 	var city: CitySlice = await _spawn_city()
-	city.rampage_session.run_score.safe_score = 20_000
+	city.rampage_session.run_score.safe_score = 60_000
 	city.robot.current_health = 40.0
 	_open_act_shop(city, 1)
 	var overlay: WeaponShopOverlay = city.weapon_shop_assembler.overlay

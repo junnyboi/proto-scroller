@@ -33,8 +33,8 @@ func _run() -> void:
 	var city: CitySlice = scene.instantiate() as CitySlice
 	root.add_child(city)
 	await process_frame
-	city.rampage_session.run_score.safe_score = 14_000
-	city._on_score_changed(14_000, 0)
+	city.rampage_session.run_score.safe_score = 28_000
+	city._on_score_changed(28_000, 0)
 	city.robot.current_health = 58.0
 	city.robot.health_changed.emit(city.robot.current_health, city.robot.max_health)
 	city.urban_siege.act_completed.emit(0, &"CONTACT", "encounter.contact")
