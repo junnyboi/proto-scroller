@@ -587,6 +587,21 @@ func attack_telegraph_origin() -> Vector2:
 	return global_position + _attack_forward_direction() * ATTACK_ORIGIN_FORWARD_CLEARANCE
 
 
+func center_of_mass_world_position() -> Vector2:
+	if visual == null or visual.texture == null:
+		return global_position
+	var content_rect: Rect2 = visual.get_meta(
+		VISUAL_CONTENT_RECT_META,
+		Rect2(-visual.texture.get_size() * 0.5, visual.texture.get_size())
+	)
+	var local_center: Vector2 = content_rect.get_center()
+	if visual.flip_h:
+		local_center.x = -local_center.x
+	if visual.flip_v:
+		local_center.y = -local_center.y
+	return visual.to_global(local_center)
+
+
 func _attack_forward_direction() -> Vector2:
 	var actor_right: Vector2 = global_transform.x.normalized()
 	if actor_right.is_zero_approx():

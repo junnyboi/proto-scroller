@@ -78,6 +78,24 @@ func test_rank_three_pulse_hits_three_nearest_living_targets_in_fixed_registry()
 	assert_eq(runtime.tower.active_arc_count(), 3)
 	assert_eq(runtime.tower.pulse_count, 1)
 	assert_eq(runtime.tower.accepted_hit_count, 3)
+	for index: int in range(3):
+		var target: EnemyActor2D = targets[index]
+		var content_rect: Rect2 = target.visual.get_meta(
+			EnemyActor2D.VISUAL_CONTENT_RECT_META,
+			Rect2(
+				-target.visual.texture.get_size() * 0.5,
+				target.visual.texture.get_size()
+			)
+		)
+		var local_center: Vector2 = content_rect.get_center()
+		if target.visual.flip_h:
+			local_center.x = -local_center.x
+		if target.visual.flip_v:
+			local_center.y = -local_center.y
+		var rendered_center: Vector2 = target.visual.to_global(local_center)
+		assert_eq(runtime.tower.arcs[index].endpoint, rendered_center)
+		assert_eq(target.center_of_mass_world_position(), rendered_center)
+	assert_ne(runtime.tower.arcs[0].endpoint, targets[0].global_position)
 
 
 func test_tesla_damage_preserves_root_attribution_and_never_redeploys() -> void:

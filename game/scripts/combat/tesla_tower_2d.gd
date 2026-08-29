@@ -183,7 +183,8 @@ func _pulse() -> void:
 		var enemy: EnemyActor2D = _targets[index]
 		if enemy == null:
 			break
-		var direction: Vector2 = (enemy.global_position - tower_origin).normalized()
+		var target_point: Vector2 = enemy.center_of_mass_world_position()
+		var direction: Vector2 = (target_point - tower_origin).normalized()
 		if direction.is_zero_approx():
 			direction = Vector2.RIGHT
 		var event: DamageEvent = DamageEvent.new(
@@ -191,7 +192,7 @@ func _pulse() -> void:
 			robot,
 			DAMAGE[current_rank],
 			&"tesla_tower",
-			enemy.global_position,
+			target_point,
 			direction,
 			0.0,
 			deployment_attack_id,
@@ -200,7 +201,7 @@ func _pulse() -> void:
 		)
 		if enemy.receive_damage(event):
 			accepted_hit_count += 1
-		arcs[index].activate(tower_origin, enemy.global_position)
+		arcs[index].activate(tower_origin, target_point)
 	pulse_count += 1
 
 
