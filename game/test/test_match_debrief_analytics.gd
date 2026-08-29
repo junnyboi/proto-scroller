@@ -576,6 +576,38 @@ func test_career_profile_chart_and_global_tabs_are_interactive() -> void:
 	_record_test_execution()
 
 
+func test_chinese_career_chart_draws_with_complete_cjk_font() -> void:
+	L10n.set_locale("zh-CN")
+	var panel: MatchDebriefPanel = MatchDebriefPanel.new()
+	add_child_autofree(panel)
+	await get_tree().process_frame
+	var chart: CareerWeaponHistoryChart = panel.weapon_history_chart
+	assert_true(chart.has_theme_font_override(&"font"))
+	var drawing_font: Font = chart._drawing_font()
+	assert_same(drawing_font, chart.get_theme_font(&"font"))
+	var chart_copy: String = L10n.t("debrief.history.empty")
+	chart_copy += L10n.t("debrief.history.tooltip", {
+		"run": 12,
+		"score": "00065269",
+		"tier": 3,
+		"weapon": L10n.t("debrief.weapon.missile"),
+	})
+	for weapon_id: String in [
+		"ground_smash", "jab_cross", "siege_drill", "gravity_crucible",
+		"machine_gun", "missile", "laser", "flamethrower", "tesla_tower",
+		"environment", "unknown",
+	]:
+		chart_copy += L10n.t("debrief.weapon.%s" % weapon_id)
+	var missing_codepoints: PackedInt32Array = []
+	for index: int in range(chart_copy.length()):
+		var codepoint: int = chart_copy.unicode_at(index)
+		if codepoint > 127 and not drawing_font.has_char(codepoint):
+			missing_codepoints.append(codepoint)
+	assert_eq(missing_codepoints, PackedInt32Array())
+	L10n.set_locale("en")
+	_record_test_execution()
+
+
 func test_async_global_rows_stay_hidden_on_after_action_page() -> void:
 	L10n.set_locale("en")
 	var panel: MatchDebriefPanel = MatchDebriefPanel.new()

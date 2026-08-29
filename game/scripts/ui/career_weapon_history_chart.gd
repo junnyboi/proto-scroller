@@ -25,6 +25,7 @@ func _ready() -> void:
 	focus_mode = Control.FOCUS_ALL
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
+	L10n.apply_locale_font(self)
 
 
 func set_history(history: Array[Dictionary]) -> void:
@@ -84,9 +85,16 @@ func _gui_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), BACKGROUND, true)
+	var font: Font = _drawing_font()
 	var chart: Rect2 = _chart_rect()
 	if _history.is_empty():
-		_draw_centered_text(L10n.t("debrief.history.empty"), Rect2(Vector2.ZERO, size), 16, TEXT)
+		_draw_centered_text(
+			L10n.t("debrief.history.empty"),
+			Rect2(Vector2.ZERO, size),
+			16,
+			TEXT,
+			font
+		)
 		return
 	for grid_index: int in range(5):
 		var ratio: float = float(grid_index) / 4.0
@@ -107,13 +115,12 @@ func _draw() -> void:
 		for point_index: int in range(points.size()):
 			var radius: float = 5.0 if point_index == selected_index else 3.0
 			draw_circle(points[point_index], radius, SERIES_COLORS[series_index], true)
-	_draw_axis_labels(chart, maximum)
-	_draw_legend()
-	_draw_selection(chart)
+	_draw_axis_labels(chart, maximum, font)
+	_draw_legend(font)
+	_draw_selection(chart, font)
 
 
-func _draw_axis_labels(chart: Rect2, maximum: float) -> void:
-	var font: Font = get_theme_default_font()
+func _draw_axis_labels(chart: Rect2, maximum: float, font: Font) -> void:
 	var font_size: int = 12
 	for label_index: int in range(3):
 		var ratio: float = float(label_index) / 2.0
@@ -144,8 +151,7 @@ func _draw_axis_labels(chart: Rect2, maximum: float) -> void:
 		)
 
 
-func _draw_legend() -> void:
-	var font: Font = get_theme_default_font()
+func _draw_legend(font: Font) -> void:
 	for index: int in range(_series_ids.size()):
 		var x: float = 58.0 + float(index) * maxf((size.x - 75.0) / 3.0, 120.0)
 		draw_circle(Vector2(x, 15.0), 4.0, SERIES_COLORS[index])
@@ -160,7 +166,7 @@ func _draw_legend() -> void:
 		)
 
 
-func _draw_selection(chart: Rect2) -> void:
+func _draw_selection(chart: Rect2, font: Font) -> void:
 	if selected_index < 0 or selected_index >= _history.size():
 		return
 	var x: float = _x_for_index(selected_index, chart)
@@ -178,7 +184,7 @@ func _draw_selection(chart: Rect2) -> void:
 		"weapon": _weapon_name(StringName(entry.get("preferred_weapon", "UNKNOWN"))),
 	})
 	draw_multiline_string(
-		get_theme_default_font(),
+		font,
 		tooltip.position + Vector2(10.0, 20.0),
 		details,
 		HORIZONTAL_ALIGNMENT_LEFT,
@@ -189,12 +195,18 @@ func _draw_selection(chart: Rect2) -> void:
 	)
 
 
-func _draw_centered_text(text: String, rect: Rect2, font_size: int, color: Color) -> void:
-	var text_size: Vector2 = get_theme_default_font().get_string_size(
+func _draw_centered_text(
+	text: String,
+	rect: Rect2,
+	font_size: int,
+	color: Color,
+	font: Font
+) -> void:
+	var text_size: Vector2 = font.get_string_size(
 		text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size
 	)
 	draw_string(
-		get_theme_default_font(),
+		font,
 		rect.position + (rect.size - text_size) * 0.5 + Vector2(0.0, text_size.y),
 		text,
 		HORIZONTAL_ALIGNMENT_LEFT,
@@ -202,6 +214,10 @@ func _draw_centered_text(text: String, rect: Rect2, font_size: int, color: Color
 		font_size,
 		color
 	)
+
+
+func _drawing_font() -> Font:
+	return get_theme_font(&"font")
 
 
 func _select_series(history: Array[Dictionary]) -> Array[StringName]:

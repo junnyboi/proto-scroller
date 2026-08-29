@@ -22,7 +22,10 @@ func _on_process_frame() -> void:
 
 
 func _run() -> void:
-	L10n.set_locale("en")
+	var requested_locale: String = OS.get_environment(
+		"PROTO_SCROLLER_DEBRIEF_LOCALE"
+	)
+	L10n.set_locale(requested_locale if requested_locale in L10n.SUPPORTED_LOCALES else "en")
 	_clear_profile()
 	var target_size: Vector2i = _target_size()
 	root.get_window().content_scale_size = target_size
@@ -98,6 +101,8 @@ func _run() -> void:
 	)
 	if target_size.y > target_size.x:
 		shot_name += "-portrait"
+	if L10n.current_locale() != "en":
+		shot_name += "-%s" % L10n.current_locale().to_lower()
 	var shot_path: String = "res://artifacts/match_debrief/match-debrief-%s.png" % shot_name
 	var save_error: Error = image.save_png(ProjectSettings.globalize_path(shot_path))
 	if save_error != OK or image.get_size() != target_size:
