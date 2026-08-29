@@ -26,6 +26,33 @@ const ATLAS_SIZE: Vector2i = Vector2i(360, 288)
 const CELL_SIZE: Vector2i = Vector2i(72, 72)
 const COLUMNS: int = 5
 const HOSTILE_IMPACT_DURATION: float = 0.24
+const ATTACK_VISIBLE_CENTER_OFFSETS: Array[Vector2] = [
+	Vector2(-0.5, -3.5), Vector2(0.0, -8.0), Vector2(-2.0, -3.0),
+	Vector2(-2.0, -3.5), Vector2(-2.5, -2.0), Vector2(-1.0, -13.5),
+	Vector2(-0.5, -2.0), Vector2(-2.5, -1.0), Vector2(-2.5, -5.0),
+	Vector2(-0.5, -11.0), Vector2(-1.0, -3.0), Vector2(-1.5, -3.5),
+	Vector2(-1.5, -0.5), Vector2(-1.0, -3.5), Vector2(-0.5, -2.5),
+	Vector2(-0.5, -1.5), Vector2(-2.5, -0.5), Vector2(-3.0, -5.0),
+	Vector2(-1.0, 0.0), Vector2(-2.0, -1.0),
+]
+const PROJECTILE_VISIBLE_CENTER_OFFSETS: Array[Vector2] = [
+	Vector2(-5.0, -3.5), Vector2(-6.5, -2.0), Vector2(1.5, -2.5),
+	Vector2(1.0, -3.0), Vector2(3.5, -3.5), Vector2(0.0, -9.5),
+	Vector2(-2.5, -4.0), Vector2(-0.5, -2.0), Vector2(2.5, -2.5),
+	Vector2(-12.5, -1.0), Vector2(0.0, -2.0), Vector2(-1.0, -2.5),
+	Vector2(1.0, -1.5), Vector2(-4.5, -3.5), Vector2(-2.5, -2.5),
+	Vector2(-1.5, -3.0), Vector2(1.0, -1.0), Vector2(1.0, -4.5),
+	Vector2(0.5, -0.5), Vector2(0.0, -1.5),
+]
+const IMPACT_VISIBLE_CENTER_OFFSETS: Array[Vector2] = [
+	Vector2(-0.5, 0.0), Vector2(-3.0, 0.0), Vector2(-0.5, 0.0),
+	Vector2(-0.5, 0.0), Vector2(0.0, 0.0), Vector2(-0.5, -0.5),
+	Vector2(0.0, 0.0), Vector2(0.0, 0.0), Vector2(0.0, 0.0),
+	Vector2(-0.5, 0.0), Vector2(-0.5, 0.0), Vector2(-0.5, -0.5),
+	Vector2(0.0, 0.0), Vector2(0.0, 0.0), Vector2(-0.5, 0.0),
+	Vector2(0.0, 0.0), Vector2(-0.5, 0.0), Vector2(0.0, 0.0),
+	Vector2(0.0, 0.0), Vector2(-0.5, 0.0),
+]
 
 const CANONICAL_IMPACT_SPECS: Dictionary = {
 	&"enemy_bullet_impact": {
@@ -272,6 +299,10 @@ static func phase_spec(archetype_id: StringName, phase: StringName) -> Dictionar
 		"texture": texture,
 		"region": _region_for_index(int(item.get("index", -1))),
 		"display_size": item.get("%s_display" % phase, Vector2.ZERO),
+		"visible_center_offset": _visible_center_offset(
+			int(item.get("index", -1)),
+			phase
+		),
 	}
 
 
@@ -289,6 +320,12 @@ static func validation_errors() -> PackedStringArray:
 	var errors: PackedStringArray = []
 	if SPECS.size() != 20:
 		errors.append("Expected exactly 20 district attack VFX specs")
+	if ATTACK_VISIBLE_CENTER_OFFSETS.size() != SPECS.size():
+		errors.append("Attack visible-center metadata must cover every VFX spec")
+	if PROJECTILE_VISIBLE_CENTER_OFFSETS.size() != SPECS.size():
+		errors.append("Projectile visible-center metadata must cover every VFX spec")
+	if IMPACT_VISIBLE_CENTER_OFFSETS.size() != SPECS.size():
+		errors.append("Impact visible-center metadata must cover every VFX spec")
 	var expected: Dictionary[StringName, bool] = {}
 	for archetype_id: StringName in EnemyArchetypeCatalog.DISTRICT_VARIANT_IDS:
 		expected[archetype_id] = true
@@ -342,6 +379,7 @@ static func _build_cached_specs() -> void:
 			"region": projectile_phase.region,
 			"source_size": ATLAS_SIZE,
 			"display_size": projectile_phase.display_size,
+			"visible_center_offset": projectile_phase.visible_center_offset,
 			"collision_radius_contract": _radius_for_kind(StringName(item.kind)),
 			"canonical_angle": 0.0,
 			"trail_mode": ProjectileVisualCatalog.TrailMode.NONE,
@@ -358,6 +396,7 @@ static func _build_cached_specs() -> void:
 			"texture": impact_phase.texture,
 			"region": impact_phase.region,
 			"display_size": impact_phase.display_size,
+			"visible_center_offset": impact_phase.visible_center_offset,
 			"lifetime": HOSTILE_IMPACT_DURATION,
 			"tint": Color.WHITE,
 			"visual_key": hit_key,
@@ -407,6 +446,17 @@ static func _region_for_index(index: int) -> Rect2i:
 		CELL_SIZE.x,
 		CELL_SIZE.y
 	)
+
+
+static func _visible_center_offset(index: int, phase: StringName) -> Vector2:
+	if index < 0:
+		return Vector2.ZERO
+	var offsets: Array[Vector2] = ATTACK_VISIBLE_CENTER_OFFSETS
+	if phase == &"projectile":
+		offsets = PROJECTILE_VISIBLE_CENTER_OFFSETS
+	elif phase == &"impact":
+		offsets = IMPACT_VISIBLE_CENTER_OFFSETS
+	return offsets[index] if index < offsets.size() else Vector2.ZERO
 
 
 static func _radius_for_kind(kind: StringName) -> float:

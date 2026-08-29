@@ -84,3 +84,23 @@ district attack sprites suppress duplicate generic geometry only when valid art 
 fallback telegraphs remain active without replacement art, representative rendered attacks
 originate in front of the attacker at center mass, and no focused parse, lint, pool, or
 presentation regression remains.
+
+## Follow-up humanoid visual audit
+
+The complete runtime contact sheet found that the shared world anchor was correct, but
+several authored atlas cells had asymmetric transparent padding. Their `Sprite2D` node
+was centered on the weapon anchor while the visible pixels remained biased upward. The
+largest humanoid outliers were Memorial Usher, Covenant Warden, and Intake Shepherd.
+
+The follow-up implementation records alpha-bounded visible-center offsets for every
+district attack, payload/projectile, and impact cell. Authored anticipation sprites and
+actor-delivery payloads compensate for those offsets after facing is applied, while
+district projectile drawing compensates before rotation. This keeps the visible art—not
+merely its 72×72 atlas cell—centered on the committed center-mass/weapon origin.
+
+The dedicated visual scenario now renders all five base human identities, all five human
+district reskins, Reclaimed Breacher, and Nemesis across three labeled telegraph pages,
+plus a separate commit-frame capture for every ranged humanoid projectile. Magenta anchor
+crosses and cyan center-mass guides make vertical or facing-side drift directly visible.
+The catalog regression independently recomputes alpha bounds for all sixty atlas regions
+so future asset replacements cannot silently invalidate the stored pivots.

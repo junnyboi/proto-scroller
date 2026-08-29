@@ -205,6 +205,13 @@ func _draw() -> void:
 		var display_size: Vector2 = visual_spec.get("display_size", Vector2.ZERO)
 		var region: Rect2i = visual_spec.get("region", Rect2i())
 		if texture != null and display_size.x > 0.0 and display_size.y > 0.0:
+			var visible_center_offset: Vector2 = _rendered_visible_center_offset(
+				visual_spec
+			)
+			var destination: Rect2 = Rect2(
+				-display_size * 0.5 - visible_center_offset,
+				display_size
+			)
 			draw_set_transform(
 				Vector2.ZERO,
 				visual_angle(),
@@ -213,13 +220,13 @@ func _draw() -> void:
 			if region.size == Vector2i.ZERO:
 				draw_texture_rect(
 					texture,
-					Rect2(-display_size * 0.5, display_size),
+					destination,
 					false
 				)
 			else:
 				draw_texture_rect_region(
 					texture,
-					Rect2(-display_size * 0.5, display_size),
+					destination,
 					Rect2(region)
 				)
 			return
@@ -238,6 +245,28 @@ func visual_angle() -> float:
 func rendered_display_size() -> Vector2:
 	var visual_spec: Dictionary = ProjectileVisualCatalog.spec(visual_key)
 	return (visual_spec.get("display_size", Vector2.ZERO) as Vector2) * presentation_scale
+
+
+func rendered_visible_center_offset() -> Vector2:
+	return _rendered_visible_center_offset(
+		ProjectileVisualCatalog.spec(visual_key)
+	) * presentation_scale
+
+
+func _rendered_visible_center_offset(visual_spec: Dictionary) -> Vector2:
+	var source_offset: Vector2 = visual_spec.get(
+		"visible_center_offset",
+		Vector2.ZERO
+	) as Vector2
+	var display_size: Vector2 = visual_spec.get("display_size", Vector2.ZERO) as Vector2
+	var region: Rect2i = visual_spec.get("region", Rect2i()) as Rect2i
+	var source_size: Vector2 = Vector2(region.size)
+	if source_size == Vector2.ZERO:
+		source_size = Vector2(visual_spec.get("source_size", Vector2i.ONE) as Vector2i)
+	return Vector2(
+		source_offset.x * display_size.x / maxf(source_size.x, 1.0),
+		source_offset.y * display_size.y / maxf(source_size.y, 1.0)
+	)
 
 
 func _build_collision() -> void:

@@ -743,19 +743,24 @@ func _show_district_attack_anticipation(attack_phase: Dictionary = {}) -> void:
 		Rect2(attack_phase.region as Rect2i)
 	)
 	attack_sprite.flip_h = facing < 0
+	_center_presentation_visible_content(attack_sprite, attack_offset, attack_phase)
 	if not EnemyAttackVfxCatalog.is_projectile_delivery(_attack_vfx_id):
 		var payload_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
 			_attack_vfx_id,
 			&"projectile"
 		)
+		var payload_offset: Vector2 = (
+			attack_offset + Vector2(float(facing) * 36.0, 0.0)
+		)
 		var payload_sprite: Sprite2D = _configure_presentation_sprite(
 			1,
 			payload_phase.texture as Texture2D,
 			payload_phase.display_size as Vector2,
-			attack_offset + Vector2(float(facing) * 36.0, 0.0),
+			payload_offset,
 			Rect2(payload_phase.region as Rect2i)
 		)
 		payload_sprite.flip_h = facing < 0
+		_center_presentation_visible_content(payload_sprite, payload_offset, payload_phase)
 	_presentation_remaining = maxf(
 		anticipation_duration * telegraph_multiplier,
 		MINIMUM_TELEGRAPH_SECONDS
@@ -780,7 +785,43 @@ func _show_district_completion(world_position: Vector2) -> void:
 		Rect2(completion_phase.region as Rect2i)
 	)
 	completion.flip_h = facing < 0
+	_center_presentation_visible_content(
+		completion,
+		to_local(world_position),
+		completion_phase
+	)
 	_presentation_remaining = EnemyAttackVfxCatalog.HOSTILE_IMPACT_DURATION
+
+
+func _center_presentation_visible_content(
+	sprite: Sprite2D,
+	local_anchor: Vector2,
+	phase: Dictionary
+) -> void:
+	var source_offset: Vector2 = phase.get(
+		"visible_center_offset",
+		Vector2.ZERO
+	) as Vector2
+	if sprite.flip_h:
+		source_offset.x = -source_offset.x
+	if sprite.flip_v:
+		source_offset.y = -source_offset.y
+	sprite.position = local_anchor - source_offset * sprite.scale
+
+
+func _presentation_visible_center_world(
+	sprite: Sprite2D,
+	phase: Dictionary
+) -> Vector2:
+	var source_offset: Vector2 = phase.get(
+		"visible_center_offset",
+		Vector2.ZERO
+	) as Vector2
+	if sprite.flip_h:
+		source_offset.x = -source_offset.x
+	if sprite.flip_v:
+		source_offset.y = -source_offset.y
+	return sprite.to_global(source_offset)
 
 
 func _show_lance_completion() -> void:

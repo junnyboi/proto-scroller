@@ -31,6 +31,14 @@ func test_catalog_exactly_covers_twenty_variants_and_sixty_regions() -> void:
 				"%s %s" % [archetype_id, phase]
 			)
 			assert_gt((phase_spec.display_size as Vector2).x, 0.0, archetype_id)
+			assert_eq(
+				phase_spec.visible_center_offset,
+				_visible_region_center_offset(
+					phase_spec.texture as Texture2D,
+					phase_spec.region as Rect2i
+				),
+				"%s %s visible center" % [archetype_id, phase]
+			)
 		if EnemyAttackVfxCatalog.is_projectile_delivery(archetype_id):
 			projectile_deliveries += 1
 		else:
@@ -221,11 +229,37 @@ func test_all_twenty_variants_show_unique_fixed_sprite_anticipation() -> void:
 			city.telegraph_presenter.uses_procedural_rendering(enemy._telegraph_id),
 			archetype_id
 		)
-		assert_eq(
-			enemy._presentation_sprites[0].global_position,
-			enemy.telegraph_origin(),
+		var attack_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+			archetype_id,
+			&"attack"
+		)
+		assert_almost_eq(
+			enemy._presentation_visible_center_world(
+				enemy._presentation_sprites[0],
+				attack_phase
+			).distance_to(enemy.telegraph_origin()),
+			0.0,
+			0.01,
 			archetype_id
 		)
+		if not EnemyAttackVfxCatalog.is_projectile_delivery(archetype_id):
+			var payload_phase: Dictionary = EnemyAttackVfxCatalog.phase_spec(
+				archetype_id,
+				&"projectile"
+			)
+			var payload_anchor: Vector2 = enemy.telegraph_origin() + Vector2(
+				float(enemy.facing) * 36.0,
+				0.0
+			)
+			assert_almost_eq(
+				enemy._presentation_visible_center_world(
+					enemy._presentation_sprites[1],
+					payload_phase
+				).distance_to(payload_anchor),
+				0.0,
+				0.01,
+				"%s payload" % archetype_id
+			)
 		enemy.cancel_telegraph()
 		assert_eq(_visible_presentation_count(enemy), 0, archetype_id)
 		assert_eq(city.projectile_root.reservation_count(), 0, archetype_id)
@@ -348,6 +382,25 @@ func _expected_radius(kind: StringName) -> float:
 			return 7.0
 		_:
 			return 5.0
+
+
+func _visible_region_center_offset(texture: Texture2D, region: Rect2i) -> Vector2:
+	var image: Image = texture.get_image()
+	var minimum: Vector2i = region.end
+	var maximum: Vector2i = region.position - Vector2i.ONE
+	for y: int in range(region.position.y, region.end.y):
+		for x: int in range(region.position.x, region.end.x):
+			if image.get_pixel(x, y).a <= 0.03:
+				continue
+			minimum = minimum.min(Vector2i(x, y))
+			maximum = maximum.max(Vector2i(x, y))
+	if maximum.x < minimum.x or maximum.y < minimum.y:
+		return Vector2.ZERO
+	return (
+		Vector2(minimum + maximum + Vector2i.ONE) * 0.5
+		- Vector2(region.position)
+		- Vector2(region.size) * 0.5
+	)
 
 
 func _visible_presentation_count(enemy: ProceduralEnemy) -> int:
